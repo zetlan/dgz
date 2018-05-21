@@ -1,0 +1,316 @@
+<!doctype html>
+<html>
+
+  <head>
+    <title>Ball Maze Game</title>
+
+    <style>
+      #leBox {
+        background-color: black;
+      }
+
+      #canvas {
+        border-style: double;
+        border-color: slateblue;
+      }
+
+    </style>
+
+
+    <script type="text/javascript">
+      window.addEventListener("keydown", keyPress, false);
+      window.addEventListener("keyup", keyNegate, false);
+      //setting up variables for later
+      var canvas;
+      var ctx;
+      var dx = 0;
+      var dy = 0;
+      var circle = new Circle(400, 300, 5);
+      var timer;
+      var backgroundColor = "#FFF0FF";
+      var ballColor = "#8800FF";
+      var landColor = "#008800";
+      var waterColor = "#AAAAFF";
+      var brokenColor = "#FF00FF";
+      var notMuch = 0;
+      var text = " ";
+      var score = 3000;
+      var gameIsRunning = 0;
+      var currentLevel = 0;
+      
+
+      /*these arrays are very important, because they're the arrays that determine the map layout. A map piece is 40 pixels squared, which means that there are 20 pieces per row, and 15 rows. 0 represents water, 1 represents land, and 2 represents the ending position.*/
+      var map = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0
+                    ];
+      var map2 = [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                            0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                            0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                            0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                            0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0,
+                            1, 0, 0, 1, 1, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 1, 0, 0, 1, 1,
+                            1, 0, 0, 1, 1, 1, 1, 1, 0, 2, 2, 0, 0, 0, 0, 1, 0, 0, 0, 1,
+                            1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+                            0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+                            0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+                            0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
+                            0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                            0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                            0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0
+      ];
+      var map3 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
+                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
+                            0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
+                            0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                            0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                            0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                            1, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                            0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                            0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                            0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 2, 0, 0, 1, 1, 1, 1, 1, 1, 0,
+                            0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0,
+                            0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0,
+                            0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0,
+                            1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1,
+                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0
+      ];
+      /* startPoints gives the starting x and y for each level. There are two numbers per level. (x and y.) This is important because otherwise the game could end up respawning you in water, or just someplace you shouldn't be. */
+      var startPoints = [400, 300, 300, 100];
+
+      //the initializing function.
+      function setup() {
+
+        gameIsRunning = 1;
+        currentLevel = 1;
+        canvas = document.getElementById("canvas");
+        ctx = canvas.getContext("2d");
+        timer = setInterval(draw, 10);
+        return timer;
+      }
+
+      function Circle(x, y, r) {
+        this.x = x;
+        this.y = y;
+        this.r = r;
+      }
+
+      function drawBall(badNames) {
+        ctx.beginPath();
+        ctx.arc(badNames.x, badNames.y, badNames.r, 0, Math.PI * 2, true);
+        ctx.fill();
+      }
+
+      function keyPress(clems) {
+        if (clems.keyCode == 37) {
+          dx = dx - 1;
+        }
+        if (clems.keyCode == 38) {
+          dy = dy - 1;
+        }
+        if (clems.keyCode == 39) {
+          dx = dx + 1;
+        }
+        if (clems.keyCode == 40) {
+          dy = dy + 1;
+        }
+      }
+
+      //keyNegate makes sure that when you stop pressing a key, the ball stops as well.
+      function keyNegate() {
+        dx = 0;
+        dy = 0;
+      }
+
+      /* a for loop states three things, (starting variable, when to end it, what to do in the meantime) */
+      function mapWrite() {
+
+        var section = 0;
+        var row = 0;
+        var counter = 0;
+        var loadingMap = 0;
+        
+        switch(currentLevel) {
+                case 1:
+                loadingMap = map;
+                break;
+                case 2:
+                loadingMap = map2;
+                break;
+                case 3:
+                loadingMap = map3;
+                }
+
+        function mapSquare(color, offsetX, offsetY) {
+          ctx.fillStyle = color;
+          ctx.fillRect(offsetX, offsetY, 40, 40);
+        }
+
+        for (notMuch = 0; notMuch < 300; notMuch++) {
+          if (loadingMap[notMuch] == 0) {
+            mapSquare(waterColor, section, row);
+          } else if (loadingMap[notMuch] == 1) {
+            mapSquare(landColor, section, row);
+          } else if (loadingMap[notMuch] != 0 || loadingMap[notMuch] != 1) {
+            mapSquare(brokenColor, section, row);
+          }
+
+          section = section + 40;
+          counter = counter + 1;
+          if (counter == 20) {
+            counter = 0;
+            section = 0;
+            row = row + 40;
+          }
+        }
+      }
+
+
+      /*this function is the main function, that repeats every time the timer goes off. It does a few things. 
+      First, it clears everything, and then draws everything. (the ball, the background, the map.). */
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = backgroundColor;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        mapWrite();
+        ctx.fillStyle = ballColor;
+        drawBall(circle);
+
+        /*then, it checks if the ball is outside of the canvas on each side, and if it is, wraps the 
+        ball around to the opposite side. */
+
+        if (circle.x > canvas.width) {
+          circle.x = 0;
+        } else if (circle.x < 0) {
+          circle.x = canvas.width;
+        } else if (circle.y > canvas.height) {
+          circle.y = 0;
+        } else if (circle.y < 0) {
+          circle.y = canvas.height;
+        }
+
+        /*after that, it moves the ball based on the current velocity, checks if the game is in a loss state or a win state, and subtracts a score. */
+        circle.x = circle.x + dx;
+        circle.y = circle.y + dy;
+        winLoss();
+        if (gameIsRunning == 1) {
+          score = score - 1;
+        } else {
+          score = score;
+        }
+
+        //and finally, it displays all the display things..
+        document.getElementById("exCoordReadout").innerHTML = circle.x;
+        document.getElementById("whyCoordReadout").innerHTML = circle.y;
+        document.getElementById("exMomentumReadout").innerHTML = dx;
+        document.getElementById("whyMomentumReadout").innerHTML = dy;
+        document.getElementById("scoreReadout").innerHTML = score;
+      }
+      /* winloss works by checking the color around the ball. I couldn't check the color in the ball because this window is actuall 2d, which means that the color where the ball is would be purple. I did the best I could without it glitching out, which was 5 pixels. 
+      
+      The rules are pretty simple. You win if you touch the pink, you lose if you touch the blue. */
+      function winLoss() {
+        //this first part gets the data of the pixel 5 pixels down and to the right of the ball, than puts that data into debugPara.
+        var pixelData = ctx.getImageData(circle.x + 5, circle.y + 5, 1, 1).data;
+        document.getElementById("debugPara").innerHTML = pixelData;
+        
+        /* the next part says that if the player is on water, to make them lose the game and to move the ball to the starting position. */
+                if(gameIsRunning == 1) {
+            if (pixelData == "170,170,255,255") {
+            score = score - 100;
+            document.getElementById("gameStatusReadout").innerHTML = "You touched the water. Please don't do that."
+            if (currentLevel == 1) {
+                moveBall(startPoints[0], startPoints[1]);
+            } else if (currentLevel == 2) {
+                    moveBall(startPoints[2], startPoints[3]);
+            }
+          }
+          else if (pixelData == "255,0,255,255") {
+          
+            switch(currentLevel) {
+                        case 1:
+                        document.getElementById("gameStatusReadout").innerHTML = "You finished level 1!";
+                score = score + 1000;
+                currentLevel = 2;
+                        break;
+                        case 2:
+                        document.getElementById("gameStatusReadout").innerHTML = "You finished level 2!";
+                    score = score + 2000;
+                    currentLevel = 3;
+                        break;
+                        case 3:
+                        document.getElementById("gameStatusReadout").innerHTML = "You finished the game! Good job!";
+                    score = score + 3000;
+                gameIsRunning = 0;
+                        }
+            }
+        }
+      }
+
+      function changeBox(a) {
+        switch (a) {
+          case 0:
+            document.getElementById("leBox").style.color = "white";
+            break;
+          case 1:
+            document.getElementById("leBox").style.color = "black";
+            break;
+        }
+      }
+
+      function moveBall(a, b) {
+        circle.x = a;
+        circle.y = b;
+      }
+
+    </script>
+  </head>
+
+  <body>
+    <div>
+      <canvas id="canvas" width="800" height="600">
+      </canvas>
+      <button onclick="setup()">Click to Start the Game</button>
+      <button onclick="changeBox(0)">Click to See Debug Things</button>
+      <button onclick="changeBox(1)">Click to Not See Debug Things</button>
+      <div id="leBox">
+
+        <p id="ballCoords">
+          The ball's current position is X<span id="exCoordReadout">___</span>, Y<span id="whyCoordReadout">___</span>
+        </p>
+        <p id="ballMomentum">
+          The ball's current momentum is X<span id="exMomentumReadout">___</span>, Y<span id="whyMomentumReadout">___</span>
+        </p>
+        <p id="debugPara">
+          Use the arrow keys to move! The longer you hold down, the faster the ball will go!
+        </p>
+      </div>
+      <p id="gameStatusReadout">
+        ___
+      </p>
+      <p id="scoreReadout">
+
+      </p>
+
+
+
+
+
+    </div>
+  </body>
+
+</html>
+
