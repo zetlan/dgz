@@ -89,7 +89,7 @@
                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0
       ];
       /* startPoints gives the starting x and y for each level. There are two numbers per level. (x and y.) This is important because otherwise the game could end up respawning you in water, or just someplace you shouldn't be. */
-      var startPoints = [400, 300, 300, 100];
+      var startPoints = [400, 300, 300, 100, 400, 300];
 
       //the initializing function.
       function setup() {
@@ -116,16 +116,16 @@
 
       function keyPress(clems) {
         if (clems.keyCode == 37) {
-          dx = dx - 1;
+          dx = -1;
         }
         if (clems.keyCode == 38) {
-          dy = dy - 1;
+          dy = -1;
         }
         if (clems.keyCode == 39) {
-          dx = dx + 1;
+          dx = 1;
         }
         if (clems.keyCode == 40) {
-          dy = dy + 1;
+          dy = 1;
         }
       }
 
@@ -232,10 +232,15 @@
             if (pixelData == "170,170,255,255") {
             score = score - 100;
             document.getElementById("gameStatusReadout").innerHTML = "You touched the water. Please don't do that."
-            if (currentLevel == 1) {
+            switch(currentLevel) {
+                case 1:
                 moveBall(startPoints[0], startPoints[1]);
-            } else if (currentLevel == 2) {
-                    moveBall(startPoints[2], startPoints[3]);
+                break;
+              case 2:
+                moveBall(startPoints[2], startPoints[3]);
+                break;
+              case 3:
+                moveBall(startPoints[4], startPoints[5]);
             }
           }
           else if (pixelData == "255,0,255,255") {
@@ -302,12 +307,7 @@
         ___
       </p>
       <p id="scoreReadout">
-
       </p>
-
-
-
-
 
     </div>
   </body>
