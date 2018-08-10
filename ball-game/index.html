@@ -13,6 +13,10 @@
         border-style: double;
         border-color: slateblue;
       }
+      #gameStatusReadout {
+        font-size: 18px;
+        
+      }
 
     </style>
 
@@ -31,108 +35,121 @@
       var ballColor = "#8800FF";
       var landColor = "#008800";
       var waterColor = "#AAAAFF";
-      var brokenColor = "#FF00FF";
+      var endingColor = "#FF00FF";
       var notMuch = 0;
       var text = " ";
       var score = 3000;
       var gameIsRunning = 0;
       var currentLevel = 0;
-      var keyDownTime = 0;
+      var bugBoxIsOn = 0;
+      var firstTime = 1;
+      var additive = 0;
       
 
-      /*these arrays are very important, because they're the arrays that determine the map layout. A map piece is 40 pixels squared, which means that there are 20 pieces per row, and 15 rows. 0 represents water, 1 represents land, and 2 represents the ending position.*/
+      /*these arrays are very important, because they're the arrays that determine a lot of other aspects of the game. Things that have to be stored in memory go here. */     
+      /*These arrays are the arrays that determine the map layout. A map piece is 40 pixels squared, which means that there are 20 pieces per row, and 15 rows. 0 represents water, 1 represents land, and 2 represents the ending position.*/
       var map = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                         0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                         0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                         0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                         0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                         0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                         0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                         0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                         0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                         0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                         0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                         0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                         0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                         0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0
-                    ];
+        				 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        				 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        				 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        				 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        				 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        				 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        				 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        				 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        				 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        				 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        				 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        				 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        				 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        				 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0
+      				];
       var map2 = [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0,
-                            1, 0, 0, 1, 1, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 1, 0, 0, 1, 1,
-                            1, 0, 0, 1, 1, 1, 1, 1, 0, 2, 2, 0, 0, 0, 0, 1, 0, 0, 0, 1,
-                            1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
-                            0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
-                            0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
-                            0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-                            0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        					0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        					0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        					0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        					0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        					0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0,
+        					1, 0, 0, 1, 1, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 1, 0, 0, 1, 1,
+        					1, 0, 0, 1, 1, 1, 1, 1, 0, 2, 2, 0, 0, 0, 0, 1, 0, 0, 0, 1,
+        					1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+        					0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+        					0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+        					0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
+        					0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        					0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        					0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0
       ];
       var map3 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                            1, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                            0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                            0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                            0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 2, 0, 0, 1, 1, 1, 1, 1, 1, 0,
-                            0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0,
-                            0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0,
-                            0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0,
-                            1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1,
-                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0
+        					0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
+        					0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
+        					0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        					0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        					0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        					1, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        					0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        					0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        					0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 2, 0, 0, 1, 1, 1, 1, 1, 1, 0,
+        					0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0,
+        					0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0,
+        					0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0,
+        					1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1,
+        					0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0
       ];
       var map4 = [0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 2, 0,
-                            0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0,
-                            0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0,
-                            1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1,
-                            0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                            1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                            1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1,
-                            0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0,
-                            1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1,
-                            0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0,
-                            0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0,
-                            1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0
+        					0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 2, 0,
+        					0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0,
+        					0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0,
+        					1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1,
+        					0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        					1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        					0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        					1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1,
+        					0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0,
+        					1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1,
+        					0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0,
+        					0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0,
+        					1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0,
+        					0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0
       ];
       var map5 = [1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1,
-                            2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2,
-                            1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                            1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                            1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                            1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                            1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                            2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2,
-                            1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1
+        					2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2,
+        					1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        					1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        					1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        					1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        					1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        					1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        					1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        					1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        					1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        					1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        					1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        					2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2,
+        					1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1
       ];
       /* startPoints give the starting x and y for each level. There are two numbers per level. (x and y.) This is important because otherwise the game could end up respawning you in water, or just someplace you shouldn't be. */
       var startPoints = [400, 300, 300, 100, 400, 300, 420, 380, 780, 580];
+      //arrowsDown helps with the movement system, and allows keyPress to talk to keyNegate.
+      var arrowsDown = [0, 0, 0, 0];
 
       //the initializing function.
       function setup() {
-
-        gameIsRunning = 1;
-        currentLevel = 1;
+        
         canvas = document.getElementById("canvas");
         ctx = canvas.getContext("2d");
-        timer = setInterval(draw, 10);
-        return timer;
+        
+        gameIsRunning = 1;
+        currentLevel = 1;
+        moveBall(startPoints[0], startPoints[1]);
+        score = 3000;
+        if (firstTime == 1) {
+        	timer = setInterval(draw, 10);
+          firstTime = 0;
+        	return timer;
+        }
+        
+        
       }
 
       function Circle(x, y, r) {
@@ -148,30 +165,41 @@
       }
 
       function keyPress(clems) {
-      
-      var additive = keyDownTime / 10;
-        if (clems.keyCode == 37) {
-          dx = -1 - additive;
-        }
-        if (clems.keyCode == 38) {
-          dy = -1 - additive;
-        }
-        if (clems.keyCode == 39) {
-          dx = 1 + additive;
-        }
-        if (clems.keyCode == 40) {
-          dy = 1 + additive;
-        }
-        keyDownTime = keyDownTime + 1;
-        document.getElementById("debugPara2").innerHTML = keyDownTime;
+      	switch (clems.keyCode) {
+    		case 37:
+        	dx = -2;
+        	break;
+      	case 38:
+        	dy = -2;
+        	break;
+      	case 39:
+        	dx = 2;
+        	break;
+      	case 40:
+          	dy = 2;
+        break;
+    }
       }
 
-      //keyNegate makes sure that when you stop pressing a key, the ball stops as well.
-      function keyNegate() {
-        dx = 0;
-        dy = 0;
-        keyDownTime = 0;
+      /*keyNegate makes sure that when you stop pressing a key, the ball stops as well. I need to change this later, so that changing directions doesn't completely stop the ball. */
+      function keyNegate(clems) {
+      	switch (clems.keyCode) {
+    		case 37:
+        	dx = 0;
+        	break;
+      	case 38:
+        	dy = 0;
+        	break;
+      	case 39:
+        	dx = 0;
+        	break;
+      	case 40:
+          	dy = 0;
+        break;
+    }
       }
+      
+      /* mapWrite is the function that turns the arrays above into actual maps that the player can see. First, it defines a few variables, used for telling where the map reader is, and what map to load. */
       function mapWrite() {
 
         var section = 0;
@@ -179,28 +207,30 @@
         var counter = 0;
         var loadingMap = 0;
         
+        //after that, it determines which map to load into the game based on the current level.
         switch(currentLevel) {
-                case 1:
-                loadingMap = map;
-                break;
-                case 2:
-                loadingMap = map2;
-                break;
-                case 3:
-                loadingMap = map3;
+    			case 1:
+        		loadingMap = map;
+        		break;
+    			case 2:
+        		loadingMap = map2;
+        		break;
+    			case 3:
+        		loadingMap = map3;
             break;
           case 4:
-                loadingMap = map4;
+        		loadingMap = map4;
             break;
           case 5:
-                loadingMap = map5;
+        		loadingMap = map5;
             break;
-                }
-
+				}
+        /* this function is a meta-function, that helps with optimization. It defines what size and color a map square will be. */
         function mapSquare(color, offsetX, offsetY) {
           ctx.fillStyle = color;
           ctx.fillRect(offsetX, offsetY, 40, 40);
         }
+        /*this part takes a number from the array, sees if it's a 1, 2, or 3, and places down the correct tile in that spot based on the number. It then moves on to the next number and does the same thing.*/
 
         for (notMuch = 0; notMuch < 300; notMuch++) {
           if (loadingMap[notMuch] == 0) {
@@ -208,8 +238,10 @@
           } else if (loadingMap[notMuch] == 1) {
             mapSquare(landColor, section, row);
           } else if (loadingMap[notMuch] != 0 || loadingMap[notMuch] != 1) {
-            mapSquare(brokenColor, section, row);
+            mapSquare(endingColor, section, row);
           }
+          
+          /*This is also part of the for loop. The above part is the drawing part of the loop, while this part keeps track of where in the map it is. Every time a square is placed down, this moves 1 square-length right, and when the end of a row is reached, it moves back to the beginning, but one square-length down.*/
 
           section = section + 40;
           counter = counter + 1;
@@ -245,9 +277,15 @@
           circle.y = canvas.height;
         }
 
-        /*after that, it moves the ball based on the current velocity, checks if the game is in a loss state or a win state, and subtracts a score. */
+        /*after that, it moves the ball based on the current velocity, updates the speed additive, checks if the game is in a loss state or a win state, and subtracts a score. */
+        if (Math.abs(dx) + Math.abs(dy) > 0) {
+        	additive = additive + 0.1;
+        } else {
+        	additive = 0;
+        }
         circle.x = circle.x + dx;
         circle.y = circle.y + dy;
+       	
         winLoss();
         if (gameIsRunning == 1) {
           score = score - 1;
@@ -268,73 +306,77 @@
       function winLoss() {
         //this first part gets the data of the pixel 5 pixels down and to the right of the ball, than puts that data into debugPara.
         var pixelData = ctx.getImageData(circle.x + 5, circle.y + 5, 1, 1).data;
+        var pixelData2 = ctx.getImageData(circle.x - 5, circle.y - 5, 1, 1).data;
         document.getElementById("debugPara").innerHTML = pixelData;
         
         /* the next part says that if the player is on water, to make them lose the game and to move the ball to the starting position. */
-                if(gameIsRunning == 1) {
-            if (pixelData == "170,170,255,255") {
+				if(gameIsRunning == 1) {
+        	if (pixelData == "170,170,255,255" || pixelData2 == "170,170,255,255") {
             score = score - 100;
             document.getElementById("gameStatusReadout").innerHTML = "You touched the water. Please don't do that."
             switch(currentLevel) {
-                case 1:
-                moveBall(startPoints[0], startPoints[1]);
+            	case 1:
+              	moveBall(startPoints[0], startPoints[1]);
                 break;
               case 2:
-                moveBall(startPoints[2], startPoints[3]);
+              	moveBall(startPoints[2], startPoints[3]);
                 break;
               case 3:
-                moveBall(startPoints[4], startPoints[5]);
+              	moveBall(startPoints[4], startPoints[5]);
                 break;
               case 4:
-                moveBall(startPoints[6], startPoints[7]);
+              	moveBall(startPoints[6], startPoints[7]);
                 break;
               case 5:
-                moveBall(startPoints[8], startPoints[9]);
+              	moveBall(startPoints[8], startPoints[9]);
             }
           }
           else if (pixelData == "255,0,255,255") {
           
-            switch(currentLevel) {
-                        case 1:
-                        document.getElementById("gameStatusReadout").innerHTML = "You finished level 1!";
+          	switch(currentLevel) {
+    					case 1:
+        				document.getElementById("gameStatusReadout").innerHTML = "You finished level 1!";
                 score = score + 1000;
                 currentLevel = 2;
-                        break;
-                        case 2:
-                        document.getElementById("gameStatusReadout").innerHTML = "You finished level 2!";
-                    score = score + 2000;
-                    currentLevel = 3;
-                        break;
+        				break;
+    					case 2:
+        				document.getElementById("gameStatusReadout").innerHTML = "You finished level 2!";
+            		score = score + 2000;
+            		currentLevel = 3;
+        				break;
               case 3:
-                        document.getElementById("gameStatusReadout").innerHTML = "You finished level 3!";
-                    score = score + 3000;
-                    currentLevel = 4;
+        				document.getElementById("gameStatusReadout").innerHTML = "You finished level 3!";
+            		score = score + 3000;
+            		currentLevel = 4;
                 break;
               case 4:
-                        document.getElementById("gameStatusReadout").innerHTML = "You finished the game! Good job!";
-                    score = score + 4000;
+        				document.getElementById("gameStatusReadout").innerHTML = "You finished the game! Good job!";
+            		score = score + 4000;
                 gameIsRunning = 0;
                 break;
               case 5:
-                        document.getElementById("gameStatusReadout").innerHTML = "You shouldn't be here...";
-                    score = score - 5000;
+        				document.getElementById("gameStatusReadout").innerHTML = "You shouldn't be here...";
+            		score = score - 5000;
                 break;
-                        }
-            }
-        }
+						}
+        	}
+      	}
       }
 
-      function changeBox(a) {
-        switch (a) {
+      function changeBox() {
+        switch (bugBoxIsOn) {
           case 0:
             document.getElementById("leBox").style.color = "white";
+            bugBoxIsOn = 1;
             break;
           case 1:
             document.getElementById("leBox").style.color = "black";
+            bugBoxIsOn = 0;
             break;
         }
       }
-
+      
+      //moveBall is just a quick way of moving the ball to a specific point.
       function moveBall(a, b) {
         circle.x = a;
         circle.y = b;
@@ -348,8 +390,7 @@
       <canvas id="canvas" width="800" height="600">
       </canvas>
       <button onclick="setup()">Click to Start the Game</button>
-      <button onclick="changeBox(0)">Click to See Debug Things</button>
-      <button onclick="changeBox(1)">Click to Not See Debug Things</button>
+      <button onclick="changeBox()">Click to Toggle Debug Info</button>
       <div id="leBox">
 
         <p id="ballCoords">
@@ -359,15 +400,15 @@
           The ball's current momentum is X<span id="exMomentumReadout">___</span>, Y<span id="whyMomentumReadout">___</span>
         </p>
         <p id="debugPara">
-          Use the arrow keys to move! The longer you hold down, the faster the ball will go!
+          [numbers]
         </p>
         <p id="debugPara2">
-          oof
+          [another number]
         </p>
         
       </div>
       <p id="gameStatusReadout">
-        ___
+        Welome to SpeedySphere™ version 0.11! Click the button to start the game, and use the arrow keys to move around. The longer you hold down a button, the faster the ball will go!
       </p>
       <p id="scoreReadout">
       </p>
@@ -376,6 +417,7 @@
   </body>
 
 </html>
+
 
 
 
