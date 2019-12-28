@@ -1,11 +1,9 @@
 <!doctype html>
 <!-- Copyright Davis Zetlan
-Dec-23-2019 -->
+Dec-28-2019 -->
 <html>
-
   <head>
-    <title>Present Finder v1.0</title>
-
+    <title>Present Finder v1.1</title>
     <style>
       #canvas {
         border-style: double;
@@ -14,8 +12,6 @@ Dec-23-2019 -->
         display: block;
       }
     </style>
-
-
     <script type="text/javascript">
       window.addEventListener("keydown", keyPress, false);
       window.addEventListener("keyup", keyNegate, false);
@@ -48,7 +44,7 @@ Dec-23-2019 -->
                   [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
                   [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
                   [0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-                  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10],
+                  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
       					 ];
       var map3 = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       						[0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0],
@@ -68,10 +64,40 @@ Dec-23-2019 -->
                   [0, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 0],
                   [0, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 0],
                   [0, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 0],
-                  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, Infinity]
+                  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 18]
+      					 ];
+      var map4 = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      						[0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+                  [0, 1, 1, 2, 1, 1, 1, 1, 4, 1, 4, 0],
+                  [0, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 0],
+                  [0, 1, 1, 1, 0, 3, 3, 0, 4, 1, 4, 0],
+                  [0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0],
+                  [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+                  [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 0],
+                  [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+                  [0, 1, 1, 1, 1, 1, 1, 0, 1, 2, 1, 0],
+                  [0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0],
+                  [0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0],
+                  [0, 1, 1, 1, 2, 0, 1, 1, 1, 1, 1, 0],
+                  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 23],
+      					 ];
+      var map5 = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      						[0, 3, 3, 1, 1, 1, 1, 1, 1, 4, 4, 0],
+                  [0, 3, 1, 1, 1, 1, 1, 1, 1, 1, 4, 0],
+                  [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+                  [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+                  [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+                  [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+                  [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+                  [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+                  [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+                  [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+                  [0, 4, 1, 1, 1, 1, 1, 1, 1, 1, 3, 0],
+                  [0, 4, 4, 1, 1, 1, 1, 1, 1, 3, 3, 0],
+                  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, Infinity],
       					 ];
       
-      var solidSurfaces = [0, 3];
+      var solidSurfaces = [0, 3, 4];
       var inviSurfaces = [1];
       
       var loadingMap = map;
@@ -94,7 +120,7 @@ Dec-23-2019 -->
       var points = 0;
       
       var cameraSpeed = 2;
-      var numOfRays = 320;
+      var numOfRays = 640;
       var fieldOfView = 80;
       var rayDist = 200;
       var rayStep = 1;
@@ -108,7 +134,7 @@ Dec-23-2019 -->
       var landColor = "#008800";
       var stoneColor = "#494D5E";
       var woodColor = "#AB6E05";
-      var lWoodColor = "#DB8F0B";
+      var pillarColor = "#CCCCFF";
       var skyColor = "#AAAAFF";
       var farmColor = "#916B2F";
       var endingColor = "#FF00FF";
@@ -136,7 +162,7 @@ Dec-23-2019 -->
       //text
       var text2 = ["Collect Presents to win!"];
 
-      var menuText = ["Present Finder", "Press W to start!", "Use W and S to move forwards and backwards", "Use the left and right arrow keys to control the camera", "press z to reset your position"];
+      var menuText = ["Present Finder", "Press W to start!", "Use W A S and D to move", "Use the left and right arrow keys to control the camera", "press z to reset your position"];
       
       window.onload = setup;
       // the initializing function.
@@ -170,23 +196,30 @@ Dec-23-2019 -->
             dx = -1 * entitySpeed;
           	break;
           case 65:
-          	dy = entitySpeed;
+          	dy = -1 * entitySpeed;
             break;
           case 83:
           	dx = entitySpeed;
             break;
           case 68:
-          	dy = -1 * entitySpeed;
+          	dy = entitySpeed;
             break;
           //z
           case 90:
           	if (yes >= cutsceneTime) {
+              loadingMap[loadingMap.length-1][loadingMap[loadingMap.length-1].length-1] = time;
             	switch (loadingMap) {
                 case map:
                   loadingMap = map2;
                   break;
                 case map2:
                   loadingMap = map3;
+                  break;
+                case map3:
+                  loadingMap = map4;
+                  break;
+                case map4:
+                  loadingMap = map5;
                   break;
               }
               yes = 0;
@@ -217,7 +250,7 @@ Dec-23-2019 -->
             }
             break;
           case 65:
-          	if (dy > 0) {
+          	if (dy < 0) {
             	dy = 0;
             }
             break;
@@ -227,7 +260,7 @@ Dec-23-2019 -->
             }
             break;
           case 68:
-          	if (dy < 0) {
+          	if (dy > 0) {
             	dy = 0;
             }
             break;
@@ -245,6 +278,9 @@ Dec-23-2019 -->
         	loadingMap[thisThing][again] = 1;
           points += 1;
           doGeneration = 1;
+          if (loadingMap == map4) {
+            doGeneration = 0;
+          }
           
           if (points > loadingMap[loadingMap.length-1][loadingMap[loadingMap.length-1].length-1]) {
           	yes = 1;
@@ -348,6 +384,9 @@ Dec-23-2019 -->
               case 3:
                 ctx.fillStyle = woodColor;
                 break;
+              case 4:
+                ctx.fillStyle = pillarColor;
+                break;
               case 1:
               default:
               	ctx.fillStyle = stoneColor;
@@ -428,9 +467,22 @@ Dec-23-2019 -->
             ctx.textAlign = "center";
             ctx.fillStyle = blackColor;
             ctx.font = "15px Century Gothic";
-            ctx.fillText("You got enough points to progress to the next level!", centerX, centerY);
-            ctx.fillText("Level time:" + (time / 66.6666666).toFixed(2), centerX, centerY + 30);
-            ctx.fillText("Press Z to continue", centerX, centerY + 60);
+            if (loadingMap != map4) {
+              ctx.fillText("You got enough points to progress to the next level!", centerX, centerY);
+              ctx.fillText("Level time: " + (time / 66.6666666).toFixed(2), centerX, centerY + 30);
+              ctx.fillText("Press Z to continue", centerX, centerY + 60);
+            } else {
+              var totalTime = map[map.length-1][map[map.length-1].length-1] + 
+                              map2[map2.length-1][map2[map2.length-1].length-1] +
+                              map3[map3.length-1][map3[map3.length-1].length-1] +
+                              time;
+              ctx.fillText("You got enough points to finish the game!", centerX, centerY * 0.9);
+              ctx.fillText("You can walk around the field now or reset", centerX, centerY);
+              ctx.fillText("Level time: " + (time / 66.6666666).toFixed(2), canvas.width * 0.33333333333, centerY + 30);
+              ctx.fillText("Total time: " + (totalTime / 66.6666666).toFixed(2), canvas.width * 0.66666666666, centerY + 30);
+              ctx.fillText("Press Z to enter the field", centerX, centerY + 60);
+            }
+            
           } else {
           	time += 1;
           }
@@ -443,18 +495,41 @@ Dec-23-2019 -->
         If the player does intersect, it makes that not happen.
         X and Y are seperated for a smoother system. */
         
-        //turning the w and s keys into angles that the camera is looking at
-        var theta = a * (Math.PI / 180);
+        //turning the arrow keys into velocity
+        //this part looks complicated, but it's just incorporating a and d into the movement.
+        var effectiveA = a;
+        if (dx == 0 && dy != 0) {
+          if (dy > 0) {
+            effectiveA += 90;
+          } else {
+            effectiveA -= 90;
+          }
+        } else if (dx < 0 && dy != 0) {
+          if (dy > 0) {
+            effectiveA += 45;
+          } else {
+            effectiveA -= 45;
+          }
+        } else if (dx > 0 && dy != 0) {
+          if (dy > 0) {
+            effectiveA -= 45;
+          } else {
+            effectiveA += 45;
+          }
+        }
+        var theta = effectiveA * (Math.PI / 180);
         var xChanged = x;
         var yChanged = y;
         var collides = 0;
         
         if (dx != 0) {
-        	xChanged = x - (1.1 * dx * Math.sin(theta));
-          yChanged = y - (1.1 * dx * Math.cos(theta));
+        	xChanged = x - (dx * Math.sin(theta));
+          yChanged = y - (dx * Math.cos(theta));
+        } else if (dy != 0) {
+          xChanged = x - (-1.1 * Math.sin(theta));
+          yChanged = y - (-1.1 * Math.cos(theta));
         }
-        
-        
+        console.log(dx, dy);
         //this part handles collision for x
         arrayValue = loadingMap[Math.floor(y / squareSize)][Math.floor(xChanged / squareSize)];
         
@@ -464,7 +539,7 @@ Dec-23-2019 -->
         	}
         }
         if (collides == 0) {
-        	x = x - (dx * Math.sin(theta));
+        	x = xChanged;
         }
         
         //and for y
@@ -476,7 +551,7 @@ Dec-23-2019 -->
         	}
         }
         if (collides == 0) {
-        	y = y - (dx * Math.cos(theta));
+        	y = yChanged;
         }
         //handling camera movement, which is simpler.
         a += da;
@@ -484,13 +559,12 @@ Dec-23-2019 -->
         if (a < 0) {
         	a += 360;
         }
-
       }
     </script>
   </head>
   <body>
     <div>
-      <canvas id="canvas" width="512" height="384">
+      <canvas id="canvas" width="640" height="480">
       </canvas>
     </div>
   </body>
