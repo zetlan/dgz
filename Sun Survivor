@@ -78,7 +78,7 @@ Jan-2-2019 -->
 
       var timer;
       var time = -1;
-      var timeUntilExplosion = 10;
+      var timeUntilExplosion = 10000;
       var timeLeft = timeUntilExplosion - time;
       
       var gameState = -1;
