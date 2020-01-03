@@ -5,7 +5,7 @@ Jan-2-2019 -->
 <!-- x=10000, y=0 -->
 <html>
   <head>
-    <title>Sun Survivor v1.0</title>
+    <title>Sun Survivor v1.02</title>
     <style>
       #canvas {
         border-style: double;
