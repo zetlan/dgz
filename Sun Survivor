@@ -406,7 +406,7 @@ Jan-2-2019 -->
           console.log(dist, sun.r * 18, sun.r * 25);
           if (dist > (sun.r * 18) && dist < (sun.r * 25)) {
             beltCreated -= 1;
-            this.pow += powerIncrement * 768;
+            this.pow += powerIncrement * 512;
           }
         }
 
