@@ -2,10 +2,9 @@
 <!-- Copyright Davis Zetlan
 Jan-2-2019 -->
 
-<!-- x=10000, y=0 -->
 <html>
   <head>
-    <title>Sun Survivor v1.10</title>
+    <title>Sun Survivor v1.2</title>
     <style>
       #canvas {
         border-style: double;
@@ -79,7 +78,7 @@ Jan-2-2019 -->
 
       var timer;
       var time = -1;
-      var timeUntilExplosion = 10000;
+      var timeUntilExplosion = 10;
       var timeLeft = timeUntilExplosion - time;
       
       var gameState = -1;
@@ -94,6 +93,7 @@ Jan-2-2019 -->
       var debStartNum = 100;
       var maxDebris = 850;
       var maxBelt = 450;
+      var beltV = 1.56;
       var beltCreated = 0;
       
       //all the colors used
@@ -252,8 +252,8 @@ Jan-2-2019 -->
           this.x = x;
           this.y = y;
           if (dx === undefined || dy === undefined) {
-            this.dx = (Math.random() - 0.5) * (10 / Math.abs(this.x / 750));
-            this.dy = (Math.random() - 0.5) * (10 / Math.abs(this.x / 750));
+            this.dx = (Math.random() - 0.7) * (9 / Math.abs(this.x / 750));
+            this.dy = (Math.random() - 0.7) * (9 / Math.abs(this.x / 750));
           } else {
             this.dx = dx;
             this.dy = dy;
@@ -515,7 +515,7 @@ Jan-2-2019 -->
         centerY = canvas.height / 2;
 
         sun = new Body(centerX, centerY, 100000, 100, sunColor, 1, 0, 0);
-        earth = new Body(sun.x + (sun.r * 10.5), sun.y, 2000, 15, startingColor, 0, 0, -2.2);
+        earth = new Body(sun.x + (sun.r * 9.5), sun.y, 2000, 15, startingColor, 0, 0, -2.25);
         mercury = new Body(sun.x - (sun.r * 2), sun.y, 1500, 10, mercColor, 0, 0, 5.3);
         bh = new Body(10000, 0, 200000, 50, blackColor, 1, 0, 0);
 
@@ -748,17 +748,43 @@ Jan-2-2019 -->
               debrisBits.push(new Debris(posX, posY));
             }
             
-            if (time % 20 == 0 && beltCreated < maxBelt) {
-              //debris belt
-              var beltR = sun.r * 21
-              var beltX = sun.x + beltR + ((Math.random() - 0.5) * 100);
-              var otherBeltX = sun.x - beltR + ((Math.random() - 0.5) * 100);
-              var beltY = sun.y + ((Math.random() - 0.5) * 100);
+            if (time % 5 == 0 && beltCreated < maxBelt) {
+            	
+              //first gets avg position of belt (beltR)
+              var beltMult = 21;
+              var beltR = sun.r * beltMult;
+              
+              //while loop picks an xy point inside the belt range
+              var choseX = 0;
+              var choseY = 0;
+              var choseR = 0;
+              
+              var xDist = 0;
+              var yDist = 0;
+              
+              //if the point is more than 3 sun-radii away from the avg belt area, it isn't a valid point
+              //pick a random point on the circle
+              var angle = Math.floor(Math.random() * 360);
+              angle = angle * (Math.PI / 180);
+              var circlePoint = [sun.x + (beltR * Math.sin(angle)), sun.y + (beltR * Math.cos(angle))];
 
-              debrisBits.push(new Debris(beltX, beltY, 0, -1.56));
-              debrisBits.push(new Debris(otherBeltX, beltY, 0, 1.56));
+              //give the point a random offset
+              choseX = circlePoint[0] + ((Math.random() - 0.5) * sun.r);
+              choseY = circlePoint[1] + ((Math.random() - 0.5) * sun.r);
 
-              beltCreated += 2;
+              //split into x and y distances
+              xDist = choseX - sun.x;
+              yDist = choseY - sun.y;
+              /* Next the velocity needs to be gotten. Here we can turn to my good old friend atan2. */
+              var velAngle = (Math.PI / 2) + Math.atan2(xDist, yDist);
+
+              var choseVelX = beltV * Math.sin(velAngle);
+              var choseVelY = beltV * Math.cos(velAngle);
+              
+              //finally spawn the debris
+              debrisBits.push(new Debris(choseX, choseY, choseVelX, choseVelY));
+
+              beltCreated += 1;
             }
           }
           //ticking everything
@@ -768,7 +794,7 @@ Jan-2-2019 -->
           time += 1 / dt;
           timeLeft = timeUntilExplosion - time;
           if (timeLeft < 0) {
-            sun.r += 1 / dt;
+            sun.r *= 1.00625 / dt;
             sun.m *= 1.0125 / dt;
           }
           
@@ -867,12 +893,6 @@ Jan-2-2019 -->
           ctx.fillText(barsText[4], canvas.width * 0.45, canvas.height * (1 - (menuPos + 0.13)));
           
           //timer and effects
-          
-          if (timeLeft < 0) {
-            timeLeft = 0;
-            ctx.globalAlpha = Math.floor((time % cutsceneTime / (cutsceneTime / 2)));
-          }
-          ;
 
           ctx.globalAlpha = 1;
           //meters now
@@ -907,12 +927,16 @@ Jan-2-2019 -->
 
           //repair power
           drawMeter(meterX * 1.75, canvas.height * (1 - (menuPos + 0.16)), meterWidth / 2, meterHeight, character.toolPower, 0, 50, toolColor);
-
+          
+          //making timer flash
+          var timeDisplay = timeLeft;
+          if (timeLeft < 0) {
+            timeDisplay = 0;
+            ctx.globalAlpha = Math.floor((time % (cutsceneTime / 3) / (cutsceneTime / 6)));
+          };
           //time is not a meter, but drawing it here anyways
-          ctx.fillText((timeLeft / 66.666666666).toFixed(2), canvas.width * 0.325, canvas.height * (1 - (menuPos + 0.13)))
-
-          
-          
+          ctx.fillText((timeDisplay / 66.666666666).toFixed(2), canvas.width * 0.325, canvas.height * (1 - (menuPos + 0.13)))
+          ctx.globalAlpha = 1;
         } else {
           menuPos = 1;
         }
@@ -931,6 +955,19 @@ Jan-2-2019 -->
           ctx.moveTo(dialX, dialY);
           ctx.lineTo(dialX + (l * Math.sin(angle)), dialY + (l * Math.cos(angle)));
           ctx.stroke();
+          
+        //if doomsday is happening, color the screen accordingly, kill the player if too much time has passed
+        if (timeLeft < 0) {
+        	ctx.globalAlpha = Math.abs(timeLeft) / (cutsceneTime * 4);
+          ctx.fillStyle = sunColor;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          if (-1 * timeLeft > cutsceneTime * 4) {
+            gameState = 0;
+            time = 10;
+          }
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = textColor;
+        }
       }
 
       function drawShip() {
@@ -1094,6 +1131,7 @@ Jan-2-2019 -->
     <div>
       <canvas id="canvas" width="640" height="480">
       </canvas>
+      <!-- x=10000, y=0 -->
     </div>
   </body>
 </html>
