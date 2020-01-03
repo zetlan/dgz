@@ -387,8 +387,8 @@ Jan-2-2019 -->
           var asteroidVelX = dx;
           var asteroidVelY = dy;
           //take a weighted average of the velocities
-          var dxAverage = ((4 * this.dx) + asteroidVelX) / 5;
-          var dyAverage = ((4 * this.dy) + asteroidVelY) / 5;
+          var dxAverage = ((6 * this.dx) + asteroidVelX) / 7;
+          var dyAverage = ((6 * this.dy) + asteroidVelY) / 7;
           //with this, distances can be negative, but it doesn't matter because I square them anyways
           var xSunDist = this.x - sun.x;
           var ySunDist = this.y - sun.y;
@@ -401,11 +401,12 @@ Jan-2-2019 -->
           this.pow += powerIncrement * 16;
 
           /*if the player has collided in a range that suggests being in the belt area, 
-          (36-50 sun radii) make the game spawn a new belt object */
+          (36-50 sun radii) make the game spawn a new belt object 
+          Belt objects also give the player more charge*/
           console.log(dist, sun.r * 18, sun.r * 25);
           if (dist > (sun.r * 18) && dist < (sun.r * 25)) {
             beltCreated -= 1;
-            this.pow += powerIncrement * 1024;
+            this.pow += powerIncrement * 768;
           }
         }
 
