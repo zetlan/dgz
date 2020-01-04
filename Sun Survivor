@@ -4,7 +4,7 @@ Jan-2-2019 -->
 
 <html>
   <head>
-    <title>Sun Survivor v1.21</title>
+    <title>Sun Survivor v1.22</title>
     <style>
       #canvas {
         border-style: double;
@@ -523,7 +523,7 @@ Jan-2-2019 -->
 
         //populating the debris field
         for (jc=0;jc<debStartNum;jc++) {
-          debrisBits.push(new Debris(canvas.width * (1 + (Math.random() - 0.5) * 0.3), canvas.height * (0.5 + (Math.random() - 0.5) * 0.3)));
+          debrisBits.push(new Debris(sun.x + ((Math.random() - 0.5) * 700), sun.y + ((Math.random() - 0.5) * 700)));
         }
         
         //finding the button
@@ -741,7 +741,7 @@ Jan-2-2019 -->
 
           //adding debris, as they run into or out of the universe rather often
           if (debrisBits.length < maxDebris) {
-            if (time % 50 == 0) {
+            if (time % 30 == 1) {
               //random dust
               var posX = sun.x + ((Math.random() - 0.5) * 2000);
               var posY = sun.y + ((Math.random() - 0.5) * 2000);
@@ -1129,7 +1129,7 @@ Jan-2-2019 -->
   </head>
   <body>
     <div>
-      <canvas id="canvas" width="640" height="480">
+      <canvas id="canvas" width="2000" height="2000">
       </canvas>
       <!-- x=10000, y=0 -->
     </div>
