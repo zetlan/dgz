@@ -4,7 +4,7 @@ Jan-2-2019 -->
 
 <html>
   <head>
-    <title>Sun Survivor v1.2</title>
+    <title>Sun Survivor v1.21</title>
     <style>
       #canvas {
         border-style: double;
@@ -592,7 +592,7 @@ Jan-2-2019 -->
             if (gameState == 0 && beltCreated == 0) {
               time += 1;
             }
-            if (gameState > 0) {
+            if (gameState == 2) {
               var didIt;
               var switched = 0;
               //if the player has repaired everything, attempt to finish the game
@@ -748,7 +748,7 @@ Jan-2-2019 -->
               debrisBits.push(new Debris(posX, posY));
             }
             
-            if (time % 5 == 0 && beltCreated < maxBelt) {
+            if (beltCreated < maxBelt) {
             	
               //first gets avg position of belt (beltR)
               var beltMult = 21;
