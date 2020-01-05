@@ -1,94 +1,112 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width">
-  <!-- DragonCurve.html -->
-<html>
-<head>
-  <style>
-    body {
-      background-color:orange
-    }
-    /*this is the styling for the words above all the buttons.
+
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <!-- DragonCurve.html -->
+    <style>
+      body {
+        background-color: orange
+      }
+
+      /*this is the styling for the words above all the buttons.
     There's probobly a more efficient way to do this, but for now
     this is what I have. Also, CSS comments work the same as
     javascript ones.*/
-    #NOR {
+      #NOR {}
 
-    }
-    #S {
+      #S {}
 
-    }
-    #XS {
+      #XS {}
 
-    }
-    #YS {
+      #YS {}
 
-    }
-    #COO {
+      #COO {}
 
-    }
-    #canvId {
-      padding-left: 0;
-      padding-right: 0;
-      margin-left: auto;
-      margin-right: auto;
-      display: block;
-      width: 800px;
-      border: 4px inset
-    }
-    #canvHead {
-      text-align: center;
-    }
+      #canvId {
+        padding-left: 0;
+        padding-right: 0;
+        margin-left: auto;
+        margin-right: auto;
+        display: block;
+        width: 800px;
+        border: 4px inset
+      }
 
+      #canvHead {
+        text-align: center;
+      }
 
     </style>
-  <title> Dragon Curve Fractal Generator</title>
-<script type='text/javascript'>
-function Dragoncurve(cId) {
-  /* This is code for actual plotting of fractal. It is all set in a function
+    <title> Dragon Curve Fractal Generator</title>
+    <script type='text/javascript'>
+      function Dragoncurve(cId) {
+        /* This is code for actual plotting of fractal. It is all set in a function
   above called "Dragoncurve" so you can easily access the code below.
   For example, this could have been done in the body section in the section
   - <button onclick="Dragoncurve('canvId')">Build it!</button> -
  but it is easier here */
-  var n=document.getElementById('iteration').value;
-  var sc=document.getElementById('size').value;
-  var hsh=document.getElementById('xshift').value;
-  var vsh=document.getElementById('yshift').value;
-  var clr=document.getElementById('color').value;
-  var c=c1=c2=c2x=c2y=x=y=0, d=1, n=1<<n;
-  var cvs=document.getElementById(cId);
-  var ctx=cvs.getContext("2d");
-  hsh=Number(hsh); vsh=Number(vsh);
-  x=y=cvs.width/2;
-  // Cleaning canvas and initial plot
-  ctx.fillStyle="lightblue"; ctx.fillRect(0,0,cvs.width,cvs.height);
-  ctx.beginPath();
-  for(i=0; i<=n;) {
-    ctx.lineTo((x+hsh)*sc,(y+vsh)*sc);
-    c1=c&1; c2=c&2;
-    c2x=1*d; if(c2>0) {c2x=(-1)*d}; c2y=(-1)*c2x;
-    if(c1>0) {y+=c2y} else {x+=c2x}
-    i++; c+=i/(i&-i);
-  }
-  ctx.strokeStyle = clr;  ctx.stroke();
-}
-</script>
-</head>
-<body>
-  <!-- This is the onscreen stuff -->
-  <p><b><i><span id="NOR">Number of Repetitions,</span> <span id="S">Size</span>, <span id="XS">X-shift</span>, <span id="YS">Y-shift</span>,<span id="COO"> and Color of the Output You Want!</span></i></b></p>
-<span id="iterButton"><input id=iteration value=11 type="number" min="7" max="21.0000000000000" size="4"></span>
-<span id="numButton"><input id=size value=7.0 type="number" min="0.1" max="10" size="1"></span>
-<span id="xButton"><input id=xshift value=-265 type="number" min="-5000" max="50000" size="7"></span>
-<span id="yButton"><input id=yshift value=-260 type="number" min="-5000" max="50000" size="7"></span>
-<span id="colButton"><input id=color value="red" type="text" size="17"></span>
-<button onclick="Dragoncurve('canvId')">Build it!</button>
-<h2 id="canvHead">Dragon Curve Fractal</h2>
-<canvas id="canvId" width=640 height=640></canvas>
-</body>
+        var n = document.getElementById('iteration').value;
+        var size = document.getElementById('size').value;
+        var xOff = document.getElementById('xshift').value;
+        var yOff = document.getElementById('yshift').value;
+        var color = document.getElementById('color').value;
+        var cvs = document.getElementById(cId);
+        var ctx = cvs.getContext("2d");
+
+        var c = c1 = c2 = c2x = c2y = x = y = 0;
+        var d = 1;
+        n = 1 << n;
+
+        //sanitizing input
+        xOff = Number(xOff);
+        yOff = Number(yOff);
+        x = y = cvs.width / 2;
+        // Cleaning canvas and initial plot
+        ctx.fillStyle = "lightblue";
+        ctx.fillRect(0, 0, cvs.width, cvs.height);
+        ctx.beginPath();
+
+        //main for loop
+        for (i = 0; i <= n;) {
+          ctx.lineTo((x + xOff) * size, (y + yOff) * size);
+          c1 = c & 1;
+          c2 = c & 2;
+          c2x = 1 * d;
+          if (c2 > 0) {
+            c2x = (-1) * d;
+          }
+          c2y = (-1) * c2x;
+
+          if (c1 > 0) {
+            y += c2y;
+          } else {
+            x += c2x;
+          }
+          i++;
+          c += i / (i & -i);
+        }
+
+        //drawing all the calculated lines
+        ctx.strokeStyle = color;
+        ctx.stroke();
+      }
+
+    </script>
+  </head>
+
+  <body>
+    <!-- This is the onscreen stuff -->
+    <p><b><i><span id="NOR">Number of Repetitions,</span> <span id="S">Size</span>, <span id="XS">X-shift</span>, <span id="YS">Y-shift</span>,<span id="COO"> and Color of the Output You Want!</span></i></b></p>
+    <span id="iterButton"><input id=iteration value=11 type="number" min="7" max="21.0000000000000" size="4"></span>
+    <span id="numButton"><input id=size value=7.0 type="number" min="0.1" max="10" size="1"></span>
+    <span id="xButton"><input id=xshift value=-265 type="number" min="-5000" max="50000" size="7"></span>
+    <span id="yButton"><input id=yshift value=-260 type="number" min="-5000" max="50000" size="7"></span>
+    <span id="colButton"><input id=color value="red" type="text" size="17"></span>
+    <button onclick="Dragoncurve('canvId')">Build it!</button>
+    <h2 id="canvHead">Dragon Curve Fractal</h2>
+    <canvas id="canvId" width=640 height=640></canvas>
+  </body>
+
 </html>
-
-
-
