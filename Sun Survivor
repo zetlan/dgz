@@ -155,7 +155,7 @@ Jan-2-2019 -->
                     ["You quickly board your spaceship."],
                     ["Taking off, you reflect on all the people that will probably die", "because no plan was made for this, even though everybody", "knew it would happen hundreds of years in advance."],
                     ["As you are on your way out of the solar system however,", "one major problem is discovered:", "The ship's light speed travel is broken!"],
-                    ["Now you must repair the broken engines (in grey/blue)", "with the ship's repair tool. (green)", "While managing the ship and your needs."],
+                    ["Now you must repair the broken engines (in grey)", "with the ship's repair tool, (green)", "while managing needs such as solar power and temperature."],
                     ["Use the arrow keys or WASD to manuever,", "Use the spacebar to access your ship, and", "use Z to interact with objects inside your ship."],
                     ["You died. To restart, refresh the page."],
                     ["Congratulations! You escaped from certain doom!", "To retry, refresh the page."]
@@ -1129,7 +1129,7 @@ Jan-2-2019 -->
   </head>
   <body>
     <div>
-      <canvas id="canvas" width="2000" height="2000">
+      <canvas id="canvas" width="640" height="480">
       </canvas>
       <!-- x=10000, y=0 -->
     </div>
