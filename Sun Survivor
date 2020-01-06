@@ -46,7 +46,7 @@ Jan-2-2019 -->
                      [9, 9, 9, 9, 9, 9, 9, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0], 
                      [9, 9, 9, 9, 9, 9, 9, 9, 9, 0, 0, 0, 0, 0, 0, 0]
       					     ];
-      var solidSurfaces = [0, 4, 5, 6, 7];
+      var solidSurfaces = [0, 4, 5, 6, 6.5, 7];
       var cornerCoords = [0, 0, 0, 0];
       
       var loadingMap = shipMap;
@@ -73,6 +73,7 @@ Jan-2-2019 -->
       var maxRepairPower = 50;
       var repaired = 0;
       var repairsRequired = 0;
+      var failedRepair = 0;
 
       var buttonPos = [undefined, undefined];
 
@@ -164,6 +165,9 @@ Jan-2-2019 -->
       var menuText = ["Sun Survivor", "Press Z!"];
 
       var barsText = ["Power: ", "Temperature: ", "Fuel: ", "Time Until Explosion: ", "Repair Power: "];
+      
+      var failedRepairText = ["The repair tool has too little power to repair any more.", 
+      												"Return to the charger to recharge the repair tool."];
 
       //classes exist here, oh boy!
       var sunX;
@@ -443,6 +447,7 @@ Jan-2-2019 -->
           ctx.beginPath();
           ctx.ellipse(this.x - cx, this.y - cy, 5, 5, 0, 0, Math.PI * 2);
           ctx.fill();
+          
 
           //drawing teleport beam
           if (this.tele > 0) {
@@ -614,14 +619,21 @@ Jan-2-2019 -->
                 didIt = squareMod(6.5, 6);
                 if (didIt != 4) {
                   character.toolPos = 0;
-                } else if (character.toolPower >= repairPower){
-                  didIt = squareMod(4, 5);
+                  //attempting to repair
+                } else {
+                  didIt = squareMod(4, 4);
                   if (didIt != 4) {
-                    character.toolPower -= repairPower;
-                    repairsRequired -= 1;
-                    //if no repairs are left, then activate the button in the center
-                    if (repairsRequired < 1) {
-                      loadingMap[buttonPos[0]][buttonPos[1]] = 7;
+                  	if (character.toolPower >= repairPower) {
+                    	character.toolPower -= repairPower;
+                      squareMod(4, 5);
+                    	repairsRequired -= 1;
+                      //if no repairs are left, then activate the button in the center
+                      if (repairsRequired < 1) {
+                      	loadingMap[buttonPos[0]][buttonPos[1]] = 7;
+                   	  }
+                    } else {
+                    	//if the power is too low, then if the player can repair, alert the player
+                    	failedRepair = 1;
                     }
                   }
                 }
@@ -792,6 +804,7 @@ Jan-2-2019 -->
 
           //time based things, adding time and then making the sun expand if doom time is happening.
           time += 1 / dt;
+          failedRepair -= 0.00390625;
           timeLeft = timeUntilExplosion - time;
           if (timeLeft < 0) {
             sun.r *= 1.00625 / dt;
@@ -940,6 +953,17 @@ Jan-2-2019 -->
         } else {
           menuPos = 1;
         }
+        //draw the failed repair text if necessary
+        if (failedRepair > 0 && gameState == 2) {
+        	if (gameState == 2) {
+          	ctx.fillStyle = sunColor;
+        		ctx.globalAlpha = failedRepair;
+          	ctx.textAlign = "center";
+          	ctx.fillText(failedRepairText[0], canvas.width * 0.5, canvas.height * 0.3);
+          	ctx.fillText(failedRepairText[1], canvas.width * 0.5, canvas.height * 0.35);
+          	ctx.globalAlpha = 1;
+          }
+        }
         //sun-dial gets drawn no matter what
           var dialX = canvas.width * 0.9;
           var dialY = (canvas.height * (0.9 + (menuPos - 1)));
@@ -1069,6 +1093,13 @@ Jan-2-2019 -->
         ctx.fillStyle = characterColor;
         ctx.ellipse(centerX, centerY, 5, 5, 0, 0, Math.PI * 2);
         ctx.fill();
+        
+        //drawing the repair tool
+        if (character.toolPos == 1) {
+        	ctx.beginPath();
+          ctx.fillStyle = repairColor;
+          ctx.fillRect(centerX-10, centerY-10, 5, 20);
+        }
 
       }
 
