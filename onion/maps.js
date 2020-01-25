@@ -3,14 +3,21 @@ var exceptSurfaces = ["/", undefined, "Q", "R", "Z"];
 var constrainSurfaces = ["/", undefined];
 
 var squareSize = 40;
-/* numbers are used for ground that's not solid, while letters are used for solid things and / are used for exits.
+/*Maps are stored as objects. First all the attributes about the map are stored in these variables, then the actual map is defined.
+LoadingMap is a reference to the actual map. */
 
- Maps always follow the format mapInfo, data
-Data is [pallete,
-        map to exit to, [x modification, y modification]]
-        
-modifications say clear if they aren't modified, and the pallete is a number.*/
-var home = [["A", "A", "A", "A", "A", "A", "A", "A", "A", "A"],
+class Map {
+    constructor(data, pallete, name, exits, enemies, statics) {
+        this.data = data;
+        this.pallete = pallete;
+        this.name = name;
+        this.exits = exits;
+        this.enemies = enemies;
+        this.statics = statics;
+    }
+}
+
+var homeData = [["A", "A", "A", "A", "A", "A", "A", "A", "A", "A"],
             ["A", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
             ["A", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
             ["A", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
@@ -21,14 +28,16 @@ var home = [["A", "A", "A", "A", "A", "A", "A", "A", "A", "A"],
             ["A", "0", "0", "0", "0", "0", "0", "A"],
             ["A", "0", "0", "0", "0", "0", "0", "A"],
             ["A", "0", "0", "0", "0", "0", "0", "A"],
-            ["A", "A", "A", "1", "A", "A", "A", "A", "/", "/", "home"]];
+            ["A", "A", "A", "1", "A", "A", "A", "A", "/", "/"]];
 
-var homeData =       [2, 
-                      ["selya", [3 * squareSize, -8 * squareSize]]];
+var homeExits = [["selya", [3 * squareSize, -8 * squareSize]]];
 
+let home = new Map(homeData, 2, "home", homeExits);
+
+//the position of the loadingMap variable is awkward, but it needed to be here for the calculations that are being done later
 var loadingMap = home;
 
-var selya = [      ["A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A"],
+var selyaData = [  ["A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A"],
                    ["A", "i", "B", "0", "0", "0", "0", "0", "0", "D", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
                    ["A", "0", "B", "0", "0", "i", "i", "i", "0", "D", "0", "0", "0", "0", "0", "0", "S", "0", "0", "0", "1"],
                    ["A", "0", "B", "0", "0", "i", "/", "i", "0", "D", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "1"],
@@ -47,22 +56,23 @@ var selya = [      ["A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", 
                    ["A", "0", "0", "0", "0", "i", "3", "i", "0", "0", "0", "0", "0", "A", "0", "0", "0", "0", "0", "0", "A"],
                    ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A", "0", "S", "0", "0", "0", "0", "A"],
                    ["A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "2", "2", "A", "A", "selya"]];
-//the position of the loadingMap variable is awkward, but it needed to be here for the calculations that are being done later
 
 
-var selyaData = [1, 
-                      ["rightMap", [-1 * (selya[0].length * squareSize), 0]], 
+var selyaExits = [    ["rightMap", [-1 * (selya[0].length * squareSize), 0]], 
                       ["downMap", [-14 * squareSize, -1 * selya.length * squareSize]],
                       ["shop", [-3 * squareSize, -14 * squareSize]],
-                      ["home", [-3 * squareSize, 8 * squareSize]],
-                      "entities",
-                      new Ground(squareSize, squareSize*3, 10, 10, 1),
-                      new Enemy(squareSize, squareSize*6, 10, 10, 1),
-                      new Chatter(squareSize, squareSize*13),
-                      "statics",
-                      new Box(squareSize*1, squareSize*1),
-                      new House(squareSize*6, squareSize*3),
-                      new House(squareSize*6, squareSize*15)];
+                      ["home", [-3 * squareSize, 8 * squareSize]]];
+
+var selyaEnemies = [new Ground(squareSize, squareSize*3, 10, 10, 1),
+                    new Enemy(squareSize, squareSize*6, 10, 10, 1),
+                    new Chatter(squareSize, squareSize*13)];
+                      
+var selyaStatics = [new Box(squareSize*1, squareSize*1),
+                    new House(squareSize*6, squareSize*3),
+                    new House(squareSize*6, squareSize*15)];
+
+let selya = new Map(selyaData, 1, "selya", selyaExits, selyaEnemies, selyaStatics);
+                      
 
 var rightMap = [   ["A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A"],
                    ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],

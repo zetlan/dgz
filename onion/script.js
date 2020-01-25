@@ -216,7 +216,7 @@ class Player {
     //velocity things
     //getting the square the player is on
     try {
-      this.onSquare = loadingMap[Math.floor((this.y) / squareSize)][Math.floor((this.x) / squareSize)];
+      this.onSquare = loadingMap.data[Math.floor((this.y) / squareSize)][Math.floor((this.x) / squareSize)];
     }
     catch (error) {
       this.onSquare = "/";
@@ -372,49 +372,17 @@ class Player {
     this.transfer = 0;
     dt = dtBase;
     //figure out the next map based on the current map's values
-    //nextMap is a value that points to the map encoded in the current map
+    //nextMap is a value that points to the map encoded in the current map, if it's zero that means the player entered incorrectly and should not be like that.
     if (nextMap != 0) {
-      var name = loadingMap[loadingMap.length-1][loadingMap[0].length];
-      var dataArea = eval(name + "Data");
-      enemies.splice(0, enemies.length);
-      statics.splice(0, statics.length);
+      this.x += loadingMap.exits[nextMap-1][1][0];
+      this.y += loadingMap.exits[nextMap-1][1][1];
 
-      this.x += dataArea[nextMap][1][0];
-      this.y += dataArea[nextMap][1][1];
-
-      loadingMap = eval(dataArea[nextMap][0]);
+      loadingMap = eval(loadingMap.exits[nextMap-1][0]);
 
       //determining whether the map should constrain the camera. Boolean equations took me a while to get used to, but they just sort of exist.
       constrainC = [false, false];
-      constrainC[0] = loadingMap[0].length * squareSize > canvas.width;
-      constrainC[1] = loadingMap.length * squareSize > canvas.height * menuPos;
-
-      name = loadingMap[loadingMap.length-1][loadingMap[0].length];
-      dataArea = eval(name + "Data");
-      //populating the map with enemies
-      var tio = 0;
-      var writing = 0;
-      //loop through the data array
-      while (tio < dataArea.length) {
-        switch (writing) {
-          case 0:
-            if (dataArea[tio] == "entities") {
-              writing = 1;
-            }
-            break;
-          case 1:
-            if (dataArea[tio] == "statics") {
-              writing = 2;
-            } else {
-              enemies.push(dataArea[tio]);
-            }
-            break;
-          case 2:
-            statics.push(dataArea[tio]);
-            break;
-        }
-        tio += 1;
-      }
+      constrainC[0] = loadingMap.data[0].length * squareSize > canvas.width;
+      constrainC[1] = loadingMap.data.length * squareSize > canvas.height * menuPos;
     }
   }
 
@@ -437,11 +405,8 @@ function setup() {
   centerX = canvas.width / 2;
   centerY = canvas.height / 2;
 
-  character = new Player((loadingMap[0].length / 2) * squareSize, (loadingMap.length / 2) * squareSize);
+  character = new Player((loadingMap.data[0].length / 2) * squareSize, (loadingMap.data.length / 2) * squareSize);
   marker = new Marker(0, -2);
-
-  //all entities inside the player's house
-  enemies.push(new NPC(200, 200, 0, "#888888", tutorialText)); 
 }
 
 function keyPress(h) {
@@ -539,13 +504,7 @@ function keyPress(h) {
         break;
       }
 }
-
-/*all the "character dot"s make it confusing, but I'm making the player an object
-because
-1. This whole game is an expirement with using objects and functions inside them,
-and
-2. the bodies are an object and it's easier to pass an object 
-through the gravity function, stored inside the bodies. */
+//movement negating. Not much to say here.
 function keyNegate(h) {
     switch (h.keyCode) {
     case 65:
@@ -681,16 +640,16 @@ function main() {
         //making sure the camera is in bounds
         if (cx < 0) {
           cx = 0;
-        } else if (cx + canvas.width > loadingMap[0].length * squareSize) {
-          cx = (loadingMap[0].length * squareSize) - canvas.width;
+        } else if (cx + canvas.width > loadingMap.data[0].length * squareSize) {
+          cx = (loadingMap.data[0].length * squareSize) - canvas.width;
         }
       }
 
       if (constrainC[1] == true) {
         if (cy < 0) {
           cy = 0;
-        } else if (cy + (canvas.height * menuPos) > loadingMap.length * squareSize) {
-          cy = (loadingMap.length * squareSize) - (canvas.height * menuPos);
+        } else if (cy + (canvas.height * menuPos) > loadingMap.data.length * squareSize) {
+          cy = (loadingMap.data.length * squareSize) - (canvas.height * menuPos);
         }
       }
     }
@@ -749,13 +708,12 @@ function main() {
 }
 
 function drawMap() {
-
   //drawing background
   ctx.fillStyle = spaceColor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  //to prevent ugly lines from appearing in the map, the coordinates are rounded to the pixel
 
-    cornerCoords[0] = Math.round(cx) - squareSize;
+  //to prevent ugly lines from appearing in the map, the coordinates are rounded to the pixel
+  cornerCoords[0] = Math.round(cx) - squareSize;
   cornerCoords[1] = Math.round(cy) - squareSize;
   cornerCoords[2] = Math.round(cx) + canvas.width + squareSize;
   cornerCoords[3] = Math.round(cy) + (canvas.height * menuPos) + squareSize;
@@ -764,9 +722,6 @@ function drawMap() {
   
   var xSquare = Math.round(character.x) / squareSize;
   var ySquare = Math.round(character.y) / squareSize;
-  var name = loadingMap[loadingMap.length-1][loadingMap[0].length];
-  var dataArea = eval(name + "Data");
-  var pallete = dataArea[0];
   
   /*This is the part that draws the map. It uses two while loops, one for y and one for x. */
   var row = cornerCoords[1] / squareSize;
@@ -775,19 +730,18 @@ function drawMap() {
   
   while (row * squareSize < cornerCoords[3]) {    
       counter = cornerCoords[0] / squareSize;
-    mapCounter = 0 - (counter - Math.floor(counter));
-    
+      mapCounter = 0 - (counter - Math.floor(counter));
       while (counter * squareSize < cornerCoords[2]) {
         //this line determines what square to load in. For the rows, it uses counter, and for the number of rows it uses row. The floor and absolute value operations are just to turn the players square coordinates into something that the array can understand.
         var value;
       try {
-        value = loadingMap[(Math.floor(row))][Math.floor(counter)];
+        value = loadingMap.data[(Math.floor(row))][Math.floor(counter)];
       } 
-      catch(error) {
+      catch (error) {
         value = "/";
       }
-
-      switch (pallete) {
+      //different textures are drawn based on the pallete
+      switch (loadingMap.pallete) {
         case 1:
           palleteOneSquare(value, (mapCounter * squareSize) - squareSize, (mapRow * squareSize) - squareSize);
           break;
@@ -797,14 +751,11 @@ function drawMap() {
         case 3:
           palleteThreeSquare(value, (mapCounter * squareSize) - squareSize, (mapRow * squareSize) - squareSize);
           break;
-      }
-        
-        counter = counter + 1;
+      }  
+      counter = counter + 1;
       mapCounter = mapCounter + 1;
-      
-      
     }
-      row = row + 1;
+    row = row + 1;
     mapRow = mapRow + 1;
   }
 }
@@ -879,6 +830,7 @@ function drawConversation(text, line) {
   return futureLine;
 }
 
+//helper function to draw meters
 function drawMeter(x, y, width, height, value, min, max, color) {
   var percentage = value / (max - min);
   var buffer = height * 0.2;
@@ -1000,38 +952,6 @@ function drawInventory() {
   }
 }
 
-function squareMod(toFind, toReplace) {
-  //first get the player's square position
-  //defining more variables
-  var playerSquare = [Math.floor(x / squareSize), Math.floor(y / squareSize)];
-  var squareValue;
-
-  var xOff;
-  var yOff;
-
-  for (sq=0;sq<4;sq++) {
-    //get the searching position
-    xOff = Math.round(Math.sin(sq*0.5*Math.PI));
-    yOff = Math.round(Math.cos(sq*0.5*Math.PI));
-    //get the value
-    try {
-      squareValue = loadingMap[playerSquare[1] + yOff][playerSquare[0] + xOff];
-    }
-    catch (error) {
-      squareValue = 9;
-    }
-
-    //if it's the right value, return the position of the square.
-    if (squareValue == toFind) {
-      loadingMap[playerSquare[1] + yOff][playerSquare[0] + xOff] = toReplace;
-      return sq;
-    }
-  }
-  //if the for loop is exited, then that means there are no squares
-  //if no squares were found, then the code will continue and 0 will be returned
-  return 4;
-}
-
 function checkCollision(xVar, yVar, velocity, toChange, constrain) {
   //checkCollision only does 1 direction at a time to save space.
 
@@ -1045,7 +965,7 @@ function checkCollision(xVar, yVar, velocity, toChange, constrain) {
 
   //getting the value of the current square
   try {
-    arrayValue = loadingMap[Math.floor((yVar) / squareSize)][Math.floor((xVar) /  squareSize)];
+    arrayValue = loadingMap.data[Math.floor((yVar) / squareSize)][Math.floor((xVar) /  squareSize)];
   }
   catch (error) {
     arrayValue = "/";
@@ -1119,7 +1039,7 @@ function interact() {
   var switched = 0;
 }
 
-//misc functions, much simpler than the others
+//helper functions, names should explain themselves
 function sigmoid(input, lowerBound, upperBound) {
   //un-adjusted value is between 0 and 1
   var gottenValue = 1 / (1+Math.pow(Math.E, -input));
