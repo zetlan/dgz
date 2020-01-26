@@ -320,25 +320,25 @@ class Player {
         boxY = this.y + (yOff * b);
         //loop through all the enemies.
         // if they're inside the box and it's frame 3, make them take damage
-        for (var en=0;en<enemies.length;en++) {
-          xDist = Math.abs(enemies[en].x - boxX);
-          yDist = Math.abs(enemies[en].y - boxY);
+        for (var en=0;en<loadingMap.enemies.length;en++) {
+          xDist = Math.abs(loadingMap.enemies[en].x - boxX);
+          yDist = Math.abs(loadingMap.enemies[en].y - boxY);
 
           if (xDist < tempBoxSize && yDist < tempBoxSize && this.attackFrame == 3) {
             //only attack if it's an enemy
-            if (enemies[en] instanceof Enemy) {
+            if (loadingMap.enemies[en] instanceof Enemy) {
               
               /*strength is a measure of power for different things. 
               It is a random value between 0.3 and 1.3 multiplied by a 
               sigmoid of the time since the player last pressed the z button. 
               This is then added to the base power/push of the attack.*/
               var strength = (0.8 + (Math.random() - 0.5)) * sigmoid(this.tSinAtt - 7, 0, 1);
-              enemies[en].wasHit = power * strength;
-              enemies[en].dx = xOff * strength;
-              enemies[en].dy = yOff * strength;
+              loadingMap.enemies[en].wasHit = power * strength;
+              loadingMap.enemies[en].dx = xOff * strength;
+              loadingMap.enemies[en].dy = yOff * strength;
             } else {
               this.talking = en;
-              enemies[en].converse();
+              loadingMap.enemies[en].converse();
               this.attackFrame = 0;
             }
           } else if (this.attackFrame == 4) {
@@ -655,7 +655,7 @@ function main() {
     }
 
      
-    //things that happen regardless of camera
+    //things that happen regardless of game state
 
     //main things
     time += 1 / dt;
@@ -666,30 +666,32 @@ function main() {
     //ticking everything
     var done = 0;
     //enemies
-    for (var u=0;u<enemies.length;u++) {
-      enemies[u].beDrawn();
-      enemies[u].tick();
+    for (var u=0;u<loadingMap.enemies.length;u++) {
+      loadingMap.enemies[u].beDrawn();
+      loadingMap.enemies[u].tick();
+
+      //enemies can collide with eachother, but only once per frame
       if (done == 0) {
         if (Math.random() < 0.2) {
-          var toPush = Math.floor(Math.random() * (enemies.length - 0) ) + 0;
+          var toPush = Math.floor(Math.random() * (loadingMap.enemies.length - 0) ) + 0;
           if (toPush != u) {
-            enemies[u].collide(enemies[toPush]);
+            loadingMap.enemies[u].collide(loadingMap.enemies[toPush]);
             done = 1;
           }
         }
       }
       //kill an enemy if its health is too low
-      if (enemies[u].h <= 0) {
-        enemies[u].die();
-        enemies.splice(u, 1);
+      if (loadingMap.enemies[u].h <= 0) {
+        loadingMap.enemies[u].die();
+        loadingMap.enemies.splice(u, 1);
       }
     }
     character.beDrawn();
 
     //static objects
-    for (var u=0;u<statics.length;u++) {
-      statics[u].beDrawn();
-      statics[u].tick();
+    for (var u=0;u<loadingMap.statics.length;u++) {
+        loadingMap.statics[u].beDrawn();
+        loadingMap.statics[u].tick();
     }
     //drawing inventory
     if (gameState == 2) {
