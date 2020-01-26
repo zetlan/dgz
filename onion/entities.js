@@ -34,7 +34,6 @@ function handleVelocity(acc, vel, speed) {
 }
 
 class Main {
-
   constructor(x, y, size) {
     this.x = x;
     this.y = y;
@@ -147,11 +146,11 @@ class Enemy extends Main {
     }
     //updating quests
     for (var hg=0;hg<quests.length;hg++) {
-      if (quests[hg] instanceof SlayQuest) {
+      if (eval(quests[hg]) instanceof SlayQuest) {
         
         //only update the quest if it's looking for the right enemy
-        if (this instanceof eval(quests[hg].enemy)) {
-          quests[hg].update();
+        if (this instanceof eval(eval(quests[hg]).enemy)) {
+          eval(quests[hg]).update();
         }
       }
     }
@@ -319,11 +318,11 @@ class NPC extends Friend {
 
     if (isNaN(this.currentLine)) {
       //go to the pointed quest and check if it's complete. 
-      //if it is, jump ahead 1 line. If not, jump ahead 2
+      //if it is, jump ahead 2 lines. If not, only jump ahead 1
       if (this.currentLine.complete) {
-        this.currentLine = tempStorage + 1;
-      } else {
         this.currentLine = tempStorage + 2;
+      } else {
+        this.currentLine = tempStorage + 1;
       }
     } 
   }

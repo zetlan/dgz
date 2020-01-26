@@ -67,8 +67,6 @@ var shopText =    [[["Hey kid, want to buy some... potions? (Press 1 for yes, 2 
                    [["Wow! Thank you, but I don't have any."], [99]],
                    [["Aw, that's too bad"], [99]]];
 
-console.log("bef");
-
 var questText =   [[["I'm'a give you quest now", "Hunt 4 slimes lol", "1. Yes, 2. No"], [990, 4], [new SlayQuest(1, false, 'slay slime', 'Ground', 4)]],    
                    [["Have you hunted 4 slimes yet?", "1. Yes", "2. No"], [undefined, 2]],
                    [["Come back when you have!"], [1001]],
@@ -77,6 +75,4 @@ var questText =   [[["I'm'a give you quest now", "Hunt 4 slimes lol", "1. Yes, 2
 
 questText[1][1][0] = questText[0][2][0];
 
-
-console.log("aft");
 
