@@ -936,7 +936,7 @@ function drawInventory() {
         ctx.fillRect(drawX, drawY, canvas.width * 0.5, 30);
 
         if (qo<quests.length) {
-          quests[qo].beDrawn(drawX, drawY+23);
+          eval(quests[qo]).beDrawn(drawX, drawY+23);
         }
       }
       break;

@@ -245,13 +245,14 @@ class Friend extends Main {
 }
 
 class NPC extends Friend {
-  constructor(x, y, moveState, color, text) {
+  constructor(x, y, moveState, color, text, textName) {
     super(x, y, 7, color);
     this.speed = entitySpeed * 0.5;
     this.pathPhase = moveState;
 
     this.currentLine = 0;
     this.text = text;
+    this.textName = textName;
   }
 
   beDrawn() {
@@ -289,38 +290,37 @@ class NPC extends Friend {
     if (this.currentLine >= 980 && this.currentLine < 990) {
       var toPush = this.text[0][2][this.currentLine-980];
       enemies.push(eval(toPush));
-      this.currentLine = tempStorage+1;
+      this.currentLine = tempStorage + 1;
       character.talking = -1;
       dt = dtBase;
     } 
 
     //990-999 is the code for the quests
     if (this.currentLine >= 990 && this.currentLine < 1000) {
-      var toPush = this.text[0][2][this.currentLine-990];
-      quests.push(eval(toPush));
-      this.currentLine = tempStorage+1;
+      //creates the numbers that reference the quest
+      
+      var toPush = this.textName + "[" + tempStorage + "]" + "[2][" + String(this.currentLine - 990) + "]";
+
+      //pushes the reference to the quests array
+      quests.push(toPush);
+
+      //ending conversation
+      this.currentLine = tempStorage + 1;
       character.talking = -1;
       dt = dtBase;
     }
 
     //1000+ is the code for going to a line while exiting conversation
     if (this.currentLine >= 1000 && this.currentLine < 2000) {
-      this.currentLine = this.currentLine-1000;
+      this.currentLine = this.currentLine - 1000;
       character.talking = -1;
       dt = dtBase;
     }
 
-    if (this.currentLine >= 2000) {
-      var done = false;
-      //loop through all the quests and see if a done one matches the ID
-      for (var vb=0;vb<quests.length;vb++) {
-        done = quests[vb].validate();
-        if (done == true) {
-          vb = quests.length + 1;
-        }
-      }
-      //if there is, move ahead 1 line. If not, move ahead 2.
-      if (done) {
+    if (isNaN(this.currentLine)) {
+      //go to the pointed quest and check if it's complete. 
+      //if it is, jump ahead 1 line. If not, jump ahead 2
+      if (this.currentLine.complete) {
         this.currentLine = tempStorage + 1;
       } else {
         this.currentLine = tempStorage + 2;

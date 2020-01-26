@@ -129,8 +129,8 @@ var shopData = [["A", "A", "A", "1", "A", "A", "A", "A"],
 
 var shopExits = [["selya", [3 * squareSize, 14 * squareSize]]];
 
-var shopEnemies = [ new NPC(squareSize * 2, squareSize * 5, 0, hyperColor, shopText), 
-                    new NPC(squareSize * 6, squareSize * 5, 0, hyperColor, questText)];
+var shopEnemies = [ new NPC(squareSize * 2, squareSize * 5, 0, hyperColor, shopText, "shopText"), 
+                    new NPC(squareSize * 6, squareSize * 5, 0, hyperColor, questText, "questText")];
 
 var shopStatics = [];
 
