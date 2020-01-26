@@ -58,8 +58,8 @@ var selyaData = [  ["A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", 
                    ["A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "2", "2", "A", "A", "selya"]];
 
 
-var selyaExits = [    ["rightMap", [-1 * (selya[0].length * squareSize), 0]], 
-                      ["downMap", [-14 * squareSize, -1 * selya.length * squareSize]],
+var selyaExits = [    ["rightMap", [-1 * (selyaData[0].length * squareSize), 0]], 
+                      ["downMap", [-14 * squareSize, -1 * selyaData.length * squareSize]],
                       ["shop", [-3 * squareSize, -14 * squareSize]],
                       ["home", [-3 * squareSize, 8 * squareSize]]];
 
