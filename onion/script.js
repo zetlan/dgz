@@ -291,7 +291,7 @@ class Player {
 
     //if the player is having a conversation, draw that
     if (this.talking != -1) {
-      enemies[this.talking].converse();
+      loadingMap.enemies[this.talking].converse();
     }
   }
 
