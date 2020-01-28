@@ -65,18 +65,18 @@ var tutorialText = [[["Hello, you can continue by pressing Z or the numbers"], [
                     
 var joinText = [[["Hey! How are you! I haven't seen you in a while!", "1. I'm good"], [1]],
                 [["Nice! Now that you're out of school, what do you plan on doing?", "1. I'm not sure"], [2]],
-                [["Well then, I'm glad I got to talk to you! If you've paid attention in school,", "and I know you have, then you would know", "the Onion Of Peace has been shattered for a while"], [3]],
+                [["Well then, I'm glad I got to talk to you!", "If you've paid attention in school,", "and I know you have, then you would know", "the Onion Of Peace has been shattered for a while"], [3]],
                 [["and you should think about joining the efforts to do something.", "1. What do you mean?", "2. I'll think about it"], [4, 5]],
-                [["Well, there's the Onion Protection Society and the Onion Avoidance Society", "Both are doing things about the onion of peace, although", "I personally disagree with the Onion Protection Society"], [6]],
+                [["Well, there's the Onion Protection Society and the Onion Avoidance Society", "Both are doing things about the onion of peace,", "although I personally disagree with the Onion Avoidance Society"], [6]],
                 [["Ok cool! I'm sure you already know about the two organizations,", "the Onion Protection Society and the Onion Avoidance Society"], [6]],
                 [["You should really join one of them! I hear they pay a good salary,", "and you can have purpose in your life as well!", "1. ..."], [7]],
                 [["Questions?", "1. Tell me about the Onion Protection Society", "2. Tell me about the Onion Avoidance Society", "3. What if I don't want to join one?"], [8, 9, 10]],
                 [["The Onion Protection Society is dedicated to finding and uniting the different shards", "of the Onion Of Peace.", "Their goal is to bring peace to the land by making the onion whole again."], [12]],
-                [["The Onion Avoidance society hopes to bring justice to the land by destroying the onion", "their philosophy is that people can't be good if their problems are all solved for them."], [13]],
+                [["The Onion Avoidance society hopes to bring justice to the land by destroying", "the onion. Their philosophy is that people can't be good if their problems are", "all solved for them."], [13]],
                 [["Well that's too bad, but you really should.", "I'm going to keep you here until you know at least something about one of them.", "1. oh", "2. I already know about them"], [7, 11]],
                 [["Are you sure?", "1. yes, I'm sure", "2. no, tell me more"], [14, 7]],
-                [["They're pretty neat. I used to participate in their forces before I got a new job.", "Now I examine bricks."], [8]],
-                [["I personally think that the suffering caused by removing the onion", "would outweigh any good done by removing it.", "However, that's my opinion.", "Think whatever you like."], [7]]
+                [["They're pretty neat. I used to participate in their forces before I got a new job.", "Now I examine bricks."], [7]],
+                [["I personally think that the suffering caused by removing the onion", "would outweigh any good done by removing it.", "However, that's my opinion.", "Think whatever you like."], [7]],
                 [["Ok, well this was a good talk! Have a nice day!"], [99]]];
 
 var shopText =    [[["Hey kid, want to buy some... potions? (Press 1 for yes, 2 for no)"], [1, 2]],
