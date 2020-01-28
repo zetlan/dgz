@@ -63,11 +63,9 @@ var selyaExits = [    ["rightMap", [-1 * (selyaData[0].length * squareSize), 0]]
                       ["potionShop", [-3 * squareSize, -14 * squareSize]],
                       ["home", [-3 * squareSize, 8 * squareSize]]];
 
-var selyaEnemies = [new Ground(squareSize, squareSize*3, 10, 10, 1),
-                    new Enemy(squareSize, squareSize*6, 10, 10, 1),
-                    new Chatter(squareSize, squareSize*13),
-                    new ConvoStarter(squareSize*6.5, squareSize*5.5, squareSize, 4),
-                    new NPC(squareSize*5, squareSize*6, 0, "#333333", joinText, "joinText")];
+var selyaEnemies = [new Chatter(squareSize, squareSize*13),
+                    new ConvoStarter(squareSize*8.2, squareSize*8, squareSize, 2),
+                    new NPC(squareSize*8.2, squareSize*8, 0, "#333333", joinText, "joinText")];
                       
 var selyaStatics = [new Box(squareSize*1, squareSize*1),
                     new House(squareSize*6, squareSize*3),

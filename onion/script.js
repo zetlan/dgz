@@ -336,10 +336,12 @@ class Player {
               loadingMap.enemies[en].wasHit = power * strength;
               loadingMap.enemies[en].dx = xOff * strength;
               loadingMap.enemies[en].dy = yOff * strength;
+            } else if (loadingMap.enemies[en] instanceof ConvoStarter) {
+                //not sure what to put here, I have an else if instead of an !if because I couldn't get the syntax to work right
             } else {
-              this.talking = en;
-              loadingMap.enemies[en].converse();
-              this.attackFrame = 0;
+                this.talking = en;
+                loadingMap.enemies[en].converse();
+                this.attackFrame = 0;
             }
           } else if (this.attackFrame == 4) {
             //after doing calculations, the number gets reset
