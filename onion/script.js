@@ -670,7 +670,13 @@ function main() {
     //enemies
     for (var u=0;u<loadingMap.enemies.length;u++) {
       loadingMap.enemies[u].beDrawn();
-      loadingMap.enemies[u].tick();
+      //only tick enemies if they're alive
+      if (loadingMap.enemies[u].alive >= 1) {
+        loadingMap.enemies[u].tick();
+      } else {
+        loadingMap.enemies[u].alive += 1 / dt;
+      }
+      
 
       //enemies can collide with eachother, but only once per frame
       if (done == 0) {
@@ -681,11 +687,6 @@ function main() {
             done = 1;
           }
         }
-      }
-      //kill an enemy if its health is too low
-      if (loadingMap.enemies[u].h <= 0) {
-        loadingMap.enemies[u].die();
-        loadingMap.enemies.splice(u, 1);
       }
     }
     character.beDrawn();

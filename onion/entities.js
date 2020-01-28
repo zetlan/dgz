@@ -57,6 +57,7 @@ class Main {
     this.yPD;
     this.distToPlayer;
     this.hitTime = 0;
+    this.alive = 1;
   }
 
   beDrawn() {
@@ -103,14 +104,22 @@ class Enemy extends Main {
 
     this.hitTime = 0;
     this.pathPhase;
+    this.dieTime = 2000;
   }
 
   beDrawn() {
+    var op;
+    if (this.alive >= 1) {
+      op = 1;
+    } else {
+      op = 0.2;
+    }
+    ctx.globalAlpha = op;
     super.beDrawn();
+    ctx.globalAlpha = 1;
   }
 
   tick() {
-    
     //getting pathing value. It's 1 if too far away, 0 if in range, and -1 if too close.
     if (this.distToPlayer > this.minDist) {
       if (this.distToPlayer < this.maxDist) {
@@ -125,7 +134,10 @@ class Enemy extends Main {
     //enemies can take damage
     this.h -= this.wasHit;
     this.wasHit = 0;
-    //if the enemy is dead, update the quests
+    //if the enemy is dead, run the die function
+    if (this.h <= 0) {
+      this.die();
+    }
 
     //push player away if too close
     if (this.distToPlayer < this.r + character.r) {
@@ -139,6 +151,8 @@ class Enemy extends Main {
   }
 
   die() {
+    //starts a timer to be alive
+    this.alive = this.dieTime * -1;
     //character gets xp
     character.xp += this.xp;
     if (character.xp >= character.maxXp) {
@@ -154,6 +168,10 @@ class Enemy extends Main {
         }
       }
     }
+    //restoring the enemy to its defaults
+    this.h = this.mh;
+    this.hitTime = 0;
+    this.pathPhase = 1;
   }
 
   attack() {
@@ -168,11 +186,21 @@ class Ground extends Enemy  {
   }
 
   beDrawn() {
+    var op;
+    if (this.alive >= 1) {
+      op = 1;
+    } else {
+      op = 0.2;
+    }
+    ctx.globalAlpha = op;
     ctx.fillStyle = this.color;
     ctx.beginPath();
     ctx.ellipse(this.x - cx, this.y - cy, this.r, this.r * (0.5 + (this.hitTime / enemyHitTime)), this.direction * -1, 0, Math.PI * 2)
     ctx.fill();
-    drawMeter(this.x - cx - this.r, this.y - cy - (this.r * 2), this.r * 2, this.r / 2, this.h, 0, this.mh, this.color);
+    if (this.pathPhase < 1) {
+      drawMeter(this.x - cx - this.r, this.y - cy - (this.r * 2), this.r * 2, this.r / 2, this.h, 0, this.mh, this.color);
+    }
+    ctx.globalAlpha = 1;
   }
 
   tick() {
@@ -386,6 +414,7 @@ class ConvoStarter {
     this.r = size;
     this.e = entity;
     this.active = true;
+    this.alive = 1;
     
     this.dTP = 1;
   }
