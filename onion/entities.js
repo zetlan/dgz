@@ -492,18 +492,6 @@ class House extends Passive {
   }
 }
 
-class HouseCover extends Passive {
-  constructor(x, y) {
-    super(x, y);
-    this.texture = new Image();
-    this.texture.src = "";
-  }
-
-  beDrawn() {
-    ctx.drawImage(this.texture, (this.x - cx) - (squareSize * 1.5), (this.y - cy) - (squareSize * 1.5), squareSize * 3, squareSize * 3);
-  }
-}
-
 //======= Inventory =======//
 class Item {
   constructor(id, x, y, equipped) {
