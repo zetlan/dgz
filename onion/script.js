@@ -655,11 +655,8 @@ function main() {
         }
       }
     }
-
      
     //things that happen regardless of game state
-
-    //main things
     time += 1 / dt;
 
     //drawing everything, map first
