@@ -473,12 +473,26 @@ class Passive extends Main {
 class Box extends Passive {
   constructor(x, y, contains) {
     super(x, y);
+    this.hasItem = true;
+    this.item = contains;
+    this.textureClosed = new Image();
+    this.textureOpen = new Image();
+    this.textureClosed.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAMAAAC7IEhfAAAAM1BMVEUAAABMNtOwsLD///9MNtOwsLCwsLCwsLBMNtOwsLBMNtNMNtNMNtOwsLAAAABMNtOYiPnM2kuEAAAADnRSTlMAAAAAAQECAwQEBQYKDI+HwD0AAACTSURBVHgB1dJbDsIgEIVhDgfQ1su4/9UKsYlDykURH/o/ki+TIRnDXYtloQL0EyDYzyBFXbB1eE1UCqV3h/eOOEMqYYWGkGrQkNIIHIDSDD/AR5ZsUUHlVH+D+G7i7RT60PtgbKoHI0mQ/AAOfOZA8L41YeJeTjjcPkTTjUCi6RRcUXVOQ4dYkcUuesesBXkveICeo6Q5SW2o8sEAAAAASUVORK5CYII=";
+    this.textureOpen.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAMAAAC7IEhfAAAAM1BMVEUAAABMNtOwsLD///9MNtOwsLCwsLCwsLBMNtOwsLBMNtNMNtNMNtOwsLBAPVJMNtOYiPm4yvaxAAAADnRSTlMAAAAAAQECAwQEBQYKDI+HwD0AAACWSURBVHgB7c/bDsIgEIRhhgW09YDv/7SysYlD3C210QsT/0vyBYYgL01RjAyYPwAh4wI04Ur04VlpNdLzhOdGHFGdMIMhqhsI8rM3apFCkBzHcOA0EHScC69ddUkIkqO+BvHejZdDGcOcS4jaCDaiUGQL3PyZP6ym66DTfohVtwcKVh3B2ZVIDBNaJmudeGPXhL4H/IHufNg3l2ClDGoAAAAASUVORK5CYII=";
   }
 
   beDrawn() {
+    if (this.hasItem) {
+      ctx.drawImage(this.textureClosed, this.x - cx, this.y - cy, squareSize, squareSize);
+    } else {
+      ctx.drawImage(this.textureOpen, this.x - cx, this.y - cy, squareSize, squareSize);
+    }
+  }
 
-    ctx.fillStyle = boxColor;
-    ctx.fillRect(this.x - cx + 3, this.y - cy + 3, squareSize - 6, squareSize - 6);
+  converse() {
+    character.talking = -1;
+    this.hasItem = false;
+    inventory.push(eval(this.item));
   }
 }
 
