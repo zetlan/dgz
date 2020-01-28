@@ -378,6 +378,46 @@ class Chatter extends Friend {
     dt = dtBase;
   }
 }
+//the conversation starter starts up a conversation with another entity when the player goes inside a certain distance from them
+class ConvoStarter {
+  constructor(x, y, size, entity) {
+    this.x = x;
+    this.y = y;
+    this.r = size;
+    this.e = entity;
+    this.active = true;
+    
+    this.dTP = 1;
+  }
+
+  tick() {
+    //updates increase in frequency the closer the player is, at 1 square away or closer will update every tick
+    if (Math.floor(time) % Math.ceil(this.dTP / squareSize) == 0 && this.active) {
+      var xDTP = this.x - character.x;
+      var yDTP = this.y - character.y;
+      this.dTP = Math.sqrt((xDTP * xDTP) + (yDTP * yDTP));
+
+      //if the distance is an invalid state, make it 1
+      if (this.dTP <= 0) {
+        this.dTP = 1;
+      }
+
+      //starts a conversation if the player is too close, then deactivates itself
+      if (this.dTP <= this.r) {
+        character.talking = this.e;
+        this.active = false;
+      }
+    }
+  }
+  //these functions are empty because the conversation starter doesn't do a lot. They're just here so that the program doesn't freak out trying to run things that don't exist.
+  beDrawn() {
+
+  }
+
+  collide(h) {
+
+  }
+}
 
 //========= Passives ========= // 
 
