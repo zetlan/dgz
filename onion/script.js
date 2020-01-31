@@ -409,6 +409,8 @@ function setup() {
 
   character = new Player((loadingMap.data[0].length / 2) * squareSize, (loadingMap.data.length / 2) * squareSize);
   marker = new Marker(0, -2);
+  constrainC[0] = loadingMap.data[0].length * squareSize > canvas.width;
+  constrainC[1] = loadingMap.data.length * squareSize > canvas.height * menuPos;
 }
 
 function keyPress(h) {
@@ -753,6 +755,9 @@ function drawMap() {
         case 3:
           palleteThreeSquare(value, (mapCounter * squareSize) - squareSize, (mapRow * squareSize) - squareSize);
           break;
+          case 4:
+            palleteFourSquare(value, (mapCounter * squareSize) - squareSize, (mapRow * squareSize) - squareSize);
+            break;
       }  
       counter = counter + 1;
       mapCounter = mapCounter + 1;
