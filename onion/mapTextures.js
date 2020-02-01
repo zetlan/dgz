@@ -94,8 +94,16 @@ dirtWallCornerUL.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCA
 var dirtWallCornerUR = new Image();
 dirtWallCornerUR.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAMAAAC7IEhfAAACc1BMVEVAWUNAaEtAfFhAo29BWkRBXkZBfldBm2pBn2xBpXBBsHZBsXdBsnhBtnpBuXxBunxBun1Bu31CiV9Cp3FCr3VCtHlCtnpCuXxDUj9Db1BDglxDoW5DpXBDqnNDrHVDsHdDsndESTtEUj9EX0dEhFpEkWREsHdEsXdEtXpFhV1Fhl5Fpm9Fs3lFtHlFtXpGV0NGnWxGom9HYUlHcU1Hnm1IUD9Ir3dJQzdJVEFJWURJeVdJe1RKqnRLPjRLQDZLiFxLqXRMOytMPy5MQDVMQDZMRThMRTlMSDRMTDxMVEFMXUJMd1ZNQDZNQzdNUUBOQTdOSz1OUDpOpHFPQjhPRTlPXkJPZ01Pd1dPoXBPonBQQzhQRTlQSjxQV0NQWERQoG9RQjBRRDlRSz1RTT5SQzFSRTNSSDtSTDZSTT5SYktTPi1TRTlTRTpTRjpTSDtUQC9UV0VVQC9VSj1Vl2pVmGtWRztWST1XQC9YQS9YSTxZST1ZSj1ZkWdbQzBbSj5bTD9cRzJcTD9dflVeRjFeTT9eTkBfTUBfVkVfhmFgRjJgT0FghWFhUEFhgl9iUEFiUEJiUUJjSDJjUUJjUUNjUkNkUkNlSjRlUkNlbkpmSjRmU0RnVUVnVUZnaUdoVUZpTDVpVUZpVkZpV0ZpdFhqV0dqYkNqcldqc1drV0dsTjZsTzZsV0hsWEdsWEhtWEhtWUhtWUltbFRtbVVuTzduUDduWUluWklvUDdvWUlvWklvaVJwUTdwW0pxXEpxXUtxZlFxZ1FyUjhyXEtyXUtyXUxyZFByZVBzXUxzXU1zXkx0Xkx0Xk10X011X011YE1+3aOI/7urX9DGAAACCUlEQVR4AY3TdZfTQBAA8OICJVmE4i6Hu7u7cLhzuLvA4XAIh1MOuMP9ECgUWqQtZVsgNGGBj0Tb2WTb7ASY9/Le/PF7M9nZHdf5HfMmDhoxbPi4/l3beohzuOIvbl0+tmtt3pRJyzavmfBLcYSMMePd08Czu0XnCvLzejWo5VYcIaUsGVokcKdwfZ/m9eo3VHBIKUjGEuEHVw9uGNWlYlUMppApma5FnhQfWtCikipBIKZMFTfir7yLalaH/r9FRVOAgsz4cKJfWTcIGwQlsu83ZpSphkNwIn++sUI5DDIORdH3W8tX/heEooGVrioyFFLQe/Nb1sGhTWolo1tLEKSNvjnc3f0/kBm3l7fCICKvTKstDxyTX870qAHwJ1dO3X1L2ilpOHf7kWsP//KfiUtjuqVh8lNzck+/dpQvd89SUpC/o077/A5HentqRQdekdOT37DnQUPFW2ZnQaLOiWZ35zsS3L+qjQUhej8SQmxSrGjTEBskOY85zDyVXrp3pmKDpPNH0wnIwgWrm9khGfgVXCbUS9b1lCDZhlySL3+ADJWbTIKfjo5XTSg2eKgM9YsL6wpoxX0Jhi5MborAXLujocKxTRDo+SwgDEv3Tm2MQHLWguDYj+tLG2FwsYB8qKU722OwowUp58E9fTHoiQK0HAsfGIxB1Z+G1HIsdnwkBgmHzArNO/0PbBP/yajElFcAAAAASUVORK5CYII=";
 
+var dirtStairsVertical = new Image();
+dirtStairsVertical.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAMAAAC7IEhfAAAAD1BMVEVBu31Bu35UPy51X02I/7vdFfaGAAAAMUlEQVR4AWMgE7AwDCtAue+YiAQMTMxEAeIVEm815YBxwKNmNGbonxtGY2aYRQf9AQAivgS26CTanwAAAABJRU5ErkJggg==";
+
+var dirtStairsHorizontal = new Image();
+dirtStairsHorizontal.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoBAMAAAB+0KVeAAAAD1BMVEVBu31Bu35UPy51X02I/7vdFfaGAAAAMElEQVQoz2NgAAIlJRQCApSNGBxABAOEgAsyjCBBxkHsTgd6WOQwjGKThZpmomcZADb1KDici0nVAAAAAElFTkSuQmCC";
 var houseCover = new Image();
 houseCover.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAHgAAAB4CAMAAAAOusbgAAAAIVBMVEUAAABmY4R8p9eZx+T///9mY4RmY4R8p9eMi5KZx+SwsLAUK9imAAAABnRSTlMAAAAAAAKAqGa9AAABKklEQVR4Ae3Sa26EMAxF4TJQT+n+F1xPdJFcIsIjj1/nbODTtfxFY1tG9h1gM5t6GFOeUxFeV/vghWphofZ+72BPeA9YqJfBooW3hIWKPYLj8no4LL0Ey/6pTuotWPjv44Q+gdfHeFj6FF7t7tkTKqYOTl0crqWtYNFeGRXbGt700vv2gQ/+bUP7w8IDOgxOhaVj4TW7MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDCwNwZ2KMLTPM8J7wkn9OVF2JuFWw/YNvTlUoCXjyw86S1hmZ6UHJYuvAUsVOYJHHF7DluOnsOipd+HZYotwVmXpl8buuw7h8+ml4fWwrvpR3A2tA0sWrj9h02o2Oaw+DBdQyPZDY7TC0PP4T8thG2IGBtlbgAAAABJRU5ErkJggg==";
+
+var grassyRock = new Image();
+grassyRock.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAMAAAC7IEhfAAAAD1BMVEVBu31wgIB7kZCI/7uJnJxVrEu8AAAAgUlEQVR4AeXUMQ5DMQiDYeNw/zNXqZ4HRDFSx/afvwhPwZcd/HIHc3yCi6WdMW/kMKaoWVYnSXfWSnYoOjmmkTRQUs5IAwfJ1iD5sQ6Dc4IEjqChvBARXCRvgjbBTWYK7isFwzvBhaZOKwsh6OjbSXqKp6gNrNGSVCnqC/j+4ut9ATIKB1uraVhMAAAAAElFTkSuQmCC";
 
 //pallete 2
 
@@ -160,7 +168,6 @@ function palleteOneSquare(value, ex, why) {
         break;
       case "I":
         ctx.drawImage(dirtWallCornerDR, ex, why, squareSize, squareSize);
-        ctx.fill();
         break;
       case "J":
         ctx.fillStyle = dirtColor;
@@ -172,38 +179,13 @@ function palleteOneSquare(value, ex, why) {
         break;
       //stairs
       case "Q":
-        palleteOneSquare("0", ex, why);
-        ctx.fillStyle = dirtColor;
-        for (var j=0;j<3;j++) {
-          ctx.fillRect(ex+(squareSize*((j+0.5)/4)), why, squareSize*0.1, squareSize);
-        }
+        ctx.drawImage(dirtStairsHorizontal, ex, why, squareSize, squareSize);
         break;
       case "R":
-        palleteOneSquare("0", ex, why);
-        ctx.fillStyle = dirtColor;
-        for (var j=0;j<3;j++) {
-          ctx.fillRect(ex, why+(squareSize*((j+0.5)/4)), squareSize, squareSize*0.1);
-        }
+        ctx.drawImage(dirtStairsVertical, ex, why, squareSize, squareSize);
         break;
       case "S":
-        palleteOneSquare("0", ex, why);
-        ctx.fillStyle = stoneColor;
-        ctx.ellipse(ex+(squareSize*0.5), why+(squareSize*0.5), squareSize*0.5, squareSize*0.5, 0, 0, Math.PI*2);
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.fillStyle = lStoneColor;
-        ctx.ellipse(ex+(squareSize*0.3), why+(squareSize*0.55), squareSize*0.1, squareSize*0.1, 0, 0, Math.PI*2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.ellipse(ex+(squareSize*0.7), why+(squareSize*0.7), squareSize*0.1, squareSize*0.1, 0, 0, Math.PI*2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.ellipse(ex+(squareSize*0.6), why+(squareSize*0.2), squareSize*0.1, squareSize*0.1, 0, 0, Math.PI*2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.ellipse(ex+(squareSize*0.5), why+(squareSize*0.25), squareSize*0.1, squareSize*0.1, 0, 0, Math.PI*2);
-        ctx.fill();
+        ctx.drawImage(grassyRock, ex, why, squareSize, squareSize);
         break;
       case "Z":
         palleteThreeSquare("0", ex, why);

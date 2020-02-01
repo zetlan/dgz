@@ -747,15 +747,15 @@ function drawMap() {
       //different textures are drawn based on the pallete
       switch (loadingMap.pallete) {
         case 1:
-          palleteOneSquare(value, (mapCounter * squareSize) - squareSize, (mapRow * squareSize) - squareSize);
-          break;
+            palleteOneSquare(value, (mapCounter * squareSize) - squareSize, (mapRow * squareSize) - squareSize);
+            break;
         case 2:
-          palleteTwoSquare(value, (mapCounter * squareSize) - squareSize, (mapRow * squareSize) - squareSize);
-          break;
+            palleteTwoSquare(value, (mapCounter * squareSize) - squareSize, (mapRow * squareSize) - squareSize);
+            break;
         case 3:
-          palleteThreeSquare(value, (mapCounter * squareSize) - squareSize, (mapRow * squareSize) - squareSize);
-          break;
-          case 4:
+            palleteThreeSquare(value, (mapCounter * squareSize) - squareSize, (mapRow * squareSize) - squareSize);
+            break;
+        case 4:
             palleteFourSquare(value, (mapCounter * squareSize) - squareSize, (mapRow * squareSize) - squareSize);
             break;
       }  

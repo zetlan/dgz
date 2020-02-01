@@ -29,7 +29,9 @@ var tutorial1Data = [["A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A"
                     ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
                     ["A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A"]];
 
+var tutorial1Exits = [];
 let tutorial1 = new Map(tutorial1Data, 20, "tutorial1", tutorial1Exits, [], []);
+
 var homeData = [["A", "A", "A", "A", "A", "A", "A", "A", "A", "A"],
                 ["A", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
                 ["A", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
@@ -108,10 +110,10 @@ var rightMapData = [["A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A",
 var rightMapExits = [["selya", [(selyaData[0].length * squareSize), 0]],
                      ["stoneEntrance", [-1 * (rightMapData[0].length * squareSize), -2 * squareSize]]];
 
-var rightMapEnemies = [new Ground(160, 60, 7, 5, 1),
+var rightMapEnemies = [new Slime(160, 60),
                        new Ground(160, 120, 20, 50, 1),
-                       new Ground(160, 180, 7, 5, 1),
-                       new Ground(160, 240, 7, 5, 1)];
+                       new Slime(160, 60),
+                       new Slime(160, 60)];
 
 var rightMapStatics = [];
 

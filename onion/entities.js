@@ -237,6 +237,12 @@ class Ground extends Enemy  {
   }
 }
 
+class Slime extends Ground {
+  constructor(x, y) {
+    super(x, y, 7, 3, 1);
+  }
+}
+
 //========== NPCS ==========//
 
 class Friend extends Main {
@@ -517,7 +523,6 @@ class Item {
     this.id = id;
     this.equippable = false;
     this.movable = true;
-
   }
 
   beDrawn() {
