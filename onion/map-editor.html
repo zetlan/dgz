@@ -1,0 +1,601 @@
+<!doctype html>
+<!-- Copyright Davis Zetlan
+Jan-2-2019 -->
+
+<html>
+  <head>
+    <title>Onion Map Editor v0.8</title>
+    <style>
+      #canvas {
+        border-style: double;
+        border-color: slateblue;
+        margin: auto;
+        float: right;
+      }
+
+      #mapSizeControls {
+        position: absolute; 
+        top:1; 
+        left:0;
+      }
+
+      #mapSpot {
+          font-family: 'Courier New', Courier, monospace;
+          font-size: small;
+          position: absolute;
+          margin-top: 120px;
+      }
+    </style>
+    <script src="mapTextures.js"></script>
+    <script src="entities.js"></script>
+    <script type="text/javascript">
+        window.addEventListener("keydown", keyPress, false);
+        window.addEventListener("keyup", keyNegate, false);
+      //setting up variables for later
+      var canvas;
+      var ctx;
+
+      var squareSize = 20;
+
+      var writeMap =   [["A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A"],
+                        ["A", "i", "B", "0", "0", "0", "0", "0", "0", "D", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                        ["A", "0", "B", "0", "0", "i", "i", "i", "0", "D", "0", "0", "0", "0", "0", "0", "S", "0", "0", "0", "0", "0", "0", "0", "0", "1"],
+                        ["A", "0", "B", "0", "0", "i", "/", "i", "0", "D", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "1"],
+                        ["A", "0", "B", "0", "0", "i", "4", "i", "0", "D", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                        ["A", "0", "B", "0", "0", "0", "0", "0", "0", "D", "0", "0", "0", "0", "S", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                        ["A", "0", "B", "0", "0", "0", "0", "0", "0", "D", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                        ["A", "0", "F", "E", "E", "E", "E", "E", "R", "I", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                        ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                        ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                        ["A", "0", "0", "0", "A", "A", "A", "A", "A", "0", "0", "A", "D", "0", "0", "G", "C", "C", "C", "H", "0", "0", "0", "0", "0", "A"],
+                        ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "D", "0", "0", "B", "0", "0", "0", "D", "0", "0", "0", "0", "0", "A"],
+                        ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "D", "0", "0", "B", "0", "0", "0", "D", "0", "0", "0", "0", "0", "A"],
+                        ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "D", "0", "0", "B", "0", "0", "0", "D", "0", "0", "0", "0", "0", "A"],
+                        ["A", "0", "0", "0", "0", "i", "i", "i", "0", "0", "0", "0", "D", "0", "0", "F", "E", "R", "E", "I", "0", "0", "0", "0", "0", "A"],
+                        ["A", "0", "0", "0", "0", "i", "/", "i", "0", "0", "0", "0", "D", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                        ["A", "0", "0", "0", "0", "i", "3", "i", "0", "0", "0", "0", "D", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                        ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "D", "0", "0", "S", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                        ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "D", "D", "D", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                        ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "D", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                        ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "D", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                        ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "D", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                        ["A", "E", "E", "E", "E", "E", "E", "E", "E", "E", "E", "E", "I", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                        ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                        ["A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "2", "2", "A", "A", "A", "A", "A", "A", "A"]];
+
+      var writeMapStatics = [new House(squareSize * 6, squareSize * 3),
+                            new House(squareSize * 2, squareSize * 2)];
+
+      var writeMapEntities = [];
+
+      var possibleStatics = [House];
+
+      var possibleEnemies = [];
+
+      var cornerCoords = [0, 0, 0, 0];
+      
+      var loadingMap = writeMap;
+      var loadingPallete = 1;
+      var arrayValue = "A";
+      var staticOccupy = -1;
+
+      var centerX;
+      var centerY;
+
+      var cx = 0;
+      var cy = 0;
+      var mouseX;
+      var mouseY;
+      var mouseState = 0;
+
+      var max = 20;
+      var entitySpeed = 1;
+      var entitySpeedBase = entitySpeed;
+      var multiplier = 10;
+      var frameTime = 33;
+
+      
+      //all the colors used
+      var landColor = "#008800";
+      var spaceColor = "#222266";
+      var sunColor = "#FF3300";
+      var mercColor = "#A7A2A0";
+      var debrisColor = "#8888FF";
+
+      var engineColor = "#6666FF";
+      var shipColor = "#FFFFFF";
+      var computeColor = "#307529";
+      var computeWireColor = "#FFEE25";
+      var hyperColor = "#3872FF";
+      var brokenHyperColor = "#5D649C";
+      var repairColor = "#76AA9F";
+
+      var endingColor = "#FF00FF";
+      var startingColor = "#00FF00";
+      var stoneColor = "#6F8389";
+      var blackColor = "#000000";
+
+      var powerColor = "#FFD800";
+      var fuelColor = "#FF9300";
+      var cTemperColor = "#7CBBFA";
+      var mTemperColor = "#7CFA80";
+      var hTemperColor = "#FA917C";
+      
+      var menuColor = "#333366";
+      var textColor = "#88FFCC";
+      var playerColor = "#CCCCFF";
+      var characterColor = "#FF00FF";
+      
+      var teleColor = "#8A4EC3";
+      var explosionColor = "#FF8800";
+      var coolExplosionColor = "#4D97C7";
+      var text = " ";
+      //classes exist here, oh boy!
+
+
+
+
+
+
+
+      let character;
+
+      let loadingClass;
+
+      class Player {
+        constructor(x, y) {
+          this.x = x;
+          this.y = y;
+          this.dx = 0;
+          this.dy = 0;
+        }
+
+        tick() {
+            this.x += this.dx;
+            this.y += this.dy;
+        }
+      }
+      //classes that determine the behavior of the main function
+      class MainStructure {
+        constructor() {
+          this.mapOpacity = 1;
+          this.entityOpacity = 0.5;
+          this.staticOpacity = 0.5;
+        }
+
+        main() {
+          
+          //each section gets its own opacity, stored in the opacity variables for this class
+          //map
+          ctx.globalAlpha = this.mapOpacity;
+          drawMap();
+
+          //statics
+          ctx.globalAlpha = this.staticOpacity;
+          for (var hy=0;hy<writeMapStatics.length;hy++) {
+            writeMapStatics[hy].beDrawn();
+          }
+
+          //entities
+          ctx.globalAlpha = this.entityOpacity;
+          for (var hy=0;hy<writeMapEntities.length;hy++) {
+            writeMapEntities.beDrawn();
+          }
+
+          //after drawing main things, draws camera coordinates and crosshair.
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = endingColor;
+          ctx.fillRect(centerX-2, centerY-2, 4, 4);
+          ctx.fillText("(" + ((cx+centerX) / squareSize).toFixed(2) + " * squareSize, " + ((cy+centerY) / squareSize).toFixed(2) + " * squareSize)", canvas.width * 0.05, canvas.height * 0.95);
+        }
+      }
+
+      class TileStructure extends MainStructure {
+        constructor() {
+          super();
+        }
+
+        main() {
+          //ticking the character and then syncing the camera to the character
+          character.tick();
+          cx = character.x - centerX;
+          cy = character.y - centerY;
+
+          //everything normal
+          super.main();
+        }
+      }
+
+      class EntityStructure extends MainStructure {
+        constructor() {
+          super();
+        }
+      }
+
+      class StaticStructure extends MainStructure {
+        constructor() {
+          super();
+        }
+
+        main() {
+          cx = writeMapStatics[staticOccupy].x - centerX;
+          cy = writeMapStatics[staticOccupy].y - centerY;
+
+          super.main();
+        }
+      }
+
+
+
+
+      
+      window.onload = setup;
+      document.onmousemove = mouseHandle;
+      document.onmousedown = edit;
+      document.onmouseup = mouseUpHandle;
+
+      //the initializing function.
+      function setup() {
+        setInterval(main, frameTime);
+        canvas = document.getElementById("canvas");
+        ctx = canvas.getContext("2d");
+        ctx.imageSmoothingEnabled = false;
+
+        centerX = canvas.width / 2;
+        centerY = canvas.height / 2;
+
+        character = new Player(centerX, centerY);
+        loadingClass = new MainStructure();
+      }
+      
+      //mouse and map edit things go here
+      //----------------------------
+      //----------------------------
+      //----------------------------
+      //----------------------------
+      function mouseHandle(h) {
+      	canvasArea = canvas.getBoundingClientRect();
+      	mouseX = Math.round(h.clientX - canvasArea.left) + 20;
+        mouseY = Math.round(h.clientY - canvasArea.top) + 20;
+
+        if (mouseState == 1) {
+            edit();
+        }
+      }
+
+      function mouseUpHandle(h) {
+          mouseState = 0;
+      }
+
+      function edit() {
+        if (mouseX < canvas.width && mouseX > 0 && mouseY < canvas.height && mouseY > 0) {
+            mouseState = 1;
+            //converts the mouses position into a spot on the map, allows for click edits.
+      	    var arrayPosX = mouseX + cornerCoords[0];
+            var arrayPosY = mouseY + cornerCoords[1];
+            loadingMap[Math.floor(arrayPosY / squareSize)][Math.floor(arrayPosX / squareSize)] = arrayValue;
+        }
+      }
+
+      function changeMapValue() {
+          var temp = document.getElementById("valueToWrite").value;
+          arrayValue = temp;
+          console.log("done", arrayValue);
+      }
+
+      //map size changes
+      function shrinkVertical() {
+
+      }
+
+      function shrinkHorizontal() {
+
+      }
+
+      function growVertical() {
+        writeMap.push([]);
+        for (var yyre=0;yyre<writeMap[0].length;yyre++) {
+          writeMap[writeMap.length-1].push("A");
+        }
+      }
+
+      function growHorizontal() {
+
+      }
+
+      function mapOutput() {
+        var hey = "";
+        
+        //map
+      	for (var s=0;s<loadingMap.length;s++) {
+        	hey = hey + "\n [";
+        	for (var t=0;t<loadingMap[s].length;t++) {
+            //special case for the end of a line, in addition to a regular case
+            if (t == (loadingMap[s].length - 1)) {
+              hey = hey + '"' + loadingMap[s][t] + '"';
+            } else {
+              hey = hey + '"' + loadingMap[s][t] + '"' + ", ";
+            }
+          }
+          //the same thing happens here with the end of the map
+          if (s == (loadingMap.length - 1)) {
+            hey = hey + "]";
+          } else {
+            hey = hey + "],<br>";
+          }
+        }
+
+        //enemies
+        hey = hey + "<br>";
+
+
+        //statics
+        hey = hey + "<br>";
+
+        for (var u=0;u<writeMapStatics.length;u++) {
+          //writing out the object definition as a string, this is a bit of a mess
+          hey += "new " + writeMapStatics[u].constructor.name + "(" + (writeMapStatics[u].x / squareSize) + " * squareSize, " + (writeMapStatics[u].y / squareSize) + " * squareSize)"
+          //change the ending of the line depending on position in the array
+          if (u == writeMapStatics.length - 1) {
+            hey += "<br>";
+          } else {
+            hey += ",<br>";
+          }
+        }
+
+
+      	document.getElementById("mapSpot").innerHTML = hey;
+      }
+
+      function changePallete(palleteToChangeTo) {
+        loadingPallete = palleteToChangeTo;
+      }
+
+      function changeMode(theMode) {
+        switch(theMode) {
+          case 0:
+            document.getElementById("modeIndicator").innerHTML = "Mode: Tile Edit";
+            staticOccupy = -1;
+            loadingClass = new TileStructure();
+            break;
+          case 1:
+            document.getElementById("modeIndicator").innerHTML = "Mode: Entity Edit";
+            staticOccupy = -1;
+            break;
+          case 2:
+            document.getElementById("modeIndicator").innerHTML = "Mode: Static Edit";
+            staticOccupy = 0;
+            loadingClass = new StaticStructure();
+            break;
+        }
+        document.getElementById("staticIndicator").innerHTML = "Current Static Occupied: " + staticOccupy;
+      }
+
+      //----------------------------
+      //----------------------------
+      //----------------------------
+      //----------------------------
+
+      
+      function keyPress(h) {
+      	switch (h.keyCode) { 
+        	//arrow keys + WASD
+            case 65:
+    	    case 37:
+                character.dx = -1 * entitySpeed;
+        		break;
+          case 87:
+          case 38:
+            character.dy = -1 * entitySpeed;
+            break;
+          case 68:
+          case 39:
+          	character.dx = 1 * entitySpeed;
+          	break;
+          case 83:
+          case 40:
+            character.dy = 1 * entitySpeed;
+            break;
+
+          //shift, - and +
+          case 16:
+            entitySpeed = entitySpeedBase * multiplier;
+            break;
+          case 189:
+            if (staticOccupy > -1) {
+              staticOccupy -= 1;
+              if (staticOccupy < 0) {
+                staticOccupy = writeMapStatics.length;
+              }
+              document.getElementById("staticIndicator").innerHTML = "Current Static Occupied: " + staticOccupy;
+            }
+            break;
+          case 187:
+            if (staticOccupy > -1) {
+              staticOccupy += 1;
+              if (staticOccupy >= writeMapStatics.length) {
+                staticOccupy = 0;
+              }
+              document.getElementById("staticIndicator").innerHTML = "Current Static Occupied: " + staticOccupy;
+            }
+            break;
+        }
+      }
+
+      function keyNegate(h) {
+      	switch (h.keyCode) {
+          case 65:
+          case 37:
+            if (character.dx < 0) {
+              character.dx = 0;
+            }
+            break;
+          case 87:
+          case 38:
+            if (character.dy < 0) {
+              character.dy = 0;
+            }
+            break;
+          case 68:
+          case 39:
+            if (character.dx > 0) {
+              character.dx = 0;
+            }
+            break;
+          case 83:
+          case 40:
+            if (character.dy > 0) {
+              character.dy = 0;
+            }
+            break;
+            case 16:
+            entitySpeed = entitySpeedBase;
+            break;
+    	  }
+      }
+      
+      //this function is the main function that repeats every time the timer goes off.
+      function main() {
+        //bg
+        ctx.fillStyle = spaceColor;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        //things drawn based off of mode
+
+        loadingClass.main();
+      }
+
+      function drawMap() {
+        //to prevent ugly lines from appearing in the map, the coordinates are rounded to the pixel
+
+      	cornerCoords[0] = Math.round(cx) - squareSize;
+        cornerCoords[1] = Math.round(cy) - squareSize;
+        cornerCoords[2] = Math.round(cx) + canvas.width + squareSize;
+        cornerCoords[3] = Math.round(cy) + canvas.height + squareSize;
+        var mapCounter = 0;
+        var theColor;
+        
+        var xSquare = Math.round(character.x) / squareSize;
+        var ySquare = Math.round(character.y) / squareSize;
+
+        /*This is the part that draws the map. It uses two while loops, one for y and one for x. */
+        var row = cornerCoords[1] / squareSize;
+        var mapRow = 0 - (row - Math.floor(row));
+        var counter = 0;
+        
+        while (row * squareSize < cornerCoords[3]) {    
+        	counter = cornerCoords[0] / squareSize;
+          mapCounter = 0 - (counter - Math.floor(counter));
+          
+        	while (counter * squareSize < cornerCoords[2]) {
+          	//this line determines what square to load in. For the rows, it uses counter, and for the number of rows it uses row. The floor and absolute value operations are just to turn the players square coordinates into something that the array can understand.
+          	var value;
+            try {
+              value = loadingMap[(Math.floor(row))][Math.floor(counter)];
+            } 
+            catch(error) {
+              value = " ";
+            }
+            //drawing square based on pallete
+            switch(loadingPallete) {
+              case 1:
+                palleteOneSquare(value, (mapCounter * squareSize) - squareSize, (mapRow * squareSize) - squareSize);
+                break;
+              case 2:
+                palleteTwoSquare(value, (mapCounter * squareSize) - squareSize, (mapRow * squareSize) - squareSize);
+                break;
+              case 3:
+                palleteThreeSquare(value, (mapCounter * squareSize) - squareSize, (mapRow * squareSize) - squareSize);
+                break;
+              case 4:
+                palleteFourSquare(value, (mapCounter * squareSize) - squareSize, (mapRow * squareSize) - squareSize);
+                break;
+              }
+
+              //if it's an invisible square, draw the shading to indicate that.
+              if (value == "i") {
+                ctx.globalAlpha = 0.2;
+                ctx.fillStyle = "#FF0000";
+                ctx.fillRect((mapCounter * squareSize) - squareSize, (mapRow * squareSize) - squareSize, squareSize, squareSize);
+                ctx.globalAlpha = 1;
+              }
+              //if it's an exit square, put the number of the exit
+              else if (String(value).match(/^\d/) && value > 0) {
+                ctx.font = "20px Courier";
+                ctx.fillStyle = "#FF00FF";
+                ctx.fillText(value, (mapCounter * squareSize) - (squareSize * 0.75), (mapRow * squareSize) - (squareSize * 0.25));
+              }
+          	counter = counter + 1;
+            mapCounter = mapCounter + 1;
+          }
+        	row = row + 1;
+          mapRow = mapRow + 1;
+        }
+      }
+
+      function writeHelp() {
+        var register = "";
+        register += "This tool allows you to modify and then export maps. <br>";
+        register += "Click around with the different buttons for modification.",
+        register += "For tile edit mode, input the following characters into the tile text box to change a tile to that material: <br>";
+        register += "0   - Grass <br>";
+        register += "1-9 - Exits, (numbered) <br>";
+        register += "A   - Wall <br>";
+        register += "B-E - Wall (Directional)<br>";
+        register += "F-I - Wall (Directional Corners) <br>";
+        register += "i   - Solid wall that looks like regular ground (visible in the editor, but not in the game)<br>";
+        register += "z   - Ground block for different pallete <br>";  
+        register += "<br>";
+        register += "For Static edit mode, press + and - to switch the static you occupy, and use the arrow keys to move that static around. <br>";
+        register += "You may also use the buttons to add new statics or remove old statics. <br> "
+        register += "In all three modes you can use shift to speed up movement, or jump to a location using the location text box. <br>";
+
+        document.getElementById("mapSpot").innerHTML = register;
+      }
+</script>
+  </head>
+    <body>
+        <p id="modeIndicator">Mode:</p>
+        <button onclick="changeMode(0)">Tile Edit Mode</button>
+        <button onclick="changeMode(1)">Entity Edit Mode</button>
+        <button onclick="changeMode(2)">Static Edit Mode</button>
+        <canvas id="canvas" width="640" height="480">
+        </canvas>
+
+        <br>
+        <p id="marker1">TILE EDIT MODE CONTROLS</p>
+        <br>
+
+        <div id="mapSizeControls">
+          <button onclick="changePallete(1)">a</button>
+          <button onclick="changePallete(2)">s</button>
+          <button onclick="changePallete(3)">d</button>
+          <button onclick="changePallete(4)">f</button>
+        </div>
+        <br>
+        <br>
+        <input type="text" id="valueToWrite">
+        <button onclick="changeMapValue()">Push textbox value to write head</button>
+        <br>
+        <br>
+        <button onclick="changePallete(1)">Use Pallete "Grassy"</button>
+        <button onclick="changePallete(2)">Use Pallete "House"</button>
+        <button onclick="changePallete(3)">Use Pallete "Rocky"</button>
+        <button onclick="changePallete(4)">Use Pallete "Sandy"</button>
+
+        <br>
+        <p id="marker2">STATIC EDIT MODE CONTROLS</p>  
+        <br>
+        <p id="staticIndicator">Current Static Occupied: -1</p>
+
+        <br>
+        <p id="marker3">ENTITY EDIT MODE CONTROLS</p>  
+        <br>
+        <p id="staticIndicator">Current Entity Occupied: -1</p>
+        <button onclick="writeHelp()">Help</button>
+        <button onclick="mapOutput()">Get Map Data</button>
+
+        <p id="mapSpot">(map goes here when the button is clicked)</p>
+
+    </body>
+</html>
