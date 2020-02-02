@@ -33,6 +33,19 @@ function handleVelocity(acc, vel, speed) {
   return vel;
 }
 
+//helper function to draw meters
+function drawMeter(x, y, width, height, value, min, max, color) {
+  var percentage = value / (max - min);
+  var buffer = height * 0.2;
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = "2";
+  ctx.beginPath();
+  ctx.rect(x, y, width, height);
+  ctx.stroke();
+  ctx.fillRect(x+buffer, y+buffer, (width - (buffer * 2)) * percentage, height-(buffer * 2));
+}
+
 class Main {
   constructor(x, y, size) {
     this.x = x;
