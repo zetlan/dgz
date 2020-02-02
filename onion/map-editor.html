@@ -6,6 +6,10 @@ Jan-2-2019 -->
   <head>
     <title>Onion Map Editor v0.8</title>
     <style>
+      body {
+        background-color: grey;
+      }
+
       #canvas {
         border-style: double;
         border-color: slateblue;
@@ -24,6 +28,10 @@ Jan-2-2019 -->
           font-size: small;
           position: absolute;
           margin-top: 120px;
+      }
+
+      #modeIndicator, #palleteIndicator {
+        color: lime;
       }
     </style>
     <script src="mapTextures.js"></script>
@@ -68,16 +76,20 @@ Jan-2-2019 -->
 
       var writeMapEntities = [];
 
-      var possibleStatics = [House];
+      var possibleStatics = ["House"];
 
-      var possibleEnemies = [];
+      var possibleEnemies = ["Slime"];
 
       var cornerCoords = [0, 0, 0, 0];
+
+      var possiblePalletes = ["Grassy", "House", "Rocky", "Desert"];
       
       var loadingMap = writeMap;
       var loadingPallete = 1;
-      var arrayValue = "A";
+      var loadingMode = -1;
+      var loadingStatic = 0;
       var staticOccupy = -1;
+      var arrayValue = "A";
 
       var centerX;
       var centerY;
@@ -91,8 +103,8 @@ Jan-2-2019 -->
       var max = 20;
       var entitySpeed = 1;
       var entitySpeedBase = entitySpeed;
-      var multiplier = 10;
-      var frameTime = 33;
+      var multiplier = squareSize;
+      var frameTime = 50;
 
       
       //all the colors used
@@ -164,7 +176,6 @@ Jan-2-2019 -->
         }
 
         main() {
-          
           //each section gets its own opacity, stored in the opacity variables for this class
           //map
           ctx.globalAlpha = this.mapOpacity;
@@ -188,6 +199,26 @@ Jan-2-2019 -->
           ctx.fillRect(centerX-2, centerY-2, 4, 4);
           ctx.fillText("(" + ((cx+centerX) / squareSize).toFixed(2) + " * squareSize, " + ((cy+centerY) / squareSize).toFixed(2) + " * squareSize)", canvas.width * 0.05, canvas.height * 0.95);
         }
+
+        mouseDown(h) {
+          //get mouse position
+          var canvasArea = canvas.getBoundingClientRect();
+      	  mouseX = Math.round(h.clientX - canvasArea.left) + 20;
+          mouseY = Math.round(h.clientY - canvasArea.top) + 20;
+
+          //if the mouse is in the canvas, set mouseState to 1
+          if (mouseX < canvas.width && mouseX > 0 && mouseY < canvas.height && mouseY > 0) {
+            mouseState = 1;
+          }
+        }
+
+        mouseMove(h) {
+
+        }
+
+        mouseUp(h) {
+          mouseState = 0;
+        }
       }
 
       class TileStructure extends MainStructure {
@@ -204,11 +235,38 @@ Jan-2-2019 -->
           //everything normal
           super.main();
         }
+
+        mouseDown(h) {
+          super.mouseDown(h);
+
+          //modify square
+          if (mouseState == 1) {
+            //converts the mouses position into a spot on the map, allows for click edits.
+      	    var arrayPosX = mouseX + cornerCoords[0];
+            var arrayPosY = mouseY + cornerCoords[1];
+            loadingMap[Math.floor(arrayPosY / squareSize)][Math.floor(arrayPosX / squareSize)] = arrayValue;
+          }
+        }
+
+        mouseMove(h) {
+          //if mouse is down, modify square
+          if (mouseState == 1) {
+            this.mouseDown(h);
+          }
+        }
+
+        mouseUp(h) {
+          super.mouseUp(h);
+        }
       }
 
       class EntityStructure extends MainStructure {
         constructor() {
           super();
+        }
+
+        delete() {
+
         }
       }
 
@@ -218,10 +276,47 @@ Jan-2-2019 -->
         }
 
         main() {
-          cx = writeMapStatics[staticOccupy].x - centerX;
-          cy = writeMapStatics[staticOccupy].y - centerY;
+          //if the camera occupies a static, do static things
+          if (staticOccupy > -1) {
+            //ticking the static currently occupied
+            writeMapStatics[staticOccupy].x += character.dx;
+            writeMapStatics[staticOccupy].y += character.dy;
 
+            //syncing the camera to the static
+            cx = writeMapStatics[staticOccupy].x - centerX;
+            cy = writeMapStatics[staticOccupy].y - centerY;
+          } else {
+            //if not, then just tick the player
+            character.tick();
+            cx = character.x - centerX;
+            cy = character.y - centerY;
+          }
           super.main();
+        }
+
+        mouseDown(h) {
+          //add a static, only if mouse is inside canvas
+          super.mouseDown(h);
+          if (mouseState == 1) {
+            var objectInString = "new " + possibleStatics[loadingStatic] + "(" + Math.round(mouseX+cx) + ", " + Math.round(mouseY+cy) + ")";
+            writeMapStatics.splice(staticOccupy+1, 0, eval(objectInString));
+          }
+        }
+
+        mouseUp(h) {
+          super.mouseUp(h);
+        }
+
+        delete() {
+          writeMapStatics.splice(staticOccupy, 1);
+          staticOccupy -= 1;
+          if (staticOccupy < 0) {
+            staticOccupy = writeMapStatics.length-1;
+          }
+        }
+
+        addStatic() {
+          
         }
       }
 
@@ -231,7 +326,7 @@ Jan-2-2019 -->
       
       window.onload = setup;
       document.onmousemove = mouseHandle;
-      document.onmousedown = edit;
+      document.onmousedown = mouseDownHandle;
       document.onmouseup = mouseUpHandle;
 
       //the initializing function.
@@ -254,27 +349,15 @@ Jan-2-2019 -->
       //----------------------------
       //----------------------------
       function mouseHandle(h) {
-      	canvasArea = canvas.getBoundingClientRect();
-      	mouseX = Math.round(h.clientX - canvasArea.left) + 20;
-        mouseY = Math.round(h.clientY - canvasArea.top) + 20;
-
-        if (mouseState == 1) {
-            edit();
-        }
+        loadingClass.mouseMove(h);
       }
 
       function mouseUpHandle(h) {
-          mouseState = 0;
+        loadingClass.mouseUp(h);
       }
 
-      function edit() {
-        if (mouseX < canvas.width && mouseX > 0 && mouseY < canvas.height && mouseY > 0) {
-            mouseState = 1;
-            //converts the mouses position into a spot on the map, allows for click edits.
-      	    var arrayPosX = mouseX + cornerCoords[0];
-            var arrayPosY = mouseY + cornerCoords[1];
-            loadingMap[Math.floor(arrayPosY / squareSize)][Math.floor(arrayPosX / squareSize)] = arrayValue;
-        }
+      function mouseDownHandle(h) {
+        loadingClass.mouseDown(h);
       }
 
       function changeMapValue() {
@@ -295,7 +378,7 @@ Jan-2-2019 -->
       function growVertical() {
         writeMap.push([]);
         for (var yyre=0;yyre<writeMap[0].length;yyre++) {
-          writeMap[writeMap.length-1].push("A");
+          writeMap[writeMap.length-1].push("0");
         }
       }
 
@@ -347,12 +430,19 @@ Jan-2-2019 -->
       	document.getElementById("mapSpot").innerHTML = hey;
       }
 
-      function changePallete(palleteToChangeTo) {
-        loadingPallete = palleteToChangeTo;
+      function cycleThroughEnum(listToCycle, varToCycle, pTWT, prefix) {
+        varToCycle += 1;
+        if (varToCycle > listToCycle.length) {
+          varToCycle = 1;
+        }
+
+        document.getElementById(pTWT).innerHTML = prefix + listToCycle[varToCycle-1];
+        return varToCycle;
       }
 
-      function changeMode(theMode) {
-        switch(theMode) {
+      function changeMode() {
+        loadingMode += 1;
+        switch(loadingMode) {
           case 0:
             document.getElementById("modeIndicator").innerHTML = "Mode: Tile Edit";
             staticOccupy = -1;
@@ -364,11 +454,16 @@ Jan-2-2019 -->
             break;
           case 2:
             document.getElementById("modeIndicator").innerHTML = "Mode: Static Edit";
-            staticOccupy = 0;
+            if (writeMapStatics.length > 0) {
+              staticOccupy = 0;
+            }
             loadingClass = new StaticStructure();
             break;
+          case 3:
+            loadingMode = -1;
+            changeMode();
+            break;
         }
-        document.getElementById("staticIndicator").innerHTML = "Current Static Occupied: " + staticOccupy;
       }
 
       //----------------------------
@@ -397,15 +492,18 @@ Jan-2-2019 -->
             character.dy = 1 * entitySpeed;
             break;
 
-          //shift, - and +
+          //shift, delete, - and +
           case 16:
             entitySpeed = entitySpeedBase * multiplier;
+            break;
+            case 8:
+            loadingClass.delete();
             break;
           case 189:
             if (staticOccupy > -1) {
               staticOccupy -= 1;
               if (staticOccupy < 0) {
-                staticOccupy = writeMapStatics.length;
+                staticOccupy = writeMapStatics.length-1;
               }
               document.getElementById("staticIndicator").innerHTML = "Current Static Occupied: " + staticOccupy;
             }
@@ -536,8 +634,9 @@ Jan-2-2019 -->
       function writeHelp() {
         var register = "";
         register += "This tool allows you to modify and then export maps. <br>";
-        register += "Click around with the different buttons for modification.",
-        register += "For tile edit mode, input the following characters into the tile text box to change a tile to that material: <br>";
+        register += "Click different buttons for modification, and click lime green text to cycle through options. <br>";
+        register += "In addition to clicking lime green text, you can also use hotkeys for different modes. They are listed in the help for their section. <br> <br>";
+        register += "Tile Edit Mode, input the following characters into the tile text box to change a tile to that material: <br>";
         register += "0   - Grass <br>";
         register += "1-9 - Exits, (numbered) <br>";
         register += "A   - Wall <br>";
@@ -546,19 +645,16 @@ Jan-2-2019 -->
         register += "i   - Solid wall that looks like regular ground (visible in the editor, but not in the game)<br>";
         register += "z   - Ground block for different pallete <br>";  
         register += "<br>";
-        register += "For Static edit mode, press + and - to switch the static you occupy, and use the arrow keys to move that static around. <br>";
-        register += "You may also use the buttons to add new statics or remove old statics. <br> "
-        register += "In all three modes you can use shift to speed up movement, or jump to a location using the location text box. <br>";
+        register += "Static edit mode, press + and - to switch the static you occupy, and use the arrow keys to move that static around. <br>";
+        register += "Click with the mouse to add a new static at the mouse position, and press delete to delete the currently occupied static. <br>";
+        register += "In all three modes you can use shift to speed up movement. <br>";
 
         document.getElementById("mapSpot").innerHTML = register;
       }
 </script>
   </head>
     <body>
-        <p id="modeIndicator">Mode:</p>
-        <button onclick="changeMode(0)">Tile Edit Mode</button>
-        <button onclick="changeMode(1)">Entity Edit Mode</button>
-        <button onclick="changeMode(2)">Static Edit Mode</button>
+        <p onclick="changeMode()" id="modeIndicator">Mode:</p>
         <canvas id="canvas" width="640" height="480">
         </canvas>
 
@@ -567,10 +663,10 @@ Jan-2-2019 -->
         <br>
 
         <div id="mapSizeControls">
-          <button onclick="changePallete(1)">a</button>
-          <button onclick="changePallete(2)">s</button>
-          <button onclick="changePallete(3)">d</button>
-          <button onclick="changePallete(4)">f</button>
+          <button onclick="changePallete(1)">Add row to end</button>
+          <button onclick="changePallete(2)">Add column to end</button>
+          <button onclick="changePallete(3)">Remove row from end</button>
+          <button onclick="changePallete(4)">remove column from end</button>
         </div>
         <br>
         <br>
@@ -578,15 +674,17 @@ Jan-2-2019 -->
         <button onclick="changeMapValue()">Push textbox value to write head</button>
         <br>
         <br>
-        <button onclick="changePallete(1)">Use Pallete "Grassy"</button>
-        <button onclick="changePallete(2)">Use Pallete "House"</button>
-        <button onclick="changePallete(3)">Use Pallete "Rocky"</button>
-        <button onclick="changePallete(4)">Use Pallete "Sandy"</button>
+
+        <p onclick="loadingPallete = cycleThroughEnum(possiblePalletes, loadingPallete, 'palleteIndicator', 'Pallete: ')" id="palleteIndicator">Pallete: Grassy</p>
 
         <br>
         <p id="marker2">STATIC EDIT MODE CONTROLS</p>  
-        <br>
+
         <p id="staticIndicator">Current Static Occupied: -1</p>
+        <p id="staticAddIndicator">Static To Add: none  </p>
+
+        <button onclick="loadingClass.addStatic()">add new static (specify type with buttons)</button>
+        <button onclick="loadingClass.removeStatic()">remove currently occupied static</button>
 
         <br>
         <p id="marker3">ENTITY EDIT MODE CONTROLS</p>  
@@ -596,6 +694,5 @@ Jan-2-2019 -->
         <button onclick="mapOutput()">Get Map Data</button>
 
         <p id="mapSpot">(map goes here when the button is clicked)</p>
-
     </body>
 </html>

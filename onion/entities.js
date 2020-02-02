@@ -97,6 +97,8 @@ class Main {
 class Enemy extends Main {
   constructor(x, y, size, maxHealth, xp) {
     super(x, y, size);
+    this.xHome = x;
+    this.yHome = y;
 
     this.mh = maxHealth;
     this.h = maxHealth;
@@ -108,11 +110,12 @@ class Enemy extends Main {
   }
 
   beDrawn() {
+    //handling opacity
     var op;
     if (this.alive >= 1) {
       op = 1;
     } else {
-      op = 0.2;
+      op = 0;
     }
     ctx.globalAlpha = op;
     super.beDrawn();
@@ -172,6 +175,10 @@ class Enemy extends Main {
     this.h = this.mh;
     this.hitTime = 0;
     this.pathPhase = 1;
+
+    //only restore position once death time is half over
+      this.x = this.xHome;
+      this.y = this.yHome;
   }
 
   attack() {
@@ -190,7 +197,7 @@ class Ground extends Enemy  {
     if (this.alive >= 1) {
       op = 1;
     } else {
-      op = 0.2;
+      op = 0;
     }
     ctx.globalAlpha = op;
     ctx.fillStyle = this.color;
@@ -229,8 +236,6 @@ class Ground extends Enemy  {
         this.ax = (this.speed * 0.125) * Math.sin(this.direction);
         this.ay = (this.speed * 0.125) * Math.cos(this.direction);
         break;
-        //set hit time to 0
-        this.hitTime = 0;
     }
     //updates velocity + position
     super.tick();
@@ -240,6 +245,119 @@ class Ground extends Enemy  {
 class Slime extends Ground {
   constructor(x, y) {
     super(x, y, 7, 3, 1);
+  }
+}
+
+class Runner extends Enemy {
+  constructor(x, y) {
+    super(x, y, 10, 7, 3);
+    this.minDist = 3 * squareSize;
+    this.maxDist = 10 * squareSize;
+    this.color = "#E19400";
+    this.dieTime = 3000;
+  }
+
+  tick() {
+    //deciding what to do based on pathing value
+    switch (this.pathPhase) {
+      case -1:
+        //run away from the player if too close
+        this.direction = Math.atan2(this.x - character.x, this.y - character.y);
+        this.ax = (this.speed * 0.125) * Math.sin(this.direction);
+        this.ay = (this.speed * 0.125) * Math.cos(this.direction);
+        break;
+        case 0:
+          //run towards the player when in good zone
+          this.direction = Math.atan2(this.x - character.x, this.y - character.y) + Math.PI;
+          this.ax = (this.speed * 0.125) * Math.sin(this.direction);
+          this.ay = (this.speed * 0.125) * Math.cos(this.direction);
+
+          break;
+      case 1:
+        //random movement
+        this.direction += (Math.random() - 0.5) / (4 * dt);
+        this.ax = (this.speed * 0.125) * Math.sin(this.direction);
+        this.ay = (this.speed * 0.125) * Math.cos(this.direction);
+        break;
+    }
+    //if close enough, try to attack
+    if (this.pathPhase < 1) {
+      this.hitTime += 1;
+      if (this.hitTime >= enemyHitTime * 1.5) {
+        this.hitTime = 0;
+        this.attack();
+      }
+    }
+    
+
+    //updating velocity / position
+    super.tick();
+  }
+
+  beDrawn() {
+    super.beDrawn();
+
+    if (this.pathPhase < 1) {
+      drawMeter(this.x - cx - this.r, this.y - cy - (this.r * 2), this.r * 2, this.r / 2, this.h, 0, this.mh, this.color);
+    }
+  }
+
+  attack() {
+    //fire a projectile at the player
+    var playerDirection = Math.atan2(this.x - character.x, this.y - character.y) + Math.PI;
+    loadingMap.enemies.push(new Projectile(this.x, this.y, playerDirection, 2, 3));
+  }
+}
+
+class Projectile extends Enemy {
+  constructor(x, y, a, r, force) {
+    super(x, y, r, 1, 0);
+    this.f = force;
+    this.dx = this.speed * Math.sin(a);
+    this.dy = this.speed * Math.cos(a);
+    this.minDist = character.r;
+    this.maxDist = 100 * squareSize;
+  }
+
+  beDrawn() {
+    super.beDrawn();
+  }
+
+  tick() {
+    if (this.alive > 0) {
+      //store old position
+      var oldX = this.x;
+      var oldY = this.y;
+      //update position
+      this.x = checkCollision(this.x, this.y, this.dx, 0, 1);
+      this.y = checkCollision(this.x, this.y, this.dy, 1, 1);
+
+      //pathing
+      var dTPX = this.x - character.x; 
+      var dTPY = this.y - character.y;
+      var dTP = Math.sqrt((dTPX * dTPX) + (dTPY * dTPY));
+      if (dTP < this.r + character.r) {
+        character.h -= this.f;
+        this.h = -1;
+      }
+      //if the bullet has hit a wall, then kill it
+
+      if (this.x == oldX || this.y == oldY) {
+        this.h = -1;
+      } 
+      //other forms of dying
+      this.h -= this.wasHit;
+      this.wasHit = 0;
+
+      if (this.h <= 0) {
+        this.die();
+      }
+    }
+  }
+
+  die() {
+    super.die();
+    this.alive = -1 * Infinity;
   }
 }
 
