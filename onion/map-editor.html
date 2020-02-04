@@ -30,12 +30,13 @@ Jan-2-2019 -->
           margin-top: 120px;
       }
 
-      #modeIndicator, #palleteIndicator {
+      #modeIndicator, #palleteIndicator, #staticAddIndicator, #enemyAddIndicator {
         color: lime;
       }
     </style>
     <script src="mapTextures.js"></script>
     <script src="entities.js"></script>
+    <script src="entities-friendly.js"></script>
     <script type="text/javascript">
         window.addEventListener("keydown", keyPress, false);
         window.addEventListener("keyup", keyNegate, false);
@@ -45,31 +46,25 @@ Jan-2-2019 -->
 
       var squareSize = 20;
 
-      var writeMap =   [["A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A"],
-                        ["A", "i", "B", "0", "0", "0", "0", "0", "0", "D", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                        ["A", "0", "B", "0", "0", "i", "i", "i", "0", "D", "0", "0", "0", "0", "0", "0", "S", "0", "0", "0", "0", "0", "0", "0", "0", "1"],
-                        ["A", "0", "B", "0", "0", "i", "/", "i", "0", "D", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "1"],
-                        ["A", "0", "B", "0", "0", "i", "4", "i", "0", "D", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                        ["A", "0", "B", "0", "0", "0", "0", "0", "0", "D", "0", "0", "0", "0", "S", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                        ["A", "0", "B", "0", "0", "0", "0", "0", "0", "D", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                        ["A", "0", "F", "E", "E", "E", "E", "E", "R", "I", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                        ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                        ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                        ["A", "0", "0", "0", "A", "A", "A", "A", "A", "0", "0", "A", "D", "0", "0", "G", "C", "C", "C", "H", "0", "0", "0", "0", "0", "A"],
-                        ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "D", "0", "0", "B", "0", "0", "0", "D", "0", "0", "0", "0", "0", "A"],
-                        ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "D", "0", "0", "B", "0", "0", "0", "D", "0", "0", "0", "0", "0", "A"],
-                        ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "D", "0", "0", "B", "0", "0", "0", "D", "0", "0", "0", "0", "0", "A"],
-                        ["A", "0", "0", "0", "0", "i", "i", "i", "0", "0", "0", "0", "D", "0", "0", "F", "E", "R", "E", "I", "0", "0", "0", "0", "0", "A"],
-                        ["A", "0", "0", "0", "0", "i", "/", "i", "0", "0", "0", "0", "D", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                        ["A", "0", "0", "0", "0", "i", "3", "i", "0", "0", "0", "0", "D", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                        ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "D", "0", "0", "S", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                        ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "D", "D", "D", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                        ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "D", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                        ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "D", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                        ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "D", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                        ["A", "E", "E", "E", "E", "E", "E", "E", "E", "E", "E", "E", "I", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                        ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                        ["A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "2", "2", "A", "A", "A", "A", "A", "A", "A"]];
+      var writeMap =   [["A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "1", "1", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A"],
+                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "G", "0", "H", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "B", "0", "D", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "F", "E", "I", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                   ["A", "A", "A", "2", "2", "A", "A", "A", "A", "A", "A", "A", "A", "A", "3", "3", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A"]];
 
       var writeMapStatics = [new House(squareSize * 6, squareSize * 3),
                             new House(squareSize * 2, squareSize * 2)];
@@ -78,7 +73,7 @@ Jan-2-2019 -->
 
       var possibleStatics = ["House"];
 
-      var possibleEnemies = ["Slime"];
+      var possibleEnemies = ["Slime", "Runner"];
 
       var cornerCoords = [0, 0, 0, 0];
 
@@ -88,7 +83,10 @@ Jan-2-2019 -->
       var loadingPallete = 1;
       var loadingMode = -1;
       var loadingStatic = 0;
+      var loadingEnemy = 0;
+
       var staticOccupy = -1;
+      var enemyOccupy = -1;
       var arrayValue = "A";
 
       var centerX;
@@ -190,7 +188,7 @@ Jan-2-2019 -->
           //entities
           ctx.globalAlpha = this.entityOpacity;
           for (var hy=0;hy<writeMapEntities.length;hy++) {
-            writeMapEntities.beDrawn();
+            writeMapEntities[hy].beDrawn();
           }
 
           //after drawing main things, draws camera coordinates and crosshair.
@@ -260,13 +258,68 @@ Jan-2-2019 -->
         }
       }
 
-      class EntityStructure extends MainStructure {
+      class EnemyStructure extends MainStructure {
         constructor() {
           super();
         }
 
-        delete() {
+        main() {
+          //if the camera occupies a static, do static things
+          if (enemyOccupy > -1) {
+            //ticking the static currently occupied
+            writeMapEntities[enemyOccupy].x += character.dx;
+            writeMapEntities[enemyOccupy].y += character.dy;
 
+            //syncing the camera to the static
+            cx = writeMapEntities[enemyOccupy].x - centerX;
+            cy = writeMapEntities[enemyOccupy].y - centerY;
+          } else {
+            //if not, then just tick the player
+            character.tick();
+            cx = character.x - centerX;
+            cy = character.y - centerY;
+          }
+          super.main();
+        }
+
+        mouseDown(h) {
+          //add an enemy, only if mouse is inside canvas
+          super.mouseDown(h);
+          if (mouseState == 1) {
+            var objectInString = "new " + possibleEnemies[loadingEnemy-1] + "(" + Math.round(mouseX+cx) + ", " + Math.round(mouseY+cy) + ")";
+            writeMapEntities.splice(enemyOccupy+1, 0, eval(objectInString));
+          }
+        }
+
+        mouseUp(h) {
+          super.mouseUp(h);
+        }
+
+        delete() {
+          writeMapEntities.splice(enemyOccupy, 1);
+          enemyOccupy -= 1;
+          if (enemyOccupy < 0) {
+            enemyOccupy = writeMapEntities.length-1;
+          }
+        }
+
+        handlePlus() {
+          enemyOccupy += 1;
+          if (enemyOccupy >= writeMapEntities.length) {
+            enemyOccupy = 0;
+          }
+          if (staticOccupy >= writeMapEntities.length) {
+            enemyOccupy = -1;
+          }
+          document.getElementById("enemyIndicator").innerHTML = "Current Enemy Occupied: " + enemyOccupy;
+        }
+
+        handleMinus() {
+          enemyOccupy -= 1;
+          if (enemyOccupy < 0) {
+            enemyOccupy = writeMapEntities.length - 1;
+          }
+          document.getElementById("enemyIndicator").innerHTML = "Current Enemy Occupied: " + enemyOccupy;
         }
       }
 
@@ -298,7 +351,7 @@ Jan-2-2019 -->
           //add a static, only if mouse is inside canvas
           super.mouseDown(h);
           if (mouseState == 1) {
-            var objectInString = "new " + possibleStatics[loadingStatic] + "(" + Math.round(mouseX+cx) + ", " + Math.round(mouseY+cy) + ")";
+            var objectInString = "new " + possibleStatics[loadingStatic-1] + "(" + Math.round(mouseX+cx) + ", " + Math.round(mouseY+cy) + ")";
             writeMapStatics.splice(staticOccupy+1, 0, eval(objectInString));
           }
         }
@@ -315,8 +368,23 @@ Jan-2-2019 -->
           }
         }
 
-        addStatic() {
-          
+        handlePlus() {
+          staticOccupy += 1;
+          if (staticOccupy >= writeMapStatics.length) {
+            staticOccupy = 0;
+          }
+          if (staticOccupy >= writeMapStatics.length) {
+            staticOccupy = -1;
+          }
+          document.getElementById("staticIndicator").innerHTML = "Current Static Occupied: " + staticOccupy;
+        }
+
+        handleMinus() {
+          staticOccupy -= 1;
+          if (staticOccupy < 0) {
+            staticOccupy = writeMapStatics.length - 1;
+          }
+          document.getElementById("staticIndicator").innerHTML = "Current Static Occupied: " + staticOccupy;
         }
       }
 
@@ -402,7 +470,7 @@ Jan-2-2019 -->
           }
           //the same thing happens here with the end of the map
           if (s == (loadingMap.length - 1)) {
-            hey = hey + "]";
+            hey = hey + "]<br>";
           } else {
             hey = hey + "],<br>";
           }
@@ -411,14 +479,23 @@ Jan-2-2019 -->
         //enemies
         hey = hey + "<br>";
 
+        for (var u=0;u<writeMapEntities.length;u++) {
+          //writing out the object definition as a string, this is a bit of a mess
+          hey += "new " + writeMapEntities[u].constructor.name + "(" + (writeMapEntities[u].x / squareSize) + " * squareSize, " + (writeMapEntities[u].y / squareSize) + " * squareSize)"
+          //change the ending of the line depending on position in the array
+          if (u == writeMapEntities.length - 1) {
+            hey += "<br>";
+          } else {
+            hey += ",<br>";
+          }
+        }
 
         //statics
         hey = hey + "<br>";
 
         for (var u=0;u<writeMapStatics.length;u++) {
-          //writing out the object definition as a string, this is a bit of a mess
+          //same thing as emeies, but with a different variable
           hey += "new " + writeMapStatics[u].constructor.name + "(" + (writeMapStatics[u].x / squareSize) + " * squareSize, " + (writeMapStatics[u].y / squareSize) + " * squareSize)"
-          //change the ending of the line depending on position in the array
           if (u == writeMapStatics.length - 1) {
             hey += "<br>";
           } else {
@@ -445,19 +522,25 @@ Jan-2-2019 -->
         switch(loadingMode) {
           case 0:
             document.getElementById("modeIndicator").innerHTML = "Mode: Tile Edit";
-            staticOccupy = -1;
             loadingClass = new TileStructure();
+            staticOccupy = -1;
+            enemyOccupy = -1;
             break;
           case 1:
             document.getElementById("modeIndicator").innerHTML = "Mode: Entity Edit";
+            loadingClass = new EnemyStructure();
             staticOccupy = -1;
+            if (writeMapEntities.length > 0) {
+              enemyOccupy = 0;
+            }
             break;
           case 2:
             document.getElementById("modeIndicator").innerHTML = "Mode: Static Edit";
+            loadingClass = new StaticStructure();
             if (writeMapStatics.length > 0) {
               staticOccupy = 0;
             }
-            loadingClass = new StaticStructure();
+            enemyOccupy = -1;
             break;
           case 3:
             loadingMode = -1;
@@ -500,22 +583,10 @@ Jan-2-2019 -->
             loadingClass.delete();
             break;
           case 189:
-            if (staticOccupy > -1) {
-              staticOccupy -= 1;
-              if (staticOccupy < 0) {
-                staticOccupy = writeMapStatics.length-1;
-              }
-              document.getElementById("staticIndicator").innerHTML = "Current Static Occupied: " + staticOccupy;
-            }
+          loadingClass.handleMinus();
             break;
           case 187:
-            if (staticOccupy > -1) {
-              staticOccupy += 1;
-              if (staticOccupy >= writeMapStatics.length) {
-                staticOccupy = 0;
-              }
-              document.getElementById("staticIndicator").innerHTML = "Current Static Occupied: " + staticOccupy;
-            }
+            loadingClass.handlePlus();
             break;
         }
       }
@@ -681,15 +752,15 @@ Jan-2-2019 -->
         <p id="marker2">STATIC EDIT MODE CONTROLS</p>  
 
         <p id="staticIndicator">Current Static Occupied: -1</p>
-        <p id="staticAddIndicator">Static To Add: none  </p>
+        <p onclick="loadingStatic = cycleThroughEnum(possibleStatics, loadingStatic, 'staticAddIndicator', 'Static To Add: ')" id="staticAddIndicator">Static To Add: none  </p>
 
         <button onclick="loadingClass.addStatic()">add new static (specify type with buttons)</button>
         <button onclick="loadingClass.removeStatic()">remove currently occupied static</button>
 
         <br>
         <p id="marker3">ENTITY EDIT MODE CONTROLS</p>  
-        <br>
-        <p id="staticIndicator">Current Entity Occupied: -1</p>
+        <p id="enemyIndicator">Current Entity Occupied: -1</p>
+        <p onclick="loadingEnemy = cycleThroughEnum(possibleEnemies, loadingEnemy, 'enemyAddIndicator', 'Enemy To Add: ')" id="enemyAddIndicator">Enemy To Add: none</p>
         <button onclick="writeHelp()">Help</button>
         <button onclick="mapOutput()">Get Map Data</button>
 
