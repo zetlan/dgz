@@ -110,6 +110,8 @@ class Player {
     //ax and ay are acceleration, and change dx/dy. Dx/dy are the ones that change the player's position. This system allows for a more realistic feel, as the player cannot "jump" from 1 direction to the other
     this.x = x;
     this.y = y;
+    this.lEX = x;
+    this.lEY = y;
     this.r = 10;
     this.dx = 0;
     this.dy = 0;
@@ -137,6 +139,9 @@ class Player {
   }
 
   beDrawn() {
+    if (this.h <= 0) {
+        ctx.globalAlpha = 0.2;
+    }
     //drawing sword, starts to the left
     var swordStartX = (this.r) * Math.sin(this.direction + (Math.PI * 0.3));
     var swordStartY = (this.r) * Math.cos(this.direction + (Math.PI * 0.3));
@@ -210,6 +215,9 @@ class Player {
 
     ctx.fillStyle = swordColor;
     ctx.fillRect(eyePos2[0], eyePos2[1], 2, 2);
+    if (this.h <= 0) {
+        ctx.globalAlpha = 1;
+    }
   }
 
   tick() {
@@ -230,12 +238,16 @@ class Player {
         if (shaderOpacity > 0) {
           shaderOpacity -= 0.125;
         }
+        if (this.onSquare != "0") {
+            this.lEX = this.x;
+            this.lEY = this.y;
+        }
       } else {
         shaderOpacity = 0;
       }
       
       //actual movement, but first attacking
-      if (this.attackFrame > 0) {
+      if (this.attackFrame > 0 && this.h > 0) {
         this.attack(1, squareSize);
         //if the player is attacking, automatically have them stop
         this.dx = handleVelocity(0, this.dx, this.speed);
@@ -275,7 +287,7 @@ class Player {
       }
     }
     //if alive and less than max sp, regenerate sp
-    if (this.s > 0 && this.s < this.ms) {
+    if (this.h > 0 &&this.s < this.ms) {
       this.s += (Math.abs(Math.sin(time / 90)) / 180) / dt;
       if (this.s > this.ms) {
         this.s = this.ms;
@@ -283,7 +295,7 @@ class Player {
     }
 
     //setting direction, I split the if into two ifs because the 1 large if was being funky.
-    if (this.talking == -1 && this.attackFrame == 0) {
+    if (this.talking == -1 && this.attackFrame == 0 && this.h > 0) {
       if (this.ax != 0 || this.ay != 0) {
         this.direction = Math.atan2(this.dx, this.dy);
       }
@@ -292,6 +304,11 @@ class Player {
     //if the player is having a conversation, draw that
     if (this.talking != -1) {
       loadingMap.enemies[this.talking].converse();
+    }
+
+    //if the player's health is too low, run the die function.
+    if (this.h <= 0) {
+        this.die();
     }
   }
 
@@ -393,6 +410,25 @@ class Player {
     this.xp -= this.maxXp;
     this.maxXp *= 1.5;
     this.points += 3;
+  }
+
+  die() {
+    //increase dt
+    dt *= 1.1;
+    //after a certain time has passed draw the revive menu
+    if (dt > dtBase * 100) {
+        
+        ctx.beginPath();
+        ctx.fillStyle = inventoryColor;
+        ctx.fillRect(canvas.width * 0.1, canvas.height * 0.1, canvas.width * 0.8, canvas.height * 0.8);
+        ctx.fillStyle = textColor;
+        ctx.textAlign = "center";
+        ctx.font = "30px Century Gothic";
+        ctx.fillText("You Died", canvas.width * 0.5, canvas.height * 0.3);
+        ctx.font = "20px Century Gothic";
+        ctx.fillText("Click Z to be revived at the start of the room", canvas.width * 0.5, canvas.height * 0.5);
+        ctx.fillText("with a penalty (-xp 20%)", canvas.width * 0.5, canvas.height * 0.55);
+    }
   }
 }
 
@@ -584,7 +620,6 @@ function handleDashing(negatingBOOLEAN, arrayNumber, positiveBOOLEAN, velVar) {
       return velVar;
     }
   }
-  
 }
 
 //this function is the main function that repeats every time the timer goes off. It is very important.
@@ -633,7 +668,7 @@ function main() {
   
   if (gameState > 0) {
 
-    //gameState controls the camera mode. 1 is follow, 2 is fixed
+    //gameState above 0 controls the camera mode. 1 is follow, 2 is fixed
     if (gameState == 1) {
       
       cx = character.x - centerX;
@@ -665,7 +700,7 @@ function main() {
     drawMap();
 
     //ticking everything
-    var done = 0;
+    var done = false;
     //enemies
     for (var u=0;u<loadingMap.enemies.length;u++) {
       loadingMap.enemies[u].beDrawn();
@@ -674,16 +709,22 @@ function main() {
         loadingMap.enemies[u].tick();
       } else {
         loadingMap.enemies[u].alive += 1 / dt;
+
+        //if the dead enemy is a projectile, destroy it
+        if (loadingMap.enemies[u].constructor.name == "Projectile") {
+            loadingMap.enemies.splice(u, 1);
+        }
       }
       
 
       //enemies can collide with eachother, but only once per frame
-      if (done == 0) {
+      if (!done) {
         if (Math.random() < 0.2) {
           var toPush = Math.floor(Math.random() * (loadingMap.enemies.length - 0) ) + 0;
-          if (toPush != u) {
+          //can't collide with projectiles or yourself
+          if (toPush != u && loadingMap.enemies[toPush].constructor.name != "Projectile") {
             loadingMap.enemies[u].collide(loadingMap.enemies[toPush]);
-            done = 1;
+            done = true;
           }
         }
       }
@@ -1014,23 +1055,33 @@ function checkCollision(xVar, yVar, velocity, toChange, constrain) {
 }
 
 function interact() {
-  //attack
-  if (gameState > 0) {
-    if (character.talking == -1 && gameState != 2) {
-      if (character.attackFrame == 0) {
-        character.attackFrame = 1;
-      } else {
-        //log if the player tried to attack while attacking
-        character.tSinAtt = 0;
-      }
-    }
-  } 
+    //revive
+    if (character.h < 0 && dt > dtBase * 100) {
+        //restoring character to normal stats
+        dt = dtBase;
+        character.h = character.mh;
+        character.s = character.ms;
+        //penalties
+        character.xp *= 0.8;
+        character.x = character.lEX;
+        character.y = character.lEY;
 
-  if (character.talking != -1) {
-    numPressed = 0;
-  }
-  var didIt;
-  var switched = 0;
+        //returning true so the rest of the function does not occur
+        return true;
+    }
+    //attack
+    if (character.talking == -1 && gameState != 2) {
+        if (character.attackFrame == 0) {
+            character.attackFrame = 1;
+        } else {
+            //log if the player tried to attack while attacking
+            character.tSinAtt = 0;
+        }
+    }
+    //converse
+    if (character.talking != -1) {
+        numPressed = 0;
+    }
 }
 
 //helper functions, names should explain themselves
