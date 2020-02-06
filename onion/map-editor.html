@@ -10,10 +10,12 @@ Jan-2-2019 -->
         background-color: grey;
       }
 
-      #canvas {
+      #canvas, #canvas2 {
         border-style: double;
         border-color: slateblue;
         margin: auto;
+        position: absolute;
+        margin-left: 500px;
         float: right;
       }
 
@@ -27,7 +29,7 @@ Jan-2-2019 -->
           font-family: 'Courier New', Courier, monospace;
           font-size: small;
           position: absolute;
-          margin-top: 120px;
+          margin-top: 80px;
       }
 
       #modeIndicator, #palleteIndicator, #staticAddIndicator, #enemyAddIndicator {
@@ -37,6 +39,9 @@ Jan-2-2019 -->
     <script src="mapTextures.js"></script>
     <script src="entities.js"></script>
     <script src="entities-friendly.js"></script>
+    <script src="text.js"></script>
+    <script src="maps.js"></script>
+
     <script type="text/javascript">
         window.addEventListener("keydown", keyPress, false);
         window.addEventListener("keyup", keyNegate, false);
@@ -70,6 +75,10 @@ Jan-2-2019 -->
                             new House(squareSize * 2, squareSize * 2)];
 
       var writeMapEntities = [];
+
+      var writeMapExits = [ new Exit("selya", 1 * squareSize, selyaData.length * squareSize),
+                            new Exit("desert_l1", 0, -1 * downMapData.length * squareSize),
+                            new Exit("desert_m1", 0, -1 * downMapData.length * squareSize)];
 
       var possibleStatics = ["House"];
 
@@ -391,7 +400,7 @@ Jan-2-2019 -->
 
 
 
-      
+
       window.onload = setup;
       document.onmousemove = mouseHandle;
       document.onmousedown = mouseDownHandle;
@@ -403,6 +412,10 @@ Jan-2-2019 -->
         canvas = document.getElementById("canvas");
         ctx = canvas.getContext("2d");
         ctx.imageSmoothingEnabled = false;
+
+        canvas = document.getElementById("canvas2");
+        cty = canvas.getContext("2d");
+        cty.imageSmoothingEnabled = false;
 
         centerX = canvas.width / 2;
         centerY = canvas.height / 2;
@@ -583,7 +596,7 @@ Jan-2-2019 -->
             loadingClass.delete();
             break;
           case 189:
-          loadingClass.handleMinus();
+            loadingClass.handleMinus();
             break;
           case 187:
             loadingClass.handlePlus();
@@ -628,6 +641,7 @@ Jan-2-2019 -->
         //bg
         ctx.fillStyle = spaceColor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
+        cty.clearRect(0, 0, canvas.width, canvas.height);
 
         //things drawn based off of mode
 
@@ -688,11 +702,20 @@ Jan-2-2019 -->
                 ctx.fillRect((mapCounter * squareSize) - squareSize, (mapRow * squareSize) - squareSize, squareSize, squareSize);
                 ctx.globalAlpha = 1;
               }
-              //if it's an exit square, put the number of the exit
+              //if it's an exit square, put the number of the exit and draw line to where the exit goes
               else if (String(value).match(/^\d/) && value > 0) {
+                //exit number
                 ctx.font = "20px Courier";
                 ctx.fillStyle = "#FF00FF";
                 ctx.fillText(value, (mapCounter * squareSize) - (squareSize * 0.75), (mapRow * squareSize) - (squareSize * 0.25));
+
+                //exit line
+                cty.lineWidth = 5;
+                cty.strokeStyle = "#00FF00";
+                cty.beginPath();
+                cty.moveTo((mapCounter * squareSize), (mapRow * squareSize));
+                cty.lineTo((mapCounter * squareSize) + writeMapExits[value-1][1][0], (mapRow * squareSize) + writeMapExits[value-1][1][1]);
+                cty.stroke();
               }
           	counter = counter + 1;
             mapCounter = mapCounter + 1;
@@ -726,7 +749,9 @@ Jan-2-2019 -->
   </head>
     <body>
         <p onclick="changeMode()" id="modeIndicator">Mode:</p>
-        <canvas id="canvas" width="640" height="480">
+        <canvas id="canvas" width="640" height="480" style="z-index: 0;">
+        </canvas>
+        <canvas id="canvas2" width="640" height="480" style="z-index: 1;">
         </canvas>
 
         <br>
