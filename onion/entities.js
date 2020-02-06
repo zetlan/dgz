@@ -230,8 +230,8 @@ class Ground extends Enemy  {
         //stopping
         this.ax = 0;
         this.ay = 0;
-        //add 1 to hitTime
-        this.hitTime += 1;
+        //add to hitTime
+        this.hitTime += 1 / dt;
         if (this.hitTime >= enemyHitTime) {
           this.hitTime = 0;
           this.attack();
@@ -258,6 +258,7 @@ class Ground extends Enemy  {
 class Slime extends Ground {
   constructor(x, y) {
     super(x, y, 7, 3, 1);
+    this.color = "#FFEEFF";
   }
 }
 
@@ -295,7 +296,7 @@ class Runner extends Enemy {
     }
     //if close enough, try to attack
     if (this.pathPhase < 1) {
-      this.hitTime += 1;
+      this.hitTime += 1 / dt;
       if (this.hitTime >= enemyHitTime * 1.5) {
         this.hitTime = 0;
         this.attack();
@@ -310,8 +311,25 @@ class Runner extends Enemy {
   beDrawn() {
     super.beDrawn();
 
-    if (this.pathPhase < 1) {
-      drawMeter(this.x - cx - this.r, this.y - cy - (this.r * 2), this.r * 2, this.r / 2, this.h, 0, this.mh, this.color);
+    if (this.alive > 0) {
+      if (this.pathPhase < 1) {
+        drawMeter(this.x - cx - this.r, this.y - cy - (this.r * 2), this.r * 2, this.r / 2, this.h, 0, this.mh, this.color);
+      }
+
+      ctx.strokeStyle = this.color;
+      ctx.lineWidth = 10; 
+      ctx.beginPath();
+
+      //gun line
+      if (this.pathPhase < 1) {
+        ctx.moveTo(this.x - cx, this.y - cy);
+        var dirToPlayer = Math.atan2(this.x - character.x, this.y - character.y) - Math.PI;
+        ctx.lineTo((this.x - cx) + (this.r * 1.5 * Math.sin(dirToPlayer)), (this.y - cy) + (this.r * 1.5 * Math.cos(dirToPlayer)));
+      } else {
+        ctx.moveTo(this.x - cx, this.y - cy);
+        ctx.lineTo((this.x - cx) + (this.r * 1.5 * Math.sin(this.direction)), (this.y - cy) + (this.r * 1.5 * Math.cos(this.direction)));
+      }
+      ctx.stroke();
     }
   }
 
@@ -330,8 +348,8 @@ class Projectile extends Enemy {
     this.dy = this.speed * Math.cos(a);
     this.minDist = character.r;
     this.maxDist = 100 * squareSize;
+    
   }
-
   beDrawn() {
     super.beDrawn();
   }
@@ -346,6 +364,7 @@ class Projectile extends Enemy {
       this.y = checkCollision(this.x, this.y, this.dy, 1, 1);
 
       //pathing
+      //player, get distance and then attack
       var dTPX = this.x - character.x; 
       var dTPY = this.y - character.y;
       var dTP = Math.sqrt((dTPX * dTPX) + (dTPY * dTPY));
@@ -353,18 +372,35 @@ class Projectile extends Enemy {
         character.h -= this.f;
         this.h = -1;
       }
+      //loop through all enemies if age is great enough
+      if (this.alive > 7) {
+        for (var gv=0;gv<loadingMap.enemies.length;gv++) {
+          //don't collide with self
+          if (loadingMap.enemies[gv] != this) {
+            //getting distance
+            var dTEX = this.x - loadingMap.enemies[gv].x; 
+            var dTEY = this.y - loadingMap.enemies[gv].y;
+            var dTE = Math.sqrt((dTEX * dTEX) + (dTEY * dTEY));
+            if (dTE < this.r + loadingMap.enemies[gv].r) {
+              loadingMap.enemies[gv].h -= this.f;
+              this.h = -1;
+            }
+          }
+        }
+      }
+      //dying
       //if the bullet has hit a wall, then kill it
-
       if (this.x == oldX || this.y == oldY) {
         this.h = -1;
       } 
-      //other forms of dying
+      //being hit by the player
       this.h -= this.wasHit;
       this.wasHit = 0;
 
       if (this.h <= 0) {
         this.die();
       }
+      this.alive += 1;
     }
   }
 
