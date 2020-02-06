@@ -4,7 +4,9 @@ var constrainSurfaces = ["/", undefined];
 
 var squareSize = 40;
 /*Maps are stored as objects. First all the attributes about the map are stored in these variables, then the actual map is defined.
-LoadingMap is a reference to the actual map. */
+LoadingMap is a reference to the actual map. 
+
+Exits are also objects  */
 
 class Map {
     constructor(data, pallete, name, exits, enemies, statics) {
@@ -14,6 +16,26 @@ class Map {
         this.exits = exits;
         this.enemies = enemies;
         this.statics = statics;
+    }
+}
+
+class Exit {
+    constructor(mapToSwitchTo, xChange, yChange) {
+        this.mapSwitch = mapToSwitchTo;
+        this.x = xChange;
+        this.y = yChange;
+    }
+
+    run() {
+        //updating player position and map
+        character.x += this.x;
+        character.y += this.y;
+        loadingMap = eval(this.mapSwitch);
+
+        //determining whether the map should constrain the camera. Boolean equations took me a while to get used to, but they just sort of exist.
+        constrainC = [false, false];
+        constrainC[0] = loadingMap.data[0].length * squareSize > canvas.width;
+        constrainC[1] = loadingMap.data.length * squareSize > canvas.height * menuPos;
     }
 }
 var tutorial1Data = [["A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A"],
@@ -45,12 +67,9 @@ var homeData = [["A", "A", "A", "A", "A", "A", "A", "A", "A", "A"],
                 ["A", "0", "0", "0", "0", "0", "0", "A"],
                 ["A", "A", "A", "1", "A", "A", "A", "A"]];
 
-var homeExits = [["selya", [3 * squareSize, -8 * squareSize]]];
+var homeExits = [new Exit("selya", 3 * squareSize, -8 * squareSize)];
 
 let home = new Map(homeData, 2, "home", homeExits, [], []);
-
-//the position of the loadingMap variable is awkward, but it needed to be here for the calculations that are being done later
-var loadingMap = home;
 
 var selyaData = [  ["A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A"],
                    ["A", "i", "B", "0", "0", "0", "0", "0", "0", "D", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
@@ -79,10 +98,10 @@ var selyaData = [  ["A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", 
                    ["A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "2", "2", "A", "A", "A", "A", "A", "A", "A"]];
 
 
-var selyaExits = [    ["rightMap", [-1 * (selyaData[0].length * squareSize), 0]], 
-                      ["downMap", [-1 * squareSize, -1 * (selyaData.length-1) * squareSize]],
-                      ["potionShop", [-3 * squareSize, -14 * squareSize]],
-                      ["home", [-3 * squareSize, 8 * squareSize]]];
+var selyaExits = [  new Exit("rightMap", -1 * (selyaData[0].length * squareSize), 0),
+                    new Exit("downMap", -1 * squareSize, -1 * selyaData.length * squareSize),
+                    new Exit("potionShop", -3 * squareSize, -14 * squareSize),
+                    new Exit("home", -3 * squareSize, 8 * squareSize)];
 
 var selyaEnemies = [new Chatter(squareSize, squareSize*13),
                     new ConvoStarter(squareSize*8.2, squareSize*8, squareSize, 2),
@@ -107,8 +126,8 @@ var rightMapData = [["A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A",
                    ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "S", "Z", "A"],
                    ["A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A"]];
 
-var rightMapExits = [["selya", [(selyaData[0].length * squareSize), 0]],
-                     ["stoneEntrance", [-1 * (rightMapData[0].length * squareSize), -2 * squareSize]]];
+var rightMapExits = [new Exit("selya", selyaData[0].length * squareSize, 0),
+                    new Exit("stoneEntrance", -1 * (rightMapData[0].length * squareSize), -2 * squareSize)];
 
 var rightMapEnemies = [new Slime(160, 60),
                        new Ground(160, 120, 20, 50, 1),
@@ -118,6 +137,7 @@ var rightMapEnemies = [new Slime(160, 60),
 var rightMapStatics = [];
 
 let rightMap = new Map(rightMapData, 1, "rightMap", rightMapExits, rightMapEnemies, rightMapStatics);
+
 
 var shopData = [["A", "A", "A", "1", "A", "A", "A", "A"],
                 ["A", "0", "0", "0", "0", "0", "0", "A"],
@@ -146,32 +166,33 @@ var downMapData = [ ["A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A",
                     ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
                     ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
                     ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                    ["4", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                    ["4", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                    ["5", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                    ["5", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
                     ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
                     ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
                     ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
                     ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
                     ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                    ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "G", "5", "H", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                    ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "G", "6", "H", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
                     ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "B", "/", "D", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
                     ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "F", "E", "I", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
                     ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
                     ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
                     ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
                     ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                    ["A", "A", "A", "2", "2", "A", "A", "A", "A", "A", "A", "A", "A", "A", "3", "3", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A"]];
+                    ["A", "A", "A", "2", "2", "A", "A", "A", "A", "A", "A", "A", "A", "A", "3", "3", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "4", "4", "A", "A", "A", "A", "A", "A", "A"]];
 
-var downMapExits =     [["selya", [1 * squareSize, selyaData.length * squareSize]],
-                        ["desert_l1", [0, -1 * downMapData.length * squareSize]],
-                        ["desert_m1", [1 * squareSize, selyaData.length * squareSize]],
-                        ["jungle_r1", [1 * squareSize, selyaData.length * squareSize]],
-                        ["caves_d1", [1 * squareSize, selyaData.length * squareSize]]];
+var downMapExits =     [new Exit("selya", 1 * squareSize, selyaData.length * squareSize),
+                        new Exit("desert_l1", 0, -1 * downMapData.length * squareSize),
+                        new Exit("desert_m1", 1 * squareSize, 0),
+                        new Exit("desert_r1", 1 * squareSize, 0),
+                        new Exit("jungle_r2", 0, 0),
+                        new Exit("caves_1", 0, 0)];
 
-var downMapEnemies = [new Runner(9.5 * squareSize, 9.55 * squareSize),
-                    new Runner(25.8 * squareSize, 15.55 * squareSize),
-                    new Slime(21.5 * squareSize, 4.65 * squareSize),
-                    new Slime(14.15 * squareSize, 4.3 * squareSize)];
+var downMapEnemies = [  new Runner(9.5 * squareSize, 9.55 * squareSize),
+                        new Runner(25.8 * squareSize, 15.55 * squareSize),
+                        new Slime(21.5 * squareSize, 4.65 * squareSize),
+                        new Slime(14.15 * squareSize, 4.3 * squareSize)];
 
 var downMapStatics = [];
 
@@ -187,7 +208,7 @@ var desertL1Data = [["A", "A", "A", "1", "1", "A", "A", "A"],
                     ["A", "0", "0", "0", "0", "0", "0", "A"],
                     ["A", "A", "A", "A", "A", "A", "A", "A"]];
 
-var desertL1Exits = [["downMap", [0, 1 * (downMap.data.length-1) * squareSize]]];
+var desertL1Exits = [   new Exit("downMap", 0, 1 * (downMap.data.length-1) * squareSize)];
 
 var desertL1Statics = [];
 
