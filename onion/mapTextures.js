@@ -117,7 +117,9 @@ var sandyGround = new Image();
 sandyGround.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAMAAAC7IEhfAAAABlBMVEX/1WP/6KtAHo2uAAAAOUlEQVR4AWMYEYARCgirg9JDz38IgFcdCmcERT4RanAGykgKM0YUgE8ZOncUUBba+BVh6MGqaPACAAA9AFs5q6YgAAAAAElFTkSuQmCC";
 
 var sandyWall = new Image();
-sandyWall.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoAgMAAADxkFD+AAAACVBMVEXup4L4jEv7tHqGvNCDAAAAK0lEQVQY02MIBYMoIGaAMIOGDBMCmBqAxCo4YIB4JhSiNmgYMKFeZEDxJgAa4IV5zdCyHQAAAABJRU5ErkJggg==";
+sandyWall.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoAQMAAAC2MCouAAAABlBMVEXoxaz20ayPMvXJAAAAGElEQVQI12P4DwIM+Mk/DAwM9kOAJMIvAFccXjnCU69rAAAAAElFTkSuQmCC";
+
+//pallete 5 - desert temple
 //textures that aren't for map things specifically
 
 
