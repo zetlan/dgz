@@ -59,6 +59,7 @@ var menuPos = 0.8;
 var menuBarStart = 0.35;
 var menuBarHeight = 0.025;
 var shaderOpacity = 0;
+var loadingMap = home;
 
 //the greater dt is, the slower the game is.
 var dt = 1;
@@ -393,15 +394,7 @@ class Player {
     //figure out the next map based on the current map's values
     //nextMap is a value that points to the map encoded in the current map, if it's zero that means the player entered incorrectly and should not be like that.
     if (nextMap != 0) {
-      this.x += loadingMap.exits[nextMap-1][1][0];
-      this.y += loadingMap.exits[nextMap-1][1][1];
-
-      loadingMap = eval(loadingMap.exits[nextMap-1][0]);
-
-      //determining whether the map should constrain the camera. Boolean equations took me a while to get used to, but they just sort of exist.
-      constrainC = [false, false];
-      constrainC[0] = loadingMap.data[0].length * squareSize > canvas.width;
-      constrainC[1] = loadingMap.data.length * squareSize > canvas.height * menuPos;
+        loadingMap.exits[nextMap-1].run();
     }
   }
 
