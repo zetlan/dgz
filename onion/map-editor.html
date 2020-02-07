@@ -25,11 +25,17 @@ Jan-2-2019 -->
         left:0;
       }
 
+      #textOnRight {
+        float: right;
+        margin-right: 20px;
+        margin-top: -200px;
+      }
+
       #mapSpot {
           font-family: 'Courier New', Courier, monospace;
           font-size: small;
           position: absolute;
-          margin-top: 80px;
+          margin-top: 140px;
       }
 
       #modeIndicator, #palleteIndicator, #staticAddIndicator, #enemyAddIndicator {
@@ -51,25 +57,24 @@ Jan-2-2019 -->
 
       var squareSize = 20;
 
-      var writeMap =   [["A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "1", "1", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A"],
-                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "G", "0", "H", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "B", "0", "D", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "F", "E", "I", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                   ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
-                   ["A", "A", "A", "2", "2", "A", "A", "A", "A", "A", "A", "A", "A", "A", "3", "3", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A"]];
+      var writeMap =   [["A", "A", "A", "A", "A", "A", "A", "A", "A", "1", "1", "A", "A", "A", "A", "A", "A", "A", "A", "A"],
+                        ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                        ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                        ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                        ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                        ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                        ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A", "A", "0", "0", "0", "0", "0", "0", "A"],
+                        ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A", "A", "A", "A", "0", "0", "0", "0", "0", "A"],
+                        ["A", "0", "0", "0", "0", "0", "0", "0", "0", "A", "A", "A", "A", "A", "0", "0", "0", "0", "0", "A"],
+                        ["A", "0", "0", "0", "0", "0", "0", "0", "A", "A", "A", "A", "A", "A", "A", "0", "0", "0", "0", "A"],
+                        ["A", "0", "0", "0", "0", "0", "0", "0", "A", "A", "A", "A", "A", "A", "A", "0", "0", "0", "0", "A"],
+                        ["A", "0", "0", "0", "0", "0", "0", "A", "A", "A", "A", "A", "A", "A", "A", "0", "0", "0", "0", "A"],
+                        ["A", "0", "0", "0", "0", "0", "0", "A", "A", "A", "A", "A", "A", "A", "0", "0", "0", "0", "0", "A"],
+                        ["A", "0", "0", "0", "0", "0", "0", "A", "A", "A", "A", "A", "A", "A", "0", "0", "0", "0", "0", "A"],
+                        ["A", "0", "0", "0", "0", "0", "0", "A", "A", "A", "A", "A", "A", "0", "0", "0", "0", "0", "0", "A"],
+                        ["A", "0", "0", "0", "0", "0", "0", "0", "A", "A", "A", "A", "0", "0", "0", "0", "0", "0", "0", "A"],
+                        ["A", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "A"],
+                        ["A", "A", "A", "A", "A", "A", "A", "A", "A", "2", "2", "A", "A", "A", "A", "A", "A", "A", "A", "A"]];
 
       var writeMapStatics = [new House(squareSize * 6, squareSize * 3),
                             new House(squareSize * 2, squareSize * 2)];
@@ -97,10 +102,12 @@ Jan-2-2019 -->
       var staticOccupy = -1;
       var enemyOccupy = -1;
       var arrayValue = "A";
+      var mapName = "My_Map";
 
       var centerX;
       var centerY;
 
+      var screenTolerance = 1;
       var cx = 0;
       var cy = 0;
       var mouseX;
@@ -265,6 +272,32 @@ Jan-2-2019 -->
         mouseUp(h) {
           super.mouseUp(h);
         }
+
+        handleMinus() {
+          //makes tiles smaller without affecting player position
+          character.x /= squareSize;
+          character.y /= squareSize;
+          squareSize -= 1;
+          //minimum size is 3
+          if (squareSize < 3) {
+            squareSize = 3;
+          }
+          character.x *= squareSize;
+          character.y *= squareSize;
+        }
+
+        handlePlus() {
+          //makes tiles larger without affecting player position
+          character.x /= squareSize;
+          character.y /= squareSize;
+          squareSize += 1;
+          //maximum size is 100
+          if (squareSize > 100) {
+            squareSize = 100;
+          }
+          character.x *= squareSize;
+          character.y *= squareSize;
+        }
       }
 
       class EnemyStructure extends MainStructure {
@@ -416,6 +449,7 @@ Jan-2-2019 -->
         canvas = document.getElementById("canvas2");
         cty = canvas.getContext("2d");
         cty.imageSmoothingEnabled = false;
+        cty.globalAlpha = 0.5;
 
         centerX = canvas.width / 2;
         centerY = canvas.height / 2;
@@ -449,14 +483,20 @@ Jan-2-2019 -->
 
       //map size changes
       function shrinkVertical() {
-
+        //removes the bottom row
+        writeMap.splice(writeMap.length-1, 1);
       }
 
       function shrinkHorizontal() {
-
+        //removes the right-most column
+        var target = writeMap[0].length - 1;
+        for (var yyre=0;yyre<writeMap.length;yyre++) {
+          writeMap[yyre].splice(target, 1);
+        }
       }
 
       function growVertical() {
+        //adds a row to the bottom of the map
         writeMap.push([]);
         for (var yyre=0;yyre<writeMap[0].length;yyre++) {
           writeMap[writeMap.length-1].push("0");
@@ -464,15 +504,21 @@ Jan-2-2019 -->
       }
 
       function growHorizontal() {
-
+        //adds a column to the end of the map
+        for (var yyre=0;yyre<writeMap.length;yyre++) {
+          writeMap[yyre].push("0");
+        }
       }
 
       function mapOutput() {
         var hey = "";
         
         //map
+        //beginning part
+        hey += "var " + mapName + "Data = [";
+
       	for (var s=0;s<loadingMap.length;s++) {
-        	hey = hey + "\n [";
+        	hey = hey + "[";
         	for (var t=0;t<loadingMap[s].length;t++) {
             //special case for the end of a line, in addition to a regular case
             if (t == (loadingMap[s].length - 1)) {
@@ -483,21 +529,22 @@ Jan-2-2019 -->
           }
           //the same thing happens here with the end of the map
           if (s == (loadingMap.length - 1)) {
-            hey = hey + "]<br>";
+            hey = hey + "]];<br>";
           } else {
             hey = hey + "],<br>";
           }
         }
 
         //enemies
-        hey = hey + "<br>";
+        hey += "<br>";
+        hey += "var " + mapName + "Enemies = [";
 
         for (var u=0;u<writeMapEntities.length;u++) {
           //writing out the object definition as a string, this is a bit of a mess
           hey += "new " + writeMapEntities[u].constructor.name + "(" + (writeMapEntities[u].x / squareSize) + " * squareSize, " + (writeMapEntities[u].y / squareSize) + " * squareSize)"
           //change the ending of the line depending on position in the array
           if (u == writeMapEntities.length - 1) {
-            hey += "<br>";
+            hey += "];<br>";
           } else {
             hey += ",<br>";
           }
@@ -505,18 +552,32 @@ Jan-2-2019 -->
 
         //statics
         hey = hey + "<br>";
+        hey += "var " + mapName + "Statics = [";
 
         for (var u=0;u<writeMapStatics.length;u++) {
           //same thing as emeies, but with a different variable
           hey += "new " + writeMapStatics[u].constructor.name + "(" + (writeMapStatics[u].x / squareSize) + " * squareSize, " + (writeMapStatics[u].y / squareSize) + " * squareSize)"
           if (u == writeMapStatics.length - 1) {
-            hey += "<br>";
+            hey += "];<br>";
           } else {
             hey += ",<br>";
           }
         }
 
-
+        //exits
+        hey += "<br>";
+        hey += "var " + mapName + "Exits = [";
+        for (var u=0;u<writeMapExits.length;u++) {
+          hey += "new Exit(" + writeMapExits[u].mapSwitch + ", " + writeMapExits[u].x + ", " + writeMapExits[u].y + ")";
+          if (u == writeMapExits.length - 1) {
+            hey += "];<br>";
+          } else {
+            hey += ",<br>";
+          }
+        }
+        //adding final variable initialization
+        hey += "<br>";
+        hey += "let " + mapName + " = new Map(" + mapName + "Data, " + loadingPallete + ", " + mapName + ", " + mapName + "Exits, " + mapName + "Enemies, " + mapName + "Statics, " + ");";
       	document.getElementById("mapSpot").innerHTML = hey;
       }
 
@@ -590,7 +651,7 @@ Jan-2-2019 -->
 
           //shift, delete, - and +
           case 16:
-            entitySpeed = entitySpeedBase * multiplier;
+            entitySpeed = squareSize;
             break;
             case 8:
             loadingClass.delete();
@@ -651,10 +712,10 @@ Jan-2-2019 -->
       function drawMap() {
         //to prevent ugly lines from appearing in the map, the coordinates are rounded to the pixel
 
-      	cornerCoords[0] = Math.round(cx) - squareSize;
-        cornerCoords[1] = Math.round(cy) - squareSize;
-        cornerCoords[2] = Math.round(cx) + canvas.width + squareSize;
-        cornerCoords[3] = Math.round(cy) + canvas.height + squareSize;
+      	cornerCoords[0] = Math.round(cx) - (squareSize * screenTolerance);
+        cornerCoords[1] = Math.round(cy) - (squareSize * screenTolerance);
+        cornerCoords[2] = Math.round(cx+canvas.width) + (squareSize * screenTolerance);
+        cornerCoords[3] = Math.round(cy+canvas.height) + (squareSize * screenTolerance);
         var mapCounter = 0;
         var theColor;
         
@@ -714,7 +775,7 @@ Jan-2-2019 -->
                 cty.strokeStyle = "#00FF00";
                 cty.beginPath();
                 cty.moveTo((mapCounter * squareSize), (mapRow * squareSize));
-                cty.lineTo((mapCounter * squareSize) + writeMapExits[value-1][1][0], (mapRow * squareSize) + writeMapExits[value-1][1][1]);
+                cty.lineTo((mapCounter * squareSize) + writeMapExits[value-1].x, (mapRow * squareSize) + writeMapExits[value-1].y);
                 cty.stroke();
               }
           	counter = counter + 1;
@@ -723,6 +784,10 @@ Jan-2-2019 -->
         	row = row + 1;
           mapRow = mapRow + 1;
         }
+      }
+
+      function nameMap() {
+        mapName = document.getElementById("mapNameValue").value;
       }
 
       function writeHelp() {
@@ -747,6 +812,11 @@ Jan-2-2019 -->
       }
 </script>
   </head>
+
+
+
+
+
     <body>
         <p onclick="changeMode()" id="modeIndicator">Mode:</p>
         <canvas id="canvas" width="640" height="480" style="z-index: 0;">
@@ -755,26 +825,25 @@ Jan-2-2019 -->
         </canvas>
 
         <br>
-        <p id="marker1">TILE EDIT MODE CONTROLS</p>
+        <p>TILE EDIT MODE CONTROLS</p>
         <br>
 
         <div id="mapSizeControls">
-          <button onclick="changePallete(1)">Add row to end</button>
-          <button onclick="changePallete(2)">Add column to end</button>
-          <button onclick="changePallete(3)">Remove row from end</button>
-          <button onclick="changePallete(4)">remove column from end</button>
+          <button onclick="growVertical()">Add row to end</button>
+          <button onclick="growHorizontal()">Add column to end</button>
+          <button onclick="shrinkVertical()">Remove row from end</button>
+          <button onclick="shrinkHorizontal()">remove column from end</button>
         </div>
         <br>
         <br>
         <input type="text" id="valueToWrite">
-        <button onclick="changeMapValue()">Push textbox value to write head</button>
+        <button onclick="changeMapValue()">Update write value to textbox value</button>
         <br>
         <br>
 
         <p onclick="loadingPallete = cycleThroughEnum(possiblePalletes, loadingPallete, 'palleteIndicator', 'Pallete: ')" id="palleteIndicator">Pallete: Grassy</p>
-
-        <br>
-        <p id="marker2">STATIC EDIT MODE CONTROLS</p>  
+        
+        <p>STATIC EDIT MODE CONTROLS</p>  
 
         <p id="staticIndicator">Current Static Occupied: -1</p>
         <p onclick="loadingStatic = cycleThroughEnum(possibleStatics, loadingStatic, 'staticAddIndicator', 'Static To Add: ')" id="staticAddIndicator">Static To Add: none  </p>
@@ -783,9 +852,17 @@ Jan-2-2019 -->
         <button onclick="loadingClass.removeStatic()">remove currently occupied static</button>
 
         <br>
-        <p id="marker3">ENTITY EDIT MODE CONTROLS</p>  
-        <p id="enemyIndicator">Current Entity Occupied: -1</p>
-        <p onclick="loadingEnemy = cycleThroughEnum(possibleEnemies, loadingEnemy, 'enemyAddIndicator', 'Enemy To Add: ')" id="enemyAddIndicator">Enemy To Add: none</p>
+
+        <div id="textOnRight">
+          <p>GENERAL MAP CONTROLS</p>
+          <input type="text" id="mapNameValue">
+          <button onclick="nameMap()">Update Map Name to textbox value</button>
+          <br>
+          <p>ENTITY EDIT MODE CONTROLS</p>  
+          <p id="enemyIndicator">Current Entity Occupied: -1</p>
+          <p onclick="loadingEnemy = cycleThroughEnum(possibleEnemies, loadingEnemy, 'enemyAddIndicator', 'Enemy To Add: ')" id="enemyAddIndicator">Enemy To Add: none</p>
+        </div>
+
         <button onclick="writeHelp()">Help</button>
         <button onclick="mapOutput()">Get Map Data</button>
 
