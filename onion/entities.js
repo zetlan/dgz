@@ -203,6 +203,7 @@ class Ground extends Enemy  {
   //ground enemies get main as well as enemy
   constructor(x, y, size, maxHealth, xp) {
     super(x, y, size, maxHealth, xp);
+    this.minDist += this.r;
   }
 
   beDrawn() {
