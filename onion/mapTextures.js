@@ -10,11 +10,9 @@ var stoneColor = "#708080";
 var interStoneColor = "#7B9190";
 var lStoneColor = "#899C9C";
 
-
 var spaceColor = "#85DEF5";
 var sunColor = "#FF3300";
 var debrisColor = "#8888FF";
-
 
 var engineColor = "#6666FF";
 var shipColor = "#FFFFFF";

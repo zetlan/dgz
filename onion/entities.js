@@ -341,6 +341,93 @@ class Runner extends Enemy {
   }
 }
 
+class Crunch extends Enemy {
+  constructor(x, y) {
+    super(x, y, 12, 10, 3);
+    this.currentSize = this.r;
+    this.minSize = this.r - 5;
+    this.maxSize = this.r + 5;
+    this.color = "#B29275";
+    this.speed *= 2;
+    this.attackFrame = 0;
+  }
+
+  beDrawn() {
+    //body
+    if (this.alive > 0) {
+      ctx.fillStyle = this.color;
+      ctx.fillRect((this.x - cx) - Math.round(this.currentSize / 2), (this.y - cy) - Math.round(this.currentSize / 2), this.currentSize, this.currentSize);
+
+      //health bar
+      if (this.pathPhase < 1) {
+        drawMeter(this.x - cx - this.r, this.y - cy - (this.r * 2), this.r * 2, this.r / 2, this.h, 0, this.mh, this.color);
+      }
+    }
+  }
+
+  tick() {
+    super.tick();
+    if (this.pathPhase == -1 || this.pathPhase == 0) {
+      this.direction = Math.atan2(this.x - character.x, this.y - character.y);
+    }
+    switch(this.pathPhase) {
+      case -1:
+        if (this.currentSize >= this.maxSize) {
+          this.attack();
+        } else {
+          this.ax = this.speed * 0.1 * Math.sin(this.direction);
+          this.ay = this.speed * 0.1 * Math.cos(this.direction);
+        }
+        break;
+      case 0:
+        if (this.currentSize >= this.maxSize) {
+          this.ax = this.speed * 0.1 * Math.sin(this.direction + Math.PI);
+          this.ay = this.speed * 0.1 * Math.cos(this.direction + Math.PI);
+        } else {
+          this.ax = this.speed * 0.05 * Math.sin(this.direction);
+          this.ay = this.speed * 0.05 * Math.cos(this.direction);
+        }
+      case 1:
+        //getting larger
+        this.currentSize += (1 / 16) / dt;
+        if (this.currentSize > this.maxSize) {
+          this.currentSize = this.maxSize;
+        }
+
+        if (this.pathPhase == 1) {
+          //random movement
+          this.direction += (Math.random() - 0.5) * 0.05;
+          this.ax = this.speed * 0.1 * Math.sin(this.direction + Math.PI);
+          this.ay = this.speed * 0.1 * Math.cos(this.direction + Math.PI);
+        }
+        break;
+    }
+  }
+
+  attack() {
+    this.attackFrame += 1;
+    //drawing attack, always happens
+    ctx.globalAlpha = 0.2;
+    ctx.fillStyle = hyperColor;
+    ctx.beginPath();
+    ctx.ellipse(this.x - cx, this.y - cy, this.r * 3 + (this.attackFrame / 3), this.r * 3 + (this.attackFrame / 3), 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    //doing actual attack
+    if (this.attackFrame == 4) {
+      //hitting player
+      var totalPlayerDist = Math.sqrt((this.xPD * this.xPD) + (this.yPD * this.yPD));
+      if (totalPlayerDist <= this.r * 4) {
+        character.h -= 2;
+      }
+
+      //making self smaller
+      this.currentSize = this.minSize;
+      this.attackFrame = 0;
+    }
+  }
+}
+
 class Projectile extends Enemy {
   constructor(x, y, a, r, force) {
     super(x, y, r, 1, 0);

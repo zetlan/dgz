@@ -83,11 +83,14 @@ Jan-2-2019 -->
 
       var writeMapExits = [ new Exit("selya", 1 * squareSize, selyaData.length * squareSize),
                             new Exit("desert_l1", 0, -1 * downMapData.length * squareSize),
+                            new Exit("desert_m1", 0, -1 * downMapData.length * squareSize),
+                            new Exit("desert_m1", 0, -1 * downMapData.length * squareSize),
+                            new Exit("desert_m1", 0, -1 * downMapData.length * squareSize),
                             new Exit("desert_m1", 0, -1 * downMapData.length * squareSize)];
 
       var possibleStatics = ["House"];
 
-      var possibleEnemies = ["Slime", "Runner"];
+      var possibleEnemies = ["Slime", "Runner", "Crunch"];
 
       var cornerCoords = [0, 0, 0, 0];
 
@@ -543,7 +546,7 @@ Jan-2-2019 -->
           //writing out the object definition as a string, this is a bit of a mess
           hey += "new " + writeMapEntities[u].constructor.name + "(" + (writeMapEntities[u].x / squareSize) + " * squareSize, " + (writeMapEntities[u].y / squareSize) + " * squareSize)"
           //change the ending of the line depending on position in the array
-          if (u == writeMapEntities.length - 1) {
+          if (u >= writeMapEntities.length - 1) {
             hey += "];<br>";
           } else {
             hey += ",<br>";
@@ -557,7 +560,7 @@ Jan-2-2019 -->
         for (var u=0;u<writeMapStatics.length;u++) {
           //same thing as emeies, but with a different variable
           hey += "new " + writeMapStatics[u].constructor.name + "(" + (writeMapStatics[u].x / squareSize) + " * squareSize, " + (writeMapStatics[u].y / squareSize) + " * squareSize)"
-          if (u == writeMapStatics.length - 1) {
+          if (u >= writeMapStatics.length - 1) {
             hey += "];<br>";
           } else {
             hey += ",<br>";
