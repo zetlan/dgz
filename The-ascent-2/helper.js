@@ -86,7 +86,7 @@ var map = [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
             [9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9],
             [9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 1, 1, 1, 1, 1, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9],
             [9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9],
-            [9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9],
+            [9, 9, 9, 9, 9, 9, 9, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9],
             [9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9],
             [9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 2, 2, 2, 2, 2, 2, 2, 2, 2, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9],
             [9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 1, 1, 1, 1, 1, 1, 1, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9],
@@ -95,7 +95,7 @@ var map = [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
             [1, 2, 9, 9, 9, 9, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 9, 9, 9, 1, 1, 1, 1, 1, 1, 1, 1, 9, 9, 9, 9, 9, 9, 9, 9, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 2, 9, 9, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 9, 9, 1, 1, 1, 1, 1, 1, 1, 9, 9, 9, 9, 9, 9, 9, 9, 9, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 9, 9, 1, 1, 1, 1, 1, 1, 9, 9, 9, 9, 9, 9, 9, 9, 9, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 1, 1, 1, 2, 9, 9, 1, 1, 1, 1, 1, 9, 9, 9, 9, 9, 9, 9, 9, 9, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 9, 9, 1, 1, 1, 1, 1, 9, 9, 9, 9, 9, 9, 9, 9, 9, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
             [0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 9, 9, 9, 9, 9, 9, 9, 9, 1, 1, 1, 1, 9, 9, 9, 9, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
             [0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 9, 9, 9, 9, 9, 9, 1, 1, 1, 1, 1, 1, 1, 9, 9, 9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -114,7 +114,9 @@ var map = [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 
 //objects
 
-class Main {
+
+
+class Main {    
     constructor(x, y) {
         this.x = x;
         this.y = y;
@@ -195,11 +197,13 @@ class Camera extends Main {
 
         this.shaderColor = "#000000";
         this.shaderOpacity = 0;
+
+        this.doMenu = true;
     }
 
     tick() {
         this.x = character.x - centerX;
-        this.y = character.y - centerY;
+        this.y = character.y - centerY * 1.1;
 
         this.cornerX = this.x;
         this.cornerY = this.y;
@@ -209,12 +213,26 @@ class Camera extends Main {
         ctx.globalAlpha = this.shaderOpacity;
         ctx.fillStyle = this.shaderColor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.globalAlpha = 1;
+
+        //menu
+        if (this.doMenu) {
+            ctx.fillStyle = menuColor;
+            ctx.fillRect(0, canvas.height * 0.8, canvas.width, canvas.height * 0.2);
+
+            ctx.fillStyle = textColor;
+            ctx.font = "20px Century Gothic";
+            ctx.fillText("(" +  (character.x).toFixed(2) + ", " + (character.y).toFixed(2) + " ), (" +  (character.x / squareSize).toFixed(2) + ", " + (character.y / squareSize).toFixed(2) + " )", canvas.width * 0.05, canvas.height * 0.95);
+        }
     }
+
+    
 }
 
 class Player extends Main {
     constructor(x, y) {
         super(x, y);
+        this.dx = 0.1;
         this.ax = 0;
         this.ay = 0;
         this.r = squareSize / 4
@@ -265,6 +283,14 @@ class Player extends Main {
         }
 
         //making sure y is in bounds, if too high reset to starting position after a fade to black
+        if (this.y > (loadingMap.length + 10) * squareSize) {
+            camera.shaderOpacity += 0.0125;
+            if (camera.shaderOpacity >= 1) {
+                //reset to starting position, make sure player can't move
+                this.y = startingCoords[1];
+                camera.shaderOpacity = 0;
+            }
+        }
         
     }
 
@@ -276,27 +302,111 @@ class Player extends Main {
     }
 }
 
+class Button {
+    constructor(x, y, gelatin, cameraX, cameraY, cameraInSquaresBOOLEAN, squaresToModify) {
+        this.x = x;
+        this.y = y;
+        this.active = false;
+
+        /*each button is associated with a gelatin, a camera position, and squares to remove. 
+        This is so that the button can have easily accessible functionality when it is activated. */
+        this.gelatin = gelatin;
+        this.gelatin.color = this.pickGelatinColor();
+
+        //camera position
+        this.cameraX;
+        this.cameraY;
+        if (cameraInSquaresBOOLEAN) {
+            this.cameraX = cameraX * squareSize;
+            this.cameraY = cameraY * squareSize;
+        } else {
+            this.cameraX = cameraX;
+            this.cameraY = cameraY;
+        }
+
+        //squares to remove
+        this.squaresToModify = squaresToModify;
+    }
+
+    tick() {
+        //ticking gelatin
+        this.gelatin.tick();
+
+        //testing if pressed
+
+        //getting distance to gelatin
+        var gelatinDistX = Math.abs(this.x - this.gelatin.x);
+        var gelatinDistY = Math.abs(this.y - this.gelatin.y);
+        var toSet = -1;
+
+        //if distance is small enough and self is inactive, then be pressed (become active)
+        //toSet is which index of the array to set the squares to
+        if (gelatinDistX < squareSize * 0.25 && gelatinDistY < squareSize * 0.25) {
+            this.active = true;
+            toSet = 1;
+        } else if (this.active) {
+            //if active and the gelatin is too far away, become inactive
+            this.active = false;
+            toSet = 0;
+        }
+
+        //modifying squares
+        if (toSet > -1) {
+            for (var c=0;c<this.squaresToModify.length;c++) {
+                loadingMap[this.squaresToModify[c][1]][this.squaresToModify[c][0]] = this.squaresToModify[c][toSet+2];
+            }
+        }
+    }
+
+    beDrawn() {
+        //drawing self
+        if (this.active) {
+            ctx.fillStyle = pressedButtonColor;
+        } else {
+            ctx.fillStyle = buttonColor;
+        }
+        
+        ctx.fillRect(this.x - (squareSize * 0.25) - camera.x, this.y - camera.y, squareSize * 0.5, squareSize * 0.25);
+
+        //buttons have a color component of their gelatin
+        ctx.fillStyle = this.gelatin.color;
+        ctx.globalAlpha = 0.5;
+        ctx.fillRect(this.x - (squareSize * 0.25) - camera.x, this.y - camera.y, squareSize * 0.5, squareSize * 0.25);
+        ctx.globalAlpha = 1;
+
+        //drawing associated gelatin
+        this.gelatin.beDrawn();
+    }
+
+    pickGelatinColor() {
+        var letters = "8F";
+        var color = "#";
+        for (var i=0;i<6;i++) {
+            color += letters[Math.floor(Math.random() * letters.length)];
+        }
+        return color;
+    }
+}
+
 class Gelatin extends Main {
     constructor(x, y) {
         super(x, y);
         this.r = 10;
+        this.color = "#000000";
         this.slowRate = 0.85;
-        this.active = true;
     }
 
     tick() {
-        //colliding with players if active
-        if (this.active) {
-            var playerDistX = Math.abs(character.x - this.x);
-            var playerDistY = Math.abs(character.y - this.y);
+        //colliding with players
+        var playerDistX = Math.abs(character.x - this.x);
+        var playerDistY = Math.abs(character.y - this.y);
 
-            //if the player is close enough to collide, then do
-            if (playerDistX < this.r + character.r && playerDistY < (this.r * 2) + character.r) {
-                character.dx /= 2;
-                this.dx += character.dx;
-                character.dy /= 2;
-                this.dy += character.dy;
-            }
+        //if the player is close enough to collide, then do
+        if (playerDistX < this.r + character.r && playerDistY < (this.r * 2) + character.r) {
+            character.dx /= 2;
+            this.dx += character.dx;
+            character.dy /= 2;
+            this.dy += character.dy;
         }
 
         //gravity / velocity cap
@@ -312,15 +422,10 @@ class Gelatin extends Main {
 
     beDrawn() {
         ctx.beginPath();
-        ctx.fillStyle = gelatinColor;
+        ctx.globalAlpha = 0.75;
+        ctx.fillStyle = this.color;
         ctx.fillRect(this.x - camera.x - this.r, this.y - camera.y - this.r, this.r * 2, this.r * 2);
-    }
-}
-
-class Button {
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
+        ctx.globalAlpha = 1;
     }
 }
 
