@@ -20,10 +20,16 @@ Nov-17-2019 -->
       		//setting up variables for later
       		var canvas;
       		var ctx;
-			var dx = 0;
-			var dy = 0;
 			
-			var hasPressed = 0;
+			var zPressed = false;
+			var xPressed = false;
+			var cPressed = false;
+			var bPressed = false;
+
+			var clicked = false;
+			var mouseX;
+			var mouseY;
+			var numToSet = 0;
 			
 			var arrayValue;
 			var centerX;
@@ -33,7 +39,6 @@ Nov-17-2019 -->
 			var mouseX;
 			var mouseY;
 			var clicked = 0;
-			var numToSet = 0;
 			var canvasArea;
 			var gravity = squareSize / 100;
 			
@@ -41,8 +46,8 @@ Nov-17-2019 -->
 			var dayLength = 12500;
 			var time = 0;
 			var points = 0;
+			var freeTime = [];
 			
-			var gameState = -1;
 			var yes = 0;
 			var delay = 10;
 			
@@ -54,7 +59,7 @@ Nov-17-2019 -->
 			var grassColor = "#008800";
 			var stoneColor = "#494D5E";
 			var lStoneColor = "#797D8E";
-			var woodColor = "#AB6E05";
+			var cloudColor = "#FFFFFF";
 			var lWoodColor = "#DB8F0B";
 			var skyColor = "#AAAAFF";
 			var skySecondaryColor = "#FFFFFF";
@@ -73,6 +78,7 @@ Nov-17-2019 -->
 			var textColor = "#EEEEEE";
 			var entityColor = "#8800FF";
 			var nightFilter = "#000044";
+			var debugFilterColor = "#FF808F";
 			
 			var prep = [0, 0, 0, 0];
 
@@ -94,11 +100,12 @@ Nov-17-2019 -->
 			var solidSurfaces = [1, 2, 4, 6];
 
 			window.onload = setup;
-			document.onmousemove = mouseHandle;
-			document.onmousedown = clickHandle;
+			document.onmousemove = mouseMoveHandle;
+			document.onmousedown = mouseClickHandle;
 
 			let camera;
 			let character;
+			let loadingMode = new Menu();
 
 			let entities = [new Button(1480, 3240, new Gelatin(1440, 3200), 0, 0, false, [[37, 74, 1, 0], [38, 74, 1, 0]])];
 			// the initializing function.
@@ -116,9 +123,9 @@ Nov-17-2019 -->
 			}
 			
 			function keyPress(h) {
-				//37, 38, 39, and 40 are the arrow keys. Left, up, and right can only be activated if delay is 0, meaning not during cutscenes. Down can still be used.
-				//there is one switch statement that controls all the key presses
-				//dx is controlled by ax, but dy is updated directly for a more snappy feeling
+				/*there is one switch statement that controls all the key presses
+				37, 38, 39, and 40 are the arrow keys. Left, up, and right can only be activated if delay is 0, meaning not during cutscenes. 
+				Down can still be used. Dx is controlled by ax, but dy is updated directly for a more snappy feeling */
 				switch (h.keyCode) {
 					case 65:
 					case 37:
@@ -130,6 +137,7 @@ Nov-17-2019 -->
 							character.dy = character.jumpStrength * -1;
 							character.onGround = false;
 						}
+						character.ay = character.accRate * -1;
 						break;
 					case 68:
 					case 39:
@@ -138,87 +146,88 @@ Nov-17-2019 -->
 					case 83:
 					case 40:
 						character.dy += character.jumpStrength;
+						character.ay = character.accRate * 1;
 						break;
 					
-					//z, x, and c, in that order
+					//z, x, c, and b, in that order
 					case 90:
-						hasPressed = 1;
+						zPressed = true;
 						break;
 					case 88:
-						character.tryReset();
+						xPressed = true;
 						break;
 					case 67:
-						camera.modifyPosition();
+						cPressed = true;
+						break;
+					case 66:
+						bPressed = true;
+						break;
+					//numbers
+					case 48:
+					case 49:
+					case 50:
+					case 51:
+					case 52:
+					case 53:
+					case 54:
+					case 57:
+						numToSet = h.keyCode - 48;
 						break;
 				}
 			}
-			
+			//the directions have these if statements so that if the player is imprecise with their keyboard inputs it will still work
 			function keyNegate(h) {
 				switch (h.keyCode) {
 					case 65:
 					case 37:
-						character.ax = 0;
+						if (character.ax < 0) {
+							character.ax = 0;
+						}
 						break;
 					case 87:
 					case 38:
-						character.ay = 0;
+						if (character.ay < 0) {
+							character.ay = 0;
+						}
 						break;
 					case 68:
 					case 39:
-						character.ax = 0;
+						if (character.ax > 0) {
+							character.ax = 0;
+						}
 						break;
 					case 83:
 					case 40:
-						character.ay = 0;
+						if (character.ay > 0) {
+							character.ay = 0;
+						}
 						break;
 				}
 			}
 
 			function draw() {
-				//drawing everything
-
-				//sky
-				ctx.fillStyle = skyColor;
-				ctx.fillRect(0, 0, canvas.width, canvas.height);
-				ctx.fillStyle = skySecondaryColor;
-				ctx.globalAlpha = 0.2;
-				//secondary band scales with height
-				// [maxY - playerY] / [maxY] to get the band to go down as Y increases
-				var thatPercent = ((loadingMap.length * squareSize) - character.y) / (loadingMap.length * squareSize);
-				ctx.fillRect(0, 0, canvas.width, canvas.height * thatPercent);
-				ctx.globalAlpha = 1;
-
-				drawMap();
-				character.beDrawn();
-
+				console.time("time used: ");
+				loadingMode.beRun();
+				console.timeEnd("time used: ");
 				
-				//ticking everything
-				for (var g=0;g<entities.length;g++) {
-					entities[g].tick();
-					entities[g].beDrawn();
-				}
-				//camera is drawn last so it's on top of everything
-				camera.beDrawn();
-				
-				character.tick();
-				camera.tick();
 			}
 			
-			function mouseHandle(h) {
+			function mouseMoveHandle(h) {
 				canvasArea = canvas.getBoundingClientRect();
 				mouseX = Math.round(h.clientX - canvasArea.left);
 				mouseY = Math.round(h.clientY - canvasArea.top);
 			}
 			
-			function clickHandle() {
-				if (prep[0] >= 5 || gameState < 0) {
-					clicked = 1;
+			function mouseClickHandle() {
+				if (loadingMode.constructor.name == "Debug") {
+					clicked = true;
 				}
 			}
 
 			/* mapSquare is the function that draws all the different tiles. */
 			function mapSquare(value, ex, why, offset) {
-					switch (value) {
+				var oldAlpha = ctx.globalAlpha;
+				switch (value) {
 					case 0:
 						ctx.fillStyle = landColor;
 						ctx.fillRect(ex, why, squareSize - offset, squareSize - offset);
@@ -248,15 +257,19 @@ Nov-17-2019 -->
 						ctx.fillRect(ex + (squareSize / 8), why + (squareSize / 8), (squareSize * 0.75) - offset, (squareSize * 0.75) - offset);
 						break;
 					case 5:
-					ctx.fillStyle = woodColor;
+						ctx.globalAlpha = 0.5;
+						ctx.fillStyle = cloudColor;
 						ctx.fillRect(ex, why, squareSize - offset, squareSize - offset);
-					break;
+						ctx.globalAlpha = oldAlpha;
+						break;
 					case 6:
-						ctx.fillStyle = woodColor;
+						ctx.globalAlpha = 0.5;
+						ctx.fillStyle = cloudColor;
 						ctx.fillRect(ex, why, squareSize - offset, squareSize - offset);
-						ctx.fillStyle = lWoodColor;
+						ctx.globalAlpha = oldAlpha;
+						ctx.fillStyle = cloudColor;
 						ctx.fillRect(ex + (squareSize / 8), why + (squareSize / 8), (squareSize * 0.75) - offset, (squareSize * 0.75) - offset);
-					break;
+						break;
 					case 9:
 					default:
 						break;
@@ -297,7 +310,7 @@ Nov-17-2019 -->
 							value = 9;
 						}
 						//the actual drawing, xPos and yPos are floored so that subpixels don't create ugly lines
-						mapSquare(value, Math.floor(xPos), Math.floor(yPos), 0);
+						mapSquare(value, Math.floor(xPos), Math.floor(yPos), loadingMode.tileOffset);
 					}
 				}
 			}
