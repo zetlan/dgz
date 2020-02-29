@@ -220,6 +220,7 @@ class Camera extends Main {
 
         //menu
         if (this.doMenu) {
+            //regular
             ctx.fillStyle = menuColor;
             ctx.fillRect(0, canvas.height * 0.9, canvas.width, canvas.height * 0.1);
 
@@ -228,6 +229,13 @@ class Camera extends Main {
             ctx.textAlign = "left";
             var textToFill = "(" +  (character.x / squareSize).toFixed(2) + ", " + (character.y / squareSize).toFixed(2) + " )";
             textToFill += " (" +  (camera.x / squareSize).toFixed(2) + ", " + (camera.y / squareSize).toFixed(2) + " )";
+            ctx.fillText(textToFill, canvas.width * 0.05, canvas.height * 0.97);
+        } else {
+            //mouse coordinates
+            ctx.fillStyle = textColor;
+            ctx.font = "20px Century Gothic";
+            ctx.textAlign = "left";
+            var textToFill = "(" +  ((mouseX + camera.x) / squareSize).toFixed(2) + ", " + ((mouseY + camera.y) / squareSize).toFixed(2) + " )";
             ctx.fillText(textToFill, canvas.width * 0.05, canvas.height * 0.97);
         }
     }
@@ -431,6 +439,7 @@ class Cloud extends Main {
         this.rw = squareSize;
         this.rh = squareSize / 3;
         this.cloned = false;
+        this.toDelete = false;
     }
 
     tick() {
@@ -463,6 +472,11 @@ class Cloud extends Main {
             //set cloned flag to true and create clone
             this.cloned = true;
             entities.push(new Cloud(this.x - (loadingMap[0].length * squareSize), this.y));
+        }
+
+        //testing for delete time
+        if (this.x > (loadingMap[0].length + 2) * squareSize) {
+            this.toDelete = true;
         }
     }
 
@@ -519,6 +533,10 @@ class GameWorld {
         for (var g=0;g<entities.length;g++) {
             entities[g].tick();
             entities[g].beDrawn();
+            //if it's a cloud and it's to be deleted, delete it
+            if (entities[g].constructor.name == "Cloud" && entities[g].toDelete == true) {
+                entities.splice(g, 1);
+            }
         }
     }
 }
@@ -626,6 +644,7 @@ class Debug extends GameWorld {
     }
 
     beRun() {
+        var perfTime = [performance.now(), 0];
         //drawing everything
         super.beRun();
         
@@ -662,5 +681,9 @@ class Debug extends GameWorld {
             camera.doMenu = true;
             loadingMode = new Gameplay();
         }
+
+        //output time taken
+        perfTime[1] = performance.now();
+		console.log("time used: " + (perfTime[1] - perfTime[0]).toFixed(2));
     }
 }
