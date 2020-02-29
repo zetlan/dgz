@@ -34,7 +34,7 @@ Nov-17-2019 -->
 			var arrayValue;
 			var centerX;
 			var centerY;
-			var squareSize = 20;
+			var squareSize = 40;
 			var startingCoords = [squareSize * 4, squareSize * 5];
 			var mouseX;
 			var mouseY;
@@ -100,7 +100,11 @@ Nov-17-2019 -->
 			let character;
 			let loadingMode = new Menu();
 
-			let entities = [new Button(37 * squareSize, 3240, new Gelatin(36 * squareSize, 3200), 0, 0, [[37, 74, 1, 0], [38, 74, 1, 0]])];
+			//all the hardcoded entities
+
+			let entities = [new Button(37 * squareSize, 81 * squareSize, new Gelatin(36 * squareSize, 80 * squareSize), 0, 0, [[37, 74, 1, 0], [38, 74, 1, 0]]),
+							new Button(28.5 * squareSize, 68 * squareSize, new Gelatin(35.5 * squareSize, 61.5 * squareSize), (43.5 * squareSize) - centerX, (57 * squareSize) - centerY, [[42, 55, 4, 3], [44, 55, 4, 3], [43, 56, 4, 3], [42, 57, 4, 3], [44, 57, 4, 3], [43, 58, 4, 3]]),
+							new Button(41.5 * squareSize, 66 * squareSize, new Gelatin(38.5 * squareSize, 65.5 * squareSize), (43.5 * squareSize) - centerX, (57 * squareSize) - centerY, [[42, 56, 4, 3], [44, 56, 4, 3], [43, 57, 4, 3], [42, 58, 4, 3], [44, 58, 4, 3]])];
 			// the initializing function.
 			function setup() {
 				canvas = document.getElementById("canvas");
@@ -206,10 +210,7 @@ Nov-17-2019 -->
 			}
 
 			function draw() {
-				console.time("time used: ");
-				loadingMode.beRun();
-				console.timeEnd("time used: ");
-				
+				loadingMode.beRun();			
 			}
 			
 			function mouseMoveHandle(h) {
