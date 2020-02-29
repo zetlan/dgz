@@ -34,8 +34,8 @@ Nov-17-2019 -->
 			var arrayValue;
 			var centerX;
 			var centerY;
-			var squareSize = 40;
-			var startingCoords = [240, 101];
+			var squareSize = 20;
+			var startingCoords = [squareSize * 4, squareSize * 5];
 			var mouseX;
 			var mouseY;
 			var clicked = 0;
@@ -50,6 +50,7 @@ Nov-17-2019 -->
 			
 			var yes = 0;
 			var delay = 10;
+			var cloudSpacing = 4;
 			
 			//all the colors used
 
@@ -86,14 +87,6 @@ Nov-17-2019 -->
 			
 			var loadingMap;		
 			
-			/*this array determines the positions of all the entities as well as their profession.
-			It's format is [x, y, point value, color, exists or not]*/
-			var entityData = [[54.5 * squareSize, 105 * squareSize, 10, "#8A8A2F", 1],
-								[6.5 * squareSize, 12.5 * squareSize, 100, "#FFEA4F", 1],
-								[24.5 * squareSize, 92.5 * squareSize, "To move, use the arrow keys or WASD.", "#000000", 2],
-								[27.5 * squareSize, 82.5 * squareSize, "You regain your jump when hitting the lower side of blocks.", "#000000", 2],
-								[55.5 * squareSize, 7.5 * squareSize, "Hey ☃", "#000000", 2]
-								];
 			var entitySpeed = 1;
 
 			//this array says all the surfaces that are solid and cannot be walked through.
@@ -107,7 +100,7 @@ Nov-17-2019 -->
 			let character;
 			let loadingMode = new Menu();
 
-			let entities = [new Button(1480, 3240, new Gelatin(1440, 3200), 0, 0, false, [[37, 74, 1, 0], [38, 74, 1, 0]])];
+			let entities = [new Button(37 * squareSize, 3240, new Gelatin(36 * squareSize, 3200), 0, 0, [[37, 74, 1, 0], [38, 74, 1, 0]])];
 			// the initializing function.
 			function setup() {
 				canvas = document.getElementById("canvas");
@@ -120,6 +113,13 @@ Nov-17-2019 -->
 
 				camera = new Camera(0, 0);
 				character = new Player(startingCoords[0], startingCoords[1]);
+				/*generating clouds:
+				clouds y: 32-34 squares
+				clouds x: 0-63 squares, x is deterministic but y is random */
+				for (var a=0;a<=loadingMap[0].length / cloudSpacing;a++) {
+					var randHeight = (Math.random() * 2) + 32;
+					entities.push(new Cloud(a * cloudSpacing * squareSize, randHeight * squareSize));
+				}
 			}
 			
 			function keyPress(h) {
