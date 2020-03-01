@@ -129,8 +129,15 @@ class Main {
         this.r = 10;
         this.dx = 0;
         this.dy = 0;
+        this.dTPX;
+        this.dTPY;
         this.gravity = 0.5;
         this.onGround = true;
+    }
+
+    getPlayerDist() {
+        this.dTPX = Math.abs(this.x - character.x);
+        this.dTPY = Math.abs(this.y - character.y);
     }
 
     handlePosition() {
@@ -308,11 +315,11 @@ class Player extends Main {
     }
 }
 
-class Button {
+class Button extends Main {
     constructor(x, y, gelatin, cameraX, cameraY, squaresToModify) {
-        this.x = x;
-        this.y = y;
+        super(x, y);
         this.active = false;
+        this.drawTips = false;
 
         /*each button is associated with a gelatin, a camera position, and squares to remove. 
         This is so that the button can have easily accessible functionality when it is activated. */
@@ -342,18 +349,39 @@ class Button {
         //toSet is which index of the array to set the squares to
         if (gelatinDistX < squareSize * 0.25 && gelatinDistY < squareSize * 0.25) {
             this.active = true;
-            toSet = 1;
+            toSet = 3;
         } else if (this.active) {
             //if active and the gelatin is too far away, become inactive
             this.active = false;
-            toSet = 0;
+            toSet = 2;
         }
 
         //modifying squares
         if (toSet > -1) {
             for (var c=0;c<this.squaresToModify.length;c++) {
-                loadingMap[this.squaresToModify[c][1]][this.squaresToModify[c][0]] = this.squaresToModify[c][toSet+2];
+                loadingMap[this.squaresToModify[c][1]][this.squaresToModify[c][0]] = this.squaresToModify[c][toSet];
             }
+        }
+
+        //getting distance to player
+        super.getPlayerDist();
+        //if the player is close enough, display x and c buttons, and trigger their effects if the player has pressed them.
+        //in addition to being close enough, the player also has to be above or equal in height to the button.
+        if (this.dTPX < squareSize * 2 && this.dTPY < squareSize * 2 && character.y <= this.y) {
+            this.drawTips = true;
+            //triggering button effects
+            if (xPressed) {
+                this.resetGelatin();
+                xPressed = false;
+            }
+
+            if (cPressed && loadingMode.constructor.name != "CameraPan") {
+                loadingMode = new CameraPan(this.cameraX, this.cameraY);
+                cPressed = false;
+            }
+
+        } else {
+            this.drawTips = false;
         }
     }
 
@@ -375,6 +403,23 @@ class Button {
 
         //drawing associated gelatin
         this.gelatin.beDrawn();
+
+        //drawing hotkey tips
+        if (this.drawTips) {
+            ctx.fillStyle = tipColor;
+            ctx.beginPath();
+            //drawing circles 
+            ctx.ellipse((this.x - (squareSize / 2)) - camera.x, (this.y - squareSize) - camera.y, squareSize / 3, squareSize / 3, 0, 0, Math.PI * 2);
+            ctx.ellipse((this.x + (squareSize / 2)) - camera.x, (this.y - squareSize) - camera.y, squareSize / 3, squareSize / 3, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            //drawing text
+            ctx.font = "20px Century Gothic";
+            ctx.textAlign = "center";
+            ctx.fillStyle = textColor;
+            ctx.fillText("x", (this.x - (squareSize / 2)) - camera.x, (this.y - (squareSize * 0.9)) - camera.y);
+            ctx.fillText("c", (this.x + (squareSize / 2)) - camera.x, (this.y - (squareSize * 0.9)) - camera.y)
+        }
     }
 
     pickGelatinColor() {
@@ -385,11 +430,22 @@ class Button {
         }
         return color;
     }
+
+    resetGelatin() {
+        //reset gelatin x, y, dx, and dy
+        this.gelatin.x = this.gelatin.homeX;
+        this.gelatin.y = this.gelatin.homeY;
+
+        this.gelatin.dx = 0;
+        this.gelatin.dy = 0;
+    }
 }
 
 class Gelatin extends Main {
     constructor(x, y) {
         super(x, y);
+        this.homeX = this.x;
+        this.homeY = this.y;
         this.r = 10;
         this.color = "#000000";
         this.slowRate = 0.85;
@@ -397,11 +453,10 @@ class Gelatin extends Main {
 
     tick() {
         //colliding with players
-        var playerDistX = Math.abs(character.x - this.x);
-        var playerDistY = Math.abs(character.y - this.y);
+        super.getPlayerDist();
 
         //if the player is close enough to collide, then do
-        if (playerDistX < this.r + character.r && playerDistY < (this.r * 2) + character.r) {
+        if (this.dTPX < this.r + character.r && this.dTPY < (this.r * 2) + character.r) {
             character.dx /= 2;
             this.dx += character.dx;
             character.dy /= 2;
@@ -433,9 +488,6 @@ class Cloud extends Main {
         super(x, y);
         this.dx = 1;
 
-        this.playerDistX;
-        this.playerDistY;
-
         this.rw = squareSize;
         this.rh = squareSize / 3;
         this.cloned = false;
@@ -444,11 +496,10 @@ class Cloud extends Main {
 
     tick() {
         //collide with player, slow player's fall and give them momentum
-        this.playerDistX = Math.abs(character.x - this.x);
-        this.playerDistY = Math.abs(character.y - this.y);
+        super.getPlayerDist();
 
         //if the player is close enough to collide, and the player is not in a forced fall, then collide
-        if (this.playerDistX < this.rw + character.r && this.playerDistY < this.rh + character.r && loadingMode.constructor.name != "ForcedFall") {
+        if (this.dTPX < this.rw + character.r && this.dTPY < this.rh + character.r && loadingMode.constructor.name != "ForcedFall") {
             //take weighted average of character's x vel and this x vel
             character.dx = ((character.dx * 2) + (this.dx)) / 3;
 
@@ -481,16 +532,13 @@ class Cloud extends Main {
     }
 
     beDrawn() {
-        //only draw them if the player is in the same area as them
-        if (this.playerDistX < camera.xSquaresPerScreen * squareSize && this.playerDistY < camera.ySquaresPerScreen * squareSize) {
-            ctx.globalAlpha = 0.5;
-            ctx.fillStyle = cloudColor;
-            ctx.beginPath();
-            //ctx.ellipse(this.x - this.rw - camera.x, this.y - this.rh - camera.y, this.rw * 2, this.rh * 2);
-            ctx.ellipse(this.x - camera.x, this.y - camera.y, this.rw, this.rh, 0, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.globalAlpha = 1;
-        }
+        ctx.globalAlpha = 0.5;
+        ctx.fillStyle = cloudColor;
+        ctx.beginPath();
+        //ctx.ellipse(this.x - this.rw - camera.x, this.y - this.rh - camera.y, this.rw * 2, this.rh * 2);
+        ctx.ellipse(this.x - camera.x, this.y - camera.y, this.rw, this.rh, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
     }
 }
 
@@ -529,10 +577,13 @@ class GameWorld {
         character.beDrawn();
 
         
-        //ticking everything
+        //ticking everything except player
         for (var g=0;g<entities.length;g++) {
             entities[g].tick();
-            entities[g].beDrawn();
+            //only draw the entity if they're close enough to the player
+            if (entities[g].dTPX < camera.xSquaresPerScreen * squareSize && entities[g].dTPY < camera.ySquaresPerScreen * squareSize) {
+                entities[g].beDrawn();
+            }
             //if it's a cloud and it's to be deleted, delete it
             if (entities[g].constructor.name == "Cloud" && entities[g].toDelete == true) {
                 entities.splice(g, 1);
@@ -614,6 +665,10 @@ class Gameplay extends CameraFollow {
             camera.doMenu = false;
             loadingMode = new Debug();
         }
+
+        //setting special button presses to false
+        xPressed = false;
+        cPressed = false;
     }
 }
 
@@ -632,6 +687,39 @@ class ForcedFall extends CameraFollow {
 
         //detecting if the player should be out of forced fall mode (if they've hit ground)
         if (character.onGround) {
+            loadingMode = new Gameplay();
+        }
+    }
+}
+
+//camera pan happens when the player presses c next to a button
+class CameraPan extends GameWorld {
+    constructor(cameraEndX, cameraEndY) {
+        super();
+        this.age = 0;
+        this.cameraStart = [camera.x, camera.y];
+        this.cameraEnd = [cameraEndX, cameraEndY];
+    }
+
+    beRun() {
+        //main game world
+        super.beRun();
+
+        //handling camera
+        camera.beDrawn();
+        camera.tick();
+
+        //changing age so camera pans instead of staying static
+        if (this.age < 100) {
+            this.age ++;
+            //changing camera position, formula for a line is start + (percentTime * (end - start))
+            camera.x = this.cameraStart[0] + ((this.age / 100) * (this.cameraEnd[0] - this.cameraStart[0]));
+            camera.y = this.cameraStart[1] + ((this.age / 100) * (this.cameraEnd[1] - this.cameraStart[1]));
+        }
+
+        //testing for leaving back to the regular gameplay
+        if (cPressed) {
+            cPressed = false;
             loadingMode = new Gameplay();
         }
     }
