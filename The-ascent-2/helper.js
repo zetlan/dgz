@@ -390,16 +390,11 @@ class Button extends Main {
         if (this.active) {
             ctx.fillStyle = pressedButtonColor;
         } else {
-            ctx.fillStyle = buttonColor;
+            //if inactive, color the switch the color of the gelatin
+            ctx.fillStyle = this.gelatin.color;
         }
         
         ctx.fillRect(this.x - (squareSize * 0.25) - camera.x, this.y - camera.y, squareSize * 0.5, squareSize * 0.25);
-
-        //buttons have a color component of their gelatin
-        ctx.fillStyle = this.gelatin.color;
-        ctx.globalAlpha = 0.5;
-        ctx.fillRect(this.x - (squareSize * 0.25) - camera.x, this.y - camera.y, squareSize * 0.5, squareSize * 0.25);
-        ctx.globalAlpha = 1;
 
         //drawing associated gelatin
         this.gelatin.beDrawn();
@@ -423,9 +418,9 @@ class Button extends Main {
     }
 
     pickGelatinColor() {
-        var letters = "8F";
+        var letters = "08F";
         var color = "#";
-        for (var i=0;i<6;i++) {
+        for (var i=0;i<3;i++) {
             color += letters[Math.floor(Math.random() * letters.length)];
         }
         return color;
@@ -526,7 +521,7 @@ class Cloud extends Main {
         }
 
         //testing for delete time
-        if (this.x > (loadingMap[0].length + 2) * squareSize) {
+        if (this.x > (loadingMap[0].length + camera.xSquaresPerScreen) * squareSize) {
             this.toDelete = true;
         }
     }
