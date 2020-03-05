@@ -11,10 +11,10 @@ var map = [
  [9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 5, 5, 5, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9],
  [9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 5, 5, 5, 5, 5, 5, 5, 5, 5, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9],
  [9, 9, 9, 9, 9, 9, 9, 9, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 6, 9, 9, 9, 9, 9],
- [9, 9, 9, 9, 9, 9, 9, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 5, 5, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9],
- [9, 6, 6, 9, 9, 9, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9],
- [9, 9, 9, 9, 9, 9, 5, 5, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 2, 2, 2, 2, 2, 2, 2, 2, 2, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9],
- [9, 9, 9, 9, 9, 9, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 2, 1, 1, 1, 0, 0, 0, 1, 1, 1, 2, 2, 9, 9, 9, 9, 9, 9, 9, 9, 9],
+ [9, 5, 5, 9, 9, 9, 9, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 5, 5, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9],
+ [5, 5, 6, 5, 9, 9, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9],
+ [5, 5, 5, 5, 9, 9, 5, 5, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 2, 2, 2, 2, 2, 2, 2, 2, 2, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9],
+ [9, 5, 5, 9, 9, 9, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 2, 1, 1, 1, 0, 0, 0, 1, 1, 1, 2, 2, 9, 9, 9, 9, 9, 9, 9, 9, 9],
  [9, 9, 9, 9, 9, 9, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 2, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 9, 9, 9, 9, 9, 9, 9, 9, 9],
  [9, 9, 9, 9, 9, 9, 5, 5, 5, 6, 6, 6, 6, 6, 6, 5, 5, 5, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9],
  [9, 9, 9, 9, 9, 9, 5, 5, 5, 5, 6, 6, 6, 5, 5, 5, 6, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9],
@@ -87,7 +87,7 @@ var map = [
  [9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 3, 9, 9, 9, 9, 9, 9, 9, 9],
  [9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 1, 1, 1, 1, 1, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 3, 3, 9, 9, 9, 9, 9],
  [9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 3, 9, 9, 9, 9, 9, 9, 9],
- [9, 9, 9, 9, 9, 9, 9, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 3, 9, 3, 9, 4, 9, 9, 9],
+ [9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 3, 9, 3, 9, 4, 9, 9, 9],
  [9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 3, 9, 9, 9, 9],
  [9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 2, 2, 2, 2, 2, 2, 2, 2, 2, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 3, 9, 9, 9, 9, 9],
  [9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 2, 2, 2, 2, 2, 2, 2, 9, 9, 9, 9, 9, 9, 3, 9, 9, 9],
@@ -112,6 +112,8 @@ var map = [
  [9, 9, 9, 9, 1, 1, 3, 3, 3, 3, 3, 3, 3, 3, 3, 1, 1, 1, 1, 1, 1, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 1, 1, 1, 1, 9, 9, 9, 9, 9, 9],
  [9, 9, 9, 9, 9, 1, 1, 1, 3, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9],
  [9, 9, 9, 9, 9, 9, 9, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]];
+
+ var usedGelatinColors = [];
 /*
 
 Objects!
@@ -211,7 +213,7 @@ class Camera extends Main {
         this.shaderColor = "#000000";
         this.shaderOpacity = 0;
 
-        this.doMenu = true;
+        this.doMenu = false;
     }
 
     tick() {
@@ -234,17 +236,17 @@ class Camera extends Main {
             ctx.fillStyle = textColor;
             ctx.font = "20px Century Gothic";
             ctx.textAlign = "left";
-            var textToFill = "(" +  (character.x / squareSize).toFixed(2) + ", " + (character.y / squareSize).toFixed(2) + " )";
-            textToFill += " (" +  (camera.x / squareSize).toFixed(2) + ", " + (camera.y / squareSize).toFixed(2) + " )";
-            ctx.fillText(textToFill, canvas.width * 0.05, canvas.height * 0.97);
-        } else {
-            //mouse coordinates
-            ctx.fillStyle = textColor;
-            ctx.font = "20px Century Gothic";
-            ctx.textAlign = "left";
-            var textToFill = "(" +  ((mouseX + camera.x) / squareSize).toFixed(2) + ", " + ((mouseY + camera.y) / squareSize).toFixed(2) + " )";
+            var textToFill = "P: (" +  (character.x / squareSize).toFixed(2) + ", " + (character.y / squareSize).toFixed(2) + " )";
+            textToFill += " C: (" +  (camera.x / squareSize).toFixed(2) + ", " + (camera.y / squareSize).toFixed(2) + ")";
+            textToFill += " M: (" +  ((mouseX + camera.x) / squareSize).toFixed(2) + ", " + ((mouseY + camera.y) / squareSize).toFixed(2) + ")";
             ctx.fillText(textToFill, canvas.width * 0.05, canvas.height * 0.97);
         }
+
+        //time
+        ctx.fillStyle = "#FF00FF";
+        ctx.font = "20px Century Gothic";
+        ctx.textAlign = "center";
+        ctx.fillText((time / 66.666666666).toFixed(2), centerX, canvas.height * 0.1);
     }
 }
 
@@ -255,13 +257,13 @@ class Player extends Main {
         this.ax = 0;
         this.ay = 0;
         this.r = squareSize / 4
-        this.accRate = 0.3;
-        this.slowRate = 0.85;
+        this.accRate = 2;
+        this.slowRate = 0.5;
         this.jumpStrength = 11.5;
         this.onGround = false;
         this.canMove = false;
 
-        this.maxSpeed = 8;
+        this.maxSpeed = 6.5;
     }
 
     tick() {
@@ -347,7 +349,7 @@ class Button extends Main {
 
         //if distance is small enough and self is inactive, then be pressed (become active)
         //toSet is which index of the array to set the squares to
-        if (gelatinDistX < squareSize * 0.25 && gelatinDistY < squareSize * 0.25) {
+        if (gelatinDistX < squareSize * 0.4 && gelatinDistY < squareSize * 0.25) {
             this.active = true;
             toSet = 3;
         } else if (this.active) {
@@ -418,11 +420,43 @@ class Button extends Main {
     }
 
     pickGelatinColor() {
+        //possible hex values for red green and blue
         var letters = "08F";
+        var tolerance = 100;
+        //start with hash sign
         var color = "#";
-        for (var i=0;i<3;i++) {
-            color += letters[Math.floor(Math.random() * letters.length)];
+        var goodColor = false;
+        //run for 100 iterations max and make sure color hasn't been used before
+        while (tolerance > 0 && goodColor == false) {
+
+            //choose red, green, and blue values
+            for (var i=0;i<3;i++) {
+                color += letters[Math.floor(Math.random() * letters.length)];
+            }
+
+            //start with good color assumption
+            goodColor = true;
+
+            //search through used colors array
+            for (var g=0;g<usedGelatinColors.length;g++) {
+                //if color matches, it is a bad color
+                if (color == usedGelatinColors[g]) {
+                    goodColor = false;
+                }
+            }
+
+            //if still a good color, push it to the gelatin colors array and use it
+            if (goodColor) {
+                usedGelatinColors.push(color);
+                return color;
+            }
+            //if not, remove 1 from tolerance, reset color, and try again
+            color = "#";
+            tolerance -= 1;
         }
+        
+        //if no possible colors can be generated, then return yellow
+        color = "#FF0";
         return color;
     }
 
@@ -443,7 +477,8 @@ class Gelatin extends Main {
         this.homeY = this.y;
         this.r = 10;
         this.color = "#000000";
-        this.slowRate = 0.85;
+        this.slowRate = 0.8;
+        this.airSlowRate = 0.9;
     }
 
     tick() {
@@ -452,10 +487,15 @@ class Gelatin extends Main {
 
         //if the player is close enough to collide, then do
         if (this.dTPX < this.r + character.r && this.dTPY < (this.r * 2) + character.r) {
-            character.dx /= 2;
-            this.dx += character.dx;
-            character.dy /= 2;
-            this.dy += character.dy;
+            this.dx += character.dx / 3;
+            character.dx /= 8;
+            character.dy *= 0.47;
+            this.dy += character.dy * 1.2;
+
+            //if dy is great enough, the gelatin must not be on the ground
+            if (Math.abs(this.dy) > this.gravity) {
+                this.onGround = false;
+            }
         }
 
         //gravity / velocity cap
@@ -465,8 +505,13 @@ class Gelatin extends Main {
         }
         //handling collision with blocks
         super.handlePosition();
+        
         //friction
-        this.dx *= this.slowRate;
+        if (this.onGround) {
+            this.dx *= this.slowRate;
+        } else {
+            this.dx *= this.airSlowRate;
+        }
     }
 
     beDrawn() {
@@ -534,6 +579,66 @@ class Cloud extends Main {
         ctx.ellipse(this.x - camera.x, this.y - camera.y, this.rw, this.rh, 0, 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = 1;
+    }
+}
+
+class Orb extends Main {
+    constructor(x, y) {
+        super(x, y);
+        this.redValue = 2.5;
+        this.greenValue = 2.5;
+		this.possibleHex = ["A", "B", "C", "D", "E", "F"];
+		this.points = 14;
+    }
+
+    tick() {
+        //getting player distance
+        this.getPlayerDist();
+
+        //if the player is within 1 square, set the gamemode to a winning mode
+    }
+
+    beDrawn() {
+        //updating red and green values, can be minimum of 0 and maximum of 7 for index of possibleHex
+        this.redValue += (Math.random() - 0.5) * 0.5;
+        this.greenValue += (Math.random() - 0.5) * 0.5;
+
+        //keeping red in bounds
+        if (this.redValue > 5.99 || this.redValue < 0) {
+            if (this.redValue < 0) {
+                this.redValue = 0;
+            } else {
+                this.redValue = 5.99;
+            }
+        }
+
+        //keeping green in bounds
+        if (this.greenValue > 5.99 || this.greenValue < 0) {
+            if (this.greenValue < 0) {
+                this.greenValue = 0;
+            } else {
+                this.greenValue = 5.99;
+            }
+        }
+
+
+        //actually drawing the thing
+        ctx.fillStyle = "#" + this.possibleHex[Math.floor(this.redValue)] + this.possibleHex[Math.floor(this.greenValue)] + "0";
+        //drawing star-shape thing
+        ctx.beginPath();
+        for (var an=0;an<this.points;an++) {
+            var rad;
+            if (an % 2 === 0) {
+                rad = squareSize * 0.4;
+            } else {
+                rad = squareSize * 0.2;
+            }
+        	var trueAngle = ((an/this.points) * (Math.PI * 2)) + (((time / 200) % 100) * (Math.PI * 2));
+            var xOff = rad * Math.sin(trueAngle);
+            var yOff = rad * Math.cos(trueAngle);
+            ctx.lineTo((this.x + xOff) - camera.x, (this.y + yOff) - camera.y)
+        }
+        ctx.fill();
     }
 }
 
@@ -657,13 +762,16 @@ class Gameplay extends CameraFollow {
         //if the user presses b, enter debug mode
         if (bPressed) {
             bPressed = false;
-            camera.doMenu = false;
+            camera.doMenu = true;
             loadingMode = new Debug();
         }
 
         //setting special button presses to false
         xPressed = false;
         cPressed = false;
+
+        //add to time
+        time += 1;
     }
 }
 
@@ -683,7 +791,10 @@ class ForcedFall extends CameraFollow {
         //detecting if the player should be out of forced fall mode (if they've hit ground)
         if (character.onGround) {
             loadingMode = new Gameplay();
-        }
+		}
+		
+		//add to time
+		time += 1;
     }
 }
 
@@ -720,6 +831,51 @@ class CameraPan extends GameWorld {
     }
 }
 
+class Ending extends GameWorld {
+    constructor() {
+        super();
+		this.age = 0;
+		this.finalAge = 1000;
+		this.centerPos = [loadingMap[0].length * squareSize / 2, loadingMap.length * squareSize / 2];
+		this.amount = 0.01;
+    }
+
+    beRun() {
+		
+        //main game world
+        super.beRun();
+
+        //handling camera
+        camera.beDrawn();
+        camera.tick();
+
+        //changing age so camera pans instead of staying static
+        if (this.age < this.finalAge) {
+			//changing camera position, moves a little bit of the way towards the center of the map
+			//change = [camera position now] - [camera position final, which is the center - centerX]
+			this.centerPos = [(loadingMap[0].length * squareSize / 2) - centerX, (loadingMap.length * squareSize / 2) - centerY];
+			var totalChangeX = camera.x - this.centerPos[0];
+			var totalChangeY = camera.y - this.centerPos[1];
+			var nowChangeX = totalChangeX * -1 * this.amount;
+			var nowChangeY = totalChangeY * -1 * this.amount;
+			camera.x -= totalChangeX;
+			camera.y -= totalChangeY;
+			/*
+			//expanding camera field of view
+			if (squareSize > 10) {
+				squareSize -= 1;
+				camera.xSquaresPerScreen = Math.floor(canvas.width / squareSize) + 2;
+				camera.ySquaresPerScreen = Math.floor(canvas.height / squareSize) + 2;
+				camera.shaderOpacity += 1 / this.finalAge;
+			} */
+			
+			//changing age
+			this.age ++;
+			//console.log(camera.x, camera.y, nowChangeX, nowChangeY);
+		}
+    }
+}
+
 class Debug extends GameWorld {
     constructor() {
         super();
@@ -732,8 +888,8 @@ class Debug extends GameWorld {
         super.beRun();
         
         //in debug mode, the camera steals the player's movement
-        camera.x += character.ax * 15;
-        camera.y += character.ay * 15;
+        camera.x += character.ax * 10;
+        camera.y += character.ay * 10;
 
         //locking the player's movement
         character.dy = 0.1;
@@ -761,12 +917,14 @@ class Debug extends GameWorld {
         //exiting debug mode
         if (bPressed) {
             bPressed = false;
-            camera.doMenu = true;
+            camera.doMenu = false;
             loadingMode = new Gameplay();
         }
 
         //output time taken
         perfTime[1] = performance.now();
-		console.log("time used: " + (perfTime[1] - perfTime[0]).toFixed(2));
+        console.log("time used: " + (perfTime[1] - perfTime[0]).toFixed(2));
+        //if the player is in debug mode, set time to 1 year
+        time = 31536000000;
     }
 }
