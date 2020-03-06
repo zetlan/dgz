@@ -3,7 +3,7 @@
 Nov-17-2019 -->
 <html>
 	<head>
-    	<title>The Ascent Again v0.4</title>
+    	<title>The Ascent Again v0.9</title>
 
     	<style>
       		#canvas {
@@ -61,6 +61,9 @@ Nov-17-2019 -->
 			var stoneColor = "#494D5E";
 			var lStoneColor = "#797D8E";
 			var cloudColor = "#DDDDFF";
+			var lCloudColor = "#FFFFFF";
+			var solColor = "#FFB900";
+			var lSolColor = "#FCD876";
 			var lWoodColor = "#DB8F0B";
 			var skyColor = "#AAAAFF";
 			var skySecondaryColor = "#FFFFFF";
@@ -82,16 +85,13 @@ Nov-17-2019 -->
 			var nightFilter = "#000044";
 			var debugFilterColor = "#FF808F";
 			
-			var prep = [0, 0, 0, 0];
-
-			var menuText = ["The Ascent", "Start", "(Click to start)"];
-			
-			var loadingMap;		
+			var loadingMap = [];
+			var bufferMap = map;	
 			
 			var entitySpeed = 1;
 
 			//this array says all the surfaces that are solid and cannot be walked through.
-			var solidSurfaces = [1, 2, 4, 6];
+			var solidSurfaces = [1, 2, 4, 6, 8];
 
 			window.onload = setup;
 			document.onmousemove = mouseMoveHandle;
@@ -106,8 +106,17 @@ Nov-17-2019 -->
 			function setup() {
 				canvas = document.getElementById("canvas");
 				ctx = canvas.getContext("2d");
-				loadingMap = map;
-				setInterval(draw, 15);
+				
+				//initializing map, I have to do 1 value at a time or else it will be a pointer instead of a literal
+				for (var x=0;x<map.length;x++) {
+					loadingMap.push([]);
+				}
+				
+				for (var c=0;c<map.length; c++) {
+					for (var v=0;v<map[0].length;v++) {
+						loadingMap[c][v] = map[c][v];
+					}
+				}
 				
 				centerX = canvas.width / 2;
 				centerY = canvas.height / 2;
@@ -120,13 +129,19 @@ Nov-17-2019 -->
 				//all hardcoded entities
 				//all the hardcoded entities
 
+				//above ground buttons come first, then the orb, then the below ground buttons.
+
 				entities = [new Button(37 * squareSize, 81 * squareSize, new Gelatin(36 * squareSize, 80 * squareSize), (38 * squareSize) - centerX, (74.5 * squareSize) - centerY, [[37, 74, 1, 0], [38, 74, 1, 0]]),
 							new Button(28.5 * squareSize, 68 * squareSize, new Gelatin(35.5 * squareSize, 61.5 * squareSize), (43.5 * squareSize) - centerX, (57 * squareSize) - centerY, [[42, 55, 4, 3], [44, 55, 4, 3], [43, 56, 4, 3], [42, 57, 4, 3], [44, 57, 4, 3], [43, 58, 4, 3]]),
 							new Button(41.5 * squareSize, 66 * squareSize, new Gelatin(38.5 * squareSize, 65.5 * squareSize), (43.5 * squareSize) - centerX, (57 * squareSize) - centerY, [[42, 56, 4, 3], [44, 56, 4, 3], [43, 57, 4, 3], [42, 58, 4, 3], [44, 58, 4, 3]]),
 							new Button(55 * squareSize, 35 * squareSize, new Gelatin(59 * squareSize, 36.5 * squareSize), (17.5 * squareSize) - centerX, (19.5 * squareSize) - centerY, [[17, 19, 9, 6]]),
 							new Button(10.5 * squareSize, 12 * squareSize, new Gelatin(12.5 * squareSize, 14.5 * squareSize), (0.5 * squareSize) - centerX, (10.5 * squareSize) - centerY, [[1, 11, 5, 6]]),
 							new Button(13.5 * squareSize, 15 * squareSize, new Gelatin(12.5 * squareSize, 11.5 * squareSize), (-15.5 * squareSize) - centerX, (12.5 * squareSize) - centerY, [[46, 12, 2, 0], [47, 12, 2, 0], [48, 12, 2, 0]]),
-							new Orb(43.5 * squareSize, 17.5 * squareSize)];
+							new Orb(43.5 * squareSize, 17.5 * squareSize),
+							new Button(62.5 * squareSize, 101 * squareSize, new Gelatin(55.5 * squareSize, 105.5 * squareSize), (23.5 * squareSize) - centerX, (102.5 * squareSize) - centerY, [[22, 98, 1, 0], [23, 98, 1, 0], [24, 98, 1, 0], [22, 99, 1, 0], [24, 99, 1, 0], [22, 100, 1, 0], [24, 100, 1, 0], [22, 101, 1, 0], [24, 101, 1, 0], [25, 101, 1, 0], [21, 101, 1, 0], [22, 102, 1, 0], [22, 103, 1, 0], [22, 104, 1, 0], [22, 105, 1, 0], [22, 106, 1, 0]]),
+							new Button(10.5 * squareSize, 107 * squareSize, new Gelatin(10.5 * squareSize, 109.5 * squareSize), (4 * squareSize) - centerX, (91 * squareSize) - centerY, yellowBackgrounds),
+							new Button(12.5 * squareSize, 107 * squareSize, new Gelatin(11.5 * squareSize, 109.5 * squareSize), (4 * squareSize) - centerX, (85 * squareSize) - centerY, yellowForeGrounds),
+							new Button(8.5 * squareSize, 101 * squareSize, new Gelatin(14.5 * squareSize, 99.5 * squareSize), (10.5 * squareSize) - centerX, (107.5 * squareSize) - centerY, [[10, 107, 3, 4]])];
 				
 				/*generating clouds:
 				clouds y: 32-34 squares
@@ -135,6 +150,8 @@ Nov-17-2019 -->
 					var randHeight = (Math.random() * 2) + 32;
 					entities.push(new Cloud(a * cloudSpacing * squareSize, randHeight * squareSize));
 				}
+
+				setInterval(draw, 15);
 			}
 			
 			function keyPress(h) {
@@ -185,6 +202,8 @@ Nov-17-2019 -->
 					case 52:
 					case 53:
 					case 54:
+					case 55:
+					case 56:
 					case 57:
 						numToSet = h.keyCode - 48;
 						break;
@@ -238,7 +257,6 @@ Nov-17-2019 -->
 
 			/* mapSquare is the function that draws all the different tiles. */
 			function mapSquare(value, ex, why, offset) {
-				var oldAlpha = ctx.globalAlpha;
 				switch (value) {
 					case 0:
 						ctx.fillStyle = landColor;
@@ -269,17 +287,23 @@ Nov-17-2019 -->
 						ctx.fillRect(ex + (squareSize / 8), why + (squareSize / 8), (squareSize * 0.75) - offset, (squareSize * 0.75) - offset);
 						break;
 					case 5:
-						ctx.globalAlpha = 0.5;
 						ctx.fillStyle = cloudColor;
 						ctx.fillRect(ex, why, squareSize - offset, squareSize - offset);
-						ctx.globalAlpha = oldAlpha;
 						break;
 					case 6:
-						ctx.globalAlpha = 0.5;
 						ctx.fillStyle = cloudColor;
 						ctx.fillRect(ex, why, squareSize - offset, squareSize - offset);
-						ctx.globalAlpha = oldAlpha;
-						ctx.fillStyle = cloudColor;
+						ctx.fillStyle = lCloudColor;
+						ctx.fillRect(ex + (squareSize / 8), why + (squareSize / 8), (squareSize * 0.75) - offset, (squareSize * 0.75) - offset);
+						break;
+					case 7:
+						ctx.fillStyle = solColor;
+						ctx.fillRect(ex, why, squareSize - offset, squareSize - offset);
+						break;
+					case 8:
+						ctx.fillStyle = solColor;
+						ctx.fillRect(ex, why, squareSize - offset, squareSize - offset);
+						ctx.fillStyle = lSolColor;
 						ctx.fillRect(ex + (squareSize / 8), why + (squareSize / 8), (squareSize * 0.75) - offset, (squareSize * 0.75) - offset);
 						break;
 					case 9:
@@ -383,24 +407,39 @@ Nov-17-2019 -->
 				textTime = 100;
 			}
 			
-			function mapOutput() {
+			function mapOutput(onlyShowEdits) {
 				var hey = "";
-				for (s=0;s<loadingMap.length;s++) {
-					hey = hey + "\n [";
-					for (t=0;t<loadingMap[s].length;t++) {
-					//special case for the end of a line, in addition to a regular case
-					if (t == (loadingMap[s].length - 1)) {
-					hey = hey + loadingMap[s][t];
-					} else {
-					hey = hey + loadingMap[s][t] + ", ";
+				if (onlyShowEdits) {
+					hey += "["
+					//searches through the map
+					for (var s=0;s<loadingMap.length;s++) {
+						for (var t=0;t<loadingMap[0].length;t++) {
+							//if the squares are not the same, append it to hey
+							if (loadingMap[s][t] != map[s][t]) {
+								hey += "[" + t +", " + s + ", " + map[s][t] + ", " + loadingMap[s][t] + "], ";
+							}
+						}
 					}
-				}
-				//the same thing happens here with the end of the map
-				if (s == (map.length - 1)) {
-					hey = hey + "]";
+					hey += "]";
 				} else {
-					hey = hey + "],";
-				}
+					//outputting the whole map
+					for (var s=0;s<loadingMap.length;s++) {
+						hey = hey + "\n [";
+						for (var t=0;t<loadingMap[s].length;t++) {
+							//special case for the end of a line, in addition to a regular case
+							if (t == (loadingMap[s].length - 1)) {
+								hey = hey + loadingMap[s][t];
+							} else {
+								hey = hey + loadingMap[s][t] + ", ";
+							}
+						}
+						//the same thing happens here with the end of the map
+						if (s == (map.length - 1)) {
+							hey = hey + "]";
+						} else {
+							hey = hey + "],";
+						}
+					}
 				}
 				console.log(hey);
 			}
