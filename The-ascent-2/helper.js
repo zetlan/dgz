@@ -244,7 +244,17 @@ class Main {
                 this.onGround = true;
             }
         }
-    }
+	}
+	
+	beResizedPre() {
+		this.x /= squareSize;
+		this.y /= squareSize;
+	}
+
+	beResizedPost() {
+		this.x *= squareSize;
+		this.y *= squareSize;
+	}
 }
 
 //the camera stores important things like squares per screen and position to draw from.
@@ -302,7 +312,7 @@ class Player extends Main {
         this.dx = 0.1;
         this.ax = 0;
         this.ay = 0;
-        this.r = squareSize / 4
+        this.r = squareSize / 4;
         this.accRate = 2;
         this.slowRate = 0.5;
         this.jumpStrength = 11.5;
@@ -360,7 +370,12 @@ class Player extends Main {
         }
         //regular collision
         super.handlePosition();
-    }
+	}
+	
+	beResizedPost() {
+		super.beResizedPost();
+		this.r = squareSize / 4;
+	}
 }
 
 class Button extends Main {
@@ -462,7 +477,7 @@ class Button extends Main {
             ctx.fillStyle = textColor;
             ctx.fillText("x", (this.x - (squareSize / 2)) - camera.x, (this.y - (squareSize * 0.9)) - camera.y);
             ctx.fillText("c", (this.x + (squareSize / 2)) - camera.x, (this.y - (squareSize * 0.9)) - camera.y)
-        }
+		}
     }
 
     pickGelatinColor() {
@@ -513,7 +528,17 @@ class Button extends Main {
 
         this.gelatin.dx = 0;
         this.gelatin.dy = 0;
-    }
+	}
+	
+	beResizedPre() {
+		super.beResizedPre();
+		this.gelatin.beResizedPre();
+	}
+
+	beResizedPost() {
+		super.beResizedPost();
+		this.gelatin.beResizedPost();
+	}
 }
 
 class Gelatin extends Main {
@@ -521,7 +546,7 @@ class Gelatin extends Main {
         super(x, y);
         this.homeX = this.x;
         this.homeY = this.y;
-        this.r = 10;
+        this.r = squareSize / 4;
         this.color = "#000000";
         this.slowRate = 0.8;
         this.airSlowRate = 0.9;
@@ -566,7 +591,12 @@ class Gelatin extends Main {
         ctx.fillStyle = this.color;
         ctx.fillRect(this.x - camera.x - this.r, this.y - camera.y - this.r, this.r * 2, this.r * 2);
         ctx.globalAlpha = 1;
-    }
+	}
+	
+	beResizedPost() {
+		super.beResizedPost();
+		this.r = squareSize / 4;
+	}
 }
 
 class Cloud extends Main {
@@ -625,7 +655,13 @@ class Cloud extends Main {
         ctx.ellipse(this.x - camera.x, this.y - camera.y, this.rw, this.rh, 0, 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = 1;
-    }
+	}
+	
+	beResizedPost() {
+		super.beResizedPost();
+		this.rw = squareSize;
+        this.rh = squareSize / 3;
+	}
 }
 
 class Orb extends Main {
@@ -884,16 +920,27 @@ class CameraPan extends GameWorld {
 
 class Ending extends GameWorld {
     constructor() {
-        super();
+		super();
+		this.tileOffset = -1;
 		this.age = 0;
-		this.finalAge = 5000;
+		this.finalAge = 3000;
 		this.centerPos = [loadingMap[0].length * squareSize / 2, loadingMap.length * squareSize / 2];
 		this.amount = 0.01;
     }
 
     beRun() {
-        //main game world
-        super.beRun();
+		//updating canvas size, if the map is smaller than the canvas width make it smaller
+		if (loadingMap[0].length * squareSize < canvas.width) {
+			canvas.width = loadingMap[0].length * squareSize;
+			//update centerX and centerpos because they're literals and don't update when they're referenced variables change
+			camera.x = 0;
+			camera.cornerX = 0;
+			centerX = canvas.width / 2;
+			this.centerPos = [loadingMap[0].length * squareSize / 2, loadingMap.length * squareSize / 2];
+		}
+
+		//main game world
+		super.beRun();        
 
         //handling camera
         camera.beDrawn();
@@ -910,9 +957,7 @@ class Ending extends GameWorld {
 		ctx.font = "16px Century Gothic";
 		ctx.fillText("Total Time Taken:", centerX, canvas.height * 0.0325);
 
-        //changing age so camera pans instead of staying static
         if (this.age < this.finalAge) {
-			
 			//changing camera position, moves a little bit of the way towards the center of the map
 			//change = [camera position now] - [camera position final, which is the center - centerX]
 			this.centerPos = [(loadingMap[0].length * squareSize / 2) - centerX, (loadingMap.length * squareSize / 2) - centerY];
@@ -931,7 +976,15 @@ class Ending extends GameWorld {
 
 				sCX /= squareSize;
 				sCY /= squareSize;
+
+				//have all entities be resized as well, in addition to player
+				for (var p=0;p<entities.length;p++) {
+					entities[p].beResizedPre();
+				}
+				character.beResizedPre();
 				squareSize -= this.amount * 10;
+
+				//post resizing
 				sCX *= squareSize;
 				sCY *= squareSize;
 
@@ -942,8 +995,12 @@ class Ending extends GameWorld {
 				camera.xSquaresPerScreen = Math.floor(canvas.width / squareSize) + 2;
 				camera.ySquaresPerScreen = Math.floor(canvas.height / squareSize) + 2;
 				camera.shaderOpacity += 1 / this.finalAge;
+
+				for (var p=0;p<entities.length;p++) {
+					entities[p].beResizedPost();
+				}
+				character.beResizedPost();
 			}
-			
 			//changing age
 			this.age ++;
 		}
