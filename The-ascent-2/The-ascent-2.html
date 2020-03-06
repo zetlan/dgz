@@ -3,7 +3,7 @@
 Nov-17-2019 -->
 <html>
 	<head>
-    	<title>The Ascent Again v0.9</title>
+    	<title>The Ascent Again v1.1</title>
 
     	<style>
       		#canvas {
@@ -50,6 +50,7 @@ Nov-17-2019 -->
 			
 			var yes = 0;
 			var delay = 10;
+			var frameTime = 15;
 			var cloudSpacing = 4;
 			
 			//all the colors used
@@ -151,7 +152,7 @@ Nov-17-2019 -->
 					entities.push(new Cloud(a * cloudSpacing * squareSize, randHeight * squareSize));
 				}
 
-				setInterval(draw, 15);
+				setInterval(draw, frameTime);
 			}
 			
 			function keyPress(h) {
@@ -318,9 +319,11 @@ Nov-17-2019 -->
 				for (var p=0; p<camera.ySquaresPerScreen; p++) {
 					for (var o=0;o<camera.xSquaresPerScreen;o++) {
 						//figuring out where to read from
+						//1 square is added to y if the camera is in the negative vertical space to fix strange camera glitches
+						var additive = camera.y < 0;
 						var value;
 						var xSquare = Math.floor((camera.cornerX + (o * squareSize)) / squareSize);
-						var ySquare = Math.floor((camera.cornerY + (p * squareSize)) / squareSize);
+						var ySquare = Math.floor((camera.cornerY + (p * squareSize)) / squareSize) + additive;
 
 						//wrapping horizontally
 						if (xSquare >= loadingMap[0].length) {
