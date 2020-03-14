@@ -3,7 +3,7 @@
 Nov-17-2019 -->
 <html>
 	<head>
-    	<title>The Ascent Again v1.1</title>
+    	<title>The Ascent Again v1.2</title>
 
     	<style>
       		#canvas {
@@ -73,6 +73,7 @@ Nov-17-2019 -->
 			var endingColor = "#FF00FF";
 			var startingColor = "#00FF00";
 			var blackColor = "#000000";
+			var blockCrackColor = "#496464";
 
 			//entities
 			var ballColor = "#FF00FF";
@@ -132,17 +133,23 @@ Nov-17-2019 -->
 
 				//above ground buttons come first, then the orb, then the below ground buttons.
 
-				entities = [new Button(37 * squareSize, 81 * squareSize, new Gelatin(36 * squareSize, 80 * squareSize), (38 * squareSize) - centerX, (74.5 * squareSize) - centerY, [[37, 74, 1, 0], [38, 74, 1, 0]]),
+				entities = [
+							//above-ground buttons
+							new Button(37 * squareSize, 81 * squareSize, new Gelatin(36 * squareSize, 80 * squareSize), (38 * squareSize) - centerX, (74.5 * squareSize) - centerY, [[37, 74, 1, 0], [38, 74, 1, 0]]),
 							new Button(28.5 * squareSize, 68 * squareSize, new Gelatin(35.5 * squareSize, 61.5 * squareSize), (43.5 * squareSize) - centerX, (57 * squareSize) - centerY, [[42, 55, 4, 3], [44, 55, 4, 3], [43, 56, 4, 3], [42, 57, 4, 3], [44, 57, 4, 3], [43, 58, 4, 3]]),
 							new Button(41.5 * squareSize, 66 * squareSize, new Gelatin(38.5 * squareSize, 65.5 * squareSize), (43.5 * squareSize) - centerX, (57 * squareSize) - centerY, [[42, 56, 4, 3], [44, 56, 4, 3], [43, 57, 4, 3], [42, 58, 4, 3], [44, 58, 4, 3]]),
 							new Button(55 * squareSize, 35 * squareSize, new Gelatin(59 * squareSize, 36.5 * squareSize), (17.5 * squareSize) - centerX, (19.5 * squareSize) - centerY, [[17, 19, 9, 6]]),
 							new Button(10.5 * squareSize, 12 * squareSize, new Gelatin(12.5 * squareSize, 14.5 * squareSize), (0.5 * squareSize) - centerX, (10.5 * squareSize) - centerY, [[1, 11, 5, 6]]),
 							new Button(13.5 * squareSize, 15 * squareSize, new Gelatin(12.5 * squareSize, 11.5 * squareSize), (-15.5 * squareSize) - centerX, (12.5 * squareSize) - centerY, [[46, 12, 2, 0], [47, 12, 2, 0], [48, 12, 2, 0]]),
 							new Orb(43.5 * squareSize, 17.5 * squareSize),
+							//secret buttons
 							new Button(62.5 * squareSize, 101 * squareSize, new Gelatin(55.5 * squareSize, 105.5 * squareSize), (23.5 * squareSize) - centerX, (102.5 * squareSize) - centerY, [[22, 98, 1, 0], [23, 98, 1, 0], [24, 98, 1, 0], [22, 99, 1, 0], [24, 99, 1, 0], [22, 100, 1, 0], [24, 100, 1, 0], [22, 101, 1, 0], [24, 101, 1, 0], [25, 101, 1, 0], [21, 101, 1, 0], [22, 102, 1, 0], [22, 103, 1, 0], [22, 104, 1, 0], [22, 105, 1, 0], [22, 106, 1, 0]]),
 							new Button(10.5 * squareSize, 107 * squareSize, new Gelatin(10.5 * squareSize, 109.5 * squareSize), (4 * squareSize) - centerX, (91 * squareSize) - centerY, yellowBackgrounds),
 							new Button(12.5 * squareSize, 107 * squareSize, new Gelatin(11.5 * squareSize, 109.5 * squareSize), (4 * squareSize) - centerX, (85 * squareSize) - centerY, yellowForeGrounds),
-							new Button(8.5 * squareSize, 101 * squareSize, new Gelatin(14.5 * squareSize, 99.5 * squareSize), (10.5 * squareSize) - centerX, (107.5 * squareSize) - centerY, [[10, 107, 3, 4]])];
+							new Button(8.5 * squareSize, 101 * squareSize, new Gelatin(14.5 * squareSize, 99.5 * squareSize), (10.5 * squareSize) - centerX, (107.5 * squareSize) - centerY, [[10, 107, 3, 4]]),
+							//below-ground normal buttons
+							new Button(52.5 * squareSize, 115 * squareSize, new Gelatin(53.5 * squareSize, 113.5 * squareSize), (72.5 * squareSize) - centerX, (120.5 * squareSize) - centerY, [[9, 120, 4, 3]])
+							];
 				
 				/*generating clouds:
 				clouds y: 32-34 squares
@@ -150,6 +157,11 @@ Nov-17-2019 -->
 				for (var a=0;a<=loadingMap[0].length / cloudSpacing;a++) {
 					var randHeight = (Math.random() * 2) + 32;
 					entities.push(new Cloud(a * cloudSpacing * squareSize, randHeight * squareSize));
+				}
+
+				//generating cracked blocks
+				for (var b=0;b<crackerPositions.length;b++) {
+					entities.push(new Cracker((crackerPositions[b][0] * squareSize) + (0.5 * squareSize), (crackerPositions[b][1] * squareSize) + (0.5 * squareSize)));
 				}
 
 				setInterval(draw, frameTime);
@@ -251,6 +263,7 @@ Nov-17-2019 -->
 			}
 			
 			function mouseClickHandle() {
+				//I hope the names here explain what happens
 				if (loadingMode.constructor.name == "Debug") {
 					clicked = true;
 				}
@@ -258,7 +271,8 @@ Nov-17-2019 -->
 
 			/* mapSquare is the function that draws all the different tiles. */
 			function mapSquare(value, ex, why, offset) {
-				switch (value) {
+				//drawing based off the floor of the value
+				switch (Math.ceil(value)) {
 					case 0:
 						ctx.fillStyle = landColor;
 						ctx.fillRect(ex, why, squareSize - offset, squareSize - offset);
@@ -311,6 +325,37 @@ Nov-17-2019 -->
 					default:
 						break;
 				}
+
+				//drawing cracks
+				if (Math.ceil(value) != value) {
+					drawMapCracks(value, ex, why);
+				}
+			}
+
+			function drawMapCracks(value, ex, why) {
+				var squareX = ex / squareSize
+				//different phases based on how broken block is
+				var percentage = value - Math.floor(value);
+
+				//draws slightly cracked no matter what, because cracked blocks are guarenteed to be cracked
+				ctx.beginPath();
+				ctx.strokeStyle = blockCrackColor;
+				ctx.lineWidth = 2;
+				ctx.moveTo(ex, why);
+				ctx.lineTo(ex + (squareSize * 0.7), why + (squareSize * 0.7));
+
+
+				if (percentage < 0.666) {
+					//more cracked
+					ctx.moveTo(ex + (squareSize * 0.2), why + (squareSize * 0.6));
+					ctx.lineTo(ex + (squareSize * 0.6), why + (squareSize * 0.4));
+				} 
+				if (percentage < 0.333) {
+					//the most cracked
+					ctx.moveTo(ex + (squareSize * 0.3), why + (squareSize * 0.3));
+					ctx.lineTo(ex + (squareSize * 0.8), why + (squareSize * 0.2));
+				}
+				ctx.stroke();
 			}
 					
 			// drawing the map
