@@ -1,33 +1,85 @@
 class Friend extends Main {
-  constructor(x, y, size, color) {
-    super(x, y, size);
-    this.color = color;
+  	constructor(x, y, size, color) {
+    	super(x, y, size);
+    	this.color = color;
 
-    this.canTalk = 1;
-  }
+    	this.canTalk = 1;
+    	this.talking = false;
+    	this.currentLine = 0;
+  	}
 
-  tick() {
-    super.tick();
-    //push players away if too close
-    if (this.distToPlayer < this.r + character.r) {
-      //if the player is too close, push the player in the opposite direction of the entity.
-      var atP = Math.atan2(this.xPD, this.yPD) + Math.PI;
-      character.dx = Math.sin(atP);
-      character.dy = Math.cos(atP);
-    }
-  }
+  	tick() {
+		super.tick();
+		//push players away if too close
+		if (this.distToPlayer < this.r + character.r) {
+			//if the player is too close, push the player in the opposite direction of the entity.
+			var atP = Math.atan2(this.xPD, this.yPD) + Math.PI;
+			character.dx = Math.sin(atP);
+			character.dy = Math.cos(atP);
+		}
+	}
 
-  beDrawn() {
-    super.beDrawn();
-  }
+	beDrawn() {
+    	super.beDrawn();
+	}
 
-  converse() {
-    dt = dtBase * dtMult;
-    character.ax = 0;
-    character.ay = 0;
-    character.dx = 0;
-    character.dy = 0;
-  }
+	//all talking commands
+	
+    goTo(lineNumber) {
+		//goes to selected line number
+		this.currentLine = lineNumber;
+	}
+	
+	quit() {
+		//ends conversation without affecting line number
+		this.talking = false;
+		character.talking = false;
+	}
+
+   	quitWithJump(lineToGoTo) {
+		//ends conversation and sets line number to the jump value
+		this.currentLine = lineToGoTo;
+		this.quit();
+	}
+
+	checkQuest(placeToTest, successLine, failureLine) {
+
+	}
+
+	converse() {
+		dt = dtBase * dtMult;
+		character.ax = 0;
+		character.ay = 0;
+		character.dx = 0;
+		character.dy = 0;
+	}
+
+	drawConversation() {
+		//drawing background
+		ctx.globalAlpha = 0.5;
+		ctx.fillStyle = menuColor;
+		ctx.fillRect(0, canvas.height * menuPos * 0.7, canvas.width, canvas.height * menuPos * 0.3);
+		ctx.globalAlpha = 1;
+		//this part draws the conversation text
+		ctx.font = "15px Century Gothic";
+		ctx.fillStyle = textColor;
+		ctx.textAlign = "left";
+		for (var x=0;x<this.text[this.currentLine][0].length;x++) {
+			ctx.fillText(this.text[this.currentLine][0][x], 15, canvas.height * menuPos * (0.76 + (x * 0.055)));
+		}
+	
+    	//getting which text to draw in the future
+    	var futureLine = this.currentLine;
+    	if (numPressed != -1) {
+			futureLine = textHolder.eval(this.text[this.currentLine][1][numPressed-1]);
+    	}
+    	//only return futureLine if the number was valid
+    	if (futureLine != undefined) {
+			return futureLine;
+    	} else {
+			return line;
+    	}
+	}
 }
 
 class NPC extends Friend {
@@ -36,7 +88,6 @@ class NPC extends Friend {
     this.speed = entitySpeed * 0.5;
     this.pathPhase = moveState;
 
-    this.currentLine = 0;
     this.text = text;
     this.textName = textName;
   }
@@ -63,12 +114,13 @@ class NPC extends Friend {
 
   converse() {
     super.converse();
+    this.drawConversation(this.currentLine);
     var tempStorage = this.currentLine;
     this.currentLine = drawConversation(this.text, this.currentLine);
     //99 is the special code to quit a conversation
     if (this.currentLine == 99) {
       this.currentLine = tempStorage;
-      character.talking = -1;
+      this.talking = false;
       dt = dtBase;
     }
     
@@ -77,7 +129,7 @@ class NPC extends Friend {
       var toPush = this.text[0][2][this.currentLine-980];
       enemies.push(eval(toPush));
       this.currentLine = tempStorage + 1;
-      character.talking = -1;
+      this.talking = false;
       dt = dtBase;
     } 
 
@@ -118,7 +170,8 @@ class NPC extends Friend {
 class Chatter extends Friend {
   constructor(x, y) {
     super(x, y, 7, textColor);
-    this.currentLine = -1;
+	this.currentLine = -1;
+	this.text = chatterText;
 
     this.speed = entitySpeed * 0.125;
 
@@ -147,12 +200,11 @@ class Chatter extends Friend {
 
   converse() {
     super.converse();
+    this.drawConversation();
     if (this.currentLine == -1) {
-      var maxLine = chatterText.length;
+      var maxLine = this.text.length;
       this.currentLine = Math.floor(Math.random() * maxLine);
     }
-    
-    this.currentLine = drawConversation(chatterText, this.currentLine);
     //99 is the special code to quit a conversation
     if (this.currentLine == 99) {
       this.endConversation();

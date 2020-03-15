@@ -1,13 +1,5 @@
 //all text that any character says goes here, plus the menu text
 
-/*text codes:
-0-98, 100-979 - go to line number 
-99 - end conversation
-980-989 - spawn monsters, IDs located in text, end convo
-990-999 - give quests, IDs located in text, end convo
-1000-1999 - go to line (number - 1000), end convo
-2000+ - check quest ID (number-2000), go to next line if successful, go to second next line if not
-*/
 var menuText = ["Onion Quest", "start"];
 
 var invenText = [["Stats", "Skills", "Items", "Quests"], 
@@ -17,23 +9,23 @@ var invenText = [["Stats", "Skills", "Items", "Quests"],
                  []];
 
 var chatterText = [[["I wonder how the Onion of Peace is doing?",
-                     "oh well, I guess I'll never know"], [99]],
-                   [["Sometimes you just have to sit down and think about your life strategy"], [99]],
-                   [["Never take a chill pill. It's important to be passionate about things."], [99]],
-                   [["I enjoy wandering around this town all day, and all night."], [99]],
-                   [["When life gives you lemons..."], [99]],
-                   [["I overheard someone from the Onion Avoidance society talking about bulbs"], [99]],
-                   [["You never really know when the world could end."], [99]],
-                   [["You should get a hobby"], [99]],
-                   [["Don't you have anything better to do?"], [99]],
-                   [["I overheard someone from the Onion Protection society talking about compasses"], [99]],
-                   [["Don't you hate it when a sentence doesn't end the way you think it cactus?"], [99]],
-                   [["I was just like you when I was young. Give me time to remember how I was."], [99]],
-                   [["Cats are better than dogs."], [99]], 
-                   [["Dogs are better than cats."], [99]],
-                   [["And that's a fact."], [99]],
-                   [["I don't know what I said 2 minutes ago. Isn't that interesting?"], [99]],
-                   [["I wouldn't want to live in the North. Nobody else lives there."], [99]]];
+                     "oh well, I guess I'll never know"], [function() { quitWithJump(-1) }]],
+                   [["Sometimes you just have to sit down and think about your life strategy"], [function() { quitWithJump(-1) }]],
+                   [["Never take a chill pill. It's important to be passionate about things."], [function() { quitWithJump(-1) }]],
+                   [["I enjoy wandering around this town all day, and all night."], [function() { quitWithJump(-1) }]],
+                   [["When life gives you lemons..."], [function() { quitWithJump(-1) }]],
+                   [["I overheard someone from the Onion Avoidance society talking about bulbs"], [function() { quitWithJump(-1) }]],
+                   [["You never really know when the world could end."], [function() { quitWithJump(-1) }]],
+                   [["You should get a hobby"], [function() { quitWithJump(-1) }]],
+                   [["Don't you have anything better to do?"], [function() { quitWithJump(-1) }]],
+                   [["I overheard someone from the Onion Protection society talking about compasses"], [function() { quitWithJump(-1) }]],
+                   [["Don't you hate it when a sentence doesn't end the way you think it cactus?"], [function() { quitWithJump(-1) }]],
+                   [["I was just like you when I was young. Give me time to remember how I was."], [function() { quitWithJump(-1) }]],
+                   [["Cats are better than dogs."], [function() { quitWithJump(-1) }]], 
+                   [["Dogs are better than cats."], [function() { quitWithJump(-1) }]],
+                   [["And that's a fact."], [function() { quitWithJump(-1) }]],
+                   [["I don't know what I said 2 minutes ago. Isn't that interesting?"], [function() { quitWithJump(-1) }]],
+                   [["I wouldn't want to live in the North. Nobody else lives there."], [function() { quitWithJump(-1) }]]];
 
 var tutorialText = [[["Hello, you can continue by pressing Z or the numbers"], [1]],
                     [["Glad we got that sorted! Let me tell you about life!",

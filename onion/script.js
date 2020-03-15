@@ -75,6 +75,7 @@ var text = " ";
 let bh;
 let character;
 let marker;
+let textHolder;
 let enemies = [];
 let statics = [];
 let inventory = [];
@@ -119,7 +120,7 @@ class Player {
     this.ax = 0;
     this.ay = 0;
     this.speed = entitySpeed;
-    this.talking = -1;
+    this.talking = false;
     this.attackFrame = 0;
     this.tSinAtt = attackSpeed;
 
@@ -253,7 +254,7 @@ class Player {
         //if the player is attacking, automatically have them stop
         this.dx = handleVelocity(0, this.dx, this.speed);
         this.dy = handleVelocity(0, this.dy, this.speed);
-      } else if (this.talking == -1) {
+      } else if (this.talking == false) {
         //updating velocity
         this.dx = handleVelocity(this.ax, this.dx, this.speed);
         this.dy = handleVelocity(this.ay, this.dy, this.speed);
@@ -296,15 +297,10 @@ class Player {
     }
 
     //setting direction, I split the if into two ifs because the 1 large if was being funky.
-    if (this.talking == -1 && this.attackFrame == 0 && this.h > 0) {
+    if (this.talking == false && this.attackFrame == 0 && this.h > 0) {
       if (this.ax != 0 || this.ay != 0) {
         this.direction = Math.atan2(this.dx, this.dy);
       }
-    }
-
-    //if the player is having a conversation, draw that
-    if (this.talking != -1) {
-      loadingMap.enemies[this.talking].converse();
     }
 
     //if the player's health is too low, run the die function.
@@ -318,7 +314,7 @@ class Player {
     this.attackFrame += 1;
     this.tSinAtt += 1;
     //only attack if the player isn't talking
-    if (this.talking == -1) {
+    if (this.talking == false) {
       //turn the direction into an xy offset for the center of the hurt box
       var xOff = (range / numOfBoxes) * Math.sin(this.direction);
       var yOff = (range / numOfBoxes) * Math.cos(this.direction);
@@ -354,11 +350,9 @@ class Player {
               loadingMap.enemies[en].wasHit = power * strength;
               loadingMap.enemies[en].dx = xOff * strength;
               loadingMap.enemies[en].dy = yOff * strength;
-            } else if (loadingMap.enemies[en] instanceof ConvoStarter) {
-                //not sure what to put here, I have an else if instead of an !if because I couldn't get the syntax to work right
             } else {
-                this.talking = en;
-                loadingMap.enemies[en].converse();
+                this.talking = true;
+                loadingMap.enemies[en].talking = true;
                 this.attackFrame = 0;
             }
           } else if (this.attackFrame == 4) {
@@ -438,6 +432,7 @@ function setup() {
 
   character = new Player((loadingMap.data[0].length / 2) * squareSize, (loadingMap.data.length / 2) * squareSize);
   marker = new Marker(0, -2);
+  textHolder = new Text();
   constrainC[0] = loadingMap.data[0].length * squareSize > canvas.width;
   constrainC[1] = loadingMap.data.length * squareSize > canvas.height * menuPos;
 }
@@ -661,7 +656,7 @@ function main() {
   
   if (gameState > 0) {
 
-    //gameState above 0 controls the camera mode. 1 is follow, 2 is fixed
+    //handling camera
     if (gameState == 1) {
       
       cx = character.x - centerX;
@@ -686,7 +681,7 @@ function main() {
       }
     }
      
-    //things that happen regardless of game state
+    //things that happen regardless of gameState
     time += 1 / dt;
 
     //drawing everything, map first
@@ -694,12 +689,17 @@ function main() {
 
     //ticking everything
     var done = false;
-    //enemies
+    //entities
+    var talkingTo = [];
     for (var u=0;u<loadingMap.enemies.length;u++) {
       loadingMap.enemies[u].beDrawn();
       //only tick enemies if they're alive
       if (loadingMap.enemies[u].alive >= 1) {
         loadingMap.enemies[u].tick();
+        //if the entity is talking, append it to the talking array
+        if (loadingMap.enemies[u].talking) {
+          talkingTo.push(u);
+        }
       } else {
         loadingMap.enemies[u].alive += 1 / dt;
 
@@ -710,15 +710,15 @@ function main() {
       }
       
 
-      //enemies can collide with eachother, but only once per frame
-      if (!done) {
-        if (Math.random() < 0.2) {
-          var toPush = Math.floor(Math.random() * (loadingMap.enemies.length - 0) ) + 0;
-          //can't collide with projectiles or yourself
-          if (toPush != u && loadingMap.enemies[toPush].constructor.name != "Projectile") {
-            loadingMap.enemies[u].collide(loadingMap.enemies[toPush]);
-            done = true;
-          }
+      //enemies can collide with eachother, but only one enemy per frame
+      //there is another safety check to make sure that the entity still exists
+      if (!done && u < loadingMap.enemies.length) {
+        var toPush = Math.floor(Math.random() * (loadingMap.enemies.length));
+        //can't collide with projectiles or yourself
+        if (toPush != u && loadingMap.enemies[toPush].constructor.name != "Projectile") {
+          //colliding
+          loadingMap.enemies[u].collide(loadingMap.enemies[toPush]); 
+          done = true;
         }
       }
     }
@@ -739,8 +739,23 @@ function main() {
       drawInventory();
     }
     //menu gets drawn second to last so that entities go under it.
-    drawMenu();
-    //character gets ticked last so that conversations can go on top of the menu
+	drawMenu();
+	
+	//conversations handled last so that they're on top of everything
+	if (talkingTo.length > 0) {
+		//if more than one entity is talking, remove talking flags until only one is
+		if (talkingTo.length > 1) {
+			while (talkingTo.length > 1) {
+				//removing the talking flag from the entity
+				loadingMap.enemies[talkingTo[talkingTo.length-1]].talking = false;
+				//removing the entity from the array
+				talkingTo.splice(talkingTo.length-1, 1);
+			}
+		}
+		//drawing conversation
+		loadingMap.enemies[talkingTo[0]].converse();
+	}
+    //character gets ticked after all drawing/everything else happens so that their movement does not go in between drawing, causing stutter or other issues
     character.tick();
   }
 }
@@ -840,37 +855,6 @@ function drawMenu() {
   ctx.globalAlpha = 1;
 }
 
-function drawConversation(text, line) {
-  //drawing background
-  ctx.globalAlpha = 0.5;
-  ctx.fillStyle = menuColor;
-  ctx.fillRect(0, canvas.height * menuPos * 0.7, canvas.width, canvas.height * menuPos * 0.3);
-  ctx.globalAlpha = 1;
-    //this part draws the conversation text
-    ctx.font = "15px Century Gothic";
-  ctx.fillStyle = textColor;
-  ctx.textAlign = "left";
-  for (var x=0;x<text[line][0].length;x++) {
-    ctx.fillText(text[line][0][x], 15, canvas.height * menuPos * (0.76 + (x * 0.055)));
-  }
-  
-
-  //getting which text to draw in the future
-  var futureLine;
-  if (numPressed != -1) {
-    futureLine = text[line][1][numPressed-1];
-    numPressed = -1;
-  } else {
-    futureLine = line;
-  }
-  //if there is a number that doesn't exist, just act like z was pressed
-  if (futureLine == undefined) {
-    futureLine = text[line][1][0];
-  }
-
-  return futureLine;
-}
-
 function drawInventory() {
   //inventory background
   ctx.fillStyle = inventoryColor;
@@ -920,10 +904,6 @@ function drawInventory() {
       }
       break;
     case 1:
-      //skills
-      ctx.fillText("phase 1", centerX, centerY);
-      break;
-    case 2:
       //inventory items
       //drawing all inventory boxes
       ctx.fillStyle = spaceColor;
@@ -950,7 +930,7 @@ function drawInventory() {
         inventory[d].beDrawn();
       }
       break;
-    case 3:
+    case 2:
       //quests
       for (var qo=0;qo<3;qo++) {
         //drawing 1 quest box
@@ -1048,33 +1028,29 @@ function checkCollision(xVar, yVar, velocity, toChange, constrain) {
 }
 
 function interact() {
-    //revive
-    if (character.h < 0 && dt > dtBase * 100) {
-        //restoring character to normal stats
-        dt = dtBase;
-        character.h = character.mh;
-        character.s = character.ms;
-        //penalties
-        character.xp *= 0.8;
-        character.x = character.lEX;
-        character.y = character.lEY;
+	//revive
+  	if (character.h < 0 && dt > dtBase * 100) {
+    	//restoring character to normal stats
+    	dt = dtBase;
+    	character.h = character.mh;
+    	character.s = character.ms;
+    	//penalties
+    	character.xp *= 0.8;
+    	character.x = character.lEX;
+    	character.y = character.lEY;
 
-        //returning true so the rest of the function does not occur
-        return true;
-    }
-    //attack
-    if (character.talking == -1 && gameState != 2) {
-        if (character.attackFrame == 0) {
-            character.attackFrame = 1;
-        } else {
-            //log if the player tried to attack while attacking
-            character.tSinAtt = 0;
-        }
-    }
-    //converse
-    if (character.talking != -1) {
-        numPressed = 0;
-    }
+      	//returning true so the rest of the function does not occur
+      	return true;
+  	}
+  	//attack
+  	if (character.talking == false && gameState != 2) {
+      	if (character.attackFrame == 0) {
+        	character.attackFrame = 1;
+      	} else {
+    		//log if the player tried to attack while attacking
+        	character.tSinAtt = 0;
+    	}
+  	}
 }
 
 //helper functions, names should explain themselves
