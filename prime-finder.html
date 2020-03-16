@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<!-- This was made by Davis and Kaushik -->
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>Prime Number Finder</title>
+    <style>
+      body,
+      H1, p {
+        background-color: steelblue;
+        text-align: center;
+      }
+      
+      #answer, #DaButton, #DaButtonTwo, #DaButtonThree, #DaButtonFour, #textBox {
+        text-align: center;
+        margin: 0px auto;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Prime Number Finder</h1>
+    <p>This was made by Kaushik and Davis.<br>
+      Enter your number in this text box<br>
+      Whole numbers only, negatives are buggy.
+    </p>
+    <input id="textBox" value=0 type="number">
+    <br>
+    <button id="DaButton" onClick="primeTest(document.getElementById('textBox').value)">Check your number</button>
+    <button id="DaButtonTwo" onClick="primeLoop(10000)">Test 10,000 values</button>
+    <button id="DaButtonThree" onClick="primeLoop(100000)">Test 100,000 values</button>
+    <button id="DaButtonThree" onClick="primeLoop(1000000)">Test 1,000,000 values (unstable)</button>
+    <p id="answer"></p>
+    <script>
+    	var totalNumbersTested = 0;
+      var foundPrime = false;
+      var lastPrime = 0;
+    	//this took a while to figure out but was pretty simple in the end
+      function primeTest(takeThisOne) {
+      	//testing how long the computation takes
+        var times = [performance.now(), 0];
+        
+      	//counter starts at 2 because 1 and self are factors already
+     		var counter = 2;
+        var value = takeThisOne;
+        //subtract 0 to convert to float without changing value
+        value -= 0;
+        var sqrtAmount = Math.sqrt(Math.abs(value));
+        
+        //division section
+        
+        //dividing by 2
+        if (value % 2 === 0) {
+          counter++;
+        }
+        
+        //for loop does every odd number to reduce computation
+        //every composite has a factor <= to its square root, so we just have to go to that
+        for (var divider=3; divider<=sqrtAmount; divider+=2) {
+        	//modulo operator to see dividing
+					if (value % divider === 0) {
+          	counter++;
+          }
+          
+          //if the counter is >=3, it is not prime and the loop should be broken
+          if (counter >= 3) {
+          	divider = sqrtAmount + 1;
+          }
+        }
+        
+        //ending timer
+        times[1] = performance.now();
+        
+        var totalTime = times[1] - times[0];
+        totalTime = "<br> Last calculation took " + totalTime + " ms.";
+        
+        //if, after all the tests, counter is still less than 3, it is prime
+        if (counter < 3) {
+          document.getElementById("answer").innerHTML = "This number is prime." + totalTime;
+          foundPrime = true;
+        } else {
+          document.getElementById("answer").innerHTML = "This number is not prime." + totalTime;
+        }
+      } 
+       
+      function primeLoop(amount) {
+      	//function for looping through numbers
+        //starting timer
+        var times = [performance.now(), 0];
+        
+       	for (var a=totalNumbersTested; a<=totalNumbersTested+amount; a++) {
+       		primeTest(a);
+          
+          //update last prime found
+          if (foundPrime) {
+            lastPrime = a;
+            foundPrime = false;
+          }
+       	}
+        totalNumbersTested += amount;
+        
+        
+        //writing part
+        //ending timer
+        times[1] = performance.now();
+        var totalTime = times[1] - times[0];
+        
+        var thisOutput = "<br> Last number tested: " + a; 
+        thisOutput += "<br> Last prime: " + lastPrime;
+        thisOutput += "<br> time taken to test numbers " + (a - amount) + " through " + a + ": " + totalTime + " ms.";
+          
+        document.getElementById("answer").innerHTML = thisOutput;
+      } 
+       
+
+     </script>
+   </body>
+
+ </html>
