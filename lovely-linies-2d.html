@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width">
+        <title>Lovely Snakies</title>
+        <style>
+            #canvas {
+                border-style: double;
+                border-color: slateblue;
+                display: block;
+                margin: auto;
+            }
+
+            #centeredThings {
+                margin: auto;
+                display: block;
+                text-align: center;
+
+            }
+
+            .slider {
+                -webkit-appearance: none;
+                width: 100%;
+                height: 15px;
+                border-radius: 5px;  
+                background: #d3d3d3;
+                outline: none;
+                opacity: 0.7;
+                -webkit-transition: .2s;
+                transition: opacity .2s;
+}
+        </style>
+    </head>
+    <body>
+        <script type="text/javascript">
+            //events
+            window.onload = setup;
+            
+            //variables at the start
+            var frameTime = 10;
+            var drawFrequency = 1;
+            var computeFrequency = 1;
+            var centerX;
+            var centerY;
+
+            var snakeThick = 10;
+
+            let snakes = [];
+
+
+            //classes
+            class Snake {
+                constructor(x, y) {
+                    this.x = x;
+                    this.y = y;
+                    this.points = [[this.x, this.y]];
+                    this.maxLength = 200;
+                    this.r = snakeThick;
+                    this.color = this.getColor();
+
+                    this.d = 0;
+                    this.s = 1;
+                    this.maxS = 1.5 + (Math.random() - 0.5);
+                    this.minS = 0;
+                }
+
+                tick() {
+                    //updating direction
+                    this.d += (Math.random() - 0.5) * 0.5;
+
+                    //updating position
+                    this.x += this.s * Math.sin(this.d);
+                    this.y += this.s * Math.cos(this.d);
+
+                    //updating speed
+                    this.s += (Math.random() - 0.5) * 0.5;
+
+                    //staying inside speed bounds
+                    if (this.s > this.maxS || this.s < this.minS) {
+                        if (this.s > this.maxS) {
+                            this.s = this.maxS;
+                        } else {
+                            this.s = this.minS;
+                        }
+                    }
+
+                    //staying inside bounds
+                    if (this.x < 0 || this.x > canvas.width) {
+                        if (this.x < 0) {
+                            this.x = canvas.width;
+                        } else  {
+                            this.x = 0;
+                        }
+                    }
+
+                    if (this.y < 0 || this.y > canvas.height) {
+                        if (this.y < 0) {
+                            this.y = canvas.height;
+                        } else {
+                            this.y = 0;
+                        }
+                    }
+
+                    //appending position to array, shortening array if needed
+                    this.points.push([this.x, this.y]);
+                    if (this.points.length > this.maxLength) {
+                       this.points.splice(0, 1);
+                    }
+                }
+
+                beDrawn() {
+                    //draws small circle at all positions
+                    ctx.fillStyle = this.color;
+                    for (var b=0;b<this.points.length-10;b+=10) {
+                        ctx.beginPath();
+                        ctx.ellipse(this.points[b][0], this.points[b][1], this.r, this.r, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+
+                getColor() {
+                    //possible hex values for red green and blue
+                    var letters = "8F";
+                    //start with hash sign
+                    var color = "#";
+
+                    //choose red, green, and blue values
+                    for (var i=0;i<3;i++) {
+                        color += letters[Math.floor(Math.random() * letters.length)];
+                    }
+                    return color;
+                }
+            }
+
+            class FastSnake extends Snake {
+                constructor(x, y) {
+                    super(x, y);
+                    this.maxS = 2.5 + (Math.random() - 0.5) * 1.5;
+                    this.minS = 1;
+                    this.color = "#00FF00";
+                }
+            }
+
+            class CurveSnake extends Snake {
+                constructor(x, y) {
+                    super(x, y);
+                    this.color = "#0000FF";
+                }
+
+                tick() {
+                    super.tick();
+                    this.d += 0.025;
+                }
+            }
+
+
+            //functions
+            function setup() {
+                document.getElementById("speedRange").oninput = updateThick;
+                canvas = document.getElementById("canvas");
+                ctx = canvas.getContext("2d");
+                setInterval(main, frameTime);
+
+                centerX = canvas.width / 2;
+                centerY = canvas.height / 2;
+            }
+
+            function main() {
+                ctx.fillStyle = "#000000";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                for (var a=0;a<snakes.length;a++) {
+                    snakes[a].tick();
+                    snakes[a].beDrawn();
+                }
+            }
+
+            function addSnake() {
+                var snakeX = Math.random() * canvas.width;
+                var snakeY = Math.random() * canvas.height;
+
+                //25% of the snakes will be fast snakes
+                var determiner = Math.floor(Math.random() * 10);
+
+                switch (determiner) {
+                    case 0:
+                        snakes.push(new FastSnake(snakeX, snakeY));
+                        break;
+                    case 1:
+                        snakes.push(new CurveSnake(snakeX, snakeY));
+                        break;
+                    default:
+                        snakes.push(new Snake(snakeX, snakeY));
+                        break;
+                }
+            }
+
+            function removeSnake() {
+                snakes.splice(0, 1);
+            }
+
+            function updateThick() {
+                snakeThick = this.value;
+                //updating existing snakes
+                for (var d=0;d<snakes.length;d++) {
+                    snakes[d].r = snakeThick;
+                }
+            }
+        </script>
+        <div id="centeredThings">
+            <canvas id="canvas" width="512" height="384">
+            </canvas>
+            <input type="range" min="2" max="30" value="10" class="slider" id="speedRange">
+            <button onclick="addSnake()">more snake</button>
+            <button onclick="removeSnake()">less snake</button>
+        </div>
+    </body>
+</html>
