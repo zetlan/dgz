@@ -6,12 +6,16 @@
             }
 
             #cavo {
-                margin-left: auto;
-                margin-right: auto;
-                float: center;
+                margin: auto;
                 text-align: center;
+                display: block;
             }
-            
+            #centerModule {
+                text-align: center;
+                margin: auto;
+                display: block;
+            }
+
         </style>
         <script>
             window.onload = setup;
@@ -36,6 +40,9 @@
             function setup() {
                 canvas = document.getElementById("cavo");
                 ctx = canvas.getContext("2d");
+                document.getElementById("zoomRange").oninput = updateScaleFactor;
+                document.getElementById("resolutionRange").oninput = updateResolution;
+
                 cornerCoords = [xCenter - (canvas.width / scale) / 2, yCenter - (canvas.height / scale) / 2, xCenter + (canvas.width / scale) / 2, yCenter + (canvas.height / scale) / 2];
                 draw();
             }
@@ -77,6 +84,9 @@
                         ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
                     }
                 }
+
+                //update zoom text at the end
+                document.getElementById("totalZoom").innerHTML = (scale / 100).toFixed(3);
             }
 
             function handlePress(v) {
@@ -102,11 +112,32 @@
                     draw();
                 }
             }
+
+            function updateScaleFactor(bb) {
+                //updating value
+                scaleFactor = this.value;
+                //updating text, multiplying by a little more than 1 so that toFixed will work properly
+                document.getElementById("zoomOutput").innerHTML = (scaleFactor * 1.000001).toFixed(1);
+            }
+
+            function updateResolution(bb) {
+                //same as in scale factor function
+                pixelSize = this.value;
+                document.getElementById("resolutionOutput").innerHTML = pixelSize;
+
+                //redraw after a set amount of time
+                setTimeout(draw, 200);
+            }
         </script>
     </head>
     <body>
-        <div id="canvasContainer">
-            <canvas id="cavo" width="640" height="480"></canvas>
+        <div id="centerModule">
+        <canvas id="cavo" width="640" height="480"></canvas><br>
+        <input type="range" min="1" max="5" value="1" class="slider" id="resolutionRange"><br>
+        <p>Adjust resolution. Current pixel size: <span id="resolutionOutput">1</span></p>
+        <input type="range" min="0.5" max="3" value="1.5" step="0.1" class="slider" id="zoomRange"><br>
+        <p>Adjust scaling per click. Current zoom scale multiplier: <span id="zoomOutput">1.5</span></p>
+        <p>Current zoom level: <span id="totalZoom">1</span></p>
         </div>
     </body>
 </html>
