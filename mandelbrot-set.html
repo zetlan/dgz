@@ -6,9 +6,12 @@
             }
 
             #cavo {
-                margin: auto;
-                display: block;
+                margin-left: auto;
+                margin-right: auto;
+                float: center;
+                text-align: center;
             }
+            
         </style>
         <script>
             window.onload = setup;
@@ -17,7 +20,7 @@
             //global variables
             var scale = 100;
             var scaleFactor = 1.5;
-            var pixelSize = 2;
+            var pixelSize = 1;
 
             var xCenter = 0;
             var yCenter = 0;
@@ -33,9 +36,6 @@
             function setup() {
                 canvas = document.getElementById("cavo");
                 ctx = canvas.getContext("2d");
-
-                canvBox = document.getElementById("upper");
-                cty = canvBox.getContext("2d");
                 cornerCoords = [xCenter - (canvas.width / scale) / 2, yCenter - (canvas.height / scale) / 2, xCenter + (canvas.width / scale) / 2, yCenter + (canvas.height / scale) / 2];
                 draw();
             }
@@ -65,13 +65,15 @@
                             zy = 2 * xt + cy;
                         }
                         //drawing colors based on i (iterations before escape)
-                        var rComp = (255 - i).toString(16);
-                        var gComp = i.toString(16);
-                        var bComp = i;
 
-                        //var color = "rgb(" + rComp + ", " + gComp + ", " + bComp + ")";
+                        var color;
+                        if (i != maxIterations) {
+                            color = "hsl(" + (i*4) + ", 75%, 50%)";
+                        } else {
+                            color = "hsl(0, 0%, 0%)";
+                        }
                         ctx.beginPath();
-                        ctx.fillStyle = "#" + rComp + rComp + rComp;
+                        ctx.fillStyle = color;
                         ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
                     }
                 }
@@ -83,22 +85,28 @@
       	        var mousePosX = Math.round(v.clientX - canvasArea.left);
                 var mousePosY = Math.round(v.clientY - canvasArea.top);
 
-                //converting pixel coords to fractal coords
-                mousePosX = (mousePosX / scale) + cornerCoords[0];
-                mousePosY = (mousePosY / scale) + cornerCoords[1];
-                //setting center coords to that
-                xCenter = mousePosX;
-                yCenter = mousePosY;
-                //adjusting scale
-                scale *= scaleFactor;
-                cornerCoords = [xCenter - (canvas.width / scale) / 2, yCenter - (canvas.height / scale) / 2, xCenter + (canvas.width / scale) / 2, yCenter + (canvas.height / scale) / 2];
-                //redrawing
-                draw();
+                //only continue if the coords are inside the canvas
+                var isInside = (mousePosX > 0 && mousePosX < canvas.width) && (mousePosY > 0 && mousePosY < canvas.height);
+
+                if (isInside) {
+                    //converting pixel coords to fractal coords
+                    mousePosX = (mousePosX / scale) + cornerCoords[0];
+                    mousePosY = (mousePosY / scale) + cornerCoords[1];
+                    //setting center coords to that
+                    xCenter = mousePosX;
+                    yCenter = mousePosY;
+                    //adjusting scale
+                    scale *= scaleFactor;
+                    cornerCoords = [xCenter - (canvas.width / scale) / 2, yCenter - (canvas.height / scale) / 2, xCenter + (canvas.width / scale) / 2, yCenter + (canvas.height / scale) / 2];
+                    //redrawing
+                    draw();
+                }
             }
         </script>
     </head>
     <body>
-        <canvas id="cavo" width="640" height="480"></canvas>
-        <canvas id="upper" width="640" height="480"></canvas>
+        <div id="canvasContainer">
+            <canvas id="cavo" width="640" height="480"></canvas>
+        </div>
     </body>
 </html>
