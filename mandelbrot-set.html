@@ -4,19 +4,27 @@
             body {
                 background-color: slateblue;
             }
+
+            #cavo {
+                margin: auto;
+                display: block;
+            }
         </style>
         <script>
             window.onload = setup;
             document.onmousedown = handlePress;
 
             //global variables
-            var scale = 200;
+            var scale = 100;
+            var scaleFactor = 1.5;
+            var pixelSize = 2;
+
             var xCenter = 0;
-            var yCenter = -0.95;
+            var yCenter = 0;
             var cornerCoords = [];
-            var i,xt;
             var cx;
             var cy;
+            var maxIterations = 255;
 
             var canvas;
             var ctx;
@@ -36,18 +44,18 @@
             //drawing function
             function draw() {
                 //two nested for loops to get a two-dimensional draw
-                for (var x=0;x<canvas.width;x++) {
-                    for (var y=0;y<canvas.height;y++) {
+                for (var x=0;x<canvas.width/pixelSize;x++) {
+                    for (var y=0;y<canvas.height/pixelSize;y++) {
                         /*initializing variables. i is number of iterations, 
                         cx/cy are starting coordinates (stay the same), 
                         and zx/zy are iterating coordiantes (change with every iteration) */
                         var i = 0;
-                        cx = (x / scale) + cornerCoords[0];
-                        cy = (y / scale) + cornerCoords[1];
+                        cx = ((x * pixelSize) / scale) + cornerCoords[0];
+                        cy = ((y * pixelSize) / scale) + cornerCoords[1];
                         zx = 0;
                         zy = 0;
                         //main processing loop
-                        while(i<255 && (zx*zx+zy*zy)<4) {
+                        while(i<maxIterations && (zx*zx+zy*zy)<4) {
                             i += 1;
                             //these are kind of cheaty, I can get away with not using complex numbers with this formula
                             //xt = z
@@ -63,24 +71,29 @@
 
                         //var color = "rgb(" + rComp + ", " + gComp + ", " + bComp + ")";
                         ctx.beginPath();
-                        ctx.fillStyle = "#" + gComp + gComp + gComp;
-                        ctx.fillRect(x, y, 1, 1);
+                        ctx.fillStyle = "#" + rComp + rComp + rComp;
+                        ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
                     }
                 }
             }
 
             function handlePress(v) {
-                scale *= 1.5;
+                canvasArea = canvas.getBoundingClientRect();
+                //getting pixel x and y of mouse
+      	        var mousePosX = Math.round(v.clientX - canvasArea.left);
+                var mousePosY = Math.round(v.clientY - canvasArea.top);
+
+                //converting pixel coords to fractal coords
+                mousePosX = (mousePosX / scale) + cornerCoords[0];
+                mousePosY = (mousePosY / scale) + cornerCoords[1];
+                //setting center coords to that
+                xCenter = mousePosX;
+                yCenter = mousePosY;
+                //adjusting scale
+                scale *= scaleFactor;
                 cornerCoords = [xCenter - (canvas.width / scale) / 2, yCenter - (canvas.height / scale) / 2, xCenter + (canvas.width / scale) / 2, yCenter + (canvas.height / scale) / 2];
+                //redrawing
                 draw();
-            }
-
-            function handleMove(v) {
-
-            }
-
-            function handleLift(v) {
-
             }
         </script>
     </head>
