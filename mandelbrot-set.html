@@ -47,7 +47,6 @@
                 draw();
             }
 
-
             //drawing function
             function draw() {
                 //two nested for loops to get a two-dimensional draw
@@ -84,9 +83,11 @@
                         ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
                     }
                 }
-
-                //update zoom text at the end
-                document.getElementById("totalZoom").innerHTML = (scale / 100).toFixed(3);
+                //update position text at the end
+                var text = "(" + xCenter;
+                text += ", " + yCenter;
+                text += ", " + (scale / 100).toFixed(3) + ")";
+                document.getElementById("totalPos").innerHTML = text;
             }
 
             function handlePress(v) {
@@ -137,7 +138,7 @@
         <p>Adjust resolution. Current pixel size: <span id="resolutionOutput">1</span></p>
         <input type="range" min="0.5" max="3" value="1.5" step="0.1" class="slider" id="zoomRange"><br>
         <p>Adjust scaling per click. Current zoom scale multiplier: <span id="zoomOutput">1.5</span></p>
-        <p>Current zoom level: <span id="totalZoom">1</span></p>
+        <p>Current position in (x, y, zoom): <span id="totalPos">1</span></p>
         </div>
     </body>
 </html>
