@@ -1,0 +1,91 @@
+<html>
+    <head>
+        <style>
+            body {
+                background-color: slateblue;
+            }
+        </style>
+        <script>
+            window.onload = setup;
+            document.onmousedown = handlePress;
+
+            //global variables
+            var scale = 200;
+            var xCenter = 0;
+            var yCenter = -0.95;
+            var cornerCoords = [];
+            var i,xt;
+            var cx;
+            var cy;
+
+            var canvas;
+            var ctx;
+
+            //setup function
+            function setup() {
+                canvas = document.getElementById("cavo");
+                ctx = canvas.getContext("2d");
+
+                canvBox = document.getElementById("upper");
+                cty = canvBox.getContext("2d");
+                cornerCoords = [xCenter - (canvas.width / scale) / 2, yCenter - (canvas.height / scale) / 2, xCenter + (canvas.width / scale) / 2, yCenter + (canvas.height / scale) / 2];
+                draw();
+            }
+
+
+            //drawing function
+            function draw() {
+                //two nested for loops to get a two-dimensional draw
+                for (var x=0;x<canvas.width;x++) {
+                    for (var y=0;y<canvas.height;y++) {
+                        /*initializing variables. i is number of iterations, 
+                        cx/cy are starting coordinates (stay the same), 
+                        and zx/zy are iterating coordiantes (change with every iteration) */
+                        var i = 0;
+                        cx = (x / scale) + cornerCoords[0];
+                        cy = (y / scale) + cornerCoords[1];
+                        zx = 0;
+                        zy = 0;
+                        //main processing loop
+                        while(i<255 && (zx*zx+zy*zy)<4) {
+                            i += 1;
+                            //these are kind of cheaty, I can get away with not using complex numbers with this formula
+                            //xt = z
+                            xt = zx * zy;
+                            //z = z^2 + c
+                            zx = zx * zx - zy * zy + cx;
+                            zy = 2 * xt + cy;
+                        }
+                        //drawing colors based on i (iterations before escape)
+                        var rComp = (255 - i).toString(16);
+                        var gComp = i.toString(16);
+                        var bComp = i;
+
+                        //var color = "rgb(" + rComp + ", " + gComp + ", " + bComp + ")";
+                        ctx.beginPath();
+                        ctx.fillStyle = "#" + gComp + gComp + gComp;
+                        ctx.fillRect(x, y, 1, 1);
+                    }
+                }
+            }
+
+            function handlePress(v) {
+                scale *= 1.5;
+                cornerCoords = [xCenter - (canvas.width / scale) / 2, yCenter - (canvas.height / scale) / 2, xCenter + (canvas.width / scale) / 2, yCenter + (canvas.height / scale) / 2];
+                draw();
+            }
+
+            function handleMove(v) {
+
+            }
+
+            function handleLift(v) {
+
+            }
+        </script>
+    </head>
+    <body>
+        <canvas id="cavo" width="640" height="480"></canvas>
+        <canvas id="upper" width="640" height="480"></canvas>
+    </body>
+</html>
