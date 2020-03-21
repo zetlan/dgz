@@ -20,22 +20,91 @@
             var ctx;
             var dataLayout = [];
 
-            var width;
-            var height;
+            var noiseWidth;
+            var noiseHeight;
+
+            var pixelSize = 2;
+            var changeTolerance = 0.05;
 
             function setup() {
                 canvas = document.getElementById("canv");
                 ctx = canvas.getContext("2d");
 
-                setTimeout(generate, 1);
-                setTimeout(draw, 2);
+                noiseWidth = Math.ceil(canvas.width / pixelSize);
+                noiseHeight = Math.ceil(canvas.height / pixelSize);
+
+                //sets up array, as generate only makes values and not the array elements
+                
+                for (var q=0;q<noiseHeight;q++) {
+                    dataLayout.push([]);
+                }
+
+                generate();
+                render();
             }
 
-            function draw() {
+            function render() {
                 //two for loops for two dimensions
-                for (var y=0;y<canvas.height;x++) {
-                    for (var x=0;x<canvas.width;x++) {
-                        var color = 
+                for (var y=0;y<noiseHeight;y++) {
+                    for (var x=0;x<noiseWidth;x++) {
+                        //color based off of value in dataLayout
+                        var color = Math.floor(dataLayout[y][x] * 255);
+                        ctx.beginPath();
+                        ctx.fillStyle = "hsl(" + color + ", 50%, 50%)";
+                        ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
+                    }
+                }
+            }
+
+            function generate() {
+                var value;
+
+                //generate first row from a random walk
+                value = 0.5;
+                for (var a=0;a<noiseWidth;a++) {
+                    //pushing value to array
+                    dataLayout[0].push(value);
+
+                    //changing value
+                    value += (Math.random() - 0.5) * (changeTolerance * 2);
+
+                    //keeping value in bounds
+                    if (value > 1 || value < 0) {
+                        if (value > 1) {
+                            value = 1;
+                        } else {
+                            value = 0;
+                        }
+                    }
+                }
+
+                //generate first column from a random walk
+                value = 0.5;
+                for (var b=1;b<noiseHeight;b++) {
+                    //pushing value to array
+                    dataLayout[b].push(value);
+
+                    //changing value
+                    value += (Math.random() - 0.5) * (changeTolerance * 2);
+
+                    //keeping value in bounds
+                    if (value > 1 || value < 0) {
+                        if (value > 1) {
+                            value = 1;
+                        } else {
+                            value = 0;
+                        }
+                    }
+                }
+
+                /* generation for everything else starts with the second row (first is already generated) and gets the average of 
+                its neighbors. Then it picks a random value within a tolerance of that average, and that becomes the point's value. */
+                for (var arrY=1;arrY<noiseHeight;arrY++) {
+                    for (var arrX=1;arrX<noiseWidth;arrX++) {
+                        var neighAvg = (dataLayout[arrY-1][arrX] + dataLayout[arrY][arrX-1]) / 2;
+                        var thisValue = neighAvg + (Math.random() - 0.5) * (changeTolerance * 2);
+
+                        dataLayout[arrY][arrX] = thisValue;
                     }
                 }
             }
