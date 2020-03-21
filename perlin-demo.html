@@ -1,0 +1,47 @@
+<html>
+    <head>
+        <style>
+            body {
+                background-color: slateblue;
+            }
+
+            #canv {
+                margin: auto;
+                text-align: center;
+                display: block;
+            }
+
+
+        </style>
+        <script>
+            window.onload = setup;
+
+            var canvas;
+            var ctx;
+            var dataLayout = [];
+
+            var width;
+            var height;
+
+            function setup() {
+                canvas = document.getElementById("canv");
+                ctx = canvas.getContext("2d");
+
+                setTimeout(generate, 1);
+                setTimeout(draw, 2);
+            }
+
+            function draw() {
+                //two for loops for two dimensions
+                for (var y=0;y<canvas.height;x++) {
+                    for (var x=0;x<canvas.width;x++) {
+                        var color = 
+                    }
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <canvas id="canv" width="640" height="480"></canvas><br>
+    </body>
+</html>
