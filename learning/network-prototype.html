@@ -1,0 +1,35 @@
+<html>
+    <head>
+        <style>
+            body {
+                background-color: slateblue;
+            }
+
+            #canv {
+                margin: auto;
+                text-align: center;
+                display: block;
+            }
+
+
+        </style>
+        <script>
+            window.onload = setup;
+
+            var canvas;
+            var ctx;
+
+            function setup() {
+                canvas = document.getElementById("canv");
+                ctx = canvas.getContext("2d");
+            }
+
+            function main() {
+
+            }
+        </script>
+    </head>
+    <body>
+        <canvas id="canv" width="640" height="480"></canvas><br>
+    </body>
+</html>
