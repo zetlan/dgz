@@ -1,78 +1,81 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width">
-    <title>Lovely Linies</title>
-    <style>
+  	<head>
+    	<meta charset="utf-8">
+    	<meta name="viewport" content="width=device-width">
+    	<title>Lovely Linies</title>
+		<style>
 
-      body {
-        background-color: slateblue;
-      }
-      #canvas {
-        border-style: double;
-        border-color: slateblue;
-        margin: auto;
-        display: block;
-      }
-    </style>
-  </head>
-  <body>
-    <script type="text/javascript">
-      var array = [];
-      var length = 200;
-      var speed = 20;
+		body {
+			background-color: slateblue;
+		}
+		#canvas {
+			border-style: double;
+			border-color: slateblue;
+			margin: auto;
+			display: block;
+		}
+		</style>
+  	</head>
+	<body>
+		<script type="text/javascript">
+			var array = [0.5];
+			var length = 200;
+			var frameSpeed = 20;
+			var changeSpeed = 0;
+			var maxChangeSpeed = 0.005;
 
-      window.onload = setup;
-      function setup() {      
-        canvas = document.getElementById("canvas");
-        ctx = canvas.getContext("2d");
-        setInterval(draw, speed);
+			window.onload = setup;
+			function setup() {      
+				canvas = document.getElementById("canvas");
+				ctx = canvas.getContext("2d");
+				setInterval(draw, frameSpeed);
 
-        centerX = canvas.width / 2;
-        centerY = canvas.height / 2;
+				centerX = canvas.width / 2;
+				centerY = canvas.height / 2;
+			}
 
-        //initializing array
-        for (q=0;q<length;q++) {
-          array.push(0);
-        }
-      }
+			function draw() {
+				//clear screen first
+				ctx.fillStyle = "#FFBBFF";
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+				var xInterval = (canvas.width / length);
 
-      function draw() {
-        //clear screen first
-        ctx.fillStyle = "#FFBBFF";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-  
-        var xValue = 0;
-        var xInterval = Math.floor(canvas.width / array.length);
-        //drawing all lines
-        ctx.beginPath();
-        for (xValue=0;xValue<canvas.width + 2;xValue=xValue+xInterval) {
-          ctx.lineTo(xValue, (array[xValue / xInterval]) * canvas.height);
-        }
-        ctx.stroke();
+				//drawing path
+				ctx.beginPath();
+				for (var readFrom=0;readFrom<array.length;readFrom++) {
+				ctx.lineTo(readFrom * xInterval, array[readFrom] * canvas.height);
+				}
+				ctx.stroke();
 
-        //updating line positions
-        array[0] = 0;
-        for (a=0;a<length;a++) {
-          array[a] = array[a+1];
-        }
-        //shift is the amount that the lines shift by each frame
-        var shift = (Math.random() - 0.5) / 8;
-        array[length - 1] = array[length - 2] + shift;
-  
-        //if the line is outside the screen, make it not be
-        if (array[length - 1] > 1) {
-          array[length - 1] = 1;
-        }
-        if (array[length - 1] < 0) {
-          array[length - 1] = 0;
-        }
-        console.log(array[length - 1]);
-      }
-    </script>
+				//changing value of line
+				changeSpeed += (Math.random() - 0.5) / 64;
 
-    <canvas id="canvas" width="512" height="384">
-    </canvas>
-  </body>
+				//keeping speed in bounds
+				if (Math.abs(changeSpeed) > maxChangeSpeed) {
+				if (changeSpeed > maxChangeSpeed) {
+					changeSpeed = maxChangeSpeed;
+				} else {
+					changeSpeed = -1 * maxChangeSpeed;
+				}
+				}
+				var newValue = array[array.length-1] + changeSpeed;
+				array.push(newValue);
+				//removing oldest line if array is too large
+				if (array.length > length) {
+				array.splice(0, 1);
+				}
+		
+				//if the line is outside the screen, make it not be
+				if (array[length - 1] > 1) {
+				array[length - 1] = 1;
+				}
+				if (array[length - 1] < 0) {
+				array[length - 1] = 0;
+				}
+			}
+		</script>
+    	<canvas id="canvas" width="512" height="384">
+    	</canvas>
+	</body>
 </html>
