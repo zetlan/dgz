@@ -23,7 +23,7 @@
 			var length = 200;
 			var frameSpeed = 20;
 			var changeSpeed = 0;
-			var maxChangeSpeed = 0.005;
+			var maxChangeSpeed = 0.0055;
 
 			window.onload = setup;
 			function setup() {      
@@ -49,15 +49,11 @@
 				ctx.stroke();
 
 				//changing value of line
-				changeSpeed += (Math.random() - 0.5) / 64;
+				changeSpeed += (Math.random() - 0.5) / 100;
 
 				//keeping speed in bounds
 				if (Math.abs(changeSpeed) > maxChangeSpeed) {
-				if (changeSpeed > maxChangeSpeed) {
-					changeSpeed = maxChangeSpeed;
-				} else {
-					changeSpeed = -1 * maxChangeSpeed;
-				}
+					changeSpeed *= 0.9;
 				}
 				var newValue = array[array.length-1] + changeSpeed;
 				array.push(newValue);
@@ -66,16 +62,16 @@
 				array.splice(0, 1);
 				}
 		
-				//if the line is outside the screen, make it not be
+				//if the line is outside the screen, make it head towards the center
 				if (array[length - 1] > 1) {
-				array[length - 1] = 1;
+					changeSpeed -= maxChangeSpeed;
 				}
 				if (array[length - 1] < 0) {
-				array[length - 1] = 0;
+					changeSpeed += maxChangeSpeed;
 				}
 			}
 		</script>
-    	<canvas id="canvas" width="512" height="384">
+    	<canvas id="canvas" width="640" height="480">
     	</canvas>
 	</body>
 </html>
