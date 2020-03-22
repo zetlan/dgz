@@ -23,8 +23,11 @@
             var noiseWidth;
             var noiseHeight;
 
-            var pixelSize = 2;
+            var pixelSize = 4;
             var changeTolerance = 0.05;
+            var time = 20;
+
+            let redraw;
 
             function setup() {
                 canvas = document.getElementById("canv");
@@ -33,34 +36,64 @@
                 noiseWidth = Math.ceil(canvas.width / pixelSize);
                 noiseHeight = Math.ceil(canvas.height / pixelSize);
 
-                //sets up array, as generate only makes values and not the array elements
-                
-                for (var q=0;q<noiseHeight;q++) {
-                    dataLayout.push([]);
-                }
-
+                generateFirsts();
                 generate();
                 render();
+                redraw = setInterval(iterate, 20);
             }
 
             function render() {
+                ctx.globalAlpha = 1;
+                ctx.fillStyle = "hsl(" + time + ", 75%, 60%)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.fillStyle = "#FFFFFF";
                 //two for loops for two dimensions
                 for (var y=0;y<noiseHeight;y++) {
                     for (var x=0;x<noiseWidth;x++) {
                         //color based off of value in dataLayout
-                        var color = Math.floor(dataLayout[y][x] * 255);
-                        ctx.beginPath();
-                        ctx.fillStyle = "hsl(" + color + ", 50%, 50%)";
+                        var alpha = dataLayout[y][x];
+                        ctx.globalAlpha = alpha;
                         ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
                     }
                 }
             }
 
             function generate() {
+                
+                for (var arrY=1;arrY<noiseHeight;arrY++) {
+                    generateRow(arrY);
+                }
+            }
+
+            function generateRow(row) {
+                /* generation for everything else starts with the second row (first is already generated) and gets the average of 
+                its neighbors. Then it picks a random value within a tolerance of that average, and that becomes the point's value. */
+                for (var arrX=1;arrX<noiseWidth;arrX++) {
+                    var neighAvg = (dataLayout[row-1][arrX] + dataLayout[row][arrX-1]) / 2;
+                    var thisValue = neighAvg + (Math.random() - 0.5) * (changeTolerance * 2);
+
+                    //keeping value in bounds
+                    if (thisValue > 1 || thisValue < 0) {
+                        if (thisValue > 1) {
+                            thisValue = 1;
+                        } else {
+                            thisValue = 0;
+                        }
+                    }
+
+                    dataLayout[row][arrX] = thisValue;
+                }
+                
+            }
+
+            function generateFirsts() {
                 var value;
 
                 //generate first row from a random walk
                 value = 0.5;
+                //reset row
+                dataLayout[0] = [];
                 for (var a=0;a<noiseWidth;a++) {
                     //pushing value to array
                     dataLayout[0].push(value);
@@ -80,7 +113,10 @@
 
                 //generate first column from a random walk
                 value = 0.5;
+                
                 for (var b=1;b<noiseHeight;b++) {
+                    //reset column
+                    dataLayout[b] = [];
                     //pushing value to array
                     dataLayout[b].push(value);
 
@@ -96,17 +132,30 @@
                         }
                     }
                 }
+            }
 
-                /* generation for everything else starts with the second row (first is already generated) and gets the average of 
-                its neighbors. Then it picks a random value within a tolerance of that average, and that becomes the point's value. */
-                for (var arrY=1;arrY<noiseHeight;arrY++) {
-                    for (var arrX=1;arrX<noiseWidth;arrX++) {
-                        var neighAvg = (dataLayout[arrY-1][arrX] + dataLayout[arrY][arrX-1]) / 2;
-                        var thisValue = neighAvg + (Math.random() - 0.5) * (changeTolerance * 2);
+            function iterate() {
+                //deleting first row
+                dataLayout.splice(0, 1);
+                dataLayout.push([]);
 
-                        dataLayout[arrY][arrX] = thisValue;
+                //generating first part of last row
+                var value = dataLayout[noiseHeight-2][0];
+                value += (Math.random() - 0.5) * (changeTolerance * 2);
+                //keeping value in bounds
+                if (value > 1 || value < 0) {
+                    if (value > 1) {
+                        value = 1;
+                    } else {
+                        value = 0;
                     }
                 }
+                dataLayout[noiseHeight-1][0] = value;
+
+                generateRow(noiseHeight-1);
+                render();
+
+                time += 0.0625;
             }
         </script>
     </head>
