@@ -30,6 +30,7 @@
             var yCenter = 0;
             var cornerCoords = [];
             var maxIterations = 255;
+            var minIterations = 20;
 
             var canvas;
             var ctx;
@@ -47,6 +48,9 @@
 
             //drawing function
             function draw() {
+                //logging highest i value
+                var highestI = 0;
+                var secondHighestI = 0;
                 //two nested for loops to get a two-dimensional draw
                 for (var x=0;x<canvas.width/pixelSize;x++) {
                     for (var y=0;y<canvas.height/pixelSize;y++) {
@@ -73,6 +77,16 @@
                         var color;
                         if (i != maxIterations) {
                             color = "hsl(" + (i*4) + ", 75%, 50%)";
+
+                            //if i is not max iterations and is larger than almost all the other i, log it
+                            if (i > secondHighestI) {
+                                if (i > highestI) {
+                                    secondHighestI = highestI;
+                                    highestI = i;
+                                } else {
+                                    secondHighestI = i;
+                                }
+                            }
                         } else {
                             color = "hsl(0, 0%, 0%)";
                         }
@@ -86,6 +100,31 @@
                 text += ", " + yCenter;
                 text += ", " + (scale / 100).toFixed(3) + ")";
                 document.getElementById("totalPos").innerHTML = text;
+
+                //updating dynamic maxIterations so that computation and accuracy is preserved
+
+                //failsafe in case secondHighestI is 0, just so the mandelbrot set doesn't get stuck in a loop of reducing computation
+                if (secondHighestI == 0) {
+                    secondHighestI = highestI;
+                }
+                //as a final failsafe, if highestI is 0, maxIterations will not update. 
+
+                if (highestI != 0) {
+                    //update max iterations
+                    if (secondHighestI >= maxIterations - 5) {
+                        maxIterations = highestI + 20;
+                    } else if (maxIterations >= secondHighestI) {
+                        //if maxIterations is more than 100 above the highest pixel, then reduce maxIterations by 100
+                        maxIterations -= 20;
+                        console.log("computation unneeded");
+
+                        //keep a minimum number of iterations
+                        if (maxIterations < minIterations) {
+                            maxIterations = minIterations;
+                        }
+                    }
+                    console.log(maxIterations, highestI, secondHighestI);
+                }
             }
 
             function handlePress(v) {
