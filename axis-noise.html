@@ -11,6 +11,11 @@
                 display: block;
             }
 
+            #explanText {
+                margin: auto;
+                text-align: center;
+            }
+
 
         </style>
         <script>
@@ -141,5 +146,21 @@
     </head>
     <body>
         <canvas id="canv" width="640" height="480"></canvas><br>
+        <p id="explanText">
+            How it works: <br>
+            <strong>generation:</strong><br>
+            This visual noise is different from random values in that the values depend on eachother, creating a cloud-like pattern.<br>
+            First, the very top row is generated with a random walk. (the algorithm goes left to right, stepping by a small random <br>
+            interval each time.) Then the same random walk is done for the very left column.<br>
+            After the 2 axes have been generated, the rest of the noise can follow. Going top to bottom, left to right, each pixel gets <br>
+            its value by averaging the pixel's values above and to the left of it, and then adding or subtracting a small random amount.<br>
+            Once the entire screen has been generated this way, it is drawn. <br>
+            <strong>drawing:</strong><br>
+            Since every pixel value is between 0 and 1, there are many options for how to display it.<br>
+            My drawing method is arbitrary, and there are certainly other ways to do it, but I used the values as opacity for a white square <br>
+            drawn on top of a color. This means the whiter the square, the higher the value the pixel contains. The more color is in the square, <br>
+            the lower the value is.<br>
+            I hope this was a good explanation! :)<br>
+        </p>
     </body>
 </html>
