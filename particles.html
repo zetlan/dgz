@@ -21,7 +21,7 @@
             var centerX;
             var centerY;
 
-            var numOfParticles = 100;
+            var numOfParticles = 10;
 
             //list of all possible colors
             var possibleColors = ["#888", "#88F", "#8F8", "#8FF", "#F88", "#F8F", "#FF8", "#FFF"];
@@ -41,8 +41,7 @@
                     this.dy = Math.random() - 0.5;
                     this.color = this.pickColor();
 
-                    this.neigh = [];
-                    this.sightR = 40;
+                    this.sightR = 60;
                     this.s = 1;
                 }
 
@@ -68,9 +67,33 @@
                         }
                     }
 
-                    //get neighbors
+                    //friction
+                    this.dx *= 0.95;
+                    this.dy *= 0.95;
 
-                    //act on forces supplied by neighbors
+                    for (var h=0;h<particles.length;h++) {
+                        if (particles[h] != this) {
+                            //get pythagorean distance to them
+                            var distX = Math.abs(particles[h].x - this.x);
+                            var distY = Math.abs(particles[h].y - this.y);
+                            var totalDist = Math.sqrt((distX * distX) + (distY * distY));
+                        
+                            //if it's less than the sight distance, act based on it
+                            if (totalDist < this.sightR) {
+                                //finding the right force
+                                var force = associations[this.color][particles[h].color];
+                                force *= this.r / totalDist;
+
+                                //if distance is less than radius and their radius, push away
+                                if (totalDist < this.r * 4) {
+                                    this.force(particles[h].x, particles[h].y, -1);
+                                } else {
+                                    //just apply normal force
+                                    this.force(particles[h].x, particles[h].y, force);
+                                }
+                            }
+                        }
+                    }
                 }
 
                 force(x, y, strength) {
@@ -79,17 +102,21 @@
                     //get parameters
                     var xDist = x - this.x;
                     var yDist = y - this.y;
-                    var angle = Math.atan2(xDist, yDist) + Math.PI;
+                    var angle = Math.atan2(xDist, yDist);
 
                     //apply force in terms of dx and dy
-                    this.dx += this.s * Math.sin(angle);
-                    this.dy += this.s * Math.cos(angle);
+                    this.dx += (this.s * strength) * Math.sin(angle);
+                    this.dy += (this.s * strength) * Math.cos(angle);
                 }
 
                 beDrawn() {
                     ctx.fillStyle = this.color;
+                    ctx.globalAlpha = 1;
                     ctx.beginPath();
                     ctx.ellipse(this.x, this.y, this.r, this.r, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.globalAlpha = 0.3;
+                    ctx.ellipse(this.x, this.y, this.sightR, this.sightR, 0, 0, Math.PI * 2);
                     ctx.fill();
                 }
 
@@ -116,9 +143,8 @@
                 //drawing background
                 ctx.fillStyle = "#000000";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
-                //ticking everything
 
-                //drawing everything
+                //drawing and ticking everything
                 for (var n=0;n<particles.length;n++) {
                     particles[n].tick();
                     particles[n].beDrawn();
