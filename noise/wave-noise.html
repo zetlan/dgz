@@ -1,0 +1,149 @@
+<html>
+    <head>
+        <style>
+            body {
+                background-color: slateblue;
+            }
+
+            #canv {
+                margin: auto;
+                text-align: center;
+                display: block;
+            }
+
+            #explanText {
+                margin: auto;
+                text-align: center;
+            }
+
+
+        </style>
+        <script>
+            window.onload = setup;
+
+            var canvas;
+            var ctx;
+            var dataLayout = [];
+
+            var noiseWidth;
+            var noiseHeight;
+
+            var pixelSize = 3;
+			var time = 50;
+			
+			var rowsPast = 0;
+			var columnsPast = 1;
+
+            let redraw;
+
+            function setup() {
+                canvas = document.getElementById("canv");
+                ctx = canvas.getContext("2d");
+
+                noiseWidth = Math.ceil(canvas.width / pixelSize);
+				noiseHeight = Math.ceil(canvas.height / pixelSize);
+				
+				generateArray();
+                generate();
+                render();
+                redraw = setInterval(iterate, 30);
+            }
+
+            function render() {
+				ctx.globalAlpha = 1;
+				ctx.fillStyle = "hsl(" + time + ", 100%, 50%)";
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+				
+                //two for loops for two dimensions
+                for (var y=0;y<noiseHeight;y++) {
+                    for (var x=0;x<noiseWidth;x++) {
+                        //color based off of value in dataLayout
+						var alpha = dataLayout[y][x];
+
+						if (alpha > 0.75) {
+							ctx.fillStyle = "#FFFFFF";
+							ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
+						} else if (alpha > 0.5) {
+							ctx.fillStyle = "#888888";
+							ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
+						}
+                    }
+                }
+            }
+
+            function iterate() {
+                //iterate gives the appearance of movement by removing the first row and adding another row to the end.
+                //deleting first row
+                dataLayout.splice(0, 1);
+				dataLayout.push([]);
+				
+                generateRow(noiseHeight-1);
+                render();
+
+                //time is so that the base color changes
+				time += 0.0625;
+				rowsPast += 1;
+				columnsPast = Math.sin(time) * 20;
+			}
+			
+			function generateArray() {
+				for (var row=0;row<noiseHeight;row++) {
+					//create row
+					dataLayout.push([]);
+					//append row with 0s
+					for (var column=0;column<noiseWidth;column++) {
+						dataLayout[row].push(0);
+					}
+				}
+			}
+
+            function generate() {
+                for (var arrY=0;arrY<noiseHeight;arrY++) {
+                    generateRow(arrY);
+                }
+            }
+
+            function generateRow(row) {
+				//go pixel by pixel, generating value for each individual square
+                for (var arrX=0;arrX<noiseWidth;arrX++) {
+					//time is incorporated into the generation so that it changes
+                    var thisValue = generateValue(arrX+columnsPast, row+rowsPast);
+                    dataLayout[row][arrX] = thisValue;
+                }
+                
+            }
+
+            function generateValue(x, y) {
+				//accounting for pixel size (changing pixel size will only change resolution, not structure)
+				x *= (pixelSize / 4);
+				y *= (pixelSize / 4);
+				//the values are generated with this equation
+				var value = (Math.cos(y/27) * 1.5) + (Math.cos(y / 3) * 0.25) + (Math.cos(y / 43) * 1.5) + (Math.cos(y / 27) * 1.5) + (Math.cos(y / 7) * 0.5);
+				var value2 = (Math.cos(x/55) * 1) + (Math.sin(x / 93) * 1) + (Math.sin(x / 21) * 2) + (Math.cos(x / 47) * 1.5) + (Math.sin(x / 2) * 0.125);
+				//keeping values between 0 and 1
+                value /= 10.5;
+				value += 0.5;
+				value2 /= 11.25;
+				value2 += 0.5;
+
+                return (value + value2) / 2;
+            }
+        </script>
+    </head>
+    <body>
+        <canvas id="canv" width="640" height="480"></canvas><br>
+        <p id="explanText">
+            How it works: <br>
+            <strong>generation:</strong><br>
+			Two equations with many sine waves are used, 1 for processing y, 1 for processing x. These equations generate different values, <br>
+			and those values are then averaged. This means that the same y and x value is put in, the same value between 0 and 1 will be <br>
+			received. The equations have many terms, so that the sinusoidal nature is disguised. <br>
+			However, x and y need to change in order for new terrain to be generated, so y is incremented as time passes. Because x being <br>
+			simply incremented would cause a strange skew in terrain, x is instead offset by a sine wave. Overall, it generates passable terrain.<br>
+			<strong>drawing:</strong><br>
+			By default, a rectangle is drawn across the whole canvas with a varying hue based on time. Then, all pixels are looped through.<br>
+			Noise values range from 0 to 1. If the noise value for that pixel is greater than 0.5, it is colored grey, and if it is greater <br>
+			than 0.75, it is colored white.
+        </p>
+    </body>
+</html>
