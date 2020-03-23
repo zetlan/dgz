@@ -1,0 +1,154 @@
+<html>
+    <head>
+        <style>
+            body {
+                background-color: slateblue;
+            }
+
+            #cavalier {
+                margin: auto;
+                text-align: center;
+                display: block;
+            }
+
+        </style>
+        <script>
+            window.onload = setup;
+
+            //global variables
+            var canvas;
+            var ctx;
+            var centerX;
+            var centerY;
+
+            var numOfParticles = 100;
+
+            //list of all possible colors
+            var possibleColors = ["#888", "#88F", "#8F8", "#8FF", "#F88", "#F8F", "#FF8", "#FFF"];
+            //associations will be the forces that are generated
+            var associations = {};
+
+            let particles = [];
+            let timer;
+
+            //particle class
+            class Particle {
+                constructor() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.r = 5;
+                    this.dx = Math.random() - 0.5;
+                    this.dy = Math.random() - 0.5;
+                    this.color = this.pickColor();
+
+                    this.neigh = [];
+                    this.sightR = 40;
+                    this.s = 1;
+                }
+
+                tick() {
+                    //update position, stay in bounds
+                    this.x += this.dx;
+                    this.y += this.dy;
+
+                    //keeping x/y in bounds
+                    if (this.x > canvas.width || this.x < 0) {
+                        if (this.x < 0) {
+                            this.x = canvas.width;
+                        } else {
+                            this.x = 0;
+                        }
+                    }
+
+                    if (this.y > canvas.height || this.y < 0) {
+                        if (this.y < 0) {
+                            this.y = canvas.height;
+                        } else {
+                            this.y = 0;
+                        }
+                    }
+
+                    //get neighbors
+
+                    //act on forces supplied by neighbors
+                }
+
+                force(x, y, strength) {
+                    //x and y are where to apply it from. If strength is positive it means go towards force, if it's negative it means go away
+
+                    //get parameters
+                    var xDist = x - this.x;
+                    var yDist = y - this.y;
+                    var angle = Math.atan2(xDist, yDist) + Math.PI;
+
+                    //apply force in terms of dx and dy
+                    this.dx += this.s * Math.sin(angle);
+                    this.dy += this.s * Math.cos(angle);
+                }
+
+                beDrawn() {
+                    ctx.fillStyle = this.color;
+                    ctx.beginPath();
+                    ctx.ellipse(this.x, this.y, this.r, this.r, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                pickColor() {
+                    //this is it's own function because I didn't want to write it in the constructor
+                    var index = Math.floor(Math.random() * possibleColors.length);
+                    return possibleColors[index];
+                }
+            }
+
+            //setup function
+            function setup() {
+                canvas = document.getElementById("cavalier");
+                ctx = canvas.getContext("2d");
+
+                generateForces();
+                for (var z=0;z<numOfParticles;z++) {
+                    particles.push(new Particle());
+                }
+                timer = setInterval(iterate, 10);
+            }
+
+            function iterate() {
+                //drawing background
+                ctx.fillStyle = "#000000";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                //ticking everything
+
+                //drawing everything
+                for (var n=0;n<particles.length;n++) {
+                    particles[n].tick();
+                    particles[n].beDrawn();
+                }
+            }
+
+            function generateForces() {
+                //iterate over every color
+                for (var a=0;a<possibleColors.length;a++) {
+                    //create a dictionary
+                    var nowColor = possibleColors[a];
+                    var temp = {};
+                    for (var b=0;b<possibleColors.length;b++) {
+                        //into the dictionary put every color except the color picked by a (because a is the color that will use this)
+                        if (b != a) {
+                            var keyColor = possibleColors[b];
+                            //pick random values between -1 and 1 for each color
+                            var strength = (Math.random() - 0.5) * 2;
+                            temp[keyColor] = strength;
+                        }
+                    }
+                    //push the forces dictionary to associations
+                    associations[nowColor] = temp;
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <div id="centerModule">
+        <canvas id="cavalier" width="640" height="480"></canvas><br>
+        </div>
+    </body>
+</html>
