@@ -21,7 +21,8 @@
             var centerX;
             var centerY;
 
-            var numOfParticles = 300;
+            var density = 3000;
+            var numOfParticles;
             var friction = 0.95;
 
             //list of all possible colors
@@ -42,7 +43,7 @@
                     this.dy = Math.random() - 0.5;
                     this.color = this.pickColor();
 
-                    this.sightR = 40;
+                    this.sightR = 100;
                     this.s = 0.6;
                 }
 
@@ -72,10 +73,6 @@
                     this.dx *= friction;
                     this.dy *= friction;
 
-                    //buffer x and y are for changing particle position in the case of a collision
-                    var bufferX = 0;
-                    var bufferY = 0;
-
                     for (var h=0;h<particles.length;h++) {
                         if (particles[h] != this) {
                             //get pythagorean distance to them
@@ -103,8 +100,6 @@
                             }
                         }
                     }
-                    this.x += bufferX;
-                    this.y += bufferY;
                 }
 
                 force(x, y, strength) {
@@ -138,6 +133,17 @@
             function setup() {
                 canvas = document.getElementById("cavalier");
                 ctx = canvas.getContext("2d");
+
+                //changing canvas size for window
+                canvas.width = window.innerWidth * 0.8;
+                canvas.height = window.innerHeight * 0.8;
+
+                centerX = canvas.width * 0.5;
+                centerY = canvas.height * 0.5;
+
+                //getting numOfParticles and then generating
+                numOfParticles = (canvas.height * canvas.width) / density;
+                numOfParticles = Math.floor(numOfParticles);
 
                 generateForces();
                 for (var z=0;z<numOfParticles;z++) {
