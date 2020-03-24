@@ -1,5 +1,6 @@
 <html>
     <head>
+        <title>Particles!</title>
         <style>
             body {
                 background-color: slateblue;
@@ -11,6 +12,10 @@
                 display: block;
             }
 
+            #centerModule {
+                text-align: center;
+                margin: auto;
+            }
         </style>
         <script>
             window.onload = setup;
@@ -20,12 +25,11 @@
             var ctx;
             var centerX;
             var centerY;
-
             var density = 3000;
             var numOfParticles;
             var friction = 0.95;
 
-            //list of all possible colors
+            //list of all possible colors, I could make this generated but I don't feel like it
             var possibleColors = ["#888", "#88F", "#8F8", "#8FF", "#F88", "#F8F", "#FF8", "#FFF"];
             //associations will be the forces that are generated
             var associations = {};
@@ -145,6 +149,8 @@
                 numOfParticles = (canvas.height * canvas.width) / density;
                 numOfParticles = Math.floor(numOfParticles);
 
+                document.getElementById("partiCount").innerHTML = numOfParticles;
+
                 generateForces();
                 for (var z=0;z<numOfParticles;z++) {
                     particles.push(new Particle());
@@ -188,6 +194,17 @@
     <body>
         <div id="centerModule">
         <canvas id="cavalier" width="640" height="480"></canvas><br>
+        <p id="explanText">
+            How does this work?<br>
+            An certain amount of particles that varies based on your screen size (In your case there are <span id="partiCount">[error, number load failed]</span>) <br>
+            are generated in random positions on the canvas, which also scales with your screen.<br>
+
+            Particles have different colors (8 in total), and those colors determine the rules that they follow when being attracted or repelled from other particles. <br>
+            Every color has randomly generated strengths for the other 7 colors, between -1 and 1. The lower the strength, the more repulsed that color will be. <br>
+            For example, red could have a strength of 0.5 for blue, but blue has a strength of -0.5 for red. This would cause red to chase after blue, and blue to run away. <br>
+            All the rules are randomly generated, and change each time you refresh the page. In addition to this force, which gets weaker as the particles get farther away from each other, <br>
+            there is an extra force to stop the particles from intersecting, which works some of the time. Finally, all the particles experience friction, to slow them down over time.<br>
+        </p>
         </div>
     </body>
 </html>
