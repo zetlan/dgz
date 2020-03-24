@@ -21,7 +21,8 @@
             var centerX;
             var centerY;
 
-            var numOfParticles = 10;
+            var numOfParticles = 300;
+            var friction = 0.95;
 
             //list of all possible colors
             var possibleColors = ["#888", "#88F", "#8F8", "#8FF", "#F88", "#F8F", "#FF8", "#FFF"];
@@ -36,13 +37,13 @@
                 constructor() {
                     this.x = Math.random() * canvas.width;
                     this.y = Math.random() * canvas.height;
-                    this.r = 5;
+                    this.r = 3;
                     this.dx = Math.random() - 0.5;
                     this.dy = Math.random() - 0.5;
                     this.color = this.pickColor();
 
-                    this.sightR = 60;
-                    this.s = 1;
+                    this.sightR = 40;
+                    this.s = 0.6;
                 }
 
                 tick() {
@@ -68,8 +69,12 @@
                     }
 
                     //friction
-                    this.dx *= 0.95;
-                    this.dy *= 0.95;
+                    this.dx *= friction;
+                    this.dy *= friction;
+
+                    //buffer x and y are for changing particle position in the case of a collision
+                    var bufferX = 0;
+                    var bufferY = 0;
 
                     for (var h=0;h<particles.length;h++) {
                         if (particles[h] != this) {
@@ -83,17 +88,23 @@
                                 //finding the right force
                                 var force = associations[this.color][particles[h].color];
                                 force *= this.r / totalDist;
-
-                                //if distance is less than radius and their radius, push away
-                                if (totalDist < this.r * 4) {
-                                    this.force(particles[h].x, particles[h].y, -1);
-                                } else {
-                                    //just apply normal force
-                                    this.force(particles[h].x, particles[h].y, force);
+                                
+                                //if a particle sees it's own color, it will end up being NaN, so this corrects for that
+                                if (Number.isNaN(force)) {
+                                    force = 0.2;
                                 }
+                                //if the particle is intersecting with the other, make the force negative
+                                if (totalDist < this.r + particles[h].r) {
+                                    force -= (Math.abs(force) * 2);
+                                }
+
+                                //applying force
+                                this.force(particles[h].x, particles[h].y, force);
                             }
                         }
                     }
+                    this.x += bufferX;
+                    this.y += bufferY;
                 }
 
                 force(x, y, strength) {
@@ -111,12 +122,8 @@
 
                 beDrawn() {
                     ctx.fillStyle = this.color;
-                    ctx.globalAlpha = 1;
                     ctx.beginPath();
                     ctx.ellipse(this.x, this.y, this.r, this.r, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.globalAlpha = 0.3;
-                    ctx.ellipse(this.x, this.y, this.sightR, this.sightR, 0, 0, Math.PI * 2);
                     ctx.fill();
                 }
 
@@ -136,7 +143,7 @@
                 for (var z=0;z<numOfParticles;z++) {
                     particles.push(new Particle());
                 }
-                timer = setInterval(iterate, 10);
+                timer = setInterval(iterate, 20);
             }
 
             function iterate() {
