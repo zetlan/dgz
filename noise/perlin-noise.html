@@ -50,11 +50,12 @@
                 noiseWidth = Math.ceil(canvas.width / pixelSize);
 				noiseHeight = Math.ceil(canvas.height / pixelSize);
 				
-                generatePRandArray(0.751);
+				generatePRandArray(0.751);
+				generateVectorTable();
                 generateArray();
-                generate();
+                generateNoiseValues(0, 0);
                 render();
-                redraw = setInterval(iterate, frameTime);
+                //redraw = setInterval(iterate, frameTime);
             }
 
             function render() {
@@ -66,7 +67,8 @@
                 for (var y=0;y<noiseHeight;y++) {
                     for (var x=0;x<noiseWidth;x++) {
                         //color based off of value in dataLayout
-						var alpha = generateValue(x, y);
+						var alpha = dataLayout[y][x];
+						ctx.globalAlpha = alpha;
 						ctx.fillStyle = "#FFFFFF";
 						ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
                     }
@@ -77,13 +79,21 @@
                 //iterate gives the appearance of movement by removing the first row and adding another row to the end.
                 //deleting first row
                 dataLayout.splice(0, 1);
-                dataLayout.push([]);
-                
+				dataLayout.push([]);
+				
                 render();
 
                 //time is so that the base color changes
-                time += 0.0625;
-            }
+            	time += 0.0625;
+			}
+			
+			function generateNoiseValues(startX, startY) {
+				for (var a=0;a<dataLayout.length;a++) {
+					for (var b=0;b<dataLayout[0].length;b++) {
+						dataLayout[a][b] = generateValue((b + startX) / scale, (a + startY) / scale);
+					}
+				}
+			}
             
             function generatePRandArray(seedBetween0And1) {
                 //generates a pseudo-random array for the vector table
@@ -98,7 +108,16 @@
 			}
 			
 			function generateVectorTable() {
-
+				for (var f=0;f<vTableSize;f++) {
+					//create empty row
+					vectorTable.push([]);
+					for (var g=0;g<vTableSize;g++) {
+						//convert value from pRandArray to vector, then push vector into table
+						var arrayRead = g + (f * vTableSize);
+						var tempVector = numToVector(pRandArray[arrayRead]);
+						vectorTable[f].push(tempVector);
+					}
+				}
 
 			}
 			
@@ -114,6 +133,7 @@
 				}
 			}
 
+			//main generator
             function generateValue(x, y) {
                 //account for scaling
                 x /= nScale;
@@ -124,32 +144,32 @@
 
                 //now that we have the requested x and y, we can generate perlin noise from it
                 //getting the square that the (x, y) coordinate is in
-                //modulate by 255 so that it doesn't leave the array
-                var xSquare = Math.floor(x) % 255;
-                var ySquare = Math.floor(y) % 255;
+                //modulate by the size of the vector array to avoid computational issues
+                var xSquare = Math.floor(x) % (vTableSize - 1);
+                var ySquare = Math.floor(y) % (vTableSize - 1);
                 //find the coordinate position in square (for distance vectors)
                 var xPart = x % 1;
 				var yPart = y % 1;
-				//get square points (for grid vectors)
-
+				//get distance vectors
+				//get grid vectors (offset from corners)
 				//take dot product of all 4 vectors
-				
-
-                
-                //return value
-                var v = value;
-                //fade function for smooth interpolation (is 6v^5 - 15v^4 + 10v^3)
+				var dot1;x
+				var dot2;
+				var dot3;
+				var dot4;
+				//now that we have all 4 dot products, they need to be interpolated
+				var v = (dot1 + dot2 + dot3 + dot4) / 4;
+				//v is now between -1 and 1, but fade function only works from 0 to 1, so conversion must happen
+				v = (v + 1) / 2;
+				/*running fade function (6v^5 - 15v^4 + 10v^3) to fix artifacts of linear interpolation*/
                 return (6 * (v * v * v * v * v)) - (15 * (v * v * v * v) + (10 * (v * v * v)));
 			}
 			
 			//helper functions
-			function dotProduct(dir1, dir2, mag1, mag2) {
-				var totalAngle = (dir1 + dir2) % (Math.PI * 2);
-				var multLengths = mag1 * mag2;
-				var dotProduct = Math.cos(totalAngle) * multLengths;
-
+			function dotProduct(x1, y1, x2, y2) {
+				//dotProduct may seem wasteful in line space, but it makes the code easier to read
+				var dotProduct = (x1 * x2) + (y1 * y2);
 				return dotProduct;
-
 			}
 
 			function numToVector(inputNum) {
@@ -157,11 +177,12 @@
 				var magni = (inputNum - angle) / 16;
 
 				angle = (angle / 16) * (Math.PI * 2);
-				magni = magni / 15;
+				//1/16 is added to the magnitude before dividing so that the magnitude is never 0
+				magni = (magni + (1/16)) / 16;
 
 				//after getting angle and magnitude, vectors are converted into [xy] pair for easier access
-				var xComp = 
-				var yComp = 
+				var xComp = magni * Math.sin(angle);
+				var yComp = magni * Math.cos(angle);
  				return [xComp, yComp];
 			}
 
@@ -175,7 +196,6 @@
             <strong>generation:</strong><br>
 			noise noises
 			<strong>drawing:</strong><br>
-			
         </p>
     </body>
 </html>
