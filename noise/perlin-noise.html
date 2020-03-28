@@ -22,12 +22,20 @@
             window.onload = setup;
 
             var canvas;
-            var ctx;
-            var dataLayout = [];
-            var pRandArray = [];
+			var ctx;
+			//final array
+			var dataLayout = [];
+			
+			//helper arrays
+			var pRandArray = [];
+			var vectorTable = [];
+			
+			var vTableSize = 16;
+			var pRASize = vTableSize * vTableSize;
 
             var noiseWidth;
             var noiseHeight;
+            var nScale = 25;
 
             var pixelSize = 3;
             var time = 0;
@@ -42,7 +50,7 @@
                 noiseWidth = Math.ceil(canvas.width / pixelSize);
 				noiseHeight = Math.ceil(canvas.height / pixelSize);
 				
-                generatePRandArray();
+                generatePRandArray(0.751);
                 generateArray();
                 generate();
                 render();
@@ -58,15 +66,9 @@
                 for (var y=0;y<noiseHeight;y++) {
                     for (var x=0;x<noiseWidth;x++) {
                         //color based off of value in dataLayout
-						var alpha = dataLayout[y][x];
-
-						if (alpha > 0.75) {
-							ctx.fillStyle = "#FFFFFF";
-							ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
-						} else if (alpha > 0.5) {
-							ctx.fillStyle = "#888888";
-							ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
-						}
+						var alpha = generateValue(x, y);
+						ctx.fillStyle = "#FFFFFF";
+						ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
                     }
                 }
             }
@@ -84,17 +86,21 @@
             }
             
             function generatePRandArray(seedBetween0And1) {
-                //generates a pseudo-random array of length 255
+                //generates a pseudo-random array for the vector table
                 pRandArray = [];
                 var x = seedBetween0And1;
-                for (var u=0;u<255;u++) {
+                for (var u=0;u<pRASize;u++) {
                     //uses a logistic function with a high r value to get a pseudo-random result
                     x = x * 3.947 * (1-x);
                     //floor and multiply by 255 to get number between 0 and 255
                     pRandArray.push(Math.floor(x * 255));
-
                 }
-            }
+			}
+			
+			function generateVectorTable() {
+
+
+			}
 			
 			function generateArray() {
                 //create all rows
@@ -108,21 +114,6 @@
 				}
 			}
 
-            function generate() {
-                for (var arrY=0;arrY<noiseHeight;arrY++) {
-                    generateRow(arrY);
-                }
-            }
-
-            function generateRow(row) {
-				//go pixel by pixel, generating value for each individual square
-                for (var arrX=0;arrX<noiseWidth;arrX++) {
-					//time is incorporated into the generation so that it changes
-                    var thisValue = generateValue(arrX, row);
-                    dataLayout[row][arrX] = thisValue;
-                }
-            }
-
             function generateValue(x, y) {
                 //account for scaling
                 x /= nScale;
@@ -130,9 +121,51 @@
 				//accounting for pixel size
 				x *= (pixelSize / 4);
                 y *= (pixelSize / 4);
+
+                //now that we have the requested x and y, we can generate perlin noise from it
+                //getting the square that the (x, y) coordinate is in
+                //modulate by 255 so that it doesn't leave the array
+                var xSquare = Math.floor(x) % 255;
+                var ySquare = Math.floor(y) % 255;
+                //find the coordinate position in square (for distance vectors)
+                var xPart = x % 1;
+				var yPart = y % 1;
+				//get square points (for grid vectors)
+
+				//take dot product of all 4 vectors
+				
+
                 
                 //return value
-            }
+                var v = value;
+                //fade function for smooth interpolation (is 6v^5 - 15v^4 + 10v^3)
+                return (6 * (v * v * v * v * v)) - (15 * (v * v * v * v) + (10 * (v * v * v)));
+			}
+			
+			//helper functions
+			function dotProduct(dir1, dir2, mag1, mag2) {
+				var totalAngle = (dir1 + dir2) % (Math.PI * 2);
+				var multLengths = mag1 * mag2;
+				var dotProduct = Math.cos(totalAngle) * multLengths;
+
+				return dotProduct;
+
+			}
+
+			function numToVector(inputNum) {
+				var angle = inputNum % 16;
+				var magni = (inputNum - angle) / 16;
+
+				angle = (angle / 16) * (Math.PI * 2);
+				magni = magni / 15;
+
+				//after getting angle and magnitude, vectors are converted into [xy] pair for easier access
+				var xComp = 
+				var yComp = 
+ 				return [xComp, yComp];
+			}
+
+
         </script>
     </head>
     <body>
