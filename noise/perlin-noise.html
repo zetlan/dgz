@@ -1,0 +1,148 @@
+<html>
+    <head>
+        <style>
+            body {
+                background-color: slateblue;
+            }
+
+            #canv {
+                margin: auto;
+                text-align: center;
+                display: block;
+            }
+
+            #explanText {
+                margin: auto;
+                text-align: center;
+            }
+
+
+        </style>
+        <script>
+            window.onload = setup;
+
+            var canvas;
+            var ctx;
+            var dataLayout = [];
+            var pRandArray = [];
+
+            var noiseWidth;
+            var noiseHeight;
+
+            var pixelSize = 3;
+            var time = 0;
+            var frameTime = 30;
+
+            let redraw;
+
+            function setup() {
+                canvas = document.getElementById("canv");
+                ctx = canvas.getContext("2d");
+
+                noiseWidth = Math.ceil(canvas.width / pixelSize);
+				noiseHeight = Math.ceil(canvas.height / pixelSize);
+				
+                generatePRandArray();
+                generateArray();
+                generate();
+                render();
+                redraw = setInterval(iterate, frameTime);
+            }
+
+            function render() {
+				ctx.globalAlpha = 1;
+				ctx.fillStyle = "hsl(" + time + ", 100%, 50%)";
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+				
+                //two for loops for two dimensions
+                for (var y=0;y<noiseHeight;y++) {
+                    for (var x=0;x<noiseWidth;x++) {
+                        //color based off of value in dataLayout
+						var alpha = dataLayout[y][x];
+
+						if (alpha > 0.75) {
+							ctx.fillStyle = "#FFFFFF";
+							ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
+						} else if (alpha > 0.5) {
+							ctx.fillStyle = "#888888";
+							ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
+						}
+                    }
+                }
+            }
+
+            function iterate() {
+                //iterate gives the appearance of movement by removing the first row and adding another row to the end.
+                //deleting first row
+                dataLayout.splice(0, 1);
+                dataLayout.push([]);
+                
+                render();
+
+                //time is so that the base color changes
+                time += 0.0625;
+            }
+            
+            function generatePRandArray(seedBetween0And1) {
+                //generates a pseudo-random array of length 255
+                pRandArray = [];
+                var x = seedBetween0And1;
+                for (var u=0;u<255;u++) {
+                    //uses a logistic function with a high r value to get a pseudo-random result
+                    x = x * 3.947 * (1-x);
+                    //floor and multiply by 255 to get number between 0 and 255
+                    pRandArray.push(Math.floor(x * 255));
+
+                }
+            }
+			
+			function generateArray() {
+                //create all rows
+				for (var row=0;row<noiseHeight;row++) {
+					//create row
+					dataLayout.push([]);
+					//append row with 0s
+					for (var column=0;column<noiseWidth;column++) {
+						dataLayout[row].push(0);
+					}
+				}
+			}
+
+            function generate() {
+                for (var arrY=0;arrY<noiseHeight;arrY++) {
+                    generateRow(arrY);
+                }
+            }
+
+            function generateRow(row) {
+				//go pixel by pixel, generating value for each individual square
+                for (var arrX=0;arrX<noiseWidth;arrX++) {
+					//time is incorporated into the generation so that it changes
+                    var thisValue = generateValue(arrX, row);
+                    dataLayout[row][arrX] = thisValue;
+                }
+            }
+
+            function generateValue(x, y) {
+                //account for scaling
+                x /= nScale;
+                y /= nScale;
+				//accounting for pixel size
+				x *= (pixelSize / 4);
+                y *= (pixelSize / 4);
+                
+                //return value
+            }
+        </script>
+    </head>
+    <body>
+        <canvas id="canv" width="640" height="480"></canvas><br>
+        <p id="explanText">
+            How it works: <br>
+            <strong>generation:</strong><br>
+			noise noises
+			<strong>drawing:</strong><br>
+			
+        </p>
+    </body>
+</html>
