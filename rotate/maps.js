@@ -1,0 +1,1 @@
+var defaultMap = new Map();
