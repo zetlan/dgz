@@ -29,20 +29,20 @@
 			//helper arrays
 			var pRandArray = [];
 			var vectorTable = [];
+			var sVTable = [];
 			
-			var vTableSize = 16;
+			var vTableSize = 32;
+			var sVTableSize = 10;
+			var seed = 0.281;
 			var pRASize = vTableSize * vTableSize;
 
             var noiseWidth;
             var noiseHeight;
-            var nScale = 4;
+            var nScale = 5.5;
 
-            var pixelSize = 3;
-            var time = 200;
+            var pixelSize = 4;
+            var time = 0;
 			var frameTime = 30;
-			
-			var maxV = -10;
-			var minV = 10;
 
             let redraw;
 
@@ -53,23 +53,22 @@
                 noiseWidth = Math.ceil(canvas.width / pixelSize);
 				noiseHeight = Math.ceil(canvas.height / pixelSize);
 				
-				generatePRandArray(0.756);
-				generateVectorTable();
+				generatePRandArray(seed);
+				generateVectorTable(vTableSize, vectorTable);
                 generateArray();
-                generateNoiseValues(0, 0);
+                generateNoiseValues(0, 0, nScale, dataLayout);
                 render();
-                //redraw = setInterval(iterate, frameTime);
+                redraw = setInterval(iterate, frameTime);
             }
 
             function render() {
 				ctx.globalAlpha = 1;
-				ctx.fillStyle = "hsl(" + time + ", 100%, 50%)";
+				ctx.fillStyle = "hsl(270, 90%, 40%)";
 				ctx.fillRect(0, 0, canvas.width, canvas.height);
 				
                 //two for loops for two dimensions
                 for (var y=0;y<noiseHeight;y++) {
                     for (var x=0;x<noiseWidth;x++) {
-                        //color based off of value in dataLayout
 						var alpha = dataLayout[y][x];
 						ctx.globalAlpha = alpha;
 						ctx.fillStyle = "#FFFFFF";
@@ -84,16 +83,17 @@
                 dataLayout.splice(0, 1);
 				dataLayout.push([]);
 				
+				generateNoiseRow(0, time + noiseHeight);
                 render();
 
-                //time is so that the base color changes
-            	time += 0.0625;
+                //time is so that the noise increments value
+            	time += 1;
 			}
 			
-			function generateNoiseValues(startX, startY) {
-				for (var a=0;a<dataLayout.length;a++) {
-					for (var b=0;b<dataLayout[0].length;b++) {
-						dataLayout[a][b] = generateValue((b + startX) / nScale, (a + startY) / nScale);
+			function generateNoiseValues(startX, startY, scale, storeArray) {
+				for (var a=0;a<storeArray.length;a++) {
+					for (var b=0;b<storeArray[0].length;b++) {
+						storeArray[a][b] = generateValue((b + startX) / scale, (a + startY) / scale);
 					}
 				}
 			}
@@ -110,15 +110,15 @@
                 }
 			}
 			
-			function generateVectorTable() {
-				for (var f=0;f<vTableSize;f++) {
+			function generateVectorTable(size, toPushTo) {
+				for (var f=0;f<size;f++) {
 					//create empty row
-					vectorTable.push([]);
-					for (var g=0;g<vTableSize;g++) {
+					toPushTo.push([]);
+					for (var g=0;g<size;g++) {
 						//convert value from pRandArray to vector, then push vector into table
-						var arrayRead = g + (f * vTableSize);
+						var arrayRead = g + (f * size);
 						var tempVector = numToVector(pRandArray[arrayRead]);
-						vectorTable[f].push(tempVector);
+						toPushTo[f].push(tempVector);
 					}
 				}
 
@@ -133,6 +133,12 @@
 					for (var column=0;column<noiseWidth;column++) {
 						dataLayout[row].push(0);
 					}
+				}
+			}
+
+			function generateNoiseRow(xStart, yStart) {
+				for (var p=0;p<noiseWidth;p++) {
+					dataLayout[dataLayout.length-1][p] = generateValue((p + xStart) / nScale, yStart / nScale);
 				}
 			}
 
@@ -151,12 +157,12 @@
                 var xSquare = Math.floor(x) % (vTableSize - 1);
                 var ySquare = Math.floor(y) % (vTableSize - 1);
                 //find the coordinate position in square (for distance vectors)
-                var xPart = x % 1;
-				var yPart = y % 1;
+                var xPart = 1 - x % 1;
+				var yPart = 1 - y % 1;
 
 				//storing faded x/y parts for interpolation later
-				var xPF = fade(xPart);
-				var yPF = fade(yPart);
+				var xPF = fade(x % 1);
+				var yPF = fade(y % 1);
 
 				//get distance vectors in xy form
 				var d1 = [xPart, yPart];
@@ -164,11 +170,12 @@
 				var d3 = [1 - xPart, 1 - yPart];
 				var d4 = [xPart, 1 - yPart];
 
-				//get grid vectors in xy form
-				var g1 = vectorTable[ySquare][xSquare];
-				var g2 = vectorTable[ySquare][xSquare+1];
-				var g3 = vectorTable[ySquare+1][xSquare+1];
-				var g4 = vectorTable[ySquare+1][xSquare];
+				//get grid vectors in xy form, modulate by vTableSize when adding just in case
+				var mV = vTableSize - 1;
+				var g1 = vectorTable[ySquare		 ][xSquare		   ];
+				var g2 = vectorTable[ySquare		 ][(xSquare+1) % mV];
+				var g3 = vectorTable[(ySquare+1) % mV][(xSquare+1) % mV];
+				var g4 = vectorTable[(ySquare+1) % mV][xSquare		   ];
 
 				//take dot product of all 4 vectors
 				var dot1 = dotProduct(d1[0], d1[1], g1[0], g1[1]);
@@ -177,31 +184,18 @@
 				var dot4 = dotProduct(d4[0], d4[1], g4[0], g4[1]);
 				
 				//now that we have all 4 dot products, they need to be interpolated
-				/*rescaling dot products from [-1, 1] to [0, 1]
-				dot1 = (dot1 + 1) / 2;
-				dot2 = (dot2 + 1) / 2;
-				dot3 = (dot3 + 1) / 2;
-				dot4 = (dot4 + 1) / 2; */
 
-				//first interpolating two x components (including fade)
+				//first interpolating two x components
 				var xInter1 = lInterp(dot1, dot2, xPF);
 				var xInter2 = lInterp(dot4, dot3, xPF);
-
-				//scale values and run through fade function (scaling to fix -1to1 range)
-				/*xInter1 = fade((xInter1 + 1) / 2);
-				xInter2 = fade((xInter2 + 1 )/ 2);
-
-				xInter1 = (xInter1 * 2) - 1;
-				*/
 
 				//now y component
 				var v = lInterp(xInter1, xInter2, yPF);
 
-				//now is a good time to adjust v to be between 0 and 1 instead of -1 and 1
-				v = (v + 1) / 2;
-				//returning final value
-				return fade(v);
-				
+				//now is a good time to change it from [-1 > 1] to [0 > 1]
+				v = (v + 1) / 2	
+				//returning final value, fades one more time for clarity
+				return v;
 			}
 			
 			//helper functions
@@ -216,18 +210,23 @@
 				return ((6 * (v * v * v * v * v)) - (15 * (v * v * v * v)) + (10 * (v * v * v)));
 			}
 
-			//linear interpolation, which apparently isn't just averaging
+			//linear interpolation function
 			function lInterp(a, b, fractionVal) {
-				return a + fractionVal * (b - a);
+				return a + (fractionVal * (b - a));
 			}
 
 			function numToVector(inputNum) {
+				//turn angle into a number between 0 and 15
 				var angle = inputNum % 16;
-				var magni = (inputNum - angle) / 16;
-
+				//turn angle into number between 0 and tau, for amount of radians
 				angle = (angle / 16) * (Math.PI * 2);
 				//1/16 is added to the magnitude before dividing so that the magnitude is never 0
-				magni = (magni + (1/16)) / 16;
+				var magni;
+				if (inputNum > 127) {
+					magni = 0.5;
+				} else {
+					magni = -0.5;
+				}
 
 				//after getting angle and magnitude, vectors are converted into [xy] pair for easier access
 				var xComp = magni * Math.sin(angle);
@@ -239,10 +238,27 @@
     <body>
         <canvas id="canv" width="640" height="480"></canvas><br>
         <p id="explanText">
-            How it works: <br>
-            <strong>generation:</strong><br>
-			noise noises
-			<strong>drawing:</strong><br>
+            <strong>How it works:</strong> <br>
+			There are 3 main parts to generation, which are initialization, computation, and interpolation.<br>
+			<br>
+			In the initialization phase, a table of pseudo-random numbers of a specified length is generated.<br>
+			The table is filled with numbers from 0 to 255, which are used to generate different vectors all of length <br>
+			0.5 or -0.5. The table of vectors is a 16 by 16 square of vectors, and this is what is used to generate the final noise.<br>
+			<br>
+			In the generation phase, an array for every pixel is looped over and the values are generated for it.<br>
+			First, the percentage of position in the grid is calculated (between 0 and 1 for both x and y), and dot <br>
+			products are calculated for that position. Since there are 4 dot products, they need to be interpolated.<br>
+			<br>
+			In the interpolation phase, the 4 dot products are combined into 2 x values, and then those are combined into 1 final <br>
+			value through the y interpolation. Since linear interpolation would have introduced artifacts, the interpolation percentage <br>
+			is run through a fade function (6t^5 - 15t^4 + 10t^3) to reduce the impact of the far away vectors on the final value.<br>
+			<br>
+			For the drawing part, the value recieved is used as opacity for a white pixel over a colored background. <br>
+			The whiter the square, the higher the value.<br>
+			<br>
+			If you want a more detailed explanation, you can look at <a href="https://flafla2.github.io/2014/08/09/perlinnoise.html">this page</a>, <a href="https://www.youtube.com/watch?v=MJ3bvCkHJtE">this video</a>, <br>
+			which both helped me understand how to make perlin noise, or look at the source code for this page<br> 
+			(by right clicking on the background and then left clicking on "view page source").
         </p>
     </body>
 </html>
