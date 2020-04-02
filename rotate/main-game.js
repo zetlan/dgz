@@ -7,6 +7,7 @@ var canvas;
 var ctx;
 var loadingMap;
 var mapSize = 150;
+var pTime = 0;
 
 //colors
 var characterColor = "#FF00FF";
@@ -23,11 +24,14 @@ function setup() {
 	ctx = canvas.getContext("2d");
 
     player = new Character(0, 0, 0);
-	camera = new Camera(0, 0, -2 * mapSize, 250);
-
+	camera = new Camera(0, 0, -2 * mapSize, 250);	
 	initMaps();
-    loadingMap = defaultMap;
-    timer = window.requestAnimationFrame(main);
+	
+	
+	loadingMap = defaultMap;
+	console.log("test");
+	timer = window.requestAnimationFrame(main);
+	
 }
 
 function keyPress(u) {
@@ -57,13 +61,15 @@ function keyPress(u) {
 			break;
         
         //camera controls
-        //Z or J
+        //Z or K
         case 90:
-        case 74:
+        case 75:
+			loadingMap.startRotation(0.05);
             break;
-        //C or L
-        case 67:
+        //X or L
+        case 88:
         case 76:
+			loadingMap.startRotation(-0.05);
 			break;
 			
 		case 188:
@@ -115,7 +121,7 @@ function main() {
 
 	//call itself through animation frame 
 	timer = window.requestAnimationFrame(main);
-
+	pTime += 1;
 }
 
 
@@ -151,10 +157,27 @@ function gPoint(x, y, size) {
 //the transform from 3d coordinates into 2d screen coordinates
 function spaceToScreen(pointArr) {
 	//takes in an xyz list and outputs an xy list
+	var tX = pointArr[0];
+	var tY = pointArr[1];
+	var tZ = pointArr[2];
+
+	var nTX = tX;
+	var nTZ = tZ;
+	
+	//step 0: rotate coordinates around 0, 0, 0
+	//only check angle after time has passed
+	if (pTime > 0) {
+		var a = loadingMap.angle;
+		if (a > 0 || a < 0) {
+			tX = (nTX * Math.cos(a)) - (nTZ * Math.sin(a));
+			tZ = (nTZ * Math.cos(a)) + (nTX * Math.sin(a));
+		}
+	}
+	
 	//step 1: make coordinates relative to camera
-	var tX = pointArr[0] - camera.x;
-	var tY = pointArr[1] - camera.y;
-	var tZ = pointArr[2] - camera.z;
+	tX -= camera.x;
+	tY -= camera.y;
+	tZ -= camera.z;
 
 	//step 2: divide by axis perpendicular to camera, (for this program, is always z)
 	tX /= tZ;
@@ -171,4 +194,22 @@ function spaceToScreen(pointArr) {
 	tY += canvas.height / 2;
 
 	return [tX, tY];
+}
+
+function rotateXYVec(x, y, a) {
+	//converting xy to polar
+	var r = Math.sqrt((x * x) + (y * y));
+	var theta = Math.acos(x / r);
+	//rotating angle
+	theta += a;
+	//converting angle back to xy and returning that
+	var newX = r * Math.sin(theta);
+	var newY = r * Math.cos(theta);
+
+	//as this process makes negative values positive, they are fixed here
+	if (y < 0) {
+		newY *= -1;
+	}
+	return [newX, newY];
+	
 }
