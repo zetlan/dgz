@@ -16,7 +16,10 @@ class Cube extends Main {
     constructor(x, y, z, r) {
         super(x, y, z);
 
-        this.r = r;
+		this.r = r;
+		this.rx = r;
+		this.ry = r;
+		this.rz = r;
 
         this.uPoints = [];
         this.lPoints = [];
@@ -114,18 +117,61 @@ class Cube extends Main {
 	} 
 	
 	tick() {
+		//attempting collision with player
+		var pDist = this.getPlayerDist();
+		//checking if player is inside cube
+		if (pDist[0] < this.rx && Math.abs(pDist[1]) < this.ry && pDist[2] < this.rz) {
+			//if yDist is large enough, push them on top
+			if (pDist[1] > this.ry - 10) {
+				player.y -= player.dy;
+				if (player.dy < 0) {
+					player.dy = 0;
+				}
+			}
+			//if not, push them out
+			
+		}
+		
+	}
+
+	getPlayerDist() {
+		var xDist = Math.abs(player.x - this.x);
+		var yDist = this.y - player.y;
+		var zDist = Math.abs(player.z - this.z);
+		return [xDist, yDist, zDist];
 	}
 }
 
-class Pyramid {
-	constructor() {
+class Wall extends Cube {
+	constructor(x, y, z, xr, yr, zr) {
+		super(x, y, z, yr);
+		this.xr = xr;
+		this.yr = yr;
+		this.zr = zr;
+	}
 
+	generatePoints() {
+		//similar to cube, but not
+        this.uPoints = [];
+        this.lPoints = [];
+
+        //upper points
+        this.uPoints.push([this.x - this.xr, this.y + this.yr, this.z + this.zr]);
+        this.uPoints.push([this.x + this.xr, this.y + this.yr, this.z + this.zr]);
+        this.uPoints.push([this.x + this.xr, this.y + this.yr, this.z - this.zr]);
+        this.uPoints.push([this.x - this.xr, this.y + this.yr, this.z - this.zr]);
+
+        //lower points
+        this.lPoints.push([this.x - this.xr, this.y - this.yr, this.z + this.zr]);
+        this.lPoints.push([this.x + this.xr, this.y - this.yr, this.z + this.zr]);
+        this.lPoints.push([this.x + this.xr, this.y - this.yr, this.z - this.zr]);
+        this.lPoints.push([this.x - this.xr, this.y - this.yr, this.z - this.zr]);
 	}
 }
 
 class Floor extends Main {
 	constructor() {
-		super(0, -100, 0);
+		super(0, -1 * mapSize, 0);
 		this.points = []; 
 		this.xyP = [];
 
@@ -156,6 +202,15 @@ class Floor extends Main {
 			if (player.dy < 0) {
 				player.dy = 0;
 			}
+		}
+
+		//keep the player in bounds
+		if (Math.abs(player.x) > mapSize) {
+			player.x -= player.dx;
+		}
+
+		if (Math.abs(player.z) > mapSize) {
+			player.z -= player.dz;
 		}
 	}
 

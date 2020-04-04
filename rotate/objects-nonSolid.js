@@ -15,8 +15,9 @@ class Map {
     beRun() {
         //rotate if rotating
         if (this.rotating) {
-            this.angle += this.aSpeed;
-            //if rotated 90 degrees, stop
+			this.angle += this.aSpeed;
+			
+            //if rotated 90 degrees, stop rotation
             if (Math.abs(this.aStart - this.angle) > Math.PI / 2) {
 				this.rotating = false;
 				//rounding to nearest 90 degrees (Pi radians)
@@ -24,13 +25,15 @@ class Map {
             }
         }
 		//tick and draw everything
+		//player is ticked first but drawn last so that collisions don't look strange
+		player.tick();
+
 		for (var k=0;k<this.contains.length;k++) {
 			this.contains[k].tick();
 			this.contains[k].beDrawn();
 		}
 
-		//ticking/drawing player
-		player.tick();
+		//drawing player
 		player.beDrawn();
     }
 
@@ -73,7 +76,10 @@ class Character extends Main {
 		super(x, y, z);
 		
 		this.drawCoord = [];
+		this.drawCoord2 = [];
+		
 		this.r = 5;
+		this.abovePoint = [x, y + this.r, z];
 
         this.dx = 0;
         this.dy = 0;
@@ -82,9 +88,10 @@ class Character extends Main {
 		this.ax = 0;
 		this.az = 0;
 
-		this.mS = 5;
+		this.mS = 2;
 		this.friction = 0.85;
 		this.gravity = 0.5;
+		this.mV = 9.8;
     }
 
     tick() {
@@ -120,6 +127,11 @@ class Character extends Main {
 			}
 		}
 
+		//capping dy
+		if (this.dy < -1 * this.mV) {
+			this.dy = -1 * this.mV;
+		}
+
 		//move player
 		this.x += this.dx;
 		this.y += this.dy;
@@ -127,8 +139,22 @@ class Character extends Main {
     }
 
     beDrawn() {
+		//adjusting the above point
+		this.abovePoint = [this.x, this.y + this.r, this.z];
+
 		this.drawCoord = spaceToScreen([this.x, this.y, this.z]);
+		this.drawCoord2 = spaceToScreen(this.abovePoint);
+
+		//display size depends on distance, so the transform is done for two points and then the 2d distance between them is tested
+		var dispSize = Math.abs(this.drawCoord[1] - this.drawCoord2[1]);
 		ctx.fillStyle = characterColor;
-		gPoint(this.drawCoord[0], this.drawCoord[1], this.r);
+		ctx.strokeStyle = characterColor;
+		gPoint(this.drawCoord2[0], this.drawCoord2[1], dispSize);
+
+		if (loadingMap.rotating) {
+			ctx.stroke();
+		} else {
+			ctx.fill();
+		}
     }
 }

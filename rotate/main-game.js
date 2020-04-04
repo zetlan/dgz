@@ -23,13 +23,11 @@ function setup() {
     canvas = document.getElementById("cvsPharmacy");
 	ctx = canvas.getContext("2d");
 
-    player = new Character(0, 0, 0);
-	camera = new Camera(0, 0, -2 * mapSize, 250);	
+    player = new Character(mapSize * 0.5, 0, -0.5 * mapSize);
+	camera = new Camera(0, 0, -2.25 * mapSize, 250);	
 	initMaps();
 	
-	
 	loadingMap = defaultMap;
-	console.log("test");
 	timer = window.requestAnimationFrame(main);
 	
 }
@@ -40,19 +38,19 @@ function keyPress(u) {
         //player controls
         case 37:
         case 65:
-			player.ax = -1;
+			player.ax = -0.5;
             break;
         case 38:
         case 87:
-			player.az = 1;
+			player.az = 0.5;
             break;
         case 39:
         case 68:
-			player.ax = 1;
+			player.ax = 0.5;
             break;
         case 40:
         case 83:
-			player.az = -1;
+			player.az = -0.5	;
 			break;
 
 		//space
@@ -77,7 +75,6 @@ function keyPress(u) {
 		case 190: 
 			break;
 	}
-	console.log(u.keyCode, camera.scale);
 }
 
 function keyNegate(u) {
@@ -151,7 +148,6 @@ function gLine(startXYArr, endXYArr) {
 function gPoint(x, y, size) {
 	ctx.beginPath();
 	ctx.ellipse(x, y, size, size, 0, 0, Math.PI * 2);
-	ctx.fill();
 }
 
 //the transform from 3d coordinates into 2d screen coordinates
@@ -212,4 +208,8 @@ function rotateXYVec(x, y, a) {
 	}
 	return [newX, newY];
 	
+}
+
+function multTo(initNum, forcedNum) {
+
 }
