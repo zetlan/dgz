@@ -9,7 +9,8 @@ class Map {
         this.angle = 0;
         this.aSpeed = 0;
         this.aStart = 0;
-        this.rotating = false;
+		this.rotating = false;
+		this.ableToSwap = true;
     }
 
     beRun() {
@@ -17,11 +18,12 @@ class Map {
         if (this.rotating) {
 			this.angle += this.aSpeed;
 			
-            //if rotated 90 degrees, stop rotation
-            if (Math.abs(this.aStart - this.angle) > Math.PI / 2) {
+            //if rotated 90 degrees or rotated ~0 degrees, stop rotation
+            if (Math.abs(this.aStart - this.angle) > Math.PI / 2 || Math.abs(this.aStart - this.angle) < Math.abs(this.aSpeed * 0.8)) {
 				this.rotating = false;
 				//rounding to nearest 90 degrees (Pi radians)
 				this.angle = Math.round(this.angle / (Math.PI / 2)) * (Math.PI / 2);
+				this.ableToSwap = true;
             }
         }
 		//tick and draw everything
@@ -46,7 +48,6 @@ class Map {
         }
     }
 }
-
 
 
 //main class, everything extends from here

@@ -55,13 +55,12 @@ function inPoly(xyPoint, polyPoints) {
 
 	var intersectNum = 0;
 	//checking against all polygon lines
-	for (var r=0;r<=polyPoints.length;r++) {
+	for (var r=0;r<polyPoints.length;r++) {
 		var p1 = polyPoints[r % polyPoints.length];
 		var p2 = polyPoints[(r+1) % polyPoints.length];
 
 		if (lineIntersect(p1, p2, linP1, linP2)) {
 			intersectNum += 1;
-			gLine(p1, p2);
 		}
 	}
 

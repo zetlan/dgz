@@ -25,6 +25,10 @@ class Cube extends Main {
 		this.xyUP = [];
 		this.xyLP = [];
 		this.faces = [];
+		this.construct();
+	}
+
+	construct() {
 		this.generatePoints();
 		this.generateScreenPoints();
 		this.generateFaces();
@@ -63,13 +67,12 @@ class Cube extends Main {
 
 	generateFaces() {
 		//generates each face
-		//order is left, right, up, down, front, back
+		//order is left, right, up, front, back
 		this.faces = [];
 		var nSFaces = [];
 		nSFaces.push(new Face([this.xyUP[0], this.xyUP[3], this.xyLP[3], this.xyLP[0]], [this.uPoints[0], this.uPoints[3], this.lPoints[3], this.lPoints[0]], -1, 0, 0));
-		nSFaces.push(new Face([this.xyUP[1], this.xyUP[2], this.xyLP[1], this.xyLP[2]], [this.uPoints[1], this.uPoints[2], this.lPoints[1], this.lPoints[2]], 1, 0, 0));
+		nSFaces.push(new Face([this.xyUP[1], this.xyUP[2], this.xyLP[2], this.xyLP[1]], [this.uPoints[1], this.uPoints[2], this.lPoints[2], this.lPoints[1]], 1, 0, 0));
 		nSFaces.push(new Face([this.xyUP[0], this.xyUP[1], this.xyUP[2], this.xyUP[3]], [this.uPoints[0], this.uPoints[1], this.uPoints[2], this.uPoints[3]], 0, 1, 0));
-		nSFaces.push(new Face([this.xyLP[0], this.xyLP[1], this.xyLP[2], this.xyLP[3]], [this.lPoints[0], this.lPoints[1], this.lPoints[2], this.lPoints[3]], 0, -1, 0));
 		nSFaces.push(new Face([this.xyUP[3], this.xyUP[2], this.xyLP[2], this.xyLP[3]], [this.uPoints[3], this.uPoints[2], this.lPoints[2], this.lPoints[3]], 0, 0, -1));
 		nSFaces.push(new Face([this.xyUP[0], this.xyUP[1], this.xyLP[1], this.xyLP[0]], [this.uPoints[0], this.uPoints[1], this.lPoints[1], this.lPoints[0]], 0, 0, 1));
 		//the non sorted faces are then put into the array according to the distance from the camera, starting with greatest distance.
@@ -110,6 +113,10 @@ class Cube extends Main {
 	} 
 	
 	tick() {
+		//if rotating, reconstruct self
+		if (loadingMap.rotating) {
+			this.construct();
+		}
 		//ticking each face
 		for (var h=0;h<this.faces.length;h++) {
 			this.faces[h].tick();
@@ -130,6 +137,7 @@ class Wall extends Cube {
 		this.rx = xr;
 		this.ry = yr;
 		this.rz = zr;
+		this.construct();
 	}
 }
 
@@ -207,24 +215,39 @@ class Face {
 	tick() {
 		//collision with the player
 		if (inPoly(player.drawCoord2, this.points)) {
-			//different collision procedures for collision values
-			//0 is none, 1 is positive, -1 is negative
-			if (this.colX != 0) {
-				player.x += this.colX * player.mS;
-			}
-
-			//special check for y for smoother handling
-			if (this.colY != 0) {
-				player.y += this.colY * player.mS;
-				if (player.dy * this.colY < 0) {
-					player.dy = 0;
+			//regular case
+			if (!loadingMap.rotating) {
+				//different collision procedures for collision values
+				//0 is none, 1 is positive, -1 is negative
+				if (this.colX != 0) {
+					player.x += this.colX * player.mS;
 				}
-			}
 
-			if (this.colZ != 0) {
-				player.z += this.colZ * player.mS;
+				//special check for y for smoother handling
+				if (this.colY != 0) {
+					player.y += this.colY * player.mS;
+					if (player.dy * this.colY < 0) {
+						player.dy = 0;
+					}
+				}
+
+				if (this.colZ != 0) {
+					player.z += this.colZ * player.mS;
+				}
+				 
+			} else {
+				//rotation case
+				if (loadingMap.ableToSwap) {
+					loadingMap.aSpeed *= -1;
+					loadingMap.ableToSwap = false;
+				}
+				
 			}
+			console.log("collision with face of direction " + this.colX + ", " + this.colY + ", " + this.colZ + ", collision check with player, extended info:");
+			console.log(player.drawCoord2, this.points);
 		}
+			
+			
 	}
 
 	beDrawn() {
