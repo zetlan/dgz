@@ -23,7 +23,7 @@ function setup() {
     canvas = document.getElementById("cvsPharmacy");
 	ctx = canvas.getContext("2d");
 
-    player = new Character(mapSize * 0.5, 0, -0.5 * mapSize);
+    player = new Character(mapSize * -0.5, 0, 0.5 * mapSize);
 	camera = new Camera(0, 0, -2.25 * mapSize, 250);	
 	initMaps();
 	
@@ -192,24 +192,35 @@ function spaceToScreen(pointArr) {
 	return [tX, tY];
 }
 
-function rotateXYVec(x, y, a) {
-	//converting xy to polar
-	var r = Math.sqrt((x * x) + (y * y));
-	var theta = Math.acos(x / r);
-	//rotating angle
-	theta += a;
-	//converting angle back to xy and returning that
-	var newX = r * Math.sin(theta);
-	var newY = r * Math.cos(theta);
-
-	//as this process makes negative values positive, they are fixed here
-	if (y < 0) {
-		newY *= -1;
+function getCameraDist(pointsArray3d) {
+	var pnts = pointsArray3d;
+	var xAvg = 0;
+	var yAvg = 0;
+	var zAvg = 0;
+	//getting average point
+	for (var h=0;h<pnts.length;h++) {
+		xAvg += pnts[h][0];
+		yAvg += pnts[h][1];
+		zAvg += pnts[h][2];
 	}
-	return [newX, newY];
-	
+
+	xAvg /= pnts.length;
+	yAvg /= pnts.length;
+	zAvg /= pnts.length;
+
+	//making point relative to camera position
+
+	xAvg -= camera.x;
+	yAvg -= camera.y;
+	zAvg -= camera.z;
+
+	//getting distance (pythagorean theorum but with 3 numbers)
+	var dis = Math.sqrt((xAvg * xAvg) + (yAvg * yAvg) + (zAvg * zAvg));
+
+	return dis;
 }
 
-function multTo(initNum, forcedNum) {
-
+function gSort(arrToSort) {
+	//javascript's sort is messed up, so this is the better version
+	return arrToSort.sort(function (a,b) {return a - b;});
 }

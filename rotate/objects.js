@@ -13,39 +13,38 @@ down = -Y
 
 //in a cube, the points go NW, NE, SE, SW (clockwise starting from northwest point)
 class Cube extends Main {
-    constructor(x, y, z, r) {
-        super(x, y, z);
-
-		this.r = r;
+	constructor(x, y, z, r) {
+		super(x, y, z);
+		
 		this.rx = r;
 		this.ry = r;
 		this.rz = r;
 
-        this.uPoints = [];
-        this.lPoints = [];
-        this.xyUP = [];
-        this.xyLP = [];
+		this.uPoints = [];
+		this.lPoints = [];
+		this.xyUP = [];
+		this.xyLP = [];
+		this.faces = [];
 		this.generatePoints();
 		this.generateScreenPoints();
-    }
+		this.generateFaces();
+	}
 
-    generatePoints() {
-        //this code is a bit of a mess, but hopefully it will never need to be touched.
-        //each point is an array of 3 coordinates
-        this.uPoints = [];
-        this.lPoints = [];
+	generatePoints() {
+		this.uPoints = [];
+		this.lPoints = [];
 
-        //upper points
-        this.uPoints.push([this.x - this.r, this.y + this.r, this.z + this.r]);
-        this.uPoints.push([this.x + this.r, this.y + this.r, this.z + this.r]);
-        this.uPoints.push([this.x + this.r, this.y + this.r, this.z - this.r]);
-        this.uPoints.push([this.x - this.r, this.y + this.r, this.z - this.r]);
+		//upper points
+		this.uPoints.push([this.x - this.rx, this.y + this.ry, this.z + this.rz]);
+		this.uPoints.push([this.x + this.rx, this.y + this.ry, this.z + this.rz]);
+		this.uPoints.push([this.x + this.rx, this.y + this.ry, this.z - this.rz]);
+		this.uPoints.push([this.x - this.rx, this.y + this.ry, this.z - this.rz]);
 
-        //lower points
-        this.lPoints.push([this.x - this.r, this.y - this.r, this.z + this.r]);
-        this.lPoints.push([this.x + this.r, this.y - this.r, this.z + this.r]);
-        this.lPoints.push([this.x + this.r, this.y - this.r, this.z - this.r]);
-        this.lPoints.push([this.x - this.r, this.y - this.r, this.z - this.r]);
+		//lower points
+		this.lPoints.push([this.x - this.rx, this.y - this.ry, this.z + this.rz]);
+		this.lPoints.push([this.x + this.rx, this.y - this.ry, this.z + this.rz]);
+		this.lPoints.push([this.x + this.rx, this.y - this.ry, this.z - this.rz]);
+		this.lPoints.push([this.x - this.rx, this.y - this.ry, this.z - this.rz]);
 	}
 	
 	generateScreenPoints() {
@@ -62,110 +61,75 @@ class Cube extends Main {
 		this.xyLP.push(spaceToScreen(this.lPoints[3]));
 	}
 
-    beDrawn() {
-		this.generatePoints();
-		this.generateScreenPoints();
-		//drawing each face at a time
+	generateFaces() {
+		//generates each face
+		//order is left, right, up, down, front, back
+		this.faces = [];
+		var nSFaces = [];
+		nSFaces.push(new Face([this.xyUP[0], this.xyUP[3], this.xyLP[3], this.xyLP[0]], [this.uPoints[0], this.uPoints[3], this.lPoints[3], this.lPoints[0]], -1, 0, 0));
+		nSFaces.push(new Face([this.xyUP[1], this.xyUP[2], this.xyLP[1], this.xyLP[2]], [this.uPoints[1], this.uPoints[2], this.lPoints[1], this.lPoints[2]], 1, 0, 0));
+		nSFaces.push(new Face([this.xyUP[0], this.xyUP[1], this.xyUP[2], this.xyUP[3]], [this.uPoints[0], this.uPoints[1], this.uPoints[2], this.uPoints[3]], 0, 1, 0));
+		nSFaces.push(new Face([this.xyLP[0], this.xyLP[1], this.xyLP[2], this.xyLP[3]], [this.lPoints[0], this.lPoints[1], this.lPoints[2], this.lPoints[3]], 0, -1, 0));
+		nSFaces.push(new Face([this.xyUP[3], this.xyUP[2], this.xyLP[2], this.xyLP[3]], [this.uPoints[3], this.uPoints[2], this.lPoints[2], this.lPoints[3]], 0, 0, -1));
+		nSFaces.push(new Face([this.xyUP[0], this.xyUP[1], this.xyLP[1], this.xyLP[0]], [this.uPoints[0], this.uPoints[1], this.lPoints[1], this.lPoints[0]], 0, 0, 1));
+		//the non sorted faces are then put into the array according to the distance from the camera, starting with greatest distance.
+		
+		//this algorithm should be improved.
+		var great = 0;
+		var times = nSFaces.length;
+		for (var a=0;a<times;a++) {
+			
+			//running through list to get greatest distance
+			for (var b=0;b<nSFaces.length;b++) {
+				if (nSFaces[b].cDist > great) {
+					great = nSFaces[b].cDist;
+				}
+			}
+
+			//running through list again, move the greatest distance item to the true faces list
+			for (var c=0;c<nSFaces.length;c++) {
+				if (nSFaces[c].cDist == great) {
+					//remove the item, add it to true face list, exit loop
+					this.faces.push(nSFaces[c]);
+					nSFaces.splice(c, 1);
+					c = nSFaces.length + 1;
+				}
+			}
+
+			great = 0;
+		}
+	}
+
+	beDrawn() {
 		ctx.strokeStyle = "#224";
 		ctx.fillStyle = "#838";
 
-		//top or bottom decision
-		//if the camera is below, draw the top face first
-		if (camera.y < this.y - this.r) {
-			dPoly([this.xyUP[0], this.xyUP[1], this.xyUP[2], this.xyUP[3]]);
-
-		} else {
-			dPoly([this.xyLP[0], this.xyLP[1], this.xyLP[2], this.xyLP[3]]);
+		for (var h=0;h<this.faces.length;h++) {
+			this.faces[h].beDrawn();
 		}
-		ctx.fill();
-
-		//left or right decision
-		//deciding to draw left or right wall first based on camera x in relation to this x
-		if (this.z > camera.z) {
-			//draw the left face first if camera is to the left
-			dPoly([this.xyUP[0], this.xyUP[3], this.xyLP[3], this.xyLP[0]]);
-			ctx.fill();
-
-			//right second
-			dPoly([this.xyUP[1], this.xyUP[2], this.xyLP[2], this.xyLP[1]]);
-			ctx.fill();
-		} else {
-			//drawing the right face first
-			dPoly([this.xyUP[1], this.xyUP[2], this.xyLP[2], this.xyLP[1]]);
-			ctx.fill();
-
-			//left second
-			dPoly([this.xyUP[0], this.xyUP[3], this.xyLP[3], this.xyLP[0]]);
-			ctx.fill();
-		}
-		
-
-		//if the camera is above, draw the top
-		if (camera.y >= this.y + this.r) {
-			dPoly([this.xyUP[0], this.xyUP[1], this.xyUP[2], this.xyUP[3]]);
-		} else if (camera.y <= this.y - this.r) {
-			//if the camera is below, draw the bottom
-			dPoly([this.xyLP[0], this.xyLP[1], this.xyLP[2], this.xyLP[3]]);
-		}
-		ctx.fill();
-
-
-
-		//front face, if camera is in the back the cube just won't be drawn
-		dPoly([this.xyUP[3], this.xyUP[2], this.xyLP[2], this.xyLP[3]]);
-		ctx.fill();
 	} 
 	
 	tick() {
-		//attempting collision with player
-		var pDist = this.getPlayerDist();
-		//checking if player is inside cube
-		if (pDist[0] < this.rx && Math.abs(pDist[1]) < this.ry && pDist[2] < this.rz) {
-			//if yDist is large enough, push them on top
-			if (pDist[1] > this.ry - 10) {
-				player.y -= player.dy;
-				if (player.dy < 0) {
-					player.dy = 0;
-				}
-			}
-			//if not, push them out
-			
+		//ticking each face
+		for (var h=0;h<this.faces.length;h++) {
+			this.faces[h].tick();
 		}
-		
 	}
 
 	getPlayerDist() {
-		var xDist = Math.abs(player.x - this.x);
+		var xDist = this.x - player.x;
 		var yDist = this.y - player.y;
-		var zDist = Math.abs(player.z - this.z);
+		var zDist = this.z - player.z;
 		return [xDist, yDist, zDist];
 	}
 }
 
 class Wall extends Cube {
 	constructor(x, y, z, xr, yr, zr) {
-		super(x, y, z, yr);
-		this.xr = xr;
-		this.yr = yr;
-		this.zr = zr;
-	}
-
-	generatePoints() {
-		//similar to cube, but not
-        this.uPoints = [];
-        this.lPoints = [];
-
-        //upper points
-        this.uPoints.push([this.x - this.xr, this.y + this.yr, this.z + this.zr]);
-        this.uPoints.push([this.x + this.xr, this.y + this.yr, this.z + this.zr]);
-        this.uPoints.push([this.x + this.xr, this.y + this.yr, this.z - this.zr]);
-        this.uPoints.push([this.x - this.xr, this.y + this.yr, this.z - this.zr]);
-
-        //lower points
-        this.lPoints.push([this.x - this.xr, this.y - this.yr, this.z + this.zr]);
-        this.lPoints.push([this.x + this.xr, this.y - this.yr, this.z + this.zr]);
-        this.lPoints.push([this.x + this.xr, this.y - this.yr, this.z - this.zr]);
-        this.lPoints.push([this.x - this.xr, this.y - this.yr, this.z - this.zr]);
+		super(x, y, z);
+		this.rx = xr;
+		this.ry = yr;
+		this.rz = zr;
 	}
 }
 
@@ -206,11 +170,13 @@ class Floor extends Main {
 
 		//keep the player in bounds
 		if (Math.abs(player.x) > mapSize) {
-			player.x -= player.dx;
+			player.x *= 0.99;
+			player.dx = 0;
 		}
 
 		if (Math.abs(player.z) > mapSize) {
-			player.z -= player.dz;
+			player.z *= 0.99;
+			player.dz = 0;
 		}
 	}
 
@@ -218,6 +184,51 @@ class Floor extends Main {
 		this.generateScreenPoints();
 		ctx.fillStyle = "#AAF";
 		dPoly([this.xyP[0], this.xyP[1], this.xyP[2], this.xyP[3]]);
+		ctx.fill();
+	}
+}
+
+
+
+
+
+
+//2d objects go down here
+class Face {
+	constructor(points2d, points3d, xCollisionType, yCollisionType, zCollisionType) {
+		this.colX = xCollisionType;
+		this.colY = yCollisionType;
+		this.colZ = zCollisionType;
+		this.points = points2d;
+		this.spacials = points3d;
+		this.cDist = getCameraDist(this.spacials);	
+	}
+
+	tick() {
+		//collision with the player
+		if (inPoly(player.drawCoord2, this.points)) {
+			//different collision procedures for collision values
+			//0 is none, 1 is positive, -1 is negative
+			if (this.colX != 0) {
+				player.x += this.colX * player.mS;
+			}
+
+			//special check for y for smoother handling
+			if (this.colY != 0) {
+				player.y += this.colY * player.mS;
+				if (player.dy * this.colY < 0) {
+					player.dy = 0;
+				}
+			}
+
+			if (this.colZ != 0) {
+				player.z += this.colZ * player.mS;
+			}
+		}
+	}
+
+	beDrawn() {
+		dPoly(this.points);
 		ctx.fill();
 	}
 }
