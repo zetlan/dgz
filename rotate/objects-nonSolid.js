@@ -11,21 +11,13 @@ class Map {
         this.aStart = 0;
 		this.rotating = false;
 		this.ableToSwap = true;
+
+		//ew
+		var self = this;
+		window.setTimeout(function() {self.initSides();}, 1);
     }
 
     beRun() {
-        //rotate if rotating
-        if (this.rotating) {
-			this.angle += this.aSpeed;
-			
-            //if rotated 90 degrees or rotated ~0 degrees, stop rotation
-            if (Math.abs(this.aStart - this.angle) > Math.PI / 2 || Math.abs(this.aStart - this.angle) < Math.abs(this.aSpeed * 0.8)) {
-				this.rotating = false;
-				//rounding to nearest 90 degrees (Pi radians)
-				this.angle = Math.round(this.angle / (Math.PI / 2)) * (Math.PI / 2);
-				this.ableToSwap = true;
-            }
-        }
 		//tick and draw everything
 		//player is ticked first but drawn last so that collisions don't look strange
 		player.tick();
@@ -37,6 +29,32 @@ class Map {
 
 		//drawing player
 		player.beDrawn();
+
+
+		//rotation things go last
+        if (this.rotating) {
+			this.angle += this.aSpeed;
+			
+            //if rotated 90 degrees or rotated ~0 degrees, stop rotation
+            if (Math.abs(this.aStart - this.angle) > Math.PI / 2 || Math.abs(this.aStart - this.angle) < Math.abs(this.aSpeed * 0.8)) {
+				//if rotated 90 degrees, change loadingMap
+				if (Math.abs(this.aStart - this.angle) > Math.PI / 2) {
+					if (this.aSpeed > 0) {
+						loadingMap = this.leftMap;
+					} else {
+						loadingMap = this.rightMap;
+					}
+				}
+				console.log(loadingMap, this.leftMap, this.rightMap);
+
+				//rotation cancellation things
+				this.rotating = false;
+				this.angle = 0;
+				this.aSpeed = 0;
+				this.ableToSwap = true;
+				
+            }
+        }
     }
 
     startRotation(speed) {
@@ -46,7 +64,12 @@ class Map {
             this.aSpeed = speed;
             this.rotating = true;
         }
-    }
+	}
+	
+	initSides() {
+		this.leftMap = eval(this.leftMap);
+		this.rightMap = eval(this.rightMap);
+	}
 }
 
 
