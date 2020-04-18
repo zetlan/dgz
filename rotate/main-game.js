@@ -22,6 +22,7 @@ let timer;
 function setup() {
     canvas = document.getElementById("cvsPharmacy");
 	ctx = canvas.getContext("2d");
+	ctx.lineWidth = 2;
 
     player = new Character(mapSize * -0.5, 0, 0.5 * mapSize);
 	camera = new Camera(0, 0, -2.25 * mapSize, 250);	
@@ -109,9 +110,15 @@ function keyNegate(u) {
 }
 
 function main() {
-	//clear bg
-	ctx.fillStyle = loadingMap.bg;
+	//bg
+	if (!loadingMap.rotating) {
+		ctx.fillStyle = loadingMap.bg;
+	} else {
+		ctx.fillStyle = cLinterp(loadingMap.bg, loadingMap.goingMap.bg, Math.abs(loadingMap.angle / (Math.PI / 2)));
+	}
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
+	
+	
 
 	//run object draws/ticks
 	loadingMap.beRun();
@@ -221,6 +228,31 @@ function getCameraDist(pointsArray3d) {
 }
 
 function gSort(arrToSort) {
-	//javascript's sort is messed up, so this is the better version
+	//javascript's sort is messed up if you want to sort floats, so this is the better version
 	return arrToSort.sort(function (a,b) {return a - b;});
+}
+
+function cLinterp(color1FullHex, color2FullHex, percentage) {
+	if (color1FullHex == undefined) {
+		color1FullHex = "#000000";
+	}
+	if (color2FullHex == undefined) {
+		color2FullHex = "#000000";
+	}
+	//converting color 1 and color 2 to RGB values rather than hex
+	var r1 = parseInt(color1FullHex[1] + color1FullHex[2], 16);
+	var g1 = parseInt(color1FullHex[3] + color1FullHex[4], 16);
+	var b1 = parseInt(color1FullHex[5] + color1FullHex[6], 16);
+	var r2 = parseInt(color2FullHex[1] + color2FullHex[2], 16);
+	var g2 = parseInt(color2FullHex[3] + color2FullHex[4], 16);
+	var b2 = parseInt(color2FullHex[5] + color2FullHex[6], 16);
+
+	//performing a linear interpolation on all 3 aspects
+	var finR = r1 + (percentage * (r2 - r1));
+	var finG = g1 + (percentage * (g2 - g1));
+	var finB = b1 + (percentage * (b2 - b1));
+	//converting back to hex
+	var finalHex = "#" + Math.floor(finR).toString(16) + Math.floor(finG).toString(16) + Math.floor(finB).toString(16);
+	console.log(finalHex, r1, g1, b1, r2, g2, b2);
+	return finalHex;
 }
