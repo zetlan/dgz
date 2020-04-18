@@ -17,7 +17,7 @@ class Map {
 		//ew
 		var self = this;
 		window.setTimeout(function() {self.initSides();}, 1);
-		//window.setTimeout(function() {self.orderObjects();}, 2);
+		window.setTimeout(function() {self.orderObjects();}, 2);
     }
 
     beRun() {
@@ -88,6 +88,41 @@ class Map {
 		if (Number.isNaN(this.rightMap)) {
 			this.contains.push(new Wall(mapSize, 0, 0, 1, mapSize, mapSize));
 		}
+
+		if (Number.isNaN(this.rightMap.rightMap) || this.rightMap.rightMap == undefined) {
+			this.contains.push(new Wall(0, 0, mapSize, mapSize, mapSize, 1));
+		}
+	}
+
+	orderObjects() {
+		//same as ordering faces
+		var great = 0;
+		let temp = [];
+		var times = this.contains.length;
+		console.log(this.contains, times);
+		for (var a=0;a<times;a++) {
+			
+			//running through list to get greatest distance
+			for (var b=0;b<this.contains.length;b++) {
+				if (this.contains[b].cDist > great) {
+					great = this.contains[b].cDist;
+				}
+			}
+
+			//running through list again, move the greatest distance item to the true object list
+			for (var c=0;c<this.contains.length;c++) {
+				if (this.contains[c].cDist == great) {
+					//remove the item, add it to true object list, exit loop
+					temp.push(this.contains[c]);
+					
+					this.contains.splice(c, 1);
+					c = this.contains.length + 1;
+				}
+			}
+			great = 0;
+		}
+
+		this.contains = temp;
 	}
 }
 
@@ -133,7 +168,7 @@ class Character extends Main {
 
 		this.mS = 2;
 		this.friction = 0.85;
-		this.gravity = 0.5;
+		this.gravity = 0;
 		this.mV = 9.8;
     }
 
@@ -200,4 +235,12 @@ class Character extends Main {
 			ctx.fill();
 		}
     }
+}
+
+//this is the only object that has a beDrawn in the game, but it's here because it's not solid.
+class Text {
+	constructor(textIndexPerLine) {
+		this.cDist = 0;
+		this.text = textToDisplay;
+	}
 }
