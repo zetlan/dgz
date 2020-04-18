@@ -114,9 +114,7 @@ class Cube extends Main {
 	
 	tick() {
 		//if rotating, reconstruct self
-		if (loadingMap.rotating) {
-			this.construct();
-		}
+		this.construct();
 		//ticking each face
 		for (var h=0;h<this.faces.length;h++) {
 			this.faces[h].tick();
@@ -191,6 +189,7 @@ class Floor extends Main {
 	beDrawn() {
 		this.generateScreenPoints();
 		ctx.fillStyle = "#AAF";
+		ctx.strokeStyle = "#222";
 		dPoly([this.xyP[0], this.xyP[1], this.xyP[2], this.xyP[3]]);
 		ctx.fill();
 	}
@@ -243,11 +242,7 @@ class Face {
 				}
 				
 			}
-			console.log("collision with face of direction " + this.colX + ", " + this.colY + ", " + this.colZ + ", collision check with player, extended info:");
-			console.log(player.drawCoord2, this.points);
-		}
-			
-			
+		}	
 	}
 
 	beDrawn() {
