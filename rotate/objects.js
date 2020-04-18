@@ -25,6 +25,7 @@ class Cube extends Main {
 		this.xyUP = [];
 		this.xyLP = [];
 		this.faces = [];
+		this.cDist;
 		this.construct();
 	}
 
@@ -32,6 +33,7 @@ class Cube extends Main {
 		this.generatePoints();
 		this.generateScreenPoints();
 		this.generateFaces();
+		this.cDist = getCameraDist([[this.x, this.y, this.z]]);
 	}
 
 	generatePoints() {
@@ -98,25 +100,23 @@ class Cube extends Main {
 					c = nSFaces.length + 1;
 				}
 			}
-
 			great = 0;
 		}
 	}
 
 	beDrawn() {
-		ctx.strokeStyle = "#224";
-		ctx.fillStyle = "#838";
+		ctx.strokeStyle = lnColor;
+		ctx.fillStyle = blockColor;
 
-		for (var h=0;h<this.faces.length;h++) {
+		for (var h=1;h<this.faces.length;h++) {
 			this.faces[h].beDrawn();
 		}
 	} 
 	
 	tick() {
-		//if rotating, reconstruct self
 		this.construct();
 		//ticking each face
-		for (var h=0;h<this.faces.length;h++) {
+		for (var h=1;h<this.faces.length;h++) {
 			this.faces[h].tick();
 		}
 	}
@@ -145,6 +145,7 @@ class Floor extends Main {
 		this.points = []; 
 		this.xyP = [];
 
+		this.cDist = getCameraDist([[this.x, this.y, this.z]]);
 		this.generatePoints();
 		this.generateScreenPoints();
 	}
@@ -188,8 +189,8 @@ class Floor extends Main {
 
 	beDrawn() {
 		this.generateScreenPoints();
-		ctx.fillStyle = "#AAF";
-		ctx.strokeStyle = "#222";
+		ctx.fillStyle = ableColor;
+		ctx.strokeStyle = lnColor;
 		dPoly([this.xyP[0], this.xyP[1], this.xyP[2], this.xyP[3]]);
 		ctx.fill();
 	}
@@ -239,8 +240,10 @@ class Face {
 				if (loadingMap.ableToSwap) {
 					loadingMap.aSpeed *= -1;
 					loadingMap.ableToSwap = false;
+					console.log("swapped rotation direction using face ", this.colX, this.colY, this.colZ);
+				} else {
+					console.log("attempted rotation direction swap using face ", this.colX, this.colY, this.colZ);
 				}
-				
 			}
 		}	
 	}

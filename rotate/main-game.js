@@ -11,6 +11,9 @@ var pTime = 0;
 
 //colors
 var characterColor = "#FF00FF";
+var ableColor = "#AAF";
+var blockColor = "#838";
+var lnColor = "#224";
 
 //objects
 let camera;
@@ -109,7 +112,7 @@ function main() {
 	if (!loadingMap.rotating) {
 		ctx.fillStyle = loadingMap.bg;
 	} else {
-		ctx.fillStyle = cLinterp(loadingMap.bg, loadingMap.goingMap.bg, Math.abs(loadingMap.angle / (Math.PI / 2)));
+		ctx.fillStyle = cLinterp(loadingMap.bg, loadingMap.goingMap.bg, loadingMap.rotPercent);
 	}
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 	
@@ -238,6 +241,8 @@ function cLinterp(color1FullHex, color2FullHex, percentage) {
 	var finalHex = "#" + Math.floor(finR).toString(16) + Math.floor(finG).toString(16) + Math.floor(finB).toString(16);
 	return finalHex;
 }
+
+
 //takes in a multi-dimensional array and averages the elements to output a 1d array
 function avgArray(array) {
 	var finArr = [];
@@ -259,6 +264,16 @@ function avgArray(array) {
 	
 
 	return finArr;
+}
 
+//creates a clone of objects in a map offset by 90°
+function cloneMap(cloneToTheLeft) {
+	var output = "";
+	if (cloneToTheLeft) {
 
+	} else {
+
+	}
+
+	return output;
 }

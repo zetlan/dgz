@@ -10,9 +10,10 @@ class Map {
         this.angle = 0;
         this.aSpeed = 0;
 		this.aStart = 0;
+		this.rotPercent = 0;
 		this.playerStorePos = [];
 		this.rotating = false;
-		this.ableToSwap = true;
+		this.ableToSwap = false;
 
 		//ew
 		var self = this;
@@ -37,6 +38,7 @@ class Map {
 		//rotation things go last
         if (this.rotating) {
 			this.angle += this.aSpeed;
+			this.rotPercent = Math.abs(loadingMap.angle / (Math.PI / 2))
 			
             //if rotated 90 degrees or rotated ~0 degrees, stop rotation
             if (Math.abs(this.aStart - this.angle) > Math.PI / 2 || Math.abs(this.aStart - this.angle) < Math.abs(this.aSpeed * 0.8)) {
@@ -55,7 +57,7 @@ class Map {
 				this.rotating = false;
 				this.angle = 0;
 				this.aSpeed = 0;
-				this.ableToSwap = true;
+				this.rotPercent = 0;
             }
         }
     }
@@ -73,7 +75,13 @@ class Map {
 			} else {
 				this.goingMap = this.rightMap;
 			}
+			//set timer for being able to collide, 30 ms I think is a safe guess for frame time
+			window.setTimeout(loadingMap.beSwappable, 30);
         }
+	}
+
+	beSwappable() {
+		loadingMap.ableToSwap = true;
 	}
 	
 	initSides() {
@@ -168,7 +176,7 @@ class Character extends Main {
 
 		this.mS = 2;
 		this.friction = 0.85;
-		this.gravity = 0;
+		this.gravity = 0.5;
 		this.mV = 9.8;
     }
 
@@ -242,5 +250,17 @@ class Text {
 	constructor(textIndexPerLine) {
 		this.cDist = 0;
 		this.text = textToDisplay;
+	}
+
+	beDrawn() {
+
+	}
+
+	tick() {
+
+	}
+
+	giveEnglishConstructor() {
+		return ("new Text(" + this.text + ")");
 	}
 }
