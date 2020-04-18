@@ -4,17 +4,20 @@ class Map {
         this.bg = backgroundColor;
         this.contains = objects;
         this.leftMap = connectsToLeft;
-        this.rightMap = connectsToRight;
+		this.rightMap = connectsToRight;
+		this.goingMap;
 
         this.angle = 0;
         this.aSpeed = 0;
-        this.aStart = 0;
+		this.aStart = 0;
+		this.playerStorePos = [];
 		this.rotating = false;
 		this.ableToSwap = true;
 
 		//ew
 		var self = this;
 		window.setTimeout(function() {self.initSides();}, 1);
+		//window.setTimeout(function() {self.orderObjects();}, 2);
     }
 
     beRun() {
@@ -39,20 +42,20 @@ class Map {
             if (Math.abs(this.aStart - this.angle) > Math.PI / 2 || Math.abs(this.aStart - this.angle) < Math.abs(this.aSpeed * 0.8)) {
 				//if rotated 90 degrees, change loadingMap
 				if (Math.abs(this.aStart - this.angle) > Math.PI / 2) {
-					if (this.aSpeed > 0) {
-						loadingMap = this.leftMap;
-					} else {
-						loadingMap = this.rightMap;
-					}
+					loadingMap = this.goingMap;
+
+					//change player position to avoid jarring transition
+					var nTX = player.x;
+					var nTZ = player.z;
+					player.x = (nTX * Math.cos(this.angle)) - (nTZ * Math.sin(this.angle));
+					player.z = (nTZ * Math.cos(this.angle)) + (nTX * Math.sin(this.angle));
 				}
-				console.log(loadingMap, this.leftMap, this.rightMap);
 
 				//rotation cancellation things
 				this.rotating = false;
 				this.angle = 0;
 				this.aSpeed = 0;
 				this.ableToSwap = true;
-				
             }
         }
     }
@@ -62,13 +65,29 @@ class Map {
         if (!this.rotating) {
             this.aStart = this.angle;
             this.aSpeed = speed;
-            this.rotating = true;
+			this.rotating = true;
+			
+			this.playerStorePos = [player.drawCoord[0], player.drawCoord[1]];
+			if (this.aSpeed > 0) {
+				this.goingMap = this.leftMap;
+			} else {
+				this.goingMap = this.rightMap;
+			}
         }
 	}
 	
 	initSides() {
 		this.leftMap = eval(this.leftMap);
 		this.rightMap = eval(this.rightMap);
+
+		//creating walls to block rotation in the case of non-existant sides
+		if (Number.isNaN(this.leftMap)) {
+			this.contains.push(new Wall(-1 * mapSize, 0, 0, 1, mapSize, mapSize));
+		}
+
+		if (Number.isNaN(this.rightMap)) {
+			this.contains.push(new Wall(mapSize, 0, 0, 1, mapSize, mapSize));
+		}
 	}
 }
 
