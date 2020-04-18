@@ -53,12 +53,7 @@ function keyPress(u) {
         case 83:
 			player.az = -0.5	;
 			break;
-
-		//space
-		case 32:
-			player.dy = 10;
-			break;
-        
+		
         //camera controls
         //Z or K
         case 90:
@@ -200,26 +195,14 @@ function spaceToScreen(pointArr) {
 }
 
 function getCameraDist(pointsArray3d) {
-	var pnts = pointsArray3d;
-	var xAvg = 0;
-	var yAvg = 0;
-	var zAvg = 0;
-	//getting average point
-	for (var h=0;h<pnts.length;h++) {
-		xAvg += pnts[h][0];
-		yAvg += pnts[h][1];
-		zAvg += pnts[h][2];
-	}
 
-	xAvg /= pnts.length;
-	yAvg /= pnts.length;
-	zAvg /= pnts.length;
+	//getting average point
+	var pntAvg = avgArray(pointsArray3d)
 
 	//making point relative to camera position
-
-	xAvg -= camera.x;
-	yAvg -= camera.y;
-	zAvg -= camera.z;
+	var xAvg = pntAvg[0] -= camera.x;
+	var yAvg = pntAvg[1] -= camera.y;
+	var zAvg = pntAvg[2] -= camera.z;
 
 	//getting distance (pythagorean theorum but with 3 numbers)
 	var dis = Math.sqrt((xAvg * xAvg) + (yAvg * yAvg) + (zAvg * zAvg));
@@ -253,6 +236,29 @@ function cLinterp(color1FullHex, color2FullHex, percentage) {
 	var finB = b1 + (percentage * (b2 - b1));
 	//converting back to hex
 	var finalHex = "#" + Math.floor(finR).toString(16) + Math.floor(finG).toString(16) + Math.floor(finB).toString(16);
-	console.log(finalHex, r1, g1, b1, r2, g2, b2);
 	return finalHex;
+}
+//takes in a multi-dimensional array and averages the elements to output a 1d array
+function avgArray(array) {
+	var finArr = [];
+	var arr = array;
+
+	//get the length of the first 1d array
+	for (var y=0;y<arr[0].length;y++) {
+		//average all the 0s, the 1s, the 2s, etc until whole is done
+		finArr.push(0);
+		for (var z=0;z<arr.length;z++) {
+			finArr[y] += arr[z][y];
+		}
+	}
+
+	//divide numbers by the amount of 1d arrays
+	for (var d=0;d<finArr.length;d++) {
+		finArr[d] /= arr.length;
+	}
+	
+
+	return finArr;
+
+
 }
