@@ -28,7 +28,7 @@ function setup() {
 	ctx.lineWidth = 2;
 
     player = new Character(mapSize * -0.5, 0, 0.5 * mapSize);
-	camera = new Camera(0, 0, -2.25 * mapSize, 250);	
+	camera = new Camera(0, 0, -2 * mapSize, 230);	
 	initMaps();
 	
 	loadingMap = defaultMap;
@@ -37,7 +37,7 @@ function setup() {
 }
 
 function keyPress(u) {
-    //switch statement for keys, J+L or Z+C controls camera while WASD+space or <^>⌄+space controls character
+    //switch statement for keys, J+L or Z+C controls camera while WASD or <^>⌄ controls character
     switch (u.keyCode) {
         //player controls
         case 37:
@@ -170,8 +170,7 @@ function spaceToScreen(pointArr) {
 	if (pTime > 0) {
 		var a = loadingMap.angle;
 		if (a > 0 || a < 0) {
-			tX = (nTX * Math.cos(a)) - (nTZ * Math.sin(a));
-			tZ = (nTZ * Math.cos(a)) + (nTX * Math.sin(a));
+			[tX, tZ] = rotate(tX, tZ, a);
 		}
 	}
 	
@@ -197,6 +196,12 @@ function spaceToScreen(pointArr) {
 	return [tX, tY];
 }
 
+//rotation equation, is on one line to prevent x/z from affecting each other
+function rotate(x, z, radians) {
+	[x, z] = [(x * Math.cos(radians)) - (z * Math.sin(radians)), (z * Math.cos(radians)) + (x * Math.sin(radians))];
+	return [x, z];
+}
+
 function getCameraDist(pointsArray3d) {
 
 	//getting average point
@@ -209,7 +214,6 @@ function getCameraDist(pointsArray3d) {
 
 	//getting distance (pythagorean theorum but with 3 numbers)
 	var dis = Math.sqrt((xAvg * xAvg) + (yAvg * yAvg) + (zAvg * zAvg));
-
 	return dis;
 }
 
@@ -267,13 +271,22 @@ function avgArray(array) {
 }
 
 //creates a clone of objects in a map offset by 90°
-function cloneMap(cloneToTheLeft) {
+function cloneMap(radiansPositiveForLeft) {
+	var radianInput = radiansPositiveForLeft;
 	var output = "";
-	if (cloneToTheLeft) {
 
-	} else {
 
+	//all of this gets javascript-acceptable constructors that represent the whole map
+	output += loadingMap.giveEnglishConstructor();
+	for (var h=0;h<loadingMap.contains.length;h++) {
+		output += loadingMap.contains[h].giveEnglishConstructor(radianInput) 
+		if (h != loadingMap.contains.length - 1) {
+			output += ",";
+		}
+		output += "\n";
 	}
+
+	output += "];"
 
 	return output;
 }

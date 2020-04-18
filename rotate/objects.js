@@ -10,7 +10,6 @@ down = -Y
 
 
 //all actual objects that can be placed inside a map
-
 //in a cube, the points go NW, NE, SE, SW (clockwise starting from northwest point)
 class Cube extends Main {
 	constructor(x, y, z, r) {
@@ -33,7 +32,6 @@ class Cube extends Main {
 		this.generatePoints();
 		this.generateScreenPoints();
 		this.generateFaces();
-		this.cDist = getCameraDist([[this.x, this.y, this.z]]);
 	}
 
 	generatePoints() {
@@ -121,21 +119,30 @@ class Cube extends Main {
 		}
 	}
 
-	getPlayerDist() {
-		var xDist = this.x - player.x;
-		var yDist = this.y - player.y;
-		var zDist = this.z - player.z;
-		return [xDist, yDist, zDist];
+	giveEnglishConstructor(radians) {
+		//destructuring object and then applying transformations to it to get coordiantes
+		let {x, y, z, rx} = this;
+		[x, z] = rotate(x, z, radians);
+		[x, y, z] = [Math.round(x), Math.round(y), Math.round(z)];
+		return `new Cube(${x}, ${y}, ${z}, ${rx})`;
 	}
 }
 
 class Wall extends Cube {
-	constructor(x, y, z, xr, yr, zr) {
+	constructor(x, y, z, rx, ry, rz) {
 		super(x, y, z);
-		this.rx = xr;
-		this.ry = yr;
-		this.rz = zr;
+		this.rx = rx;
+		this.ry = ry;
+		this.rz = rz;
 		this.construct();
+	}
+
+	giveEnglishConstructor(radians) {
+		let {x, y, z, rx, ry, rz} = this;
+		[x, z] = rotate(x, z, radians);
+		[rx, rz] = rotate(rx, rz, radians);
+		[x, z, rx, rz] = [Math.round(x), Math.round(z), Math.round(rx), Math.round(rz)]
+		return (`new Wall(${x}, ${y}, ${z}, ${rx}, ${ry}, ${rz})`);
 	}
 }
 
@@ -145,7 +152,7 @@ class Floor extends Main {
 		this.points = []; 
 		this.xyP = [];
 
-		this.cDist = getCameraDist([[this.x, this.y, this.z]]);
+		this.cDist = Infinity;
 		this.generatePoints();
 		this.generateScreenPoints();
 	}
@@ -194,9 +201,15 @@ class Floor extends Main {
 		dPoly([this.xyP[0], this.xyP[1], this.xyP[2], this.xyP[3]]);
 		ctx.fill();
 	}
+
+	getCameraDist() {
+
+	}
+
+	giveEnglishConstructor() {
+		return ("new Floor()");
+	}
 }
-
-
 
 
 
