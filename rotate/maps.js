@@ -10,12 +10,15 @@ function initMaps() {
     var nH = -0.5 * mapSize;
     var pF = mapSize;
     var nF = -1 * mapSize;
-    defaultMap = new Map("#44A", []);
+
+    //the dependency game begins
+    mapR1 = new Map("#4050B0", [], "defaultMap", NaN);
+    defaultMap = new Map("#4040A0", [], NaN, "mapR1");
+    
     defaultMap.contains = [ new Floor(), 
                             new Cube(0.7 * mapSize, nF, nH, 15),
                             new Wall(0, 0, pF * 0.166666, 10, pF, pF * 0.833333)];
 
-    mapR1 = new Map("#45B", []);
     mapR1.contains = [  new Floor(),
                         new Wall(0, 0, 0, pF * 0.6666666, pF, 10)]
     
