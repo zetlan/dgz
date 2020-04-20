@@ -12,8 +12,10 @@ var pTime = 0;
 //colors
 var characterColor = "#FF00FF";
 var ableColor = "#AAF";
+var floorColor = "#CCE";
 var blockColor = "#838";
 var lnColor = "#224";
+var textColor = "#FFF";
 
 //objects
 let camera;
@@ -27,11 +29,11 @@ function setup() {
 	ctx = canvas.getContext("2d");
 	ctx.lineWidth = 2;
 
-    player = new Character(mapSize * -0.5, 0, 0.5 * mapSize);
+    player = new Character(0, -0.99 * mapSize, -0.75 * mapSize);
 	camera = new Camera(0, 0, -2 * mapSize, 230);	
 	initMaps();
 	
-	loadingMap = defaultMap;
+	loadingMap = menuMap;
 	timer = window.requestAnimationFrame(main);
 	
 }
@@ -131,13 +133,15 @@ function main() {
 
 //polygon, because apparently normal javascript doesn't have that
 function dPoly(xyPointsArr) {
+	//shortening
+	var xypa = xyPointsArr;
 	ctx.beginPath();
-	ctx.moveTo(xyPointsArr[0][0], xyPointsArr[0][1]);
-	for (var i=1;i<xyPointsArr.length;i++) {
-		ctx.lineTo(xyPointsArr[i][0], xyPointsArr[i][1]);
+	ctx.moveTo(xypa[0][0], xypa[0][1]);
+	for (var i=1;i<xypa.length;i++) {
+		ctx.lineTo(xypa[i][0], xypa[i][1]);
 	}
 	//back to start
-	ctx.lineTo(xyPointsArr[0][0], xyPointsArr[0][1]);
+	ctx.lineTo(xypa[0][0], xypa[0][1]);
 	ctx.stroke();
 }
 
