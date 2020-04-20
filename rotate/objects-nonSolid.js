@@ -16,9 +16,9 @@ class Character extends Main {
 		this.az = 0;
 
 		this.mS = 2;
+		this.mV = 9.8;
 		this.friction = 0.85;
 		this.gravity = 0.5;
-		this.mV = 9.8;
     }
 
     tick() {
@@ -97,14 +97,33 @@ class Text {
 	constructor(textIndexPerLine) {
 		this.cDist = 0;
 		this.text = textIndexPerLine;
+		this.age = 0;
+		this.mA = 70;
 	}
 
 	beDrawn() {
-
+		ctx.font = "23px Century Gothic";
+		ctx.textAlign = "center";
+		ctx.fillStyle = textColor;
+		//opacity in case of rotation
+		if (loadingMap.rotating) {
+			ctx.globalAlpha = 1 - loadingMap.rotPercent;
+			ctx.fillText(this.text, canvas.width * 0.5, canvas.height * 0.1);
+			ctx.globalAlpha = 1;
+			this.age = 0;
+		//opacity in case of age
+		} else if (this.age < this.mA) {
+			ctx.globalAlpha = this.age / this.mA;
+			ctx.fillText(this.text, canvas.width * 0.5, canvas.height * 0.1);
+			ctx.globalAlpha = 1;
+			this.age += 1;
+		//regular case
+		} else {
+			ctx.fillText(this.text, canvas.width * 0.5, canvas.height * 0.1);
+		}
 	}
 
 	tick() {
-
 	}
 
 	getCameraDist() {
@@ -114,19 +133,5 @@ class Text {
 	giveEnglishConstructor(radians) {
 		let {text} = this;
 		return `new Text("${text}")`;
-	}
-}
-
-class partialWall extends Wall {
-	constructor(x, y, z, rx, ry, rz, xSolid, ySolid, zSolid) {
-		super(x, y, z, rx, ry, rz);
-		this.xSolid = xSolid;
-		this.ySolid = ySolid;
-		this.zSolid = zSolid;
-	}
-
-	giveEnglishConstructor(radians) {
-		let {x, y, z, rx, ry, rz, xSolid, ySolid, zSolid} = this;
-		return `new partialWall(${x}, ${y}, ${z}, ${rx}, ${ry}, ${rz}, ${xSolid}, ${ySolid}, ${zSolid})`;
 	}
 }
