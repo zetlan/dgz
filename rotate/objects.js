@@ -15,9 +15,14 @@ class Cube extends Main {
 	constructor(x, y, z, r) {
 		super(x, y, z);
 		
-		this.rx = r;
-		this.ry = r;
-		this.rz = r;
+		//never trust people. Negative radii are no exceptions
+		this.rx = Math.abs(r);
+		this.ry = Math.abs(r);
+		this.rz = Math.abs(r);
+
+		this.rotX = false;
+		this.rotY = false;
+		this.rotZ = false;
 
 		this.uPoints = [];
 		this.lPoints = [];
@@ -66,15 +71,9 @@ class Cube extends Main {
 	}
 
 	generateFaces() {
-		//generates each face
-		//order is left, right, up, front, back
 		this.faces = [];
-		var nSFaces = [];
-		nSFaces.push(new Face([this.xyUP[0], this.xyUP[3], this.xyLP[3], this.xyLP[0]], [this.uPoints[0], this.uPoints[3], this.lPoints[3], this.lPoints[0]], -1, 0, 0));
-		nSFaces.push(new Face([this.xyUP[1], this.xyUP[2], this.xyLP[2], this.xyLP[1]], [this.uPoints[1], this.uPoints[2], this.lPoints[2], this.lPoints[1]], 1, 0, 0));
-		nSFaces.push(new Face([this.xyUP[0], this.xyUP[1], this.xyUP[2], this.xyUP[3]], [this.uPoints[0], this.uPoints[1], this.uPoints[2], this.uPoints[3]], 0, 1, 0));
-		nSFaces.push(new Face([this.xyUP[3], this.xyUP[2], this.xyLP[2], this.xyLP[3]], [this.uPoints[3], this.uPoints[2], this.lPoints[2], this.lPoints[3]], 0, 0, -1));
-		nSFaces.push(new Face([this.xyUP[0], this.xyUP[1], this.xyLP[1], this.xyLP[0]], [this.uPoints[0], this.uPoints[1], this.lPoints[1], this.lPoints[0]], 0, 0, 1));
+		var nSFaces = this.generateNSFaces();
+		
 		//the non sorted faces are then put into the array according to the distance from the camera, starting with greatest distance.
 		
 		//this algorithm should be improved.
@@ -102,9 +101,20 @@ class Cube extends Main {
 		}
 	}
 
+	generateNSFaces() {
+		let nSFaces = [];
+		//generates each face
+		//order is left, right, up, front, back
+		nSFaces.push(new Face([this.xyUP[0], this.xyUP[3], this.xyLP[3], this.xyLP[0]], [this.uPoints[0], this.uPoints[3], this.lPoints[3], this.lPoints[0]], -1, 0, 0, this.rotX));
+		nSFaces.push(new Face([this.xyUP[1], this.xyUP[2], this.xyLP[2], this.xyLP[1]], [this.uPoints[1], this.uPoints[2], this.lPoints[2], this.lPoints[1]], 1, 0, 0, this.rotX));
+		nSFaces.push(new Face([this.xyUP[0], this.xyUP[1], this.xyUP[2], this.xyUP[3]], [this.uPoints[0], this.uPoints[1], this.uPoints[2], this.uPoints[3]], 0, 1, 0, this.rotY));
+		nSFaces.push(new Face([this.xyUP[3], this.xyUP[2], this.xyLP[2], this.xyLP[3]], [this.uPoints[3], this.uPoints[2], this.lPoints[2], this.lPoints[3]], 0, 0, -1, this.rotZ));
+		nSFaces.push(new Face([this.xyUP[0], this.xyUP[1], this.xyLP[1], this.xyLP[0]], [this.uPoints[0], this.uPoints[1], this.lPoints[1], this.lPoints[0]], 0, 0, 1, this.rotZ));
+		return nSFaces;
+	}
+
 	beDrawn() {
 		ctx.strokeStyle = lnColor;
-		ctx.fillStyle = blockColor;
 
 		for (var h=1;h<this.faces.length;h++) {
 			this.faces[h].beDrawn();
@@ -128,12 +138,14 @@ class Cube extends Main {
 	}
 }
 
+
+
 class Wall extends Cube {
 	constructor(x, y, z, rx, ry, rz) {
 		super(x, y, z);
-		this.rx = rx;
-		this.ry = ry;
-		this.rz = rz;
+		this.rx = Math.abs(rx);
+		this.ry = Math.abs(ry);
+		this.rz = Math.abs(rz);
 		this.construct();
 	}
 
@@ -145,6 +157,63 @@ class Wall extends Cube {
 		return (`new Wall(${x}, ${y}, ${z}, ${rx}, ${ry}, ${rz})`);
 	}
 }
+
+
+class partialWall extends Wall {
+	constructor(x, y, z, rx, ry, rz, xRotable, yRotable, zRotable) {
+		super(x, y, z, rx, ry, rz);
+		this.rotX = xRotable;
+		this.rotY = yRotable;
+		this.rotZ = zRotable;
+		this.construct();
+	}
+
+	giveEnglishConstructor(radians) {
+		let {x, y, z, rx, ry, rz, xSolid, ySolid, zSolid} = this;
+		return `new partialWall(${x}, ${y}, ${z}, ${rx}, ${ry}, ${rz}, ${xSolid}, ${ySolid}, ${zSolid})`;
+	}
+}
+
+
+/*	how to distinguish tilt: 
+	1st character: what axis the two faces will move along
+	2nd character: the axis normal to the moving faces
+	for example, a ZY tilt of 1 will create a rectangular prism, but the points with higher z values have higher y values. */
+class tiltedWall extends Wall {
+	constructor(x, y, z, rx, ry, rz, XYtilt, XZtilt, ZXtilt, ZYtilt) {
+		super(x, y, z, rx, ry, rz);
+		this.XYt = XYtilt;
+		this.XZt = XZtilt;
+		this.ZXt = ZXtilt;
+		this.ZYt = ZYtilt;
+		this.construct();
+	}
+
+	generatePoints() {
+		this.uPoints = [];
+		this.lPoints = [];
+
+		//upper points, equations are messy sorry
+		this.uPoints.push([this.x - this.rx, this.y + this.ry, this.z + this.rz]);
+		this.uPoints.push([this.x + this.rx, this.y + this.ry, this.z + this.rz]);
+		this.uPoints.push([this.x + this.rx, this.y + this.ry, this.z - this.rz]);
+		this.uPoints.push([this.x - this.rx, this.y + this.ry, this.z - this.rz]);
+
+		//lower points
+		this.lPoints.push([this.x - this.rx, this.y - this.ry, this.z + this.rz]);
+		this.lPoints.push([this.x + this.rx, this.y - this.ry, this.z + this.rz]);
+		this.lPoints.push([this.x + this.rx, this.y - this.ry, this.z - this.rz]);
+		this.lPoints.push([this.x - this.rx, this.y - this.ry, this.z - this.rz]);
+	}
+
+	giveEnglishConstructor(radians) {
+		//I'm cheating a bit with this, since the most common transformation is += 1.0708 radians, I just extrapollate to +, -, or 0.
+
+		return `new tiltedWall(${x}, ${y}, ${z}, ${rx}, ${ry}, ${rz}, ${ZYtilt}, ${XYtilt}, ${ZXtilt}, ${XZtilt})`;
+	}
+}
+
+
 
 class Floor extends Main {
 	constructor() {
@@ -196,7 +265,7 @@ class Floor extends Main {
 
 	beDrawn() {
 		this.generateScreenPoints();
-		ctx.fillStyle = ableColor;
+		ctx.fillStyle = floorColor;
 		ctx.strokeStyle = lnColor;
 		dPoly([this.xyP[0], this.xyP[1], this.xyP[2], this.xyP[3]]);
 		ctx.fill();
@@ -216,12 +285,13 @@ class Floor extends Main {
 
 //2d objects go down here
 class Face {
-	constructor(points2d, points3d, xCollisionType, yCollisionType, zCollisionType) {
+	constructor(points2d, points3d, xCollisionType, doYCollision, zCollisionType, rotable) {
 		this.colX = xCollisionType;
-		this.colY = yCollisionType;
+		this.colY = doYCollision;
 		this.colZ = zCollisionType;
 		this.points = points2d;
 		this.spacials = points3d;
+		this.rotable = rotable;
 		this.cDist = getCameraDist(this.spacials);	
 	}
 
@@ -237,9 +307,9 @@ class Face {
 				}
 
 				//special check for y for smoother handling
-				if (this.colY != 0) {
-					player.y += this.colY * player.mS;
-					if (player.dy * this.colY < 0) {
+				if (this.colY) {
+					player.y += player.gravity;
+					if (player.dy * this.colY <= 0) {
 						player.dy = 0;
 					}
 				}
@@ -248,20 +318,22 @@ class Face {
 					player.z += this.colZ * player.mS;
 				}
 				 
-			} else {
+			} else if (loadingMap.ableToSwap && !this.rotable) {
 				//rotation case
-				if (loadingMap.ableToSwap) {
 					loadingMap.aSpeed *= -1;
 					loadingMap.ableToSwap = false;
-					console.log("swapped rotation direction using face ", this.colX, this.colY, this.colZ);
-				} else {
-					console.log("attempted rotation direction swap using face ", this.colX, this.colY, this.colZ);
-				}
+					console.log("swapped rotation direction using face type ", this.colX, this.colY, this.colZ);
 			}
 		}	
 	}
 
 	beDrawn() {
+		//coloring based on rotation ability
+		if (this.rotable) {
+			ctx.fillStyle = ableColor;
+		} else {
+			ctx.fillStyle = blockColor;
+		}
 		dPoly(this.points);
 		ctx.fill();
 	}
