@@ -4,9 +4,11 @@ class Character extends Main {
 		
 		this.drawCoord = [];
 		this.drawCoord2 = [];
+		this.drawCoordL = [];
+		this.drawCoordR = [];
 		
 		this.r = 5;
-		this.abovePoint = [x, y + this.r, z];
+		this.abvP = [x, y + this.r, z];
 
         this.dx = 0;
         this.dy = 0;
@@ -68,13 +70,16 @@ class Character extends Main {
 
     beDrawn() {
 		//adjusting the above point
-		this.abovePoint = [this.x, this.y + this.r, this.z];
-
+		this.abvP = [this.x, this.y + this.r, this.z];
 		this.drawCoord = spaceToScreen([this.x, this.y, this.z]);
-		this.drawCoord2 = spaceToScreen(this.abovePoint);
+		this.drawCoord2 = spaceToScreen(this.abvP);
 
 		//display size depends on distance, so the transform is done for two points and then the 2d distance between them is tested
 		var dispSize = Math.abs(this.drawCoord[1] - this.drawCoord2[1]);
+
+		this.drawCoordL = [this.drawCoord2[0] - dispSize, this.drawCoord2[1]];
+		this.drawCoordR = [this.drawCoord2[0] + dispSize, this.drawCoord2[1]];
+
 		ctx.fillStyle = characterColor;
 		ctx.strokeStyle = characterColor;
 		gPoint(this.drawCoord2[0], this.drawCoord2[1], dispSize);

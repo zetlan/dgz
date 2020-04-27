@@ -92,15 +92,11 @@ class Map {
 
 		//creating walls to block rotation in the case of non-existant sides
 		if (Number.isNaN(this.leftMap)) {
-			this.contains.push(new Wall(-1 * mapSize, 0, 0, 1, mapSize, mapSize));
+			this.contains.push(new Box(-1 * mapSize, 0, 0, 1, mapSize, mapSize));
 		}
 
 		if (Number.isNaN(this.rightMap)) {
-			this.contains.push(new Wall(mapSize, 0, 0, 1, mapSize, mapSize));
-		}
-
-		if (Number.isNaN(this.rightMap.rightMap) || this.rightMap.rightMap == undefined) {
-			this.contains.push(new Wall(0, 0, mapSize, mapSize, mapSize, 1));
+			this.contains.push(new Box(mapSize, 0, 0, 1, mapSize, mapSize));
 		}
 	}
 
@@ -141,7 +137,7 @@ class Map {
 
 	giveEnglishConstructor(radians) {
 		const {bg} = this;
-		return `new Map("${bg}", [], NaN, NaN); \n exampleMap.contains = [`;
+		return `new Map("${bg}", [], NaN, NaN); \n`;
 	}
 }
 

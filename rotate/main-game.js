@@ -8,6 +8,10 @@ var ctx;
 var loadingMap;
 var mapSize = 150;
 var pTime = 0;
+var pStart ={	"x" : 0, 
+				"y" : -0.99 * mapSize, 
+				"z" : -0.75 * mapSize
+			};
 
 //colors
 var characterColor = "#FF00FF";
@@ -29,7 +33,7 @@ function setup() {
 	ctx = canvas.getContext("2d");
 	ctx.lineWidth = 2;
 
-    player = new Character(0, -0.99 * mapSize, -0.75 * mapSize);
+    player = new Character(pStart["x"], pStart["y"], pStart["z"]);
 	camera = new Camera(0, 0, -2 * mapSize, 230);	
 	initMaps();
 	
@@ -72,8 +76,10 @@ function keyPress(u) {
 			break;
 			
 		case 188:
+			loadingMap.contains[6].ZYt += 0.2;
 			break;
 		case 190: 
+			loadingMap.contains[6].ZYt -= 0.2;
 			break;
 	}
 }
@@ -226,6 +232,11 @@ function gSort(arrToSort) {
 	return arrToSort.sort(function (a,b) {return a - b;});
 }
 
+//simple linear interpolation function
+function linterp(value1, value2, percentage) {
+	return value1 + (percentage * (value2 - value1));
+}
+
 function cLinterp(color1FullHex, color2FullHex, percentage) {
 	if (color1FullHex == undefined) {
 		color1FullHex = "#000000";
@@ -242,9 +253,9 @@ function cLinterp(color1FullHex, color2FullHex, percentage) {
 	var b2 = parseInt(color2FullHex[5] + color2FullHex[6], 16);
 
 	//performing a linear interpolation on all 3 aspects
-	var finR = r1 + (percentage * (r2 - r1));
-	var finG = g1 + (percentage * (g2 - g1));
-	var finB = b1 + (percentage * (b2 - b1));
+	var finR = linterp(r1, r2, percentage);
+	var finG = linterp(g1, g2, percentage);
+	var finB = linterp(b1, b2, percentage);
 	//converting back to hex
 	var finalHex = "#" + Math.floor(finR).toString(16) + Math.floor(finG).toString(16) + Math.floor(finB).toString(16);
 	return finalHex;
@@ -275,21 +286,21 @@ function avgArray(array) {
 }
 
 //creates a clone of objects in a map offset by 90°
-function cloneMap(radiansPositiveForLeft) {
+function cloneMap(radiansPositiveForLeft, mapName) {
 	var radianInput = radiansPositiveForLeft;
 	var output = "";
 
 
 	//all of this gets javascript-acceptable constructors that represent the whole map
+	output += mapName + " = ";
 	output += loadingMap.giveEnglishConstructor();
+	output += mapName + ".contains = ["
 	for (var h=0;h<loadingMap.contains.length;h++) {
 		output += loadingMap.contains[h].giveEnglishConstructor(radianInput) 
 		if (h != loadingMap.contains.length - 1) {
-			output += ",";
-		}
-		output += "\n";
+			output += ", \n";
+		} 
 	}
-
 	output += "];"
 
 	return output;
