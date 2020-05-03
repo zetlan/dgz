@@ -119,8 +119,6 @@ class Cube extends Main {
 	}
 
 	beDrawn() {
-		ctx.strokeStyle = lnColor;
-
 		for (var h=0;h<this.faces.length;h++) {
 			this.faces[h].beDrawn();
 		}
@@ -167,7 +165,7 @@ class Box extends Cube {
 }
 
 
-class partialBox extends Box {
+class PartialBox extends Box {
 	constructor(x, y, z, rx, ry, rz, xRotable, yRotable, zRotable) {
 		super(x, y, z, rx, ry, rz);
 		this.rotX = xRotable;
@@ -187,7 +185,7 @@ class partialBox extends Box {
 	1st character: what axis the two faces will move along
 	2nd character: the axis normal to the moving faces
 	for example, a ZY tilt of 1 will create a rectangular prism, but the points with higher z values have higher y values. */
-class tiltedBox extends Box {
+class TiltedBox extends Box {
 	constructor(x, y, z, rx, ry, rz, XYslope, XZslope, ZXslope, ZYslope) {
 		super(x, y, z, rx, ry, rz);
 		this.XYt = XYslope;
@@ -292,7 +290,6 @@ class Floor extends Main {
 	beDrawn() {
 		this.generateScreenPoints();
 		ctx.fillStyle = floorColor;
-		ctx.strokeStyle = lnColor;
 		dPoly([this.xyP[0], this.xyP[1], this.xyP[2], this.xyP[3]]);
 		ctx.fill();
 	}

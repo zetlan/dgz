@@ -21,13 +21,13 @@ function initMaps() {
 	menuMap = new Map("#A08060", [], NaN, "defaultMap"); 
 	menuMap.contains = [new Floor(),
 						new Box(-125, -112.5, 0, -25, 37.5, 10),
-						new partialBox(0, 0, nF, 150, 150, 1, true, true, true),
+						new PartialBox(0, 0, nF, 150, 150, 1, true, true, true),
 						new Box(0, 0, 0, -100, 150, 10),
 						new Text("Press X or L to Rotate")];
 	
 	defaultMap = new Map("#A08060", [], "menuMap", "mapR1");
 	defaultMap.contains = [ new Floor(),
-							new partialBox(nF, 0, 0, 1, pF, pF, true, true, true),
+							new PartialBox(nF, 0, 0, 1, pF, pF, true, true, true),
 							new Box(0, 0, 0, 10, pF, pF * 0.6666666),
 							new Box(0, -0.75 * pF, pF * 0.8333333, 10, 0.25 * pF, 0.16666 * pF),
 							new Text(["Use WASD or arrow keys to move"])];
@@ -45,7 +45,7 @@ function initMaps() {
 	
 	mapDef_F = new Map("#A08060", [], "menuMap", "mapR1_F");
 	mapDef_F.contains = [new Floor(),
-						new partialBox(nF, 0, 0, 1, pF, pF, true, true, true),
+						new PartialBox(nF, 0, 0, 1, pF, pF, true, true, true),
 						new Box(0, 0, 0, 10, pF, pF * 0.6666666),
 						new Text(["X or L"])];
 	
