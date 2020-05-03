@@ -248,6 +248,7 @@ class Floor extends Main {
 	}
 
 	generatePoints() {
+		this.points = [];
 		this.points.push([this.x - mapSize, this.y, this.z + mapSize]);
 		this.points.push([this.x + mapSize, this.y, this.z + mapSize]);
 		this.points.push([this.x + mapSize, this.y, this.z - mapSize]);
@@ -263,6 +264,10 @@ class Floor extends Main {
 	}
 
 	tick() {
+		//occasionally check self
+		if (pTime % 15 == 0) {
+			this.generatePoints();
+		}
 		//keep the player above the floor
 		if (player.y < this.y) {
 			player.y = this.y;
