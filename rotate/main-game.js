@@ -25,6 +25,7 @@ var textColor = "#FFF";
 let camera;
 let player;
 let timer;
+let lEditor;
 
 //functions
 
@@ -38,49 +39,111 @@ function setup() {
 	initMaps();
 	
 	loadingMap = menuMap;
+	lEditor = new Editor();
 	timer = window.requestAnimationFrame(main);
 	
 }
 
 function keyPress(u) {
-    //switch statement for keys, J+L or Z+C controls camera while WASD or <^>⌄ controls character
-    switch (u.keyCode) {
-        //player controls
-        case 37:
-        case 65:
-			player.ax = -0.5;
-            break;
-        case 38:
-        case 87:
-			player.az = 0.5;
-            break;
-        case 39:
-        case 68:
-			player.ax = 0.5;
-            break;
-        case 40:
-        case 83:
-			player.az = -0.5	;
-			break;
-		
-        //camera controls
-        //Z or K
-        case 90:
-        case 75:
-			loadingMap.startRotation(0.05);
-            break;
-        //X or L
-        case 88:
-        case 76:
-			loadingMap.startRotation(-0.05);
-			break;
+	//edit mode vs normal mode
+	if (!lEditor.active) {
+		//normal mode controls
+		//switch statement for keys, J+L or Z+C controls camera while WASD or ↑←↓→ controls character
+		switch (u.keyCode) {
+			//player controls
+			case 37:
+			case 65:
+				player.ax = -0.5;
+				break;
+			case 38:
+			case 87:
+				player.az = 0.5;
+				break;
+			case 39:
+			case 68:
+				player.ax = 0.5;
+				break;
+			case 40:
+			case 83:
+				player.az = -0.5;
+				break;
 			
-		case 188:
-			loadingMap.contains[6].ZYt += 0.2;
-			break;
-		case 190: 
-			loadingMap.contains[6].ZYt -= 0.2;
-			break;
+			//camera controls
+			//Z or K
+			case 90:
+			case 75:
+				loadingMap.startRotation(0.05);
+				break;
+			//X or L
+			case 88:
+			case 76:
+				loadingMap.startRotation(-0.05);
+				break;
+			//the ] key
+			case 221:
+				lEditor.active = true;
+		}
+	} else {
+		//edit mode controls
+		//switch statement for keys, (WASD ⇪⎇) controls position while (←↑→↓ :/)  controls size
+		switch (u.keyCode) {
+			//movement controls (WASD ⇪⎇)
+			case 65:
+				lEditor.obj.x -= lEditor.ncrmnt;
+				break;
+			case 87:
+				lEditor.obj.z += lEditor.ncrmnt;
+				break;
+			case 68:
+				lEditor.obj.x += lEditor.ncrmnt;
+				break;
+			case 83:
+				lEditor.obj.z -= lEditor.ncrmnt;
+				break;
+			case 16:
+				lEditor.obj.y -= lEditor.ncrmnt;
+				break;
+			case 18:
+				lEditor.obj.y += lEditor.ncrmnt;
+				break;
+			
+			
+			//size controls (←↑→↓ '/)
+			case 37:
+				break;
+			case 38:
+				break;
+			case 39:
+				break;
+			case 40:
+				break;
+			case 222:
+				break;
+			case 191:
+				break;
+
+			
+			//i, o, and p, for creating and destroying objects. (i creates, o destroys, and p changes the object to create)
+			
+			//the ] key
+			case 221:
+				lEditor.active = false;
+				break;
+			
+			//cycling through which object to edit (- and +)
+			case 187:
+				lEditor.occupies += 1;
+				if (lEditor.occupies > loadingMap.contains.length - 1) {
+					lEditor.occupies = 0;
+				}
+				break;
+			case 189:
+				lEditor.occupies -= 1;
+				if (lEditor.occupies < 0) {
+					lEditor.occupies = loadingMap.contains.length - 1;
+				}
+				break;
+		}
 	}
 }
 
@@ -128,6 +191,11 @@ function main() {
 
 	//run object draws/ticks
 	loadingMap.beRun();
+
+	//run editor
+	if (lEditor.active) {
+		lEditor.tick();
+	}
 
 	//call itself through animation frame 
 	timer = window.requestAnimationFrame(main);

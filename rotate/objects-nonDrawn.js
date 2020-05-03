@@ -1,4 +1,6 @@
 
+//map class, all world objects are contained here
+
 class Map {
     constructor(backgroundColor, objects, connectsToLeft, connectsToRight) {
         this.bg = backgroundColor;
@@ -142,7 +144,7 @@ class Map {
 }
 
 
-//main class, everything extends from here
+//main class, almost all objects extend from here
 class Main {
 	constructor(x, y, z) {
 		this.x = x;
@@ -162,6 +164,21 @@ class Main {
 		}
 		
 		this.cDist = getCameraDist([[tX, this.y, tZ]]);
+	}
+}
+
+//edit interface, allows for editing of objects in a map
+class Editor {
+	constructor() {
+		this.active = false;
+		this.occupies = 0;
+		this.obj;
+
+		this.ncrmnt = 5;
+	}
+
+	tick() {
+		this.obj = loadingMap.contains[this.occupies];
 	}
 }
 
