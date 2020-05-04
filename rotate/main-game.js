@@ -374,8 +374,8 @@ function avgArray(array) {
 }
 
 //outputs the current map, offset by some radians
-function mapOutput(mapName) {
-	var radianInput = 0;
+function mapOutput(radiansPositiveForLeft, mapName) {
+	var radianInput = radiansPositiveForLeft;
 	var output = "";
 
 
@@ -396,6 +396,63 @@ function mapOutput(mapName) {
 }
 
 //takes the objects from the current map and clones them into a different map with an amount of offset
-function cloneMap(radiansPositiveForLeft, mapToCloneTo) {
+function cloneMap(cloneToLeftBOOL, mapToCloneToSTRING) {
+	var mapName = mapToCloneToSTRING;
+	var rads;
+	var otherExit;
 
+	if (cloneToLeftBOOL) {
+		rads = Math.PI / 2;
+		try {
+			otherExit = eval(mapName).leftMap;
+		} catch (error) {
+			otherExit = undefined;
+		}
+		
+	} else {
+		rads = Math.PI / -2;
+		try {
+			otherExit = eval(mapName).rightMap;
+		} catch (error) {
+			otherExit = undefined;
+		}		
+	}
+
+	//get the constructor data for the current map rotated by the radians, and clone it into the new map
+	var data = "";
+	data += mapName + " = ";
+	data += loadingMap.giveEnglishConstructor();
+
+	eval (data);
+	console.log(data, mapA3);
+
+	data = "";
+	data += mapName + ".contains = ["
+	for (var h=0;h<loadingMap.contains.length;h++) {
+		data += loadingMap.contains[h].giveEnglishConstructor(rads); 
+		if (h != loadingMap.contains.length - 1) {
+			data += ", ";
+		} 
+	}
+	data += "];"
+
+	eval(data);
+
+	//set up a connection between the old map and the new map
+	var map = eval(mapName);
+
+	if (rads > 0) {
+		loadingMap.leftMap = map;
+		map.rightMap = loadingMap.name;
+		map.leftMap = otherExit;
+	} else {
+		loadingMap.rightMap = map;
+		map.leftMap = loadingMap.name;
+		map.rightMap = otherExit;
+	}
+
+	map.name = mapName;
+
+	//return the mapOutput of the new map
+	return mapOutput(rads, mapName);
 }
