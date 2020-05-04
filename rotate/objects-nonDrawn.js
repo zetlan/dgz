@@ -3,7 +3,8 @@
 
 class Map {
     constructor(backgroundColor, objects, connectsToLeft, connectsToRight) {
-        this.bg = backgroundColor;
+		this.bg = backgroundColor;
+		this.name;
         this.contains = objects;
         this.leftMap = connectsToLeft;
 		this.rightMap = connectsToRight;
@@ -16,8 +17,7 @@ class Map {
 		this.playerStorePos = [];
 		this.rotating = false;
 		this.ableToSwap = false;
-
-		this.name;
+		
 
 		//ew
 		var self = this;
@@ -156,7 +156,7 @@ class Map {
 
 	giveEnglishConstructor(radians) {
 		let {bg, leftMap, rightMap} = this;
-		return `new Map("${bg}", [], ${leftMap.name}, ${rightMap.name}); \n`;
+		return `new Map("${bg}", [], "${leftMap.name}", "${rightMap.name}"); \n`;
 	}
 }
 
