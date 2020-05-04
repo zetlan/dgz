@@ -17,6 +17,8 @@ class Map {
 		this.rotating = false;
 		this.ableToSwap = false;
 
+		this.name;
+
 		//ew
 		var self = this;
 		window.setTimeout(function() {self.initSides();}, 1);
@@ -89,8 +91,23 @@ class Map {
 	}
 	
 	initSides() {
+		//converting the name strings into map references and naming adjacent maps
+		var temp = this.leftMap;
 		this.leftMap = eval(this.leftMap);
+		try {
+			this.leftMap.name = temp;
+		} catch (error) {
+			//cry or something
+		}
+
+		temp = this.rightMap;
 		this.rightMap = eval(this.rightMap);
+		try {
+			this.rightMap.name = temp;
+		} catch (error) {
+			//I can understand why this is a thing, but I really don't want to have to have a catch block
+		}
+		
 
 		//creating walls to block rotation in the case of non-existant sides
 		if (Number.isNaN(this.leftMap)) {
@@ -138,8 +155,8 @@ class Map {
 	}
 
 	giveEnglishConstructor(radians) {
-		const {bg} = this;
-		return `new Map("${bg}", [], NaN, NaN); \n`;
+		let {bg, leftMap, rightMap} = this;
+		return `new Map("${bg}", [], ${leftMap.name}, ${rightMap.name}); \n`;
 	}
 }
 
@@ -172,13 +189,43 @@ class Editor {
 	constructor() {
 		this.active = false;
 		this.occupies = 0;
+		this.crInd = 0;
+		this.createList = ["Cube", "Box", "PartialBox", "TiltedBox"];
 		this.obj;
 
 		this.ncrmnt = 5;
 	}
 
 	tick() {
+		if (this.occupies > loadingMap.contains.length - 1) {
+			this.occupies = loadingMap.contains.length - 1;
+		}
 		this.obj = loadingMap.contains[this.occupies];
+	}
+
+	beDrawn() {
+		ctx.strokeStyle = "#FF8800";
+		ctx.lineWidth = 4;
+		this.obj.beDrawn();
+		ctx.strokeStyle = lnColor;
+		ctx.lineWidth = 2;
+
+		ctx.fillStyle = textColor;
+		ctx.fillText("creation object: " + this.createList[this.crInd] + ", selected object: " + this.obj.constructor.name, canvas.width * 0.5, canvas.height * 0.9);
+		ctx.fillText("Currently in: " + loadingMap.name, canvas.width * 0.5, canvas.height * 0.96);
+	}
+
+	createObj() {
+		let {createList, crInd} = this;
+		//javascript constructors just ignore extra arguments passed in, which is great for me
+		loadingMap.contains.push(eval(`new ` + this.createList[this.crInd] + `(0, 0, 0, 15, 15, 15, true, true, true, 0, 0, 0, 0)`));
+	}
+
+	destroyObj() {
+		loadingMap.contains.splice(this.occupies, 1);
+		if (this.occupies > loadingMap.contains.length - 1) {
+			this.occupies -= 1;
+		}
 	}
 }
 

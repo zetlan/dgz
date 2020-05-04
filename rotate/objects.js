@@ -29,7 +29,6 @@ class Cube extends Main {
 		this.xyUP = [];
 		this.xyLP = [];
 		this.faces = [];
-		this.cDist;
 		this.avoid = false;
 		this.construct();
 	}
@@ -126,13 +125,16 @@ class Cube extends Main {
 	
 	tick() {
 		this.construct();
-		//ticking each face
-		for (var h=this.faces.length-1;h>0;h--) {
-			if (!this.avoid) {
-				this.faces[h].tick();
+		//only tick if the player should be able to collide
+		if (player.z > this.z - this.rz || loadingMap.rotating) {
+			//ticking each face
+			for (var h=this.faces.length-1;h>0;h--) {
+				if (!this.avoid) {
+					this.faces[h].tick();
+				}
 			}
+			this.avoid = false;
 		}
-		this.avoid = false;
 	}
 
 	giveEnglishConstructor(radians) {
@@ -160,7 +162,7 @@ class Box extends Cube {
 		[x, z] = rotate(x, z, radians);
 		[rx, rz] = rotate(rx, rz, radians);
 		[x, z, rx, rz] = [Math.round(x), Math.round(z), Math.round(rx), Math.round(rz)]
-		return (`new Box(${x}, ${y}, ${z}, ${rx}, ${ry}, ${rz})`);
+		return (`new Box(${x}, ${y}, ${z}, ${Math.abs(rx)}, ${Math.abs(ry)}, ${Math.abs(rz)})`);
 	}
 }
 
@@ -185,9 +187,9 @@ class PartialBox extends Box {
 	1st character: what axis the two faces will move along
 	2nd character: the axis normal to the moving faces
 	for example, a ZY tilt of 1 will create a rectangular prism, but the points with higher z values have higher y values. */
-class TiltedBox extends Box {
-	constructor(x, y, z, rx, ry, rz, XYslope, XZslope, ZXslope, ZYslope) {
-		super(x, y, z, rx, ry, rz);
+class TiltedBox extends PartialBox {
+	constructor(x, y, z, rx, ry, rz, rotableX, rotableY, rotableZ, XYslope, XZslope, ZXslope, ZYslope) {
+		super(x, y, z, rx, ry, rz, rotableX, rotableY, rotableZ);
 		this.XYt = XYslope;
 		this.XZt = XZslope;
 		this.ZXt = ZXslope;
@@ -359,10 +361,24 @@ class Face {
 					} else {
 						player.y -= 1;
 					}
+					this.parent.avoid = true;
 				}
 
+				//special check for z to avoid collision issues when in front of an object
 				if (this.colZ != 0) {
-					player.z += this.colZ * player.mS;
+					if (this.xyz[2] <= player.z + 5) {
+						player.z += this.colZ * player.mS;
+						//if the player is out of bounds, make them not be
+						if (Math.abs(player.z) > mapSize) {
+							player.z += player.mS;
+						}
+						//push player slightly away from the object center
+						if (player.x < this.xyz[0]) {
+							player.x -= player.mS;
+						} else {
+							player.x += player.mS
+						}
+					}
 				}
 				 
 			} else if (loadingMap.ableToSwap) {

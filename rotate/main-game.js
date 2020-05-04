@@ -14,12 +14,13 @@ var pStart ={	"x" : 0,
 			};
 
 //colors
-var characterColor = "#FF00FF";
+var characterColor = "#FF495C";
 var ableColor = "#AAF";
 var floorColor = "#CCE";
-var blockColor = "#838";
-var lnColor = "#224";
-var textColor = "#FFF";
+var blockColor = "#46237A";
+var lnColor = "#1A074C";
+var textColor = "#FCFCFC";
+var buttonColor = "#3DDC97";
 
 //objects
 let camera;
@@ -110,21 +111,39 @@ function keyPress(u) {
 			
 			//size controls (←↑→↓ '/)
 			case 37:
+				lEditor.obj.rx -= lEditor.ncrmnt;
 				break;
 			case 38:
+				lEditor.obj.rz += lEditor.ncrmnt;
 				break;
 			case 39:
+				lEditor.obj.rx += lEditor.ncrmnt;
 				break;
 			case 40:
+				lEditor.obj.rz -= lEditor.ncrmnt;
 				break;
 			case 222:
+				lEditor.obj.ry += lEditor.ncrmnt;
 				break;
 			case 191:
+				lEditor.obj.ry -= lEditor.ncrmnt;
 				break;
 
 			
-			//i, o, and p, for creating and destroying objects. (i creates, o destroys, and p changes the object to create)
-			
+			//i, o, and backspace (i creates, o cycles, and backspace deletes the currently selected object)
+			case 73:
+				lEditor.createObj();
+				break;
+			case 79:
+				lEditor.crInd += 1;
+				if (lEditor.crInd > lEditor.createList.length - 1) {
+					lEditor.crInd = 0;
+				}
+				break;
+			case 8:
+				lEditor.destroyObj();
+				break;
+
 			//the ] key
 			case 221:
 				lEditor.active = false;
@@ -195,6 +214,7 @@ function main() {
 	//run editor
 	if (lEditor.active) {
 		lEditor.tick();
+		lEditor.beDrawn();
 	}
 
 	//call itself through animation frame 
@@ -353,23 +373,29 @@ function avgArray(array) {
 	return finArr;
 }
 
-//creates a clone of objects in a map offset by 90°
-function cloneMap(radiansPositiveForLeft, mapName) {
-	var radianInput = radiansPositiveForLeft;
+//outputs the current map, offset by some radians
+function mapOutput(mapName) {
+	var radianInput = 0;
 	var output = "";
 
 
 	//all of this gets javascript-acceptable constructors that represent the whole map
 	output += mapName + " = ";
 	output += loadingMap.giveEnglishConstructor();
-	output += mapName + ".contains = ["
+	output += mapName + ".contains = [ \t"
 	for (var h=0;h<loadingMap.contains.length;h++) {
 		output += loadingMap.contains[h].giveEnglishConstructor(radianInput) 
 		if (h != loadingMap.contains.length - 1) {
 			output += ", \n";
+			output += "\t\t\t\t\t";
 		} 
 	}
 	output += "];"
 
 	return output;
+}
+
+//takes the objects from the current map and clones them into a different map with an amount of offset
+function cloneMap(radiansPositiveForLeft, mapToCloneTo) {
+
 }

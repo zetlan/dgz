@@ -81,6 +81,7 @@ class Character extends Main {
 		this.drawCoordR = [this.drawCoord2[0] + dispSize, this.drawCoord2[1]];
 
 		ctx.fillStyle = characterColor;
+		var temp = ctx.strokeStyle;
 		ctx.strokeStyle = characterColor;
 		gPoint(this.drawCoord2[0], this.drawCoord2[1], dispSize);
 
@@ -89,7 +90,10 @@ class Character extends Main {
 		} else {
 			ctx.fill();
 		}
+
+		ctx.strokeStyle = temp;
 	}
+
 	
 	getCameraDist() {
 
