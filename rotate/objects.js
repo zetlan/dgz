@@ -178,7 +178,7 @@ class PartialBox extends Box {
 
 	giveEnglishConstructor(radians) {
 		let {x, y, z, rx, ry, rz, rotX, rotY, rotZ} = this;
-		return `new partialBox(${x}, ${y}, ${z}, ${Math.abs(rx)}, ${Math.abs(ry)}, ${Math.abs(rz)}, ${rotZ}, ${rotY}, ${rotX})`;
+		return `new PartialBox(${x}, ${y}, ${z}, ${Math.abs(rx)}, ${Math.abs(ry)}, ${Math.abs(rz)}, ${rotZ}, ${rotY}, ${rotX})`;
 	}
 }
 
@@ -230,7 +230,7 @@ class TiltedBox extends PartialBox {
 	giveEnglishConstructor(radians) {
 		//I'm cheating a bit with this, since the most common transformation is += 1.0708 radians, I just extrapollate to +, -, or 0.
 
-		return `new tiltedBox(${x}, ${y}, ${z}, ${Math.abs(rx)}, ${Math.abs(ry)}, ${Math.abs(rz)}, ${ZYtilt}, ${XYtilt}, ${ZXtilt}, ${XZtilt})`;
+		return `new TiltedBox(${x}, ${y}, ${z}, ${Math.abs(rx)}, ${Math.abs(ry)}, ${Math.abs(rz)}, ${ZYtilt}, ${XYtilt}, ${ZXtilt}, ${XZtilt})`;
 	}
 }
 
