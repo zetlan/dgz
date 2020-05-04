@@ -7,6 +7,8 @@ let mapR2;
 let mapR2_F;
 
 let mapA1;
+let mapA2;
+let mapA3;
 
 let mapE1;
 
@@ -31,13 +33,15 @@ function initMaps() {
 	defaultMap.contains = [ new Floor(),
 							new PartialBox(nF, 0, 0, 1, pF, pF, true, true, true),
 							new Box(0, 0, 0, 10, pF, pF * 0.6666666),
-							new Box(0, -0.75 * pF, pF * 0.8333333, 10, 0.25 * pF, 0.16666 * pF),
+							new Box(0, -92.5, 125, 10, 57.5, 25),
 							new Text(["Use WASD or arrow keys to move"])];
 
 	mapR1 = new Map("#A08060", [], "mapDef_F", "mapR2"); 
-	mapR1.contains = [	new Floor(),
-						new Box(0, 0, 0, 100, 150, 10),
-						new Box(pF * 0.83333, -0.75 * pF, 0, 0.166666 * pF, 0.25 * pF, 10)];
+	mapR1.contains = [ 	new Floor(), 
+						new Box(0, 0, 150, 150, 150, 1), 
+						new Box(0, 0, 150, 150, 150, 1), 
+						new Box(0, 0, 0, 100, 150, 10), 
+						new Box(125, -92.5, 0, 25, 57.5, 10)];
 
 	mapR2 = new Map("#A08060", [], "mapR1", NaN); 
 	mapR2.contains = [		new Floor(), 
