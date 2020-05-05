@@ -6,6 +6,8 @@ class Character extends Main {
 		this.drawCoord2 = [];
 		this.drawCoordL = [];
 		this.drawCoordR = [];
+		this.drawCoordP = [];
+		this.drawCoordP2 = [];
 		
 		this.r = 5;
 		this.abvP = [x, y + this.r, z];
@@ -71,6 +73,8 @@ class Character extends Main {
     beDrawn() {
 		//adjusting the above point
 		this.abvP = [this.x, this.y + this.r, this.z];
+		this.drawCoordP2 = this.drawCoordP;
+		this.drawCoordP = this.drawCoord2;
 		this.drawCoord = spaceToScreen([this.x, this.y, this.z]);
 		this.drawCoord2 = spaceToScreen(this.abvP);
 
@@ -83,7 +87,9 @@ class Character extends Main {
 		ctx.fillStyle = characterColor;
 		var temp = ctx.strokeStyle;
 		ctx.strokeStyle = characterColor;
-		gPoint(this.drawCoord2[0], this.drawCoord2[1], dispSize);
+		//getting the spot to draw the character based off the average of their current position and past position
+		var fDC = [(this.drawCoordP2[0] + this.drawCoordP[0] + this.drawCoord2[0]) / 3, (this.drawCoordP2[1] + this.drawCoordP[1] + this.drawCoord2[1]) / 3];
+		gPoint(fDC[0], fDC[1], dispSize);
 
 		if (loadingMap.rotating) {
 			ctx.stroke();
