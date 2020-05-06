@@ -113,29 +113,34 @@ class Text {
 		this.cDist = 0;
 		this.text = textIndexPerLine;
 		this.age = 0;
-		this.mA = 70;
+		this.mA = 40;
 	}
 
 	beDrawn() {
 		ctx.font = "23px Century Gothic";
 		ctx.textAlign = "center";
 		ctx.fillStyle = textColor;
-		//opacity in case of rotation
-		if (loadingMap.rotating) {
-			ctx.globalAlpha = 1 - loadingMap.rotPercent;
-			ctx.fillText(this.text, canvas.width * 0.5, canvas.height * 0.1);
-			ctx.globalAlpha = 1;
-			this.age = 0;
-		//opacity in case of age
-		} else if (this.age < this.mA) {
+		var alfred = ctx.globalAlpha;
+		//normal case
+		if (!loadingMap.rotating) {
 			ctx.globalAlpha = this.age / this.mA;
 			ctx.fillText(this.text, canvas.width * 0.5, canvas.height * 0.1);
-			ctx.globalAlpha = 1;
-			this.age += 1;
-		//regular case
-		} else {
+			
+			if (this.age < this.mA) {
+				this.age += 1;
+			}
+		} else if (this.age > 0) {
+			//if the loading map is rotating and age is >0, that means this has been loaded before and should fade out
+			
+			ctx.globalAlpha = 1 - loadingMap.rotPercent;
+			if (loadingMap.rotPercent > 0.9) {
+				this.age = 0;
+			}
 			ctx.fillText(this.text, canvas.width * 0.5, canvas.height * 0.1);
 		}
+		//however if the loading map is rotating and age is <= 0, this is not been loaded and should not fade out/in
+
+		ctx.globalAlpha = alfred;
 	}
 
 	tick() {
