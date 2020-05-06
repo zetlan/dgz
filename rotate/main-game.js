@@ -83,6 +83,13 @@ function keyPress(u) {
 			//the ] key
 			case 221:
 				lEditor.active = true;
+				break;
+			case 32:
+				camera.vertical = true;
+				camera.x = 0;
+				camera.y = 2 * mapSize;
+				camera.z = 0;
+				break;
 		}
 	} else {
 		//edit mode controls
@@ -162,12 +169,18 @@ function keyPress(u) {
 					lEditor.occupies = loadingMap.contains.length - 1;
 				}
 				break;
+			case 32:
+				camera.vertical = true;
+				camera.x = 0;
+				camera.y = 2 * mapSize;
+				camera.z = 0;
+				break;
 		}
 	}
 }
 
 function keyNegate(u) {
-    //similar to keyPress, but slightly more complicated to make the controls feel smooth
+    //similar to keyPress, but for negation. The if statements are so the controls feel smooth.
     switch (u.keyCode) {
         case 37:
         case 65:
@@ -192,7 +205,13 @@ function keyNegate(u) {
 			if (player.az < 0) {
 				player.az = 0;
 			}
-            break;
+			break;
+		case 32:
+			camera.vertical = false;
+			camera.x = 0;
+			camera.y = 0;
+			camera.z = -2 * mapSize;
+			break;
     }
 
 }
@@ -205,7 +224,6 @@ function main() {
 		ctx.fillStyle = cLinterp(loadingMap.bg, loadingMap.goingMap.bg, loadingMap.rotPercent);
 	}
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
-	
 	
 
 	//run object draws/ticks
@@ -260,9 +278,6 @@ function spaceToScreen(pointArr) {
 	var tY = pointArr[1];
 	var tZ = pointArr[2];
 
-	var nTX = tX;
-	var nTZ = tZ;
-	
 	//step 0: rotate coordinates around 0, 0, 0
 	//only check angle after time has passed
 	if (pTime > 0) {
@@ -277,9 +292,15 @@ function spaceToScreen(pointArr) {
 	tY -= camera.y;
 	tZ -= camera.z;
 
-	//step 2: divide by axis perpendicular to camera, (for this program, is always z)
-	tX /= tZ;
-	tY /= tZ;
+	//step 2: divide by axis perpendicular to camera
+	if (camera.vertical) {
+		tX /= (tY * -1);
+		tY = (tZ * -1) / tY;
+	} else {
+		tX /= tZ;
+		tY /= tZ;
+	}
+	
 
 	//step 2.5: account for camera scale
 	tX *= camera.scale;
@@ -455,4 +476,12 @@ function cloneMap(cloneToLeftBOOL, mapToCloneToSTRING) {
 
 	//return the mapOutput of the new map
 	return mapOutput(rads, mapName);
+}
+
+function reset(mapToGoTo) {
+	window.cancelAnimationFrame(timer);
+	loadingMap = mapToGoTo;
+	loadingMap.angle = 0;
+	loadingMap.rotating = 0;
+	window.requestAnimationFrame(main);
 }

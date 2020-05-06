@@ -118,13 +118,13 @@ class Cube extends Main {
 	}
 
 	beDrawn() {
+		this.construct();
 		for (var h=0;h<this.faces.length;h++) {
 			this.faces[h].beDrawn();
 		}
 	} 
 	
 	tick() {
-		this.construct();
 		//only tick if the player should be able to collide
 		if (player.z > this.z - this.rz || loadingMap.rotating) {
 			//ticking each face
@@ -178,6 +178,11 @@ class PartialBox extends Box {
 
 	giveEnglishConstructor(radians) {
 		let {x, y, z, rx, ry, rz, rotX, rotY, rotZ} = this;
+		[x, z] = rotate(x, z, radians);
+		[rx, rz] = rotate(rx, rz, radians);
+		if (radians != 0) {
+			[rotX, rotZ] = [rotZ, rotX];
+		}
 		return `new PartialBox(${x}, ${y}, ${z}, ${Math.abs(rx)}, ${Math.abs(ry)}, ${Math.abs(rz)}, ${rotZ}, ${rotY}, ${rotX})`;
 	}
 }
@@ -368,7 +373,7 @@ class Face {
 				if (this.colZ != 0) {
 					if (this.xyz[2] <= player.z + 5) {
 						player.z += this.colZ * player.mS;
-						//if the player is out of bounds, make them not be
+						//if the player is out of bounds in z, make them not be
 						if (Math.abs(player.z) > mapSize) {
 							player.z += player.mS;
 						}
@@ -377,6 +382,15 @@ class Face {
 							player.x -= player.mS;
 						} else {
 							player.x += player.mS
+						}
+
+						//if player is out of bounds in x make them not be
+						if (Math.abs(player.x) > mapSize) {
+							if (player.x > 0) {
+								player.x -= player.mS;
+							} else {
+								player.x += player.mS;
+							}
 						}
 					}
 				}

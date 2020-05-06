@@ -31,19 +31,37 @@ class Map {
 		player.tick();
 
 		for (var k=0;k<this.contains.length;k++) {
-			this.contains[k].tick();
 			this.contains[k].beDrawn();
 		}
 
-		//drawing player
-		player.beDrawn();
+		//only tick if this map is the loading map
+		if (this == loadingMap) {
+			this.tick();
+		}
 
-
-		//rotation things go last
+		//every once in a while order objects
+		if (pTime % 50 == 0) {
+			this.orderObjects();
+		}
+		//rotation things go almostlast
         if (this.rotating) {
 			this.angle += this.aSpeed;
 			this.rotPercent = Math.abs(loadingMap.angle / (Math.PI / 2));
 			this.orderObjects();
+
+			//fade in for the map being gone to
+			var temp = this.angle;
+			if (this.aSpeed > 0) {
+				this.angle -= Math.PI / 2;
+			} else {
+				this.angle += Math.PI / 2;
+			}
+			ctx.globalAlpha = this.rotPercent;
+			this.goingMap.orderObjects();
+			this.goingMap.beRun();
+			
+			ctx.globalAlpha = 1;
+			this.angle = temp;
 			
             //if rotated 90 degrees or rotated ~0 degrees, stop rotation
             if (Math.abs(this.aStart - this.angle) > Math.PI / 2 || Math.abs(this.aStart - this.angle) < Math.abs(this.aSpeed * 0.8)) {
@@ -65,9 +83,20 @@ class Map {
 				this.rotPercent = 0;
 				this.orderObjects();
             }
-        }
-    }
+		}
+		
+		//finally, player is drawn
+		if (this == loadingMap) {
+			player.beDrawn();
+		}
+	}
 
+	tick() {
+		for (var k=0;k<this.contains.length;k++) {
+			this.contains[k].tick();
+		}
+	}
+	
     startRotation(speed) {
         //only start if not already rotating
         if (!this.rotating) {
@@ -155,8 +184,20 @@ class Map {
 	}
 
 	giveEnglishConstructor(radians) {
-		let {bg, leftMap, rightMap} = this;
-		return `new Map("${bg}", [], "${leftMap.name}", "${rightMap.name}"); \n`;
+		var leftName;
+		try {
+			leftName = this.leftMap.name;
+		} catch (error) {
+			leftName = NaN;
+		}
+
+		var rightName;
+		try {
+			rightName = this.rightMap.name;
+		} catch (error) {
+			rightName = NaN;
+		}
+		return `new Map("${this.bg}", [], "${leftName}", "${rightName}"); \n`;
 	}
 }
 
@@ -236,6 +277,7 @@ class Camera extends Main {
         super(x, y, z);
 
 		this.scale = scale;
+		this.vertical = false;
 	}
 	
 	getCameraDist() {
