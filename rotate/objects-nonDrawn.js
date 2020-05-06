@@ -1,6 +1,4 @@
-
 //map class, all world objects are contained here
-
 class Map {
     constructor(backgroundColor, objects, connectsToLeft, connectsToRight) {
 		this.bg = backgroundColor;
@@ -51,14 +49,16 @@ class Map {
 
 			//fade in for the map being gone to
 			var temp = this.angle;
-			if (this.aSpeed > 0) {
+			if (this.goingMap == this.leftMap) {
 				this.angle -= Math.PI / 2;
 			} else {
 				this.angle += Math.PI / 2;
 			}
 			ctx.globalAlpha = this.rotPercent;
-			this.goingMap.orderObjects();
-			this.goingMap.beRun();
+			try {
+				this.goingMap.orderObjects();
+				this.goingMap.beRun();
+			} catch (error) {}
 			
 			ctx.globalAlpha = 1;
 			this.angle = temp;
