@@ -37,6 +37,8 @@ class Cube extends Main {
 		this.generatePoints();
 		this.generateScreenPoints();
 		this.generateFaces();
+
+		[this.x, this.y, this.z] = [Math.round(this.x), Math.round(this.y), Math.round(this.z)];
 	}
 
 	generatePoints() {
@@ -162,10 +164,50 @@ class Box extends Cube {
 		[x, z] = rotate(x, z, radians);
 		[rx, rz] = rotate(rx, rz, radians);
 		[x, z, rx, rz] = [Math.round(x), Math.round(z), Math.round(rx), Math.round(rz)]
-		return (`new Box(${x}, ${y}, ${z}, ${Math.abs(rx)}, ${Math.abs(ry)}, ${Math.abs(rz)})`);
+		return (`new Box(${Math.round(x)}, ${Math.round(y)}, ${Math.round(z)}, ${Math.abs(rx)}, ${Math.abs(ry)}, ${Math.abs(rz)})`);
 	}
 }
 
+class Blocker extends Box {
+	constructor(dir0Through3) {
+		switch (dir0Through3) {
+			case 0:
+				super(-1 * mapSize, 0, 0, 1, mapSize, mapSize);
+				break;
+			case 1:
+				super(0, 0, mapSize, mapSize, mapSize, 1);
+				break;
+			case 2:
+				super(1 * mapSize, 0, 0, 1, mapSize, mapSize);
+				break;
+			case 3:
+				super(0, 0, -1 * mapSize, mapSize, mapSize, 1);
+				break;
+			default:
+				console.log("invalid direction " + dir0Through3 + " recieved for Blocker");
+				break;
+		}
+		this.dir = dir0Through3;
+	}
+
+	giveEnglishConstructor(radians) {
+		let {dir} = this;
+		if (radians < 0) {
+			dir += 1;
+			if (dir > 3) {
+				dir = 0;
+			}
+		}
+		if (radians > 0) {
+			dir -= 1;
+			if (dir < 0) {
+				dir = 3;
+			}
+		}
+
+		return `new Blocker(${dir})`;
+	}
+}
 
 class PartialBox extends Box {
 	constructor(x, y, z, rx, ry, rz, xRotable, yRotable, zRotable) {
@@ -180,10 +222,53 @@ class PartialBox extends Box {
 		let {x, y, z, rx, ry, rz, rotX, rotY, rotZ} = this;
 		[x, z] = rotate(x, z, radians);
 		[rx, rz] = rotate(rx, rz, radians);
+		[rx, rz] = [Math.round(rx), Math.round(rz)];
 		if (radians != 0) {
 			[rotX, rotZ] = [rotZ, rotX];
 		}
-		return `new PartialBox(${x}, ${y}, ${z}, ${Math.abs(rx)}, ${Math.abs(ry)}, ${Math.abs(rz)}, ${rotZ}, ${rotY}, ${rotX})`;
+		return `new PartialBox(${Math.round(x)}, ${Math.round(y)}, ${Math.round(z)}, ${Math.abs(rx)}, ${Math.abs(ry)}, ${Math.abs(rz)}, ${rotZ}, ${rotY}, ${rotX})`;
+	}
+}
+
+//maybe I could have optimized this better, but here I am
+class Wall extends PartialBox {
+	constructor(dir0Through3) {
+		switch (dir0Through3) {
+			case 0:
+				super(-1 * mapSize, 0, 0, 1, mapSize, mapSize, true, true, true);
+				break;
+			case 1:
+				super(0, 0, mapSize, mapSize, mapSize, 1, true, true, true);
+				break;
+			case 2:
+				super(1 * mapSize, 0, 0, 1, mapSize, mapSize, true, true, true);
+				break;
+			case 3:
+				super(0, 0, -1 * mapSize, mapSize, mapSize, 1, true, true, true);
+				break;
+			default:
+				console.log("invalid direction " + dir0Through3 + " recieved for Wall");
+				break;
+		}
+		this.dir = dir0Through3;
+	}
+
+	giveEnglishConstructor(radians) {
+		let {dir} = this;
+		if (radians < 0) {
+			dir += 1;
+			if (dir > 3) {
+				dir = 0;
+			}
+		}
+		if (radians > 0) {
+			dir -= 1;
+			if (dir < 0) {
+				dir = 3;
+			}
+		}
+
+		return `new Wall(${dir})`;
 	}
 }
 
@@ -191,7 +276,8 @@ class PartialBox extends Box {
 /*	how to distinguish tilt: 
 	1st character: what axis the two faces will move along
 	2nd character: the axis normal to the moving faces
-	for example, a ZY tilt of 1 will create a rectangular prism, but the points with higher z values have higher y values. */
+	for example, a ZY tilt of 1 will create a rectangular prism, but the points with higher z values have higher y values. 
+	The axis not in the tilt name is the axis you could draw a fixed line through. */
 class TiltedBox extends PartialBox {
 	constructor(x, y, z, rx, ry, rz, rotableX, rotableY, rotableZ, XYslope, XZslope, ZXslope, ZYslope) {
 		super(x, y, z, rx, ry, rz, rotableX, rotableY, rotableZ);
@@ -233,9 +319,23 @@ class TiltedBox extends PartialBox {
 	}
 
 	giveEnglishConstructor(radians) {
-		//I'm cheating a bit with this, since the most common transformation is += 1.0708 radians, I just extrapollate to +, -, or 0.
+		//I'm cheating a bit with this by just extrapollating to +, -, or 0.
+		let {x, y, z, rx, ry, rz, rotX, rotY, rotZ, XYt, XZt, ZXt, ZYt} = this;
+		console.log(radians, x, z);
+		if (radians != 0) {
+			[x, z] = rotate(x, z, radians);
+			[rx, rz] = rotate(rx, rz, radians);
+			[rx, ry, rz] = [Math.round(rx), Math.round(ry), Math.round(rz)];
+			[rotX, rotZ] = [rotZ, rotX];
 
-		return `new TiltedBox(${x}, ${y}, ${z}, ${Math.abs(rx)}, ${Math.abs(ry)}, ${Math.abs(rz)}, ${ZYtilt}, ${XYtilt}, ${ZXtilt}, ${XZtilt})`;
+			if (radians > 0) {
+				[XYt, ZYt, ZXt, XZt] = [-1 * ZYt, -1 * XYt, -1 * XZt, -1 * ZXt];
+			} else {
+				[XYt, ZYt, ZXt, XZt] = [ZYt, XYt, XZt, ZXt];
+			}
+		}
+		console.log(radians, x, z);
+		return `new TiltedBox(${Math.round(x)}, ${Math.round(y)}, ${Math.round(z)}, ${Math.abs(rx)}, ${Math.abs(ry)}, ${Math.abs(rz)}, ${rotX}, ${rotY}, ${rotZ}, ${XYt}, ${XZt}, ${ZXt}, ${ZYt})`;
 	}
 }
 
@@ -246,6 +346,10 @@ class Floor extends Main {
 		super(0, -1 * mapSize, 0);
 		this.points = []; 
 		this.xyP = [];
+
+		this.rx = mapSize;
+		this.ry = 0;
+		this.rz = mapSize;
 
 		this.cDist = Infinity;
 		this.generatePoints();
@@ -283,12 +387,12 @@ class Floor extends Main {
 		}
 
 		//keep the player in bounds
-		if (Math.abs(player.x) > mapSize) {
+		while (Math.abs(player.x) > mapSize) {
 			player.x *= 0.99;
 			player.dx = 0;
 		}
 
-		if (Math.abs(player.z) > mapSize) {
+		while (Math.abs(player.z) > mapSize) {
 			player.z *= 0.99;
 			player.dz = 0;
 		}
@@ -367,6 +471,7 @@ class Face {
 						player.y -= 1;
 					}
 					this.parent.avoid = true;
+					loadingMap.avoid = true;
 				}
 
 				//special check for z to avoid collision issues when in front of an object
@@ -403,6 +508,7 @@ class Face {
 						console.log("swapped rotation direction using face type", this.colX, this.colY, this.colZ, "\n with parent", this.parent.constructor.name);
 					} else {
 						this.parent.avoid = true;
+						loadingMap.avoid = true;
 					}	
 			} else if (!this.rotable) {
 				console.log("attempted direction swap using face type", this.colX, this.colY, this.colZ, "\n with parent", this.parent.constructor.name);

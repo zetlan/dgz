@@ -30,6 +30,11 @@ let mapCab;
 let mapCba;
 let mapCbb;
 
+let mapR1;
+let mapR2;
+let mapR3;
+let mapR4;
+
 let mapE1;
 
 //all the map generation is inside a function so I can control when they're defined
@@ -46,7 +51,7 @@ function initMaps() {
 	menuMap = new Map("#A08060", [], NaN, "defaultMap"); 
 	menuMap.contains = [new Floor(),
 						new Box(-125, -112.5, 0, -25, 37.5, 10),
-						new PartialBox(0, 0, nF, 150, 150, 1, true, true, true),
+						new Wall(3),
 						new Box(0, 0, 0, -100, 150, 10),
 						new Text("Press X or L to Rotate")];
 	
@@ -104,33 +109,119 @@ function initMaps() {
 						new Box(-25, -115, -140, 15, 15, 10)];
 
 	mapA3 = new Map("#E5B25D", [], "mapA2", "mapA4"); 
-	mapA3.contains = [ 		new Floor(), 
+	mapA3.contains = [		new Floor(), 
 							new Box(-140, -115, 25, 10, 15, 15), 
-							new Box(125, -125, 0, 25, 25, 10), 
 							new Box(-125, -125, 0, 25, 25, 10), 
+							new Box(125, -125, 0, 25, 25, 20), 
 							new Box(0, 0, 0, 100, 150, 10), 
-							new PartialBox(45, -145, -75, 110, 10, 70, true, true, true)];
+							new PartialBox(45, -145, -80, 110, 5, 70, true, true, true)];
 
 	mapA4 = new Map("#E5B25D", [], "mapA3", "mapA5"); 
 	mapA4.contains = [ 	new Floor(), 
 						new Box(25, -115, 140, 15, 15, 10), 
 						new Box(0, -125, 125, 10, 25, 25), 
-						new PartialBox(-80, -145, -35, 75, 10, 110, true, true, true), 
+						new PartialBox(150, 0, 0, 1, 150, 150, true, true, true), 
+						new PartialBox(-75, -145, -40, 75, 5, 110, true, true, true), 
 						new Box(0, 0, 0, 10, 150, 100), 
-						new Box(0, -125, -125, 10, 25, 25), 
-						new PartialBox(150, 0, 0, 1, 150, 150, true, true, true)];
+						new Box(0, -125, -125, 20, 25, 25)];
 						
 	mapA5 = new Map("#CCAACC", [], "mapC", "mapC"); 
 	mapA5.contains = [		new Floor(),
 							new PartialBox(0, 0, nF, 150, 150, 1, true, true, true),
 							new Box(0, 0, 0, 10, 150, 10),
 							new Text(["Welcome to the Crossroads"])];
-	//crossroads maps				
+	//crossroads maps	
+	/*
+	Ca - blend of red/yellow
+	Cb - blend of green/blue
+
+	Caa - red
+	Cab - yellow
+	Cba - green
+	Cbb - blue
+
+	*/
 							
-	mapC = new Map("#CCAACC", [], "NaN", "NaN"); 
+	mapC = new Map("#CCAACC", [], "mapCa", "mapCb"); 
 	mapC.contains = [ 	new Floor(), 
 						new Box(0, 0, 0, 10, 150, 10)];
 
+	mapCa = new Map("#FC9B94", [], "mapCaa", "mapCab"); 
+	mapCa.contains = [		new Floor(),
+							new Wall(2), 
+							new Wall(0), 
+							new Box(0, 0, 0, 10, 150, 10)];
+	
+	mapCaa = new Map("#FF5468", [], "mapR1", "mapCa"); 
+	mapCaa.contains = [		new Floor(), 
+							new Wall(3),
+							new Box(0, 0, 0, 10, 150, 10)];
+	
+	mapCab = new Map("#F9FFBD", [], "mapCa", "mapCab"); 
+	mapCab.contains = [ 	new Floor(),
+							new Wall(3), 
+							new Box(0, 0, 0, 10, 150, 10)];
+
+	mapCb = new Map("#4096AA", [], "mapCba", "mapCbb"); 
+	mapCb.contains = [ 	new Floor(), 
+						new Wall(2), 
+						new Wall(0),
+						new Box(0, 0, 0, 10, 150, 10)];
+
+	mapCba = new Map("#70C1B3", [], "mapCba", "mapCb"); 
+	mapCba.contains = [ new Floor(), 
+						new Wall(3), 
+						new Box(0, 0, 0, 10, 150, 10)];
+	
+	mapCbb = new Map("#106BA0", [], "mapCb", "mapCbb"); 
+	mapCbb.contains = [ new Floor(),
+						new Wall(3), 
+						new Box(0, 0, 0, 10, 150, 10)];
+
 	//four zones (green: #70C1B3   blue: #106BA0   yellow: #F9FFBD   red: #FF366B)
+
+	//red zone	
+	mapR1 = new Map("#FF5468", [], "mapR4", "mapR2"); 
+	mapR1.contains = [ 	new Floor(), 
+						new TiltedBox(26, -37, 156, 45, 5, 15, false, false, false, -0.5, 0, 0, 0), 
+						new Box(60, -150, 120, 45, 25, 0), 
+						new PartialBox(140, -100, 6, 25, 5, 70, true, true, true), 
+						new Wall(0), 
+						new Box(30, -130, 6, 0, 11, 107), 
+						new Box(-35, -80, 0, 10, 70, 150), 
+						new Box(150, -95, -85, 15, 15, 15), 
+						new PartialBox(25, -135, -135, 25, 15, 15, true, true, true), 
+						new PartialBox(-10, -25, -135, 15, 15, 15, true, true, true)];
+	
+	mapR2 = new Map("#FF5468", [], "mapR1", "mapR3"); 
+	mapR2.contains = [ 	new Floor(), 
+						new Wall(1), 
+						new Box(0, -80, 35, 150, 70, 10), 
+						new PartialBox(-135, -25, 10, 15, 15, 15, true, true, true), 
+						new PartialBox(-135, -135, -25, 15, 15, 25, true, true, true), 
+						new TiltedBox(156, -37, -26, 15, 5, 45, false, false, false, 0, 0, 0, 0.5), 
+						new Box(120, -150, -60, 0, 25, 45), 
+						new Box(6, -130, -30, 107, 11, 0), 
+						new Box(-85, -95, -150, 15, 15, 15), 
+						new PartialBox(6, -100, -140, 70, 5, 25, true, true, true)];
+
+	mapR3 = new Map("#FF5468", [], "mapR2", "mapR4"); 
+	mapR3.contains = [ 	new Floor(), 
+						new PartialBox(-25, -135, 135, 25, 15, 15, true, true, true), 
+						new PartialBox(10, -25, 135, 15, 15, 15, true, true, true), 
+						new Box(-150, -95, 85, 15, 15, 15), 
+						new PartialBox(-140, -100, -6, 25, 5, 70, true, true, true), 
+						new Wall(2), 
+						new Box(-30, -130, -6, 0, 11, 107), 
+						new Box(35, -80, 0, 10, 70, 150), 
+						new Box(-60, -150, -120, 45, 25, 0), 
+						new TiltedBox(-26, -37, -156, 45, 5, 15, false, false, false, 0.5, 0, 0, 0.25)];
+
+	mapR4 = new Map("#FF5468", [], "mapR3", "NaN"); 
+	mapR4.contains = [ 	new Floor(), 
+						new Blocker(0), 
+						new Wall(3)];
+
+
 	
 }

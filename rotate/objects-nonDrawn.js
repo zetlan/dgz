@@ -1,6 +1,7 @@
 //map class, all world objects are contained here
 class Map {
     constructor(backgroundColor, objects, connectsToLeft, connectsToRight) {
+		this.avoid = false;
 		this.bg = backgroundColor;
 		this.name;
         this.contains = objects;
@@ -8,11 +9,11 @@ class Map {
 		this.rightMap = connectsToRight;
 		this.goingMap;
 
-        this.angle = 0;
+		this.angle = 0;
+		this.mTime = 0;
         this.aSpeed = 0;
 		this.aStart = 0;
 		this.rotPercent = 0;
-		this.playerStorePos = [];
 		this.rotating = false;
 		this.ableToSwap = false;
 		
@@ -24,25 +25,26 @@ class Map {
     }
 
     beRun() {
+		this.mTime ++;
 		//tick and draw everything
 		//player is ticked first but drawn last so that collisions don't look strange
-		player.tick();
+		
 
 		for (var k=0;k<this.contains.length;k++) {
 			this.contains[k].beDrawn();
 		}
 
 		//only tick if this map is the loading map
-		if (this == loadingMap) {
+		if (this == loadingMap && this.mTime <= 1) {
 			this.tick();
 		}
 
 		//every once in a while order objects
-		if (pTime % 50 == 0) {
+		if (pTime % 50 == 0 && this.mTime <= 1) {
 			this.orderObjects();
 		}
-		//rotation things go almostlast
-        if (this.rotating) {
+		//rotation things go almost last
+        if (this.rotating && this.mTime <= 1) {
 			this.angle += this.aSpeed;
 			this.rotPercent = Math.abs(loadingMap.angle / (Math.PI / 2));
 			this.orderObjects();
@@ -62,6 +64,7 @@ class Map {
 			
 			ctx.globalAlpha = 1;
 			this.angle = temp;
+			this.mTime = 1;
 			
             //if rotated 90 degrees or rotated ~0 degrees, stop rotation
             if (Math.abs(this.aStart - this.angle) > Math.PI / 2 || Math.abs(this.aStart - this.angle) < Math.abs(this.aSpeed * 0.8)) {
@@ -86,14 +89,21 @@ class Map {
 		}
 		
 		//finally, player is drawn
-		if (this == loadingMap) {
+		if (this == loadingMap && this.mTime <= 1) {
+			player.tick();
 			player.beDrawn();
 		}
+
+		this.mTime = 0;
 	}
 
 	tick() {
-		for (var k=0;k<this.contains.length;k++) {
+		for (var k=this.contains.length-1;k>=0;k--) {
 			this.contains[k].tick();
+			if (this.avoid) {
+				this.avoid = false;
+				k = 1;
+			}
 		}
 	}
 	
@@ -103,8 +113,7 @@ class Map {
             this.aStart = this.angle;
             this.aSpeed = speed;
 			this.rotating = true;
-			
-			this.playerStorePos = [player.drawCoord[0], player.drawCoord[1]];
+
 			if (this.aSpeed > 0) {
 				this.goingMap = this.leftMap;
 			} else {
@@ -231,7 +240,7 @@ class Editor {
 		this.active = false;
 		this.occupies = 0;
 		this.crInd = 0;
-		this.createList = ["Cube", "Box", "PartialBox", "TiltedBox"];
+		this.createList = ["Cube", "Box", "PartialBox", "TiltedBox", "Wall", "Blocker"];
 		this.obj;
 
 		this.ncrmnt = 5;
@@ -252,8 +261,12 @@ class Editor {
 		ctx.lineWidth = 2;
 
 		ctx.fillStyle = textColor;
-		ctx.fillText("creation object: " + this.createList[this.crInd] + ", selected object: " + this.obj.constructor.name, canvas.width * 0.5, canvas.height * 0.9);
-		ctx.fillText("Currently in: " + loadingMap.name, canvas.width * 0.5, canvas.height * 0.96);
+		ctx.font = "17px Century Gothic";
+		let {x, y, z, rx, ry, rz} = this.obj;
+		ctx.fillText("creation object: " + this.createList[this.crInd], canvas.width * 0.5, canvas.height * 0.85);
+		ctx.fillText(`Selected object: ` + this.obj.constructor.name, canvas.width * 0.5, canvas.height * 0.89);
+		ctx.fillText(`With coords (${x}, ${y}, ${z}) and radii (${rx}, ${ry}, ${rz})`, canvas.width * 0.5, canvas.height * 0.93)
+		ctx.fillText("Currently in: " + loadingMap.name, canvas.width * 0.5, canvas.height * 0.97);
 	}
 
 	createObj() {

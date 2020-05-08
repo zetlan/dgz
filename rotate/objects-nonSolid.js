@@ -1,24 +1,120 @@
-class Character extends Main {
-    constructor(x, y, z) {
+class Particle extends Main {
+	constructor(x, y, z, color) {
 		super(x, y, z);
-		
+		this.home = [x, y, z];
 		this.drawCoord = [];
-		this.drawCoord2 = [];
-		this.drawCoordL = [];
-		this.drawCoordR = [];
 		this.drawCoordP = [];
 		this.drawCoordP2 = [];
-		
-		this.r = 5;
+		this.drawCoord2 = [];
+		this.fDC = [];
+		this.color = color;
+
+		this.r = 2.5;
+		this.dispSize = 0;
 		this.abvP = [x, y + this.r, z];
 
-        this.dx = 0;
-        this.dy = 0;
+		this.dx = 0;
+		this.dy = 0;
 		this.dz = 0;
+
+		this.mS = 4;
+	}
+
+	tick() {
+		//randomly change velocity
+		this.dx += (Math.random() - 0.5) / 4;
+		this.dy += (Math.random() - 0.5) / 4;
+		this.dz += (Math.random() - 0.5) / 4;
+
+		//if the particle is close to the edge of the map, influence velocity
+		if (Math.abs(this.x) > mapSize - 30) {
+			this.dx += this.x / (-4 * mapSize);
+		}
+
+		if (Math.abs(this.y) > mapSize - 30) {
+			this.dy += this.y / (-4 * mapSize);
+		}
+
+		if (Math.abs(this.z) > mapSize - 30) {
+			this.dz += this.z / (-4 * mapSize);
+		}
+
+		//capping velocity
+		if (Math.abs(this.dx) > this.mS) {
+			this.dx *= 0.95;
+		}
+
+		if (Math.abs(this.dy) > this.mS) {
+			this.dy *= 0.95;
+		}
+
+		if (Math.abs(this.dz) > this.mS) {
+			this.dz *= 0.95;
+		}
+
+		//changing position based on velocity
+		this.x += this.dx;
+		this.y += this.dy;
+		this.z += this.dz;
+
+		this.adjustPoints();
+	}
+
+	beDrawn() {
+		ctx.fillStyle = this.color;
+		var temp = ctx.strokeStyle;
+		ctx.strokeStyle = this.color;
+		//getting the spot to draw the particle based off the average of their current position and past position
+		this.fDC = [(this.drawCoordP2[0] + this.drawCoordP[0] + this.drawCoord2[0]) / 3, (this.drawCoordP2[1] + this.drawCoordP[1] + this.drawCoord2[1]) / 3];
+		gPoint(this.fDC[0], this.fDC[1], this.dispSize);
+
+		if (loadingMap.rotating) {
+			ctx.stroke();
+		} else {
+			ctx.fill();
+		}
+
+		ctx.strokeStyle = temp;
+	}
+
+	adjustPoints() {
+		//adjusting the above point and other misc. points
+		this.abvP = [this.x, this.y + this.r, this.z];
+		this.drawCoordP2 = this.drawCoordP;
+		this.drawCoordP = this.drawCoord2;
+		this.drawCoord = spaceToScreen([this.x, this.y, this.z]);
+		this.drawCoord2 = spaceToScreen(this.abvP);
+		
+		this.dispSize = Math.abs(this.drawCoord[1] - this.drawCoord2[1]);
+	}
+
+	getCameraDist() {
+		return 0;
+	}
+
+	giveEnglishConstructor() {
+		let {home} = this;
+		const [x, y, z] = [home[0], home[1], home[2]];
+		return `new Particle(${x}, ${y}, ${z})`;
+	}
+}
+
+
+
+class Character extends Particle {
+    constructor(x, y, z) {
+		super(x, y, z, characterColor);
+		this.drawCoordL = [];
+		this.drawCoordR = [];
+		
+		this.r = 5;
+		this.dispSize = 0;
+		this.abvP = [x, y + this.r, z];
 		
 		this.ax = 0;
 		this.az = 0;
 
+		//mS is max horizontal movement, mV is max vertical movement
 		this.mS = 2;
 		this.mV = 9.8;
 		this.friction = 0.85;
@@ -68,41 +164,23 @@ class Character extends Main {
 			this.y += this.dy;
 			this.z += this.dz;
 		}
+		this.adjustPoints();
     }
 
     beDrawn() {
-		//adjusting the above point
-		this.abvP = [this.x, this.y + this.r, this.z];
-		this.drawCoordP2 = this.drawCoordP;
-		this.drawCoordP = this.drawCoord2;
-		this.drawCoord = spaceToScreen([this.x, this.y, this.z]);
-		this.drawCoord2 = spaceToScreen(this.abvP);
-
-		//display size depends on distance, so the transform is done for two points and then the 2d distance between them is tested
-		var dispSize = Math.abs(this.drawCoord[1] - this.drawCoord2[1]);
-
-		this.drawCoordL = [this.drawCoord2[0] - dispSize, this.drawCoord2[1]];
-		this.drawCoordR = [this.drawCoord2[0] + dispSize, this.drawCoord2[1]];
-
-		ctx.fillStyle = characterColor;
+		super.beDrawn();
 		var temp = ctx.strokeStyle;
-		ctx.strokeStyle = characterColor;
-		//getting the spot to draw the character based off the average of their current position and past position
-		var fDC = [(this.drawCoordP2[0] + this.drawCoordP[0] + this.drawCoord2[0]) / 3, (this.drawCoordP2[1] + this.drawCoordP[1] + this.drawCoord2[1]) / 3];
-		gPoint(fDC[0], fDC[1], dispSize);
-
-		if (loadingMap.rotating) {
-			ctx.stroke();
-		} else {
-			ctx.fill();
-		}
-
+		ctx.strokeStyle = "#FFFFFF";
+		gPoint(this.fDC[0], this.fDC[1], this.dispSize);
+		ctx.stroke();
 		ctx.strokeStyle = temp;
 	}
 
-	
-	getCameraDist() {
+	adjustPoints() {
+		super.adjustPoints();
 
+		this.drawCoordL = [this.drawCoord2[0] - this.dispSize, this.drawCoord2[1]];
+		this.drawCoordR = [this.drawCoord2[0] + this.dispSize, this.drawCoord2[1]];
 	}
 }
 

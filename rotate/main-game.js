@@ -8,9 +8,9 @@ var ctx;
 var loadingMap;
 var mapSize = 150;
 var pTime = 0;
-var pStart ={	"x" : 0, 
+var pStart ={	"x" : 0.99 * mapSize, 
 				"y" : -0.99 * mapSize, 
-				"z" : -0.75 * mapSize
+				"z" : -0.99 * mapSize
 			};
 
 //colors
@@ -115,6 +115,15 @@ function keyPress(u) {
 				lEditor.obj.y += lEditor.ncrmnt;
 				break;
 			
+			//control, for finer editing
+			case 17:
+				if (lEditor.ncrmnt == 1) {
+					lEditor.ncrmnt = 5;
+				} else {
+					lEditor.ncrmnt = 1;
+				}
+				lEditor.control = !lEditor.control;
+				break;	
 			
 			//size controls (←↑→↓ '/)
 			case 37:
@@ -150,7 +159,21 @@ function keyPress(u) {
 			case 8:
 				lEditor.destroyObj();
 				break;
-
+			
+			//j, k, m, and n, for tilt
+			case 74:
+				lEditor.obj.XYt += (lEditor.ncrmnt - 3) / 8;
+				break;
+			case 75:
+				lEditor.obj.XZt += (lEditor.ncrmnt - 3) / 8;
+				break;
+			case 77:
+				lEditor.obj.ZXt += (lEditor.ncrmnt - 3) / 8;
+				break;
+			case 78:
+				lEditor.obj.ZYt += (lEditor.ncrmnt - 3) / 8;
+				break;
+			
 			//the ] key
 			case 221:
 				lEditor.active = false;
@@ -175,6 +198,10 @@ function keyPress(u) {
 				camera.y = 2 * mapSize;
 				camera.z = 0;
 				break;
+		}
+
+		//specials
+		if (lEditor.control) {
 		}
 	}
 }
@@ -221,7 +248,11 @@ function main() {
 	if (!loadingMap.rotating) {
 		ctx.fillStyle = loadingMap.bg;
 	} else {
-		ctx.fillStyle = cLinterp(loadingMap.bg, loadingMap.goingMap.bg, loadingMap.rotPercent);
+		try {
+			ctx.fillStyle = cLinterp(loadingMap.bg, loadingMap.goingMap.bg, loadingMap.rotPercent);
+		} catch (error) {
+			ctx.fillStyle = cLinterp(loadingMap.bg, undefined, loadingMap.rotPercent);
+		}
 	}
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 	
