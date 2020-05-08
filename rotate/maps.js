@@ -34,8 +34,15 @@ let mapR1;
 let mapR2;
 let mapR3;
 let mapR4;
+let mapR5;
+let mapR6;
+let mapR7;
+let mapR5_F;
+let mapR
 
 let mapE1;
+
+let mapMT;
 
 //all the map generation is inside a function so I can control when they're defined
 //numbers in terms of mapSize for quick reference
@@ -180,6 +187,8 @@ function initMaps() {
 
 	//four zones (green: #70C1B3   blue: #106BA0   yellow: #F9FFBD   red: #FF366B)
 
+
+
 	//red zone	
 	mapR1 = new Map("#FF5468", [], "mapR4", "mapR2"); 
 	mapR1.contains = [ 	new Floor(), 
@@ -217,11 +226,44 @@ function initMaps() {
 						new Box(-60, -150, -120, 45, 25, 0), 
 						new TiltedBox(-26, -37, -156, 45, 5, 15, false, false, false, 0.5, 0, 0, 0.25)];
 
-	mapR4 = new Map("#FF5468", [], "mapR3", "NaN"); 
+	mapR4 = new Map("#FF5468", [], "mapR3", "mapR5"); 
 	mapR4.contains = [ 	new Floor(), 
 						new Blocker(0), 
 						new Wall(3)];
 
 
-	
+	mapR5 = new Map("#FF5468", [], "mapR4_F", "mapR6"); 
+	mapR5.contains = [ 	new Floor(), 
+						new PartialBox(-5, -85, 70, 5, 65, 70, true, true, true), 
+						new Box(-75, -80, 0, 75, 70, 5), 
+						new PartialBox(-60, -125, -130, 15, 5, 15, true, true, true)];
+
+	mapR6 = new Map("#FF5468", [], "mapR5_F", "mapR7"); 
+	mapR6.contains = [ 	new Floor(), 
+						new PartialBox(139, -55, -57, 11, 10, 10, true, true, true), 
+						new Box(0, -110, -45, 150, 40, 5), 
+						new PartialBox(-80, -110, -115, 15, 15, 15, true, true, true)];
+
+	mapR7 = new Map("#FF5468", [], "mapR6", "mapR5"); 
+	mapR7.contains = [ 	new Floor(), 
+						new PartialBox(-115, -110, 80, 15, 15, 15, true, true, true), 
+						new Box(-45, -110, 0, 5, 40, 150), 
+						new PartialBox(-57, -55, -139, 10, 10, 11, true, true, true)];
+
+	mapR4_F = new Map("#FF5468", [], "NaN", "mapR5"); 
+	mapR4_F.contains = [new Floor(), 
+						new Wall(0), 
+						new PartialBox(-70, -85, -5, 70, 65, 5, true, true, true), 
+						new PartialBox(130, -125, -60, 15, 5, 15, true, true, true), 
+						new Box(0, -80, -75, 5, 70, 75)];
+
+	mapR5_F = new Map("#FF5468", [], "mapR5", "mapR6"); 
+	mapR5_F.contains = [new Floor(), 
+						new Box(45, -110, 0, 5, 40, 150), 
+						new PartialBox(-70, -75, 5, 15, 75, 15, true, true, true), 
+						new PartialBox(110, -135, -85, 15, 15, 15, true, true, true)];
+
+
+	mapMT = new Map("#FFFFFF", [], "mapMT", "mapMT"); 
+	mapMT.contains = [new Floor()];
 }
