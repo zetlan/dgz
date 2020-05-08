@@ -426,9 +426,14 @@ function avgArray(array) {
 }
 
 //outputs the current map, offset by some radians
-function mapOutput(radiansPositiveForLeft, mapName) {
-	var radianInput = radiansPositiveForLeft;
+function mapOutput(optionalMapNameSTRING) {
 	var output = "";
+	var mapName = "";
+	if (optionalMapNameSTRING != undefined) {
+		mapName = optionalMapNameSTRING;
+	} else {
+		mapName = loadingMap.name;
+	}
 
 
 	//all of this gets javascript-acceptable constructors that represent the whole map
@@ -436,7 +441,7 @@ function mapOutput(radiansPositiveForLeft, mapName) {
 	output += loadingMap.giveEnglishConstructor();
 	output += mapName + ".contains = [ \t"
 	for (var h=0;h<loadingMap.contains.length;h++) {
-		output += loadingMap.contains[h].giveEnglishConstructor(radianInput) 
+		output += loadingMap.contains[h].giveEnglishConstructor(0); 
 		if (h != loadingMap.contains.length - 1) {
 			output += ", \n";
 			output += "\t\t\t\t\t";
@@ -450,6 +455,9 @@ function mapOutput(radiansPositiveForLeft, mapName) {
 //takes the objects from the current map and clones them into a different map with an amount of offset
 function cloneMap(cloneToLeftBOOL, mapToCloneToSTRING) {
 	var mapName = mapToCloneToSTRING;
+	if (typeof(mapName) != "string") {
+		return "Non-string value entered for map name. Please retry.";
+	}
 	var rads;
 	var otherExit;
 
@@ -506,7 +514,7 @@ function cloneMap(cloneToLeftBOOL, mapToCloneToSTRING) {
 	map.name = mapName;
 
 	//return the mapOutput of the new map
-	return mapOutput(rads, mapName);
+	return mapOutput(mapName);
 }
 
 function reset(mapToGoTo) {
