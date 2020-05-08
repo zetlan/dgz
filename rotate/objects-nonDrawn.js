@@ -40,7 +40,7 @@ class Map {
 		}
 
 		//every once in a while order objects
-		if (pTime % 50 == 0 && this.mTime <= 1) {
+		if (pTime % 50 == 0 && this.mTime <= 1 && !lEditor.active) {
 			this.orderObjects();
 		}
 		//rotation things go almost last
