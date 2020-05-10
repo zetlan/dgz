@@ -265,5 +265,7 @@ function initMaps() {
 
 
 	mapMT = new Map("#FFFFFF", [], "mapMT", "mapMT"); 
-	mapMT.contains = [new Floor()];
+	mapMT.contains = [	new Floor(),
+						new Custom(0, 0, 0, [	[[15, 15, 15], [0, 0, 0], [30, 0, 30], "#0F0"],
+												[[0, 0, 0], [-15, 0, 0], [-15, 0, -15], "#0F5"]])];
 }
