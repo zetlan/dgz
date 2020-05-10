@@ -269,6 +269,115 @@ class Editor {
 		ctx.fillText("Currently in: " + loadingMap.name, canvas.width * 0.5, canvas.height * 0.97);
 	}
 
+	handleInput(u) {
+		//switch statement for keys, (WASD ⇪⎇) controls position while (←↑→↓ :/)  controls size
+		switch (u.keyCode) {
+			//movement controls (WASD ⇪⎇)
+			case 65:
+				lEditor.obj.x -= lEditor.ncrmnt;
+				break;
+			case 87:
+				lEditor.obj.z += lEditor.ncrmnt;
+				break;
+			case 68:
+				lEditor.obj.x += lEditor.ncrmnt;
+				break;
+			case 83:
+				lEditor.obj.z -= lEditor.ncrmnt;
+				break;
+			case 16:
+				lEditor.obj.y -= lEditor.ncrmnt;
+				break;
+			case 18:
+				lEditor.obj.y += lEditor.ncrmnt;
+				break;
+			
+			//control, for finer editing
+			case 17:
+				if (lEditor.ncrmnt == 1) {
+					lEditor.ncrmnt = 5;
+				} else {
+					lEditor.ncrmnt = 1;
+				}
+				lEditor.control = !lEditor.control;
+				break;	
+			
+			//size controls (←↑→↓ '/)
+			case 37:
+				lEditor.obj.rx -= lEditor.ncrmnt;
+				break;
+			case 38:
+				lEditor.obj.rz += lEditor.ncrmnt;
+				break;
+			case 39:
+				lEditor.obj.rx += lEditor.ncrmnt;
+				break;
+			case 40:
+				lEditor.obj.rz -= lEditor.ncrmnt;
+				break;
+			case 222:
+				lEditor.obj.ry += lEditor.ncrmnt;
+				break;
+			case 191:
+				lEditor.obj.ry -= lEditor.ncrmnt;
+				break;
+
+			
+			//i, o, and backspace (i creates, o cycles, and backspace deletes the currently selected object)
+			case 73:
+				lEditor.createObj();
+				break;
+			case 79:
+				lEditor.crInd += 1;
+				if (lEditor.crInd > lEditor.createList.length - 1) {
+					lEditor.crInd = 0;
+				}
+				break;
+			case 8:
+				lEditor.destroyObj();
+				break;
+			
+			//j, k, m, and n, for tilt
+			case 74:
+				lEditor.obj.XYt += (lEditor.ncrmnt - 3) / 8;
+				break;
+			case 75:
+				lEditor.obj.XZt += (lEditor.ncrmnt - 3) / 8;
+				break;
+			case 77:
+				lEditor.obj.ZXt += (lEditor.ncrmnt - 3) / 8;
+				break;
+			case 78:
+				lEditor.obj.ZYt += (lEditor.ncrmnt - 3) / 8;
+				break;
+			
+			//the ] key
+			case 221:
+				lEditor.active = false;
+				break;
+			
+			//cycling through which object to edit (- and +)
+			case 187:
+				lEditor.occupies += 1;
+				if (lEditor.occupies > loadingMap.contains.length - 1) {
+					lEditor.occupies = 0;
+				}
+				break;
+			case 189:
+				lEditor.occupies -= 1;
+				if (lEditor.occupies < 0) {
+					lEditor.occupies = loadingMap.contains.length - 1;
+				}
+				break;
+			//space, switching editors
+			case 32:
+				lEditor = new CustomEditor();
+				lEditor.active = true;
+				break;		
+		}
+
+	}
+
 	createObj() {
 		let {createList, crInd} = this;
 		//javascript constructors just ignore extra arguments passed in, which is great for me
@@ -279,6 +388,112 @@ class Editor {
 		loadingMap.contains.splice(this.occupies, 1);
 		if (this.occupies > loadingMap.contains.length - 1) {
 			this.occupies -= 1;
+		}
+	}
+}
+
+//face editor, for editing individual points/faces in a custom object
+class CustomEditor {
+	constructor() {
+		this.active = false;
+		this.occBody = 0;
+		this.occFace = 0;
+		this.occPoint = 0;
+		this.obj;
+
+		this.ncrmnt = 5;
+		this.aSpeed = 0;
+	}
+
+	tick() {
+		loadingMap.angle += this.aSpeed;
+	}
+
+	beDrawn() {
+	}
+
+	findCustom() {
+
+	}
+
+	handleInput(u) {
+		//switch statement for keys
+		switch (u.keyCode) {
+			//movement controls (WASD ⇪⎇)
+			case 65:
+				this.obj.x -= this.ncrmnt;
+				break;
+			case 87:
+				this.obj.z += this.ncrmnt;
+				break;
+			case 68:
+				this.obj.x += this.ncrmnt;
+				break;
+			case 83:
+				this.obj.z -= this.ncrmnt;
+				break;
+			case 16:
+				this.obj.y -= this.ncrmnt;
+				break;
+			case 18:
+				this.obj.y += this.ncrmnt;
+				break;
+			
+			//arrow keys for camera movement
+			case 37:
+				this.aSpeed += this.ncrmnt / 200;
+				break;
+			case 38:
+				this.aSpeed = 0;
+				loadingMap.angle = 0;
+				break;
+			case 39:
+				this.aSpeed -= this.ncrmnt / 200;
+				break;
+			
+			//control, for finer editing
+			case 17:
+				if (this.ncrmnt == 1) {
+					this.ncrmnt = 5;
+				} else {
+					this.ncrmnt = 1;
+				}
+				this.control = !this.control;
+				break;	
+			
+			//i and backspace (i creates and backspace deletes the currently selected object)
+			case 73:
+				this.createObj();
+				break;
+			case 8:
+				this.destroyObj();
+				break;
+
+
+			//the ] key
+			case 221:
+				lEditor.active = false;
+				break;
+			
+			//cycling through which object to edit (- and +)
+			case 187:
+				this.occupies += 1;
+				if (this.occupies > loadingMap.contains.length - 1) {
+					this.occupies = 0;
+				}
+				break;
+			case 189:
+				this.occupies -= 1;
+				if (this.occupies < 0) {
+					this.occupies = loadingMap.contains.length - 1;
+				}
+				break;
+			
+			//space for switching to the regular editor
+			case 32:
+				lEditor = new Editor();
+				lEditor.active = true;
+				break;
 		}
 	}
 }
