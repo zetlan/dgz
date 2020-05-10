@@ -37,8 +37,6 @@ class Cube extends Main {
 		this.generatePoints();
 		this.generateScreenPoints();
 		this.generateFaces();
-
-		[this.x, this.y, this.z] = [Math.round(this.x), Math.round(this.y), Math.round(this.z)];
 	}
 
 	generatePoints() {
@@ -130,7 +128,7 @@ class Cube extends Main {
 		//only tick if the player should be able to collide
 		if (player.z > this.z - this.rz || loadingMap.rotating) {
 			//ticking each face
-			for (var h=this.faces.length-1;h>0;h--) {
+			for (var h=this.faces.length-1;h>=0;h--) {
 				if (!this.avoid) {
 					this.faces[h].tick();
 				}
@@ -414,6 +412,103 @@ class Floor extends Main {
 	}
 }
 
+//custom objects
+class Custom extends Main {
+	constructor(x, y, z, data) {
+		super(x, y, z);
+		this.data = data;
+		this.faces = [];
+		this.nSFaces = [];
+		this.avoid = false;
+
+		[this.rx, this.ry, this.rz] = "°°°";
+	}
+
+	construct() {
+		this.generateNSFaces();
+		this.orderFaces();
+	}
+
+	generateNSFaces() {
+		this.nSFaces = [];
+		//search through this object's data
+		//first for loop for each face
+		for (var a=0;a<this.data.length;a++) {
+			//parameters to pass into the face
+			var faceColor = "";
+			var points2d = [];
+			var points3d = [];
+			//second for loop for each point in addition to color
+			for (var b=0;b<this.data[a].length;b++) {
+				var tempo = this.data[a][b];
+				//if the selected index is a string color code it is added to the color queue, but if not it's added to the points queue
+				if (typeof(this.data[a][b]) == "string") {
+					faceColor = tempo;
+				} else {
+					points3d.push([tempo[0] + this.x, tempo[1] + this.y, tempo[2] + this.z]);
+					points2d.push(spaceToScreen([tempo[0] + this.x, tempo[1] + this.y, tempo[2] + this.z]));
+				}
+			}
+
+			//building the face based off of the gathered data
+			this.nSFaces.push(new ColorableFace(points2d, points3d, this, faceColor));
+		}
+	}
+
+	orderFaces() {
+		//same algorithm as cube, for comments just look in the cube class
+		this.faces = [];
+		var great = 0;
+		var times = this.nSFaces.length;
+		for (var a=0;a<times;a++) {
+			
+			for (var b=0;b<this.nSFaces.length;b++) {
+				if (this.nSFaces[b].cDist > great) {
+					great = this.nSFaces[b].cDist;
+				}
+			}
+
+			for (var c=0;c<this.nSFaces.length;c++) {
+				if (this.nSFaces[c].cDist == great) {
+					this.faces.push(this.nSFaces[c]);
+					this.nSFaces.splice(c, 1);
+					c = this.nSFaces.length + 1;
+				}
+			}
+			great = 0;
+		}
+	}
+
+	tick() {
+		//reconstruct self
+		if (pTime % 3 == 2) {
+			this.construct();
+		}
+		
+		//collide with player//only tick if the player should be able to collide
+		//slightly less precise than regular objects, but that's just a sacrifice I'm willing to make
+		for (var h=this.faces.length-1;h>=0;h--) {
+			if (!this.avoid) {
+				this.faces[h].tick();
+			}
+		}
+		this.avoid = false;
+	}
+
+	beDrawn() {
+		//drawing each face one by one
+		for (var h=0;h<this.faces.length;h++) {
+			this.faces[h].beDrawn();
+		}
+	} 
+
+	giveEnglishConstructor(radians) {
+		//outputting english and all the data
+
+		return `new Custom(0, 0, 0, [[[x1, y1, z1], [x2, y2, z2], [x3, y3, z3], "#FFF"], [[x1, y1, z1], [x2, y2, z2], [x3, y3, z3], "#FFF"]])`;
+	}
+}
+
 
 
 
@@ -523,6 +618,20 @@ class Face {
 		} else {
 			ctx.fillStyle = blockColor;
 		}
+		dPoly(this.points);
+		ctx.fill();
+	}
+}
+
+class ColorableFace extends Face {
+	constructor(points2d, points3d, parent, color) {
+		super(points2d, points3d, 0, 0, -1, false, parent);
+		this.color = color;
+	}
+
+	beDrawn() {
+		ctx.fillStyle = this.color;
+
 		dPoly(this.points);
 		ctx.fill();
 	}
