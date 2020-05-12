@@ -264,7 +264,7 @@ function initMaps() {
 						new PartialBox(110, -135, -85, 15, 15, 15, true, true, true)];
 
 
-	mapMT = new Map("#FFFFFF", [], "mapMT", "mapMT"); 
+	mapMT = new Map("#888888", [], "mapMT", "mapMT"); 
 	mapMT.contains = [	new Floor(),
 						new Custom(0, 0, 0, [	[[15, 15, 15], [0, 0, 0], [30, 0, 30], "#0F0"],
 												[[0, 0, 0], [-15, 0, 0], [-15, 0, -15], "#0F5"]])];
