@@ -415,6 +415,9 @@ class CustomEditor {
 		this.occLevel = 0;
 		this.obj;
 
+		this.colorPart = 0;
+		this.colorVals = "0123456789ABCDEF";
+
 		this.ncrmnt = 5;
 		this.aSpeed = 0;
 	}
@@ -439,8 +442,7 @@ class CustomEditor {
 
 	beDrawn() {
 		/*this entire function is disgusting and I'm never looking at it ever again. 
-		If I were on a team I might have been fired for this and never allowed to write editor functions again.
-		However, I am not on a team, and this will not be used in regular gameplay, so I don't care enough to fix this.
+		However, this will not be used in regular gameplay so I don't care enough to fix this.
 		To anyone reading this, I am truly sorry. */
 		//drawing border
 		ctx.strokeStyle = "#00F";
@@ -453,12 +455,19 @@ class CustomEditor {
 		ctx.strokeStyle = eHighlightColor;
 		ctx.lineWidth = 2;
 
+		var text = "";
+		var text2 = "";
+
 		switch (this.occLevel) {
 			case 0:
 				//body mode
 				ctx.lineWidth = 4;
 				this.obj.beDrawn();
 				ctx.lineWidth = 2;
+
+				let {x, y, z} = this.obj;
+				text += `Currently occupying custom object at`;
+				text2 += `(${x}, ${y}, ${z})`;
 				break;
 			case 1:
 				//face mode
@@ -472,13 +481,34 @@ class CustomEditor {
 
 				var output = [];
 
+				
+
 				//converting 3d points to 2d
 				for (var u=0;u<polyPoints.length;u++) {
 					output.push(spaceToScreen([polyPoints[u][0] + loadingMap.contains[this.occBody].x, polyPoints[u][1] + loadingMap.contains[this.occBody].y, polyPoints[u][2] + loadingMap.contains[this.occBody].z]));
+					text2 += `(${[polyPoints[u][0] + loadingMap.contains[this.occBody].x, polyPoints[u][1] + loadingMap.contains[this.occBody].y, polyPoints[u][2] + loadingMap.contains[this.occBody].z]}), `;
 				}
 
 				dPoly(output);
 				ctx.stroke();
+
+				//text stuffies
+				var rText = "";
+				var gText = "";
+				var bText = "";
+
+				if (this.colorPart == 0) {
+					rText = "~";
+				} 
+				else if (this.colorPart == 1) {
+					gText = "~";
+				} else {
+					bText = "~";
+				}
+				var colorText = `#${rText}${this.obj[this.obj.length-1][1]}${rText}${gText}${this.obj[this.obj.length-1][2]}${gText}${bText}${this.obj[this.obj.length-1][3]}${bText}`;
+				text += `Currently editing face with color ${colorText} points at`;
+
+				
 				break;
 			case 2:
 
@@ -487,15 +517,23 @@ class CustomEditor {
 			var point = spaceToScreen([this.obj[0] + loadingMap.contains[this.occBody].x, this.obj[1] + loadingMap.contains[this.occBody].y, this.obj[2] + loadingMap.contains[this.occBody].z]);
 			gPoint(point[0], point[1], 3);
 			ctx.stroke();
+
+			text += `Currently editing point at`;
+			text2 += `(${[this.obj[0] + loadingMap.contains[this.occBody].x, this.obj[1] + loadingMap.contains[this.occBody].y, this.obj[2] + loadingMap.contains[this.occBody].z]})`;
 			break;
 		}
+
+		//display text
 		ctx.strokeStyle = lnColor;
+		ctx.fillStyle = textColor;
+		ctx.fillText(text, canvas.width * 0.5, canvas.height * 0.9);
+		ctx.fillText(text2, canvas.width * 0.5, canvas.height * 0.94);
 	}
 
 	findCustom() {
 		//searches through all objects in the map for a custom object. If none are found, exit the custom editor
 		var found = false;
-		var c = 0;
+		var c = 1;
 		while (c < loadingMap.contains.length) {
 			//going through each object in the map
 			var toSearch = (this.occBody + c) % loadingMap.contains.length;
@@ -556,6 +594,30 @@ class CustomEditor {
 		}
 	}
 
+	colorCycle(value) {
+		//changing the value of the currently selected color channel on the face only if in the face editor
+		if (this.occLevel == 1) {
+			//defining the string in question for easier reference
+			var strong = this.obj[this.obj.length-1];
+			//get the position in the color string/array tat the current color channel is in
+			var pos = this.colorVals.indexOf(strong[this.colorPart + 1]);
+			//increment it by the value
+			pos += value;
+			//keep pos in bounds
+			if (pos > this.colorVals.length - 1) {
+				pos = 0;
+			}
+			if (pos < 0) {
+				pos = this.colorVals.length - 1;
+			}
+			//write new character to the color string
+			var newString = strong.substr(0, this.colorPart + 1) + this.colorVals[pos] + strong.substr(this.colorPart + 2);
+
+			//for some strange reason strong becomes a literal instead of a pointer, so I'm using the long form instead
+			this.obj[this.obj.length-1] = newString;
+		}
+	}
+
 	moveObj(x, y, z) {
 		switch (this.occLevel) {
 			case 0:
@@ -581,14 +643,46 @@ class CustomEditor {
 	}
 
 	createObj() {
-
+		switch (this.occLevel) {
+			case 0:
+				loadingMap.contains.push(new Custom(0, 0, 0, [[[0, 0, 15], [0, 0, 0], [15, 0, 0], "#F0F"]]));
+				break;
+			case 1:
+				loadingMap.contains[this.occBody].data.push([[0, 0, 15], [0, 0, 0], [15, 0, 0], "#F0F"]);
+				break;
+			case 2:
+				loadingMap.contains[this.occBody].data[this.occFace].splice(0, 0, [0, 0, 0]);
+				break;
+		}
 	}
 
 	destroyObj() {
 		switch (this.occLevel) {
 			case 0:
+				loadingMap.contains.splice(this.occBody, 1);
+				this.findCustom();
+				break;
 			case 1:
+				loadingMap.contains[this.occBody].data.splice(this.occFace, 1);
+				//if out of bounds after the removal, go to the last face available
+				if (this.occFace > loadingMap.contains[this.occBody].data.length - 1) {
+					this.occFace -= 1;
+					//if still out of bounds, create a face
+					if (this.occFace < 0) {
+						this.createObj();
+					}
+				}
+				break;
 			case 2:
+				loadingMap.contains[this.occBody].data[this.occFace].splice(this.occPoint, 1);
+				//same out of bounds check as before
+				if (this.occPoint > loadingMap.contains[this.occBody].data[this.occFace].length -2) {
+					this.occPoint -= 1;
+					if (this.occPoint < 0) {
+						this.createObj();
+					}
+				}
+				break;
 		}
 	}
 
@@ -636,6 +730,23 @@ class CustomEditor {
 				}
 				this.control = !this.control;
 				break;	
+			//arrow keys for color editing
+			case 37:
+				if (this.colorPart > 0) {
+					this.colorPart -= 1;
+				}
+				break;
+			case 38:
+				this.colorCycle(1);
+				break;	
+			case 39:
+				if (this.colorPart < 2) {
+					this.colorPart += 1;
+				}
+				break;
+			case 40:
+				this.colorCycle(-1);
+				break;
 			
 			//i and backspace (i creates and backspace deletes the currently selected object)
 			case 73:
