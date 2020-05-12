@@ -21,6 +21,7 @@ var blockColor = "#46237A";
 var lnColor = "#1A074C";
 var textColor = "#FCFCFC";
 var buttonColor = "#3DDC97";
+var eHighlightColor = "#FF8800";
 
 //objects
 let camera;
@@ -412,5 +413,6 @@ function reset(mapToGoTo) {
 	loadingMap = mapToGoTo;
 	loadingMap.angle = 0;
 	loadingMap.rotating = 0;
+	lEditor = new Editor();
 	window.requestAnimationFrame(main);
 }
