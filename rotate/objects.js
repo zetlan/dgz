@@ -504,8 +504,9 @@ class Custom extends Main {
 
 	giveEnglishConstructor(radians) {
 		//outputting english and all the data
-
-		return `new Custom(0, 0, 0, [[[x1, y1, z1], [x2, y2, z2], [x3, y3, z3], "#FFF"], [[x1, y1, z1], [x2, y2, z2], [x3, y3, z3], "#FFF"]])`;
+		let {x, y, z, data} = this;
+		data = JSON.stringify(data);
+		return `new Custom(${x}, ${y}, ${z}, ${data})`;
 	}
 }
 
