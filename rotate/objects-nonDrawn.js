@@ -254,7 +254,7 @@ class Editor {
 	}
 
 	beDrawn() {
-		ctx.strokeStyle = "#FF8800";
+		ctx.strokeStyle = eHighlightColor;
 		ctx.lineWidth = 4;
 		this.obj.beDrawn();
 		ctx.strokeStyle = lnColor;
@@ -267,6 +267,17 @@ class Editor {
 		ctx.fillText(`Selected object: ` + this.obj.constructor.name, canvas.width * 0.5, canvas.height * 0.89);
 		ctx.fillText(`With coords (${x}, ${y}, ${z}) and radii (${rx}, ${ry}, ${rz})`, canvas.width * 0.5, canvas.height * 0.93)
 		ctx.fillText("Currently in: " + loadingMap.name, canvas.width * 0.5, canvas.height * 0.97);
+
+		//drawing border
+		ctx.strokeStyle = "#F88";
+		ctx.lineWidth = 20;
+        ctx.globalAlpha = 0.5;
+        ctx.beginPath();
+		ctx.rect(0, 0, canvas.width, canvas.height);
+        ctx.stroke();
+		ctx.globalAlpha = 1;
+		ctx.strokeStyle = lnColor;
+		ctx.lineWidth = 2;
 	}
 
 	handleInput(u) {
@@ -373,6 +384,7 @@ class Editor {
 			case 32:
 				lEditor = new CustomEditor();
 				lEditor.active = true;
+				lEditor.findCustom();
 				break;		
 		}
 
@@ -392,13 +404,15 @@ class Editor {
 	}
 }
 
-//face editor, for editing individual points/faces in a custom object
+//custom editor, for editing individual points/faces in a custom object
+//switch statements galore, because I didn't feel like writing 3 seperate classes!
 class CustomEditor {
 	constructor() {
 		this.active = false;
 		this.occBody = 0;
 		this.occFace = 0;
 		this.occPoint = 0;
+		this.occLevel = 0;
 		this.obj;
 
 		this.ncrmnt = 5;
@@ -407,13 +421,175 @@ class CustomEditor {
 
 	tick() {
 		loadingMap.angle += this.aSpeed;
+		switch (this.occLevel) {
+			case 0:
+				this.obj = loadingMap.contains[this.occBody];
+				break;
+			case 1:
+				this.obj = loadingMap.contains[this.occBody].data[this.occFace];
+				break;
+			case 2:
+				this.obj = loadingMap.contains[this.occBody].data[this.occFace][this.occPoint];
+				break;
+			default:
+				this.occLevel = 0;
+				break;
+		}
 	}
 
 	beDrawn() {
+		/*this entire function is disgusting and I'm never looking at it ever again. 
+		If I were on a team I might have been fired for this and never allowed to write editor functions again.
+		However, I am not on a team, and this will not be used in regular gameplay, so I don't care enough to fix this.
+		To anyone reading this, I am truly sorry. */
+		//drawing border
+		ctx.strokeStyle = "#00F";
+		ctx.lineWidth = 20;
+        ctx.globalAlpha = 0.5;
+        ctx.beginPath();
+		ctx.rect(0, 0, canvas.width, canvas.height);
+        ctx.stroke();
+		ctx.globalAlpha = 1;
+		ctx.strokeStyle = eHighlightColor;
+		ctx.lineWidth = 2;
+
+		switch (this.occLevel) {
+			case 0:
+				//body mode
+				ctx.lineWidth = 4;
+				this.obj.beDrawn();
+				ctx.lineWidth = 2;
+				break;
+			case 1:
+				//face mode
+				//not drawing the face object because those get reordered by the parent object
+
+				//instead pulling the data from the parent object and reconstruct that into a drawable face
+				//converting to string and then parsing to make a literal instead of a pointer
+				var polyPoints = JSON.stringify(this.obj);
+				polyPoints = JSON.parse(polyPoints);
+				polyPoints.splice(polyPoints.length - 1, 1);
+
+				var output = [];
+
+				//converting 3d points to 2d
+				for (var u=0;u<polyPoints.length;u++) {
+					output.push(spaceToScreen([polyPoints[u][0] + loadingMap.contains[this.occBody].x, polyPoints[u][1] + loadingMap.contains[this.occBody].y, polyPoints[u][2] + loadingMap.contains[this.occBody].z]));
+				}
+
+				dPoly(output);
+				ctx.stroke();
+				break;
+			case 2:
+
+			//point mode, can't draw point object for same reason, reordered by parent object
+			//accounting for parent position
+			var point = spaceToScreen([this.obj[0] + loadingMap.contains[this.occBody].x, this.obj[1] + loadingMap.contains[this.occBody].y, this.obj[2] + loadingMap.contains[this.occBody].z]);
+			gPoint(point[0], point[1], 3);
+			ctx.stroke();
+			break;
+		}
+		ctx.strokeStyle = lnColor;
 	}
 
 	findCustom() {
+		//searches through all objects in the map for a custom object. If none are found, exit the custom editor
+		var found = false;
+		var c = 0;
+		while (c < loadingMap.contains.length) {
+			//going through each object in the map
+			var toSearch = (this.occBody + c) % loadingMap.contains.length;
 
+			//if it's a custom object, occupy it and cancel the loop
+			if (loadingMap.contains[toSearch].constructor.name == "Custom") {
+				found = true;
+				this.occBody = toSearch;
+				c = loadingMap.contains.length;
+			}
+			c++;
+		}
+
+		//convert editor back to regular mode
+		if (!found) {
+			lEditor = new Editor();
+			lEditor.active = true;
+			console.log("no custom objects found");
+		}
+	}
+
+	levelCycle(value) {
+		this.occLevel += value;
+
+		if (this.occLevel > 2 || this.occLevel < 0) {
+			if (this.occLevel > 2) {
+				this.occLevel = 2;
+			} else {
+				this.occLevel = 0;
+			}
+		} 
+	}
+
+	occupyCycle(value) {
+		switch (this.occLevel) {
+			case 0:
+				this.findCustom();
+				break;
+			case 1:
+				this.occFace += value;
+				if (this.occFace < 0) {
+					this.occFace = loadingMap.contains[this.occBody].data.length - 1;
+				}
+				if (this.occFace > loadingMap.contains[this.occBody].data.length - 1) {
+					this.occFace = 0;
+				}
+				break;
+			case 2:
+				this.occPoint += value;
+				//accounting for out of bounds accesses
+				if (this.occPoint < 0) {
+					this.occPoint = loadingMap.contains[this.occBody].data[this.occFace].length - 2;
+				}
+				if (this.occPoint > loadingMap.contains[this.occBody].data[this.occFace].length - 2) {
+					this.occPoint = 0;
+				}
+				break;
+		}
+	}
+
+	moveObj(x, y, z) {
+		switch (this.occLevel) {
+			case 0:
+				this.obj.x += x;
+				this.obj.y += y;
+				this.obj.z += z;
+				break;
+			case 1:
+				//the face case is special because unlike the body and the points, faces don't have a specific xyz. Faces are just collections of points.
+				//moving all points in the face with a for loop
+				for (var q=0;q<this.obj.length-1;q++) {
+					this.obj[q][0] += x;
+					this.obj[q][1] += y;
+					this.obj[q][2] += z;
+				}
+				break;
+			case 2:
+				this.obj[0] += x;
+				this.obj[1] += y;
+				this.obj[2] += z;
+				break;
+		}
+	}
+
+	createObj() {
+
+	}
+
+	destroyObj() {
+		switch (this.occLevel) {
+			case 0:
+			case 1:
+			case 2:
+		}
 	}
 
 	handleInput(u) {
@@ -421,33 +597,33 @@ class CustomEditor {
 		switch (u.keyCode) {
 			//movement controls (WASD ⇪⎇)
 			case 65:
-				this.obj.x -= this.ncrmnt;
+				this.moveObj(-1 * this.ncrmnt, 0, 0);
 				break;
 			case 87:
-				this.obj.z += this.ncrmnt;
+				this.moveObj(0, 0, this.ncrmnt);
 				break;
 			case 68:
-				this.obj.x += this.ncrmnt;
+				this.moveObj(this.ncrmnt, 0, 0);
 				break;
 			case 83:
-				this.obj.z -= this.ncrmnt;
+				this.moveObj(0, 0, -1 * this.ncrmnt);
 				break;
 			case 16:
-				this.obj.y -= this.ncrmnt;
+				this.moveObj(0, -1 * this.ncrmnt, 0);
 				break;
 			case 18:
-				this.obj.y += this.ncrmnt;
+				this.moveObj(0, this.ncrmnt, 0);
 				break;
 			
-			//arrow keys for camera movement
-			case 37:
+			//z, x, and c for camera movement
+			case 90:
 				this.aSpeed += this.ncrmnt / 200;
 				break;
-			case 38:
+			case 67:
 				this.aSpeed = 0;
 				loadingMap.angle = 0;
 				break;
-			case 39:
+			case 88:
 				this.aSpeed -= this.ncrmnt / 200;
 				break;
 			
@@ -477,18 +653,19 @@ class CustomEditor {
 			
 			//cycling through which object to edit (- and +)
 			case 187:
-				this.occupies += 1;
-				if (this.occupies > loadingMap.contains.length - 1) {
-					this.occupies = 0;
-				}
+				this.occupyCycle(1);
 				break;
 			case 189:
-				this.occupies -= 1;
-				if (this.occupies < 0) {
-					this.occupies = loadingMap.contains.length - 1;
-				}
+				this.occupyCycle(-1);
 				break;
 			
+			//cycling through which level to edit on. (⎋ / ⏎);
+			case 27:
+				this.levelCycle(-1);
+				break;
+			case 13:
+				this.levelCycle(1);
+				break;
 			//space for switching to the regular editor
 			case 32:
 				lEditor = new Editor();
