@@ -505,6 +505,9 @@ class Custom extends Main {
 	giveEnglishConstructor(radians) {
 		//outputting english and all the data
 		let {x, y, z, data} = this;
+
+		//rotating xz and data
+		[x, z] = rotate(x, z, radians);
 		data = JSON.stringify(data);
 		return `new Custom(${x}, ${y}, ${z}, ${data})`;
 	}
@@ -566,8 +569,6 @@ class Face {
 					} else {
 						player.y -= 1;
 					}
-					this.parent.avoid = true;
-					loadingMap.avoid = true;
 				}
 
 				//special check for z to avoid collision issues when in front of an object
@@ -595,6 +596,8 @@ class Face {
 						}
 					}
 				}
+				this.parent.avoid = true;
+				loadingMap.avoid = true;
 				 
 			} else if (loadingMap.ableToSwap) {
 					//rotation case
@@ -607,7 +610,6 @@ class Face {
 						loadingMap.avoid = true;
 					}	
 			} else if (!this.rotable) {
-				console.log("attempted direction swap using face type", this.colX, this.colY, this.colZ, "\n with parent", this.parent.constructor.name);
 			}
 		}
 	}
