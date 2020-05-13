@@ -432,6 +432,9 @@ class CustomEditor {
 				this.obj = loadingMap.contains[this.occBody].data[this.occFace];
 				break;
 			case 2:
+				if (this.occPoint > loadingMap.contains[this.occBody].data[this.occFace].length - 2) {
+					this.occPoint = loadingMap.contains[this.occBody].data[this.occFace].length - 2;
+				}
 				this.obj = loadingMap.contains[this.occBody].data[this.occFace][this.occPoint];
 				break;
 			default:
@@ -642,6 +645,21 @@ class CustomEditor {
 		}
 	}
 
+	cloneObj() {
+		//the parsed stingified versions are to convert the "this.obj" pointer into a literal.
+		switch (this.occLevel) {
+			case 0:
+				loadingMap.push(JSON.parse(JSON.stringify(this.obj)));
+				break;
+			case 1:
+				loadingMap.contains[this.occBody].data.push(JSON.parse(JSON.stringify(this.obj)));
+				break;
+			case 2:
+				loadingMap.contains[this.occBody].data[this.occFace].splice(0, 0, JSON.parse(JSON.stringify(this.obj)));
+				break;
+		}
+	}
+
 	createObj() {
 		switch (this.occLevel) {
 			case 0:
@@ -670,6 +688,7 @@ class CustomEditor {
 					//if still out of bounds, create a face
 					if (this.occFace < 0) {
 						this.createObj();
+						this.occFace = 0;
 					}
 				}
 				break;
@@ -680,6 +699,7 @@ class CustomEditor {
 					this.occPoint -= 1;
 					if (this.occPoint < 0) {
 						this.createObj();
+						this.occPoint = 0;
 					}
 				}
 				break;
@@ -748,9 +768,12 @@ class CustomEditor {
 				this.colorCycle(-1);
 				break;
 			
-			//i and backspace (i creates and backspace deletes the currently selected object)
+			//i, o, and backspace (i creates and backspace deletes the currently selected object, while o clones the currently selected object)
 			case 73:
 				this.createObj();
+				break;
+			case 79:
+				this.cloneObj();
 				break;
 			case 8:
 				this.destroyObj();
@@ -798,5 +821,27 @@ class Camera extends Main {
 	
 	getCameraDist() {
 		
+	}
+}
+
+//code block class executes code blocks written in the constrcutor
+class CodeBlock extends Main {
+	constructor(codeSTRING) {
+		super(camera.x, camera.y, camera.z);
+
+		this.code = codeSTRING;
+	}
+
+	tick() {
+		eval(this.code);
+	}
+
+	beDrawn() {
+
+	}
+
+	giveEnglishConstructor(radians) {
+		let {code} = this;
+		return `new CodeBlock(${code})`;
 	}
 }
