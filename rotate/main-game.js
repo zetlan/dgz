@@ -23,11 +23,25 @@ var textColor = "#FCFCFC";
 var buttonColor = "#3DDC97";
 var eHighlightColor = "#FF8800";
 
+//zone colors
+var rZoneColor = "#FF5468";
+var yZoneColor;
+var gZoneColor;
+var bZoneColor;
+
 //objects
 let camera;
 let player;
 let timer;
 let lEditor;
+
+let gameFlags = {
+	atC: false,
+	hasR: false,
+	hasY: false,
+	hasG: false,
+	hasB: false
+};
 
 //functions
 
