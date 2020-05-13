@@ -151,7 +151,8 @@ function initMaps() {
 							
 	mapC = new Map("#CCAACC", [], "mapCa", "mapCb"); 
 	mapC.contains = [ 	new Floor(), 
-						new Box(0, 0, 0, 10, 150, 10)];
+						new Box(0, 0, 0, 10, 150, 10),
+						new CodeBlock(`gameFlags["atC"] = true;`)];
 
 	mapCa = new Map("#FC9B94", [], "mapCaa", "mapCab"); 
 	mapCa.contains = [		new Floor(),
@@ -159,7 +160,7 @@ function initMaps() {
 							new Wall(0), 
 							new Box(0, 0, 0, 10, 150, 10)];
 	
-	mapCaa = new Map("#FF5468", [], "mapR1", "mapCa"); 
+	mapCaa = new Map(rZoneColor, [], "mapR1", "mapCa"); 
 	mapCaa.contains = [		new Floor(), 
 							new Wall(3),
 							new Box(0, 0, 0, 10, 150, 10)];
@@ -190,7 +191,7 @@ function initMaps() {
 
 
 	//red zone	
-	mapR1 = new Map("#FF5468", [], "mapR4", "mapR2"); 
+	mapR1 = new Map(rZoneColor, [], "mapR4", "mapR2"); 
 	mapR1.contains = [ 	new Floor(), 
 						new TiltedBox(26, -37, 156, 45, 5, 15, false, false, false, -0.5, 0, 0, 0), 
 						new Box(60, -150, 120, 45, 25, 0), 
@@ -202,7 +203,7 @@ function initMaps() {
 						new PartialBox(25, -135, -135, 25, 15, 15, true, true, true), 
 						new PartialBox(-10, -25, -135, 15, 15, 15, true, true, true)];
 	
-	mapR2 = new Map("#FF5468", [], "mapR1", "mapR3"); 
+	mapR2 = new Map(rZoneColor, [], "mapR1", "mapR3"); 
 	mapR2.contains = [ 	new Floor(), 
 						new Wall(1), 
 						new Box(0, -80, 35, 150, 70, 10), 
@@ -214,7 +215,7 @@ function initMaps() {
 						new Box(-85, -95, -150, 15, 15, 15), 
 						new PartialBox(6, -100, -140, 70, 5, 25, true, true, true)];
 
-	mapR3 = new Map("#FF5468", [], "mapR2", "mapR4"); 
+	mapR3 = new Map(rZoneColor, [], "mapR2", "mapR4"); 
 	mapR3.contains = [ 	new Floor(), 
 						new PartialBox(-25, -135, 135, 25, 15, 15, true, true, true), 
 						new PartialBox(10, -25, 135, 15, 15, 15, true, true, true), 
@@ -226,46 +227,74 @@ function initMaps() {
 						new Box(-60, -150, -120, 45, 25, 0), 
 						new TiltedBox(-26, -37, -156, 45, 5, 15, false, false, false, 0.5, 0, 0, 0.25)];
 
-	mapR4 = new Map("#FF5468", [], "mapR3", "mapR5"); 
+	mapR4 = new Map(rZoneColor, [], "mapR3", "mapR5"); 
 	mapR4.contains = [ 	new Floor(), 
 						new Blocker(0), 
 						new Wall(3)];
 
 
-	mapR5 = new Map("#FF5468", [], "mapR4_F", "mapR6"); 
+	mapR5 = new Map(rZoneColor, [], "mapR4_F", "mapR6"); 
 	mapR5.contains = [ 	new Floor(), 
 						new PartialBox(-5, -85, 70, 5, 65, 70, true, true, true), 
 						new Box(-75, -80, 0, 75, 70, 5), 
 						new PartialBox(-60, -125, -130, 15, 5, 15, true, true, true)];
 
-	mapR6 = new Map("#FF5468", [], "mapR5_F", "mapR7"); 
+	mapR6 = new Map(rZoneColor, [], "mapR5_F", "mapR7"); 
 	mapR6.contains = [ 	new Floor(), 
-						new PartialBox(139, -55, -57, 11, 10, 10, true, true, true), 
+						new PartialBox(-140, -52, -27, 15, 10, 25, true, true, true), 
 						new Box(0, -110, -45, 150, 40, 5), 
+						new PartialBox(132, -55, -71, 11, 10, 20, true, true, true), 
 						new PartialBox(-80, -110, -115, 15, 15, 15, true, true, true)];
 
-	mapR7 = new Map("#FF5468", [], "mapR6", "mapR5"); 
+	mapR7 = new Map(rZoneColor, [], "mapR6", "mapR4_F"); 
 	mapR7.contains = [ 	new Floor(), 
+						new PartialBox(100, -145, 95, 15, 5, 15, true, true, true), 
 						new PartialBox(-115, -110, 80, 15, 15, 15, true, true, true), 
+						new PartialBox(-13, -40, 20, 15, 5, 15, true, true, true), 
 						new Box(-45, -110, 0, 5, 40, 150), 
-						new PartialBox(-57, -55, -139, 10, 10, 11, true, true, true)];
-
-	mapR4_F = new Map("#FF5468", [], "NaN", "mapR5"); 
-	mapR4_F.contains = [new Floor(), 
+						new PartialBox(-60, -55, -141, 12, 10, 11, true, true, true), 
+						new Box(-18, -37, -204, 3, 21, 14)];
+	
+	mapR3_F = new Map(rZoneColor, [], "mapR_G", "mapR4_F"); 
+	mapR3_F.contains = [new Floor(), 
+						new PartialBox(60, -125, 130, 15, 5, 15, true, true, true), 
 						new Wall(0), 
-						new PartialBox(-70, -85, -5, 70, 65, 5, true, true, true), 
+						new Box(75, -80, 0, 75, 70, 5), 
+						new PartialBox(5, -80, -75, 5, 70, 75, true, true, true)];					
+
+	mapR4_F = new Map(rZoneColor, [], "mapR3_F", "mapR5"); 
+	mapR4_F.contains = [new Floor(), 
+						new Wall(1),
+						new PartialBox(-75, -80, -5, 75, 70, 5, true, true, true), 
 						new PartialBox(130, -125, -60, 15, 5, 15, true, true, true), 
 						new Box(0, -80, -75, 5, 70, 75)];
 
-	mapR5_F = new Map("#FF5468", [], "mapR5", "mapR6"); 
+	mapR5_F = new Map(rZoneColor, [], "mapR5", "mapR6"); 
 	mapR5_F.contains = [new Floor(), 
+						new PartialBox(75, -55, 130, 20, 10, 15, true, true, true), 
 						new Box(45, -110, 0, 5, 40, 150), 
-						new PartialBox(-70, -75, 5, 15, 75, 15, true, true, true), 
-						new PartialBox(110, -135, -85, 15, 15, 15, true, true, true)];
+						new TiltedBox(51, -59, 4, 17, 15, 75, true, true, true, 0, 0, 0.25, 0), 
+						new PartialBox(110, -110, -85, 15, 15, 15, true, true, true), 
+						new PartialBox(25, -110, -135, 15, 40, 15, true, true, true), 
+						new PartialBox(25, -45, -135, 15, 10, 15, true, true, true)];
+
+	mapR_G = new Map(rZoneColor, [], "mapR_H", "mapR_H"); 
+	mapR_G.contains = [	new Floor(), 
+						new Wall(3)];
+
+	mapR_H = new Map(rZoneColor, [], "mapR_H", "mapR_H"); 
+	mapR_H.contains = [ 	new Floor(), 
+						new Custom(-150, 0, 0, [[[75,166,90],[20,166,52],[5,171,25],"#F05"],[[-25,-50,64],[-60,-90,-93],[-50,-5,-105],"#F05"],[[130,36,-20],[75,11,-58],[115,56,-80],"#F05"]]), 
+						new TiltedBox(55, -130, 0, 30, 15, 25, true, true, true, -0.5, 0, 0, 0), 
+						new TiltedBox(-55, -130, 0, 30, 15, 25, true, true, true, 0.5, 0, 0, 0), 
+						new Cube(0, -125, 0, 25), 
+						new TiltedBox(0, -130, -55, 25, 15, 25, true, true, true, 0, 0, 0, 0.75)];
 
 
 	mapMT = new Map("#888888", [], "mapMT", "mapMT"); 
 	mapMT.contains = [	new Floor(),
-						new Custom(0, 0, 0, [	[[15, 15, 15], [0, 0, 0], [30, 0, 30], "#0F0"],
-												[[0, 0, 0], [-15, 0, 0], [-15, 0, -15], "#0F5"]])];
+						new Custom(0, -150, 0, [[[10,220,-10],[-10,220,-10],[-15,135,-15],[5,135,-15],"#852"],[[-10,0,-10],[-10,0,10],[-15,135,5],[-15,135,-15],"#852"],
+												[[10,0,-10],[10,0,10],[5,135,5],[5,135,-15],"#852"],[[-10,220,10],[-15,135,5],[-15,135,-15],[-10,220,-10],"#852"],
+												[[10,220,10],[5,135,5],[5,135,-15],[10,220,-10],"#852"],[[5,135,-15],[-15,135,-15],[-10,0,-10],[10,0,-10],"#852"]])
+					 ];
 }
