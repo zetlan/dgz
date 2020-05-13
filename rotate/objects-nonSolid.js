@@ -170,7 +170,7 @@ class Character extends Particle {
     beDrawn() {
 		super.beDrawn();
 		var temp = ctx.strokeStyle;
-		ctx.strokeStyle = "#FFFFFF";
+		ctx.strokeStyle = characterOutsideColor;
 		gPoint(this.fDC[0], this.fDC[1], this.dispSize);
 		ctx.stroke();
 		ctx.strokeStyle = temp;
