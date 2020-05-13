@@ -8,13 +8,19 @@ var ctx;
 var loadingMap;
 var mapSize = 150;
 var pTime = 0;
+var cTime = 0;
+var pSpeed = 0.05;
 var pStart ={	"x" : 0.99 * mapSize, 
 				"y" : -0.99 * mapSize, 
 				"z" : -0.99 * mapSize
 			};
 
+var cutscene = false;
+var cutsceneTime = 40;
+
 //colors
-var characterColor = "#FF495C";
+var characterColor = "#000066";
+var characterOutsideColor = "#FFFFFF";
 var ableColor = "#AAF";
 var floorColor = "#CCE";
 var blockColor = "#46237A";
@@ -25,9 +31,9 @@ var eHighlightColor = "#FF8800";
 
 //zone colors
 var rZoneColor = "#FF5468";
-var yZoneColor;
-var gZoneColor;
-var bZoneColor;
+var yZoneColor = "#F9FFBD";
+var gZoneColor = "#70C1B3";
+var bZoneColor = "#106BA0";
 
 //objects
 let camera;
@@ -36,11 +42,11 @@ let timer;
 let lEditor;
 
 let gameFlags = {
-	atC: false,
-	hasR: false,
-	hasY: false,
-	hasG: false,
-	hasB: false
+	atC: true,
+	hasR: true,
+	hasY: true,
+	hasG: true,
+	hasB: true
 };
 
 //functions
@@ -88,12 +94,12 @@ function keyPress(u) {
 			//Z or K
 			case 90:
 			case 75:
-				loadingMap.startRotation(0.05);
+				loadingMap.startRotation(pSpeed);
 				break;
 			//X or L
 			case 88:
 			case 76:
-				loadingMap.startRotation(-0.05);
+				loadingMap.startRotation(-1 * pSpeed);
 				break;
 			//the ] key
 			case 221:
@@ -152,28 +158,116 @@ function main() {
 	//bg
 	if (!loadingMap.rotating) {
 		ctx.fillStyle = loadingMap.bg;
+		ctx.fillRect(0, 0, canvas.width, canvas.height);
 	} else {
 		try {
 			ctx.fillStyle = cLinterp(loadingMap.bg, loadingMap.goingMap.bg, loadingMap.rotPercent);
 		} catch (error) {
 			ctx.fillStyle = cLinterp(loadingMap.bg, undefined, loadingMap.rotPercent);
 		}
+		var temp = ctx.globalAlpha;
+		ctx.globalAlpha = 1;
+		ctx.fillRect(0, 0, canvas.width, canvas.height);
+		ctx.globalAlpha = temp;
 	}
-	ctx.fillRect(0, 0, canvas.width, canvas.height);
 	
+	if (cutscene) {
+		//cutscene stuffs
+		doCutscene();
+	} else {
+		//regular gameplay
+	
+		//run object draws/ticks
+		loadingMap.beRun();
 
-	//run object draws/ticks
-	loadingMap.beRun();
-
-	//run editor
-	if (lEditor.active) {
-		lEditor.tick();
-		lEditor.beDrawn();
+		//run editor
+		if (lEditor.active) {
+			lEditor.tick();
+			lEditor.beDrawn();
+		}
 	}
 
 	//call itself through animation frame 
 	timer = window.requestAnimationFrame(main);
 	pTime += 1;
+}
+
+//cutscene function, determines cutscene graphics
+function doCutscene() {
+	cTime += 1;
+	var drawR = canvas.height * 0.3;
+	var drawX = canvas.width * 0.5;
+	var drawY = canvas.height * 0.5;
+	var amount = 2;
+
+	var buffer = 20;
+	
+	
+	//player drawing animation
+	ctx.fillStyle = characterColor;
+	gArc(drawX, drawY, drawR, (cTime - cutsceneTime - buffer) / cutsceneTime);
+	ctx.fill();
+
+	ctx.strokeStyle = characterOutsideColor;
+	ctx.lineWidth = 20;
+	gArc(drawX, drawY, drawR, cTime / cutsceneTime);
+	ctx.stroke();
+	
+
+	//blue
+	if (gameFlags["hasB"]) {
+		ctx.fillStyle = bZoneColor;
+		gArc(drawX, drawY, drawR * 0.8, (cTime - (cutsceneTime * amount) - (buffer * amount)) / cutsceneTime);
+		ctx.fill();
+		amount += 1;
+	}
+
+	//green
+	if (gameFlags["hasG"]) {
+		ctx.fillStyle = gZoneColor;
+		gArc(drawX, drawY, drawR * 0.6, (cTime - (cutsceneTime * amount) - (buffer * amount)) / cutsceneTime);
+		ctx.fill();
+		amount += 1;
+	}
+
+	//yellow
+	if (gameFlags["hasY"]) {
+		ctx.fillStyle = yZoneColor;
+		gArc(drawX, drawY, drawR * 0.4, (cTime - (cutsceneTime * amount) - (buffer * amount)) / cutsceneTime);
+		ctx.fill();
+		amount += 1;
+	}
+
+	//drawing red
+	if (gameFlags["hasR"]) {
+		ctx.fillStyle = rZoneColor;
+		gArc(drawX, drawY, drawR * 0.2, (cTime - (cutsceneTime * amount) - (buffer * amount)) / cutsceneTime);
+		ctx.fill();
+		amount += 1;
+	}
+
+	//white
+	if (amount == 6) {
+		if (cTime - (cutsceneTime * amount) - (buffer * amount) > 0) {
+			ctx.globalAlpha = (cTime - (cutsceneTime * amount) - (buffer * amount)) / cutsceneTime;
+		} else {
+			ctx.globalAlpha = 0;
+		}
+		ctx.fillStyle = characterOutsideColor;
+		gArc(drawX, drawY, drawR, 1);
+		ctx.fill();
+		ctx.globalAlpha = 1;
+		amount += 1;
+	}
+
+	var endTime = (cutsceneTime * amount) + (buffer * (amount + 1));
+	if (cTime > endTime) {
+		//ending cutscene
+		cTime = 0;
+		ctx.strokeStyle = lnColor;
+		ctx.lineWidth = 2;
+		cutscene = false;
+	}
 }
 
 
@@ -205,6 +299,16 @@ function gLine(startXYArr, endXYArr) {
 function gPoint(x, y, size) {
 	ctx.beginPath();
 	ctx.ellipse(x, y, size, size, 0, 0, Math.PI * 2);
+}
+
+function gArc(x, y, size, percent) {
+	if (percent < 0) {
+		percent = 0;
+	} else if (percent > 1) {
+		percent = 1;
+	}
+	ctx.beginPath();
+	ctx.ellipse(x, y, size, size, 0, 0, (Math.PI * 2) * percent);
 }
 
 //the transform from 3d coordinates into 2d screen coordinates
