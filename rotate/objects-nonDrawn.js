@@ -40,7 +40,7 @@ class Map {
 		}
 
 		//every once in a while order objects
-		if (pTime % 50 == 0 && this.mTime <= 1 && !lEditor.active) {
+		if ((pTime % 50 == 0 || loadingMap.rotating) && this.mTime <= 1 && !lEditor.active) {
 			this.orderObjects();
 		}
 		//rotation things go almost last
@@ -62,14 +62,14 @@ class Map {
 				this.goingMap.beRun();
 			} catch (error) {}
 			
-			ctx.globalAlpha = 1;
+			ctx.globalAlpha = 1 - (this.rotPercent * this.rotPercent * this.rotPercent * this.rotPercent * this.rotPercent);
 			this.angle = temp;
 			this.mTime = 1;
 			
-            //if rotated 90 degrees or rotated ~0 degrees, stop rotation
-            if (Math.abs(this.aStart - this.angle) > Math.PI / 2 || Math.abs(this.aStart - this.angle) < Math.abs(this.aSpeed * 0.8)) {
+            //if rotated ~90 degrees or rotated ~0 degrees, stop rotation
+            if (Math.abs(this.aStart - this.angle) > (Math.PI / 2) * 0.98 || Math.abs(this.aStart - this.angle) < Math.abs(this.aSpeed * 0.8)) {
 				//if rotated 90 degrees, change loadingMap
-				if (Math.abs(this.aStart - this.angle) > Math.PI / 2) {
+				if (Math.abs(this.aStart - this.angle) > (Math.PI / 2) * 0.98) {
 					loadingMap = this.goingMap;
 
 					//change player position to avoid jarring transition
@@ -84,6 +84,7 @@ class Map {
 				this.angle = 0;
 				this.aSpeed = 0;
 				this.rotPercent = 0;
+				ctx.globalAlpha = 1;
 				this.orderObjects();
             }
 		}
@@ -334,11 +335,14 @@ class Editor {
 				break;
 
 			
-			//i, o, and backspace (i creates, o cycles, and backspace deletes the currently selected object)
+			//i, o, p, and backspace (i creates, o duplicates, p cycles, and backspace deletes the currently selected object)
 			case 73:
 				lEditor.createObj();
 				break;
 			case 79:
+				loadingMap.contains.push(eval(this.obj.giveEnglishConstructor(0)));
+				break;
+			case 80:
 				lEditor.crInd += 1;
 				if (lEditor.crInd > lEditor.createList.length - 1) {
 					lEditor.crInd = 0;
@@ -550,11 +554,9 @@ class CustomEditor {
 			c++;
 		}
 
-		//convert editor back to regular mode
+		//create a custom object if no custom objects are found
 		if (!found) {
-			lEditor = new Editor();
-			lEditor.active = true;
-			console.log("no custom objects found");
+			loadingMap.contains.push(new Custom(0, 0, 0, [[[0, 0, 0], [15, 0, 0], [0, 0, 15], "#F0F"]]));
 		}
 	}
 
