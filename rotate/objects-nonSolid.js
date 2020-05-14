@@ -107,7 +107,7 @@ class Character extends Particle {
 		this.drawCoordL = [];
 		this.drawCoordR = [];
 		
-		this.r = 5;
+		this.r = 7.5;
 		this.dispSize = 0;
 		this.abvP = [x, y + this.r, z];
 		
@@ -115,9 +115,9 @@ class Character extends Particle {
 		this.az = 0;
 
 		//mS is max horizontal movement, mV is max vertical movement
-		this.mS = 2;
+		this.mS = 1.8;
 		this.mV = 9.8;
-		this.friction = 0.85;
+		this.friction = 0.8;
 		this.gravity = 0.5;
     }
 
@@ -174,6 +174,37 @@ class Character extends Particle {
 		gPoint(this.fDC[0], this.fDC[1], this.dispSize);
 		ctx.stroke();
 		ctx.strokeStyle = temp;
+
+		//drawing acquired colors
+		if ((gameFlags["hasB"] && gameFlags["hasG"] && gameFlags["hasR"] && gameFlags["hasY"]) == false) {
+			//blue
+			if (gameFlags["hasB"]) {
+				ctx.fillStyle = bZoneColor;
+				gPoint(this.fDC[0], this.fDC[1], this.dispSize * 0.8);
+				ctx.fill();
+			}
+
+			//green
+			if (gameFlags["hasG"]) {
+				ctx.fillStyle = gZoneColor;
+				gPoint(this.fDC[0], this.fDC[1], this.dispSize * 0.6);
+				ctx.fill();
+			}
+
+			//yellow
+			if (gameFlags["hasY"]) {
+				ctx.fillStyle = yZoneColor;
+				gPoint(this.fDC[0], this.fDC[1], this.dispSize * 0.4);
+				ctx.fill();
+			}
+
+			//drawing red
+			if (gameFlags["hasR"]) {
+				ctx.fillStyle = rZoneColor;
+				gPoint(this.fDC[0], this.fDC[1], this.dispSize * 0.2);
+				ctx.fill();
+			}
+		}
 	}
 
 	adjustPoints() {

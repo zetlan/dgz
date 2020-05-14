@@ -481,9 +481,7 @@ class Custom extends Main {
 
 	tick() {
 		//reconstruct self
-		if (pTime % 3 == 2) {
-			this.construct();
-		}
+		this.construct();
 		
 		//collide with player//only tick if the player should be able to collide
 		//slightly less precise than regular objects, but that's just a sacrifice I'm willing to make
@@ -568,6 +566,11 @@ class Face {
 						player.y += 1;
 					} else {
 						player.y -= 1;
+					}
+
+					//using the z percentage, if the player is about to fall off the front, slow them down a bit
+					if (zPercent < 0.05) {
+						player.dz = 0	;
 					}
 				}
 

@@ -65,6 +65,8 @@ class Map {
 			ctx.globalAlpha = 1 - (this.rotPercent * this.rotPercent * this.rotPercent * this.rotPercent * this.rotPercent);
 			this.angle = temp;
 			this.mTime = 1;
+			//making player's velocity slightly downwards so that faces will try to stop them from falling
+			player.dy = -0.001;
 			
             //if rotated ~90 degrees or rotated ~0 degrees, stop rotation
             if (Math.abs(this.aStart - this.angle) > (Math.PI / 2) * 0.98 || Math.abs(this.aStart - this.angle) < Math.abs(this.aSpeed * 0.8)) {
@@ -651,7 +653,7 @@ class CustomEditor {
 		//the parsed stingified versions are to convert the "this.obj" pointer into a literal.
 		switch (this.occLevel) {
 			case 0:
-				loadingMap.push(JSON.parse(JSON.stringify(this.obj)));
+				loadingMap.contains.push(eval(this.obj.giveEnglishConstructor(0)));
 				break;
 			case 1:
 				loadingMap.contains[this.occBody].data.push(JSON.parse(JSON.stringify(this.obj)));
@@ -844,6 +846,7 @@ class CodeBlock extends Main {
 
 	giveEnglishConstructor(radians) {
 		let {code} = this;
+		code = JSON.stringify(code);
 		return `new CodeBlock(${code})`;
 	}
 }
