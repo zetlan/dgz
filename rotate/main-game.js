@@ -16,14 +16,14 @@ var pStart ={	"x" : 0.99 * mapSize,
 			};
 
 var cutscene = false;
-var cutsceneTime = 40;
+var cutsceneTime = 70;
 
 //colors
 var characterColor = "#000066";
 var characterOutsideColor = "#FFFFFF";
 var ableColor = "#AAF";
 var floorColor = "#CCE";
-var blockColor = "#46237A";
+var blockColor = "#59378A";
 var lnColor = "#1A074C";
 var textColor = "#FCFCFC";
 var buttonColor = "#3DDC97";
@@ -42,11 +42,11 @@ let timer;
 let lEditor;
 
 let gameFlags = {
-	atC: true,
-	hasR: true,
-	hasY: true,
-	hasG: true,
-	hasB: true
+	atC: false,
+	hasR: false,
+	hasY: false,
+	hasG: false,
+	hasB: false
 };
 
 //functions
@@ -254,6 +254,7 @@ function doCutscene() {
 			ctx.globalAlpha = 0;
 		}
 		ctx.fillStyle = characterOutsideColor;
+		player.color = characterOutsideColor;
 		gArc(drawX, drawY, drawR, 1);
 		ctx.fill();
 		ctx.globalAlpha = 1;
@@ -267,6 +268,41 @@ function doCutscene() {
 		ctx.strokeStyle = lnColor;
 		ctx.lineWidth = 2;
 		cutscene = false;
+	}
+}
+
+//function for activating the cutsceene
+function activate(zone0123_OrderRYGB) {
+	//only do things if the player is close to the center of the map
+	if (Math.sqrt((player.x * player.x) + (player.y * player.y) + (player.z * player.z)) < 110) {
+		switch (zone0123_OrderRYGB) {
+			case 0:
+				gameFlags["hasR"] = true;
+				mapCaa.leftMap = mapCaa;
+				break;
+			case 1:
+				gameFlags["hasY"] = true;
+				//yellow map looping
+				break;
+			case 2:
+				gameFlags["hasG"] = true;
+				//green map looping
+				break;
+			case 3:
+				gameFlags["hasB"] = true;
+				//blue map looping
+				break;
+		}
+	
+		loadingMap = mapC;
+		cutscene = true;
+	
+		//if all zones have been activated, lock into the beginning zone
+		if (gameFlags["hasB"] && gameFlags["hasG"] && gameFlags["hasR"] && gameFlags["hasY"]) {
+			gameFlags["atC"] = false;
+			loadingMap = menuMap;
+			mapA4.rightMap = menuMap;
+		}
 	}
 }
 
