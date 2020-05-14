@@ -176,7 +176,7 @@ function initMaps() {
 						new Wall(0),
 						new Box(0, 0, 0, 10, 150, 10)];
 
-	mapCba = new Map("#70C1B3", [], "mapCba", "mapCb"); 
+	mapCba = new Map(gZoneColor, [], "mapCba", "mapCb"); 
 	mapCba.contains = [ new Floor(), 
 						new Wall(3), 
 						new Box(0, 0, 0, 10, 150, 10)];
@@ -253,7 +253,7 @@ function initMaps() {
 						new PartialBox(-13, -40, 20, 15, 5, 15, true, true, true), 
 						new Box(-45, -110, 0, 5, 40, 150), 
 						new PartialBox(-60, -55, -141, 12, 10, 11, true, true, true), 
-						new Box(-18, -37, -204, 3, 21, 14)];
+						new Box(-19, -37, -204, 2, 21, 14)];
 	
 	mapR3_F = new Map(rZoneColor, [], "mapR_G", "mapR4_F"); 
 	mapR3_F.contains = [new Floor(), 
@@ -282,14 +282,52 @@ function initMaps() {
 	mapR_G.contains = [	new Floor(), 
 						new Wall(3)];
 
-	mapR_H = new Map(rZoneColor, [], "mapR_H", "mapR_H"); 
+	mapR_H = new Map("#FF5468", [], "mapR_H", "mapR_H"); 
 	mapR_H.contains = [ 	new Floor(), 
 						new Custom(-150, 0, 0, [[[75,166,90],[20,166,52],[5,171,25],"#F05"],[[-25,-50,64],[-60,-90,-93],[-50,-5,-105],"#F05"],[[130,36,-20],[75,11,-58],[115,56,-80],"#F05"]]), 
-						new TiltedBox(55, -130, 0, 30, 15, 25, true, true, true, -0.5, 0, 0, 0), 
+						new Custom(150, 0, 0, [[[5,21,130],[-50,21,92],[-65,26,65],"#F05"],[[85,-5,9],[5,-155,-143],[-25,-5,-90],"#F05"],[[15,71,0],[-40,46,-38],[0,91,-60],"#F05"]]), 
 						new TiltedBox(-55, -130, 0, 30, 15, 25, true, true, true, 0.5, 0, 0, 0), 
+						new TiltedBox(55, -130, 0, 30, 15, 25, true, true, true, -0.5, 0, 0, 0), 
 						new Cube(0, -125, 0, 25), 
-						new TiltedBox(0, -130, -55, 25, 15, 25, true, true, true, 0, 0, 0, 0.75)];
+						new TiltedBox(0, -130, -55, 25, 15, 25, true, true, true, 0, 0, 0, 0.75), 
+						new CodeBlock("activate(0);")];
 
+
+
+
+
+
+	//green zone
+
+	mapG1 = new Map(gZoneColor, [], "mapG2", "mapCba"); 
+	mapG1.contains = [ 	new Floor(), 
+						new Box(148, -120, 0, 2, 30, 150), 
+						new Box(0, -120, 0, 5, 30, 150)];
+
+	mapG2 = new Map(gZoneColor, [], "mapG3", "mapG1"); 
+	mapG2.contains = [ 	new Floor(), 
+						new Box(0, -100, 0, 150, 50, 5), 
+						new Box(0, -100, -75, 5, 50, 75)];
+
+	mapG3 = new Map(gZoneColor, [], "mapG4", "mapG2"); 
+	mapG3.contains = [	new Floor(), 
+						new Box(0, -100, 75, 5, 50, 75), 
+						new Box(75, -100, 0, 75, 50, 5), 
+						new PartialBox(-10, -100, -75, 5, 50, 75, true, true, true), 
+						new Box(0, -100, -75, 5, 50, 75),
+						new Wall(1)];
+
+	mapG4 = new Map(gZoneColor, [], "mapG5", "mapG3"); 
+	mapG4.contains = [ 	new Floor(), 
+						new Box(0, -100, 75, 5, 50, 75), 
+						new Box(-75, -100, 0, 75, 50, 5), 
+						new Box(75, -100, 0, 75, 50, 5), 
+						new PartialBox(75, -100, -10, 75, 50, 5, true, true, true),
+						new Wall(0)];
+
+	mapG5 = new Map(gZoneColor, [], "NaN", "mapG4"); 
+	mapG5.contains = [ 	new Floor(), 
+						new Wall(3)];
 
 	mapMT = new Map("#888888", [], "mapMT", "mapMT"); 
 	mapMT.contains = [	new Floor(),
