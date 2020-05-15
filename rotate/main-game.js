@@ -23,8 +23,8 @@ var characterColor = "#000066";
 var characterOutsideColor = "#FFFFFF";
 var ableColor = "#AAF";
 var floorColor = "#CCE";
-var blockColor = "#59378A";
-var lnColor = "#1A074C";
+var blockColor = "#69479A";
+var lnColor = "#1A072C";
 var textColor = "#FCFCFC";
 var buttonColor = "#3DDC97";
 var eHighlightColor = "#FF8800";
@@ -34,6 +34,9 @@ var rZoneColor = "#FF5468";
 var yZoneColor = "#F9FFBD";
 var gZoneColor = "#70C1B3";
 var bZoneColor = "#106BA0";
+
+var rParticleColor = "#CC2F41";
+var gParticleColor = "#3DA673";
 
 //objects
 let camera;
@@ -56,9 +59,9 @@ function setup() {
 	ctx = canvas.getContext("2d");
 	ctx.lineWidth = 2;
 
-    player = new Character(pStart["x"], pStart["y"], pStart["z"]);
 	camera = new Camera(0, 0, -2 * mapSize, 230);	
 	initMaps();
+	player = new Character(pStart["x"], pStart["y"], pStart["z"]);
 	
 	loadingMap = menuMap;
 	lEditor = new Editor();
@@ -278,6 +281,7 @@ function activate(zone0123_OrderRYGB) {
 		switch (zone0123_OrderRYGB) {
 			case 0:
 				gameFlags["hasR"] = true;
+				//red map looping
 				mapCaa.leftMap = mapCaa;
 				break;
 			case 1:
@@ -287,6 +291,8 @@ function activate(zone0123_OrderRYGB) {
 			case 2:
 				gameFlags["hasG"] = true;
 				//green map looping
+				mapCba.leftMap = mapCba;
+
 				break;
 			case 3:
 				gameFlags["hasB"] = true;
