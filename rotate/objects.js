@@ -29,7 +29,6 @@ class Cube extends Main {
 		this.xyUP = [];
 		this.xyLP = [];
 		this.faces = [];
-		this.avoid = false;
 		this.construct();
 	}
 
@@ -350,6 +349,129 @@ class TiltedBox extends PartialBox {
 		}
 		console.log(radians, x, z);
 		return `new TiltedBox(${Math.round(x)}, ${Math.round(y)}, ${Math.round(z)}, ${Math.abs(rx)}, ${Math.abs(ry)}, ${Math.abs(rz)}, ${rotX}, ${rotY}, ${rotZ}, ${XYt}, ${XZt}, ${ZXt}, ${ZYt})`;
+	}
+}
+
+class Icosahedron extends Box {
+	constructor(x, y, z, rx, ry, rz, dir0Through3, color) {
+		super(x, y, z, rx, ry, rz);
+		this.color = color;
+		this.theta = 0;
+		this.phi = 0;
+
+		this.xyTP = [];
+		this.xyBP = [];
+		this.tPoint = [];
+		this.bPoint = [];
+		this.dir = dir0Through3;
+		this.construct();
+	}
+
+	construct() {
+		if (this.theta != undefined && this.phi != undefined) {
+			this.generatePoints();
+			this.generateScreenPoints();
+			this.generateFaces();
+		}
+	}
+
+	generatePoints() {
+		//generate the 4 layers of points
+		this.uPoints = [];
+		this.lPoints = [];
+
+		//top and bottom point
+		this.tPoint = this.polToCart(0, 0);
+		this.bPoint = this.polToCart(Math.PI, 0);
+
+		//top-mid layer
+		for (var z=0;z<5;z++) {
+			this.uPoints.push(this.polToCart(Math.PI * 0.35, (Math.PI * (0.4 * z)) + (Math.PI * 0.5 * this.dir)));
+		}
+		//low-mid layer
+		for (var z=0;z<5;z++) {
+			this.lPoints.push(this.polToCart(Math.PI * 0.65, (Math.PI * ((0.4 * z) + 0.2)) + (Math.PI * 0.5 * this.dir)));
+		}
+	}
+	
+	generateScreenPoints() {
+		this.xyUP = [];
+		this.xyLP = [];
+		this.xyTP = [];
+		this.xyBP = [];
+
+		//top/bottom
+		this.xyTP = spaceToScreen(this.tPoint);
+		this.xyBP = spaceToScreen(this.bPoint);
+
+		//up/down
+		for (var b=0;b<this.uPoints.length;b++) {
+			this.xyUP.push(spaceToScreen(this.uPoints[b]));
+		}
+
+		for (var b=0;b<this.lPoints.length;b++) {
+			this.xyLP.push(spaceToScreen(this.lPoints[b]));
+		}
+	}
+
+	generateNSFaces() {
+		let nSFaces = [];
+		//generates each face
+		//top 5 faces
+		for (var x=0;x<5;x++) {
+			nSFaces.push(new ColorableFace([this.xyTP, this.xyUP[x], this.xyUP[(x+1)%5]], [this.tPoint, this.uPoints[x], this.uPoints[(x+1)%5]], this, this.color));
+		}
+		
+
+		//bottom 5 faces
+		for (var x=0;x<5;x++) {
+			nSFaces.push(new ColorableFace([this.xyBP, this.xyLP[x], this.xyLP[(x+1)%5]], [this.bPoint, this.lPoints[x], this.lPoints[(x+1)%5]], this, this.color));
+		}
+
+		//10 faces in center
+		var xU = 0;
+		var xD = 0;
+		for (var x=0;x<10;x++) {
+			//two sides of triangle
+			if (x % 2 == 0) {
+				nSFaces.push(new ColorableFace([this.xyUP[(xU)%5], this.xyLP[(xD)%5], this.xyUP[(xU+1)%5]], [this.uPoints[(xU)%5], this.lPoints[(xD)%5], this.uPoints[(xU+1)%5]], this, this.color));
+				xU += 1;
+			} else {
+				nSFaces.push(new ColorableFace([this.xyLP[(xD)%5], this.xyUP[(xU)%5], this.xyLP[(xD+1)%5]], [this.lPoints[(xD)%5], this.uPoints[(xU)%5], this.lPoints[(xD+1)%5]], this, this.color));
+				xD += 1;
+			}
+		}
+		return nSFaces;
+	}
+
+	polToCart(theta, phi) {
+		//theta here is vertical inclination, while phi is horizontal
+		var x = this.rx * Math.cos(phi) * Math.sin(theta);
+		var y = this.ry * Math.cos(theta);
+		var z = this.rz * Math.sin(phi) * Math.sin(theta);
+		return [x + this.x, y + this.y, z + this.z];
+	}
+
+	giveEnglishConstructor(radians) {
+		//destructuring object and then applying transformations to it to get coordiantes
+		let {x, y, z, rx, ry, rz, dir, color} = this;
+
+		//adjusting direction
+		if (radians > 0) {
+			dir += 1;
+			dir = dir % 4;
+		}
+		if (radians < 0) {
+			dir -= 1;
+			if (dir < 0) {
+				dir = 3;
+			}
+		}
+		//adjusting position/size
+		[x, z] = rotate(x, z, radians);
+		[rx, rz] = rotate(rx, rz, radians);
+
+		return `new Icosahedron(${x}, ${y}, ${z}, ${rx}, ${ry}, ${rz}, ${dir}, ${color})`;
 	}
 }
 
