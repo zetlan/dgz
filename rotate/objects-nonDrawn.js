@@ -1,7 +1,6 @@
 //map class, all world objects are contained here
 class Map {
     constructor(backgroundColor, objects, connectsToLeft, connectsToRight) {
-		this.avoid = false;
 		this.bg = backgroundColor;
 		this.name;
         this.contains = objects;
@@ -103,11 +102,12 @@ class Map {
 	tick() {
 		for (var k=this.contains.length-1;k>=0;k--) {
 			this.contains[k].tick();
-			if (this.avoid) {
-				this.avoid = false;
-				k = 1;
+			if (player.avoid && player.avoidL && player.avoidR && player.avoidLL && player.avoidRR) {
+				k = 0;
 			}
 		}
+		//make sure to always tick the floor, in slot 0
+		this.contains[0].tick();
 	}
 	
     startRotation(speed) {
