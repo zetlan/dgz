@@ -2,6 +2,7 @@ class Particle extends Main {
 	constructor(x, y, z, color) {
 		super(x, y, z);
 		this.home = [x, y, z];
+		this.storeCoord = [x, y, z];
 		this.drawCoord = [];
 		this.drawCoordP = [];
 		this.drawCoordP2 = [];
@@ -12,6 +13,7 @@ class Particle extends Main {
 		this.r = 2.5;
 		this.dispSize = 0;
 		this.abvP = [x, y + this.r, z];
+		this.rollback = false;
 
 		this.dx = 0;
 		this.dy = 0;
@@ -73,7 +75,6 @@ class Particle extends Main {
 		} else {
 			ctx.fill();
 		}
-
 		ctx.strokeStyle = temp;
 	}
 
@@ -86,10 +87,6 @@ class Particle extends Main {
 		this.drawCoord2 = spaceToScreen(this.abvP);
 		
 		this.dispSize = Math.abs(this.drawCoord[1] - this.drawCoord2[1]);
-	}
-
-	getCameraDist() {
-		return 0;
 	}
 
 	giveEnglishConstructor() {
@@ -106,6 +103,14 @@ class Character extends Particle {
 		super(x, y, z, characterColor);
 		this.drawCoordL = [];
 		this.drawCoordR = [];
+		this.drawCoordLL = [];
+		this.drawCoordRR = [];
+
+		this.avoidL = false;
+		this.avoidR = false;
+		this.avoidLL = false;
+		this.avoidRR = false;
+		this.avoid = false;
 		
 		this.r = 7.5;
 		this.dispSize = 0;
@@ -165,6 +170,14 @@ class Character extends Particle {
 			this.z += this.dz;
 		}
 		this.adjustPoints();
+
+		//reset avoidance
+		this.avoid = false;
+		this.avoidD = false;
+		this.avoidL = false;
+		this.avoidR = false;
+		this.avoidLL = false;
+		this.avoidRR = false;
     }
 
     beDrawn() {
@@ -176,42 +189,51 @@ class Character extends Particle {
 		ctx.strokeStyle = temp;
 
 		//drawing acquired colors
-		if ((gameFlags["hasB"] && gameFlags["hasG"] && gameFlags["hasR"] && gameFlags["hasY"]) == false) {
-			//blue
-			if (gameFlags["hasB"]) {
-				ctx.fillStyle = bZoneColor;
-				gPoint(this.fDC[0], this.fDC[1], this.dispSize * 0.8);
-				ctx.fill();
-			}
+		//blue
+		if (gameFlags["hasB"]) {
+			ctx.fillStyle = bZoneColor;
+			gPoint(this.fDC[0], this.fDC[1], this.dispSize * 0.8);
+			ctx.fill();
+		}
 
-			//green
-			if (gameFlags["hasG"]) {
-				ctx.fillStyle = gZoneColor;
-				gPoint(this.fDC[0], this.fDC[1], this.dispSize * 0.6);
-				ctx.fill();
-			}
+		//green
+		if (gameFlags["hasG"]) {
+			ctx.fillStyle = gZoneColor;
+			gPoint(this.fDC[0], this.fDC[1], this.dispSize * 0.6);
+			ctx.fill();
+		}
 
-			//yellow
-			if (gameFlags["hasY"]) {
-				ctx.fillStyle = yZoneColor;
-				gPoint(this.fDC[0], this.fDC[1], this.dispSize * 0.4);
-				ctx.fill();
-			}
+		//yellow
+		if (gameFlags["hasY"]) {
+			ctx.fillStyle = yZoneColor;
+			gPoint(this.fDC[0], this.fDC[1], this.dispSize * 0.4);
+			ctx.fill();
+		}
 
-			//drawing red
-			if (gameFlags["hasR"]) {
-				ctx.fillStyle = rZoneColor;
-				gPoint(this.fDC[0], this.fDC[1], this.dispSize * 0.2);
-				ctx.fill();
-			}
+		//drawing red
+		if (gameFlags["hasR"]) {
+			ctx.fillStyle = rZoneColor;
+			gPoint(this.fDC[0], this.fDC[1], this.dispSize * 0.2);
+			ctx.fill();
+		}
+		//white
+		if (gameFlags["hasB"] && gameFlags["hasG"] && gameFlags["hasR"] && gameFlags["hasY"]) {
+			ctx.fillStyle = characterOutsideColor;
+			var temp2 = ctx.globalAlpha;
+			ctx.globalAlpha = (Math.sin(pTime / cutsceneTime) / 2) + 0.5;
+			gPoint(this.fDC[0], this.fDC[1], this.dispSize);
+			ctx.fill();
+			ctx.globalAlpha = temp2;
 		}
 	}
 
 	adjustPoints() {
 		super.adjustPoints();
 
-		this.drawCoordL = [this.drawCoord2[0] - this.dispSize, this.drawCoord2[1]];
-		this.drawCoordR = [this.drawCoord2[0] + this.dispSize, this.drawCoord2[1]];
+		this.drawCoordL = [this.drawCoord2[0] - (this.dispSize / 2), this.drawCoord2[1]];
+		this.drawCoordR = [this.drawCoord2[0] + (this.dispSize / 2), this.drawCoord2[1]];
+		this.drawCoordLL = [this.drawCoord2[0] - this.dispSize, this.drawCoord2[1]];
+		this.drawCoordRR = [this.drawCoord2[0] + this.dispSize, this.drawCoord2[1]];
 	}
 }
 
