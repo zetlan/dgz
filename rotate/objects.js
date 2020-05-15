@@ -186,6 +186,7 @@ class Blocker extends Box {
 				break;
 		}
 		this.dir = dir0Through3;
+		this.cDist *= 2;
 	}
 
 	giveEnglishConstructor(radians) {
@@ -204,6 +205,13 @@ class Blocker extends Box {
 		}
 
 		return `new Blocker(${dir})`;
+	}
+
+	getCameraDist() {
+		super.getCameraDist();
+		if (this.dir != 3) {
+			this.cDist *= 2;
+		}	
 	}
 }
 
@@ -249,6 +257,7 @@ class Wall extends PartialBox {
 				break;
 		}
 		this.dir = dir0Through3;
+		this.cDist *= 2;
 	}
 
 	giveEnglishConstructor(radians) {
@@ -267,6 +276,13 @@ class Wall extends PartialBox {
 		}
 
 		return `new Wall(${dir})`;
+	}
+
+	getCameraDist() {
+		super.getCameraDist();
+		if (this.dir != 3) {
+			this.cDist *= 2;
+		}	
 	}
 }
 
@@ -530,9 +546,21 @@ class Face {
 
 	tick() {
 		//collision with the player
-		this.collide(player.drawCoord2);
-		this.collide(player.drawCoordL);
-		this.collide(player.drawCoordR);
+		if (!player.avoid) {
+			player.avoid = this.collide(player.drawCoord2);
+		}
+		if (!player.avoidL) {
+			player.avoidL = this.collide(player.drawCoordL);
+		}
+		if (!player.avoidR) {
+			player.avoidR = this.collide(player.drawCoordR);
+		}
+		if (!player.avoidLL) {
+			player.avoidLL = this.collide(player.drawCoordLL);
+		}
+		if (!player.avoidRR) {
+			player.avoidRR = this.collide(player.drawCoordRR);
+		}
 	}
 
 	collide(point) {
@@ -542,7 +570,7 @@ class Face {
 				//different collision procedures for collision values
 				//0 is none, 1 is positive, -1 is negative
 				if (this.colX != 0) {
-					player.x += this.colX * player.mS;
+					player.x += this.colX * player.mS * 1.02;
 				}
 
 				//special check for y for smoother handling
@@ -568,53 +596,63 @@ class Face {
 						player.y -= 1;
 					}
 
-					//using the z percentage, if the player is about to fall off the front, slow them down a bit
+					//using the z percentage, if the player is about to fall off the front, slow them down
 					if (zPercent < 0.05) {
-						player.dz = 0	;
+						player.dz = 0;
+					}
+					//if the player is coming up the back, speed them up
+					if (zPercent > 1) {
+						player.z += player.dz / 2;
 					}
 				}
 
 				//special check for z to avoid collision issues when in front of an object
 				if (this.colZ != 0) {
 					if (this.xyz[2] <= player.z + 5) {
-						player.z += this.colZ * player.mS;
+						player.z += this.colZ * player.mS * 1.02;
 						//if the player is out of bounds in z, make them not be
 						if (Math.abs(player.z) > mapSize) {
-							player.z += player.mS;
+							player.z += player.mS * 1.02;
 						}
 						//push player slightly away from the object center
 						if (player.x < this.xyz[0]) {
-							player.x -= player.mS;
+							player.x -= player.mS * 1.1;
 						} else {
-							player.x += player.mS
+							player.x += player.mS * 1.1;
 						}
 
 						//if player is out of bounds in x make them not be
 						if (Math.abs(player.x) > mapSize) {
 							if (player.x > 0) {
-								player.x -= player.mS;
+								player.x -= player.mS * 1.02;
 							} else {
-								player.x += player.mS;
+								player.x += player.mS * 1.02;
 							}
 						}
 					}
 				}
-				this.parent.avoid = true;
-				loadingMap.avoid = true;
+				//return true if collide happens
+				return true;
 				 
 			} else if (loadingMap.ableToSwap) {
-					//rotation case
-					if (!this.rotable) {
-						loadingMap.aSpeed *= -1;
-						loadingMap.ableToSwap = false;
-						console.log("swapped rotation direction using face type", this.colX, this.colY, this.colZ, "\n with parent", this.parent.constructor.name);
-					} else {
-						this.parent.avoid = true;
-						loadingMap.avoid = true;
-					}	
-			} else if (!this.rotable) {
+				//rotation case
+				if (!this.rotable) {
+					loadingMap.aSpeed *= -1;
+					loadingMap.ableToSwap = false;
+					console.log("swapped rotation direction using face type", this.colX, this.colY, this.colZ, "\n with parent", this.parent.constructor.name);
+					return true;
+				} else {
+					//make all player points non-collidable for intended behavior of rotable objects "shadowing" non-rotable objects.
+					player.avoid = true;
+					player.avoidR = true;
+					player.avoidL = true;
+					player.avoidRR = true;
+					player.avoidLL = true;
+					return true;
+				}	
 			}
 		}
+		return false;
 	}
 
 	beDrawn() {
