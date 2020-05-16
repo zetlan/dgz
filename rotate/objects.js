@@ -341,7 +341,7 @@ class TiltedBox extends PartialBox {
 			[rx, ry, rz] = [Math.round(rx), Math.round(ry), Math.round(rz)];
 			[rotX, rotZ] = [rotZ, rotX];
 
-			if (radians > 0) {
+			if (radians < 0) {
 				[XYt, ZYt, ZXt, XZt] = [-1 * ZYt, -1 * XYt, -1 * XZt, -1 * ZXt];
 			} else {
 				[XYt, ZYt, ZXt, XZt] = [ZYt, XYt, XZt, ZXt];
