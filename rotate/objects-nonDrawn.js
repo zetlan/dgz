@@ -50,7 +50,7 @@ class Map {
 
 			//fade in for the map being gone to
 			var temp = this.angle;
-			if (this.goingMap == this.leftMap) {
+			if (this.angle > 0) {
 				this.angle -= Math.PI / 2;
 			} else {
 				this.angle += Math.PI / 2;
@@ -243,7 +243,7 @@ class Editor {
 		this.active = false;
 		this.occupies = 0;
 		this.crInd = 0;
-		this.createList = ["Cube", "Box", "PartialBox", "TiltedBox", "Wall", "Blocker"];
+		this.createList = ["Cube", "Box", "PartialBox", "TiltedBox", "Wall", "Blocker", "Icosahedron"];
 		this.obj;
 
 		this.ncrmnt = 5;
