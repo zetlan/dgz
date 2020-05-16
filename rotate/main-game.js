@@ -36,6 +36,7 @@ var gZoneColor = "#70C1B3";
 var bZoneColor = "#106BA0";
 
 var rParticleColor = "#CC2F41";
+var yParticleColor = "#FAF27F";
 var gParticleColor = "#3DA673";
 
 //objects
@@ -49,7 +50,7 @@ let gameFlags = {
 	hasR: false,
 	hasY: false,
 	hasG: false,
-	hasB: false
+	hasB: true
 };
 
 //functions
@@ -61,9 +62,10 @@ function setup() {
 
 	camera = new Camera(0, 0, -2 * mapSize, 230);	
 	initMaps();
+	updateMaps();
 	player = new Character(pStart["x"], pStart["y"], pStart["z"]);
 	
-	loadingMap = menuMap;
+	
 	lEditor = new Editor();
 	timer = window.requestAnimationFrame(main);
 	
@@ -281,34 +283,64 @@ function activate(zone0123_OrderRYGB) {
 		switch (zone0123_OrderRYGB) {
 			case 0:
 				gameFlags["hasR"] = true;
-				//red map looping
-				mapCaa.leftMap = mapCaa;
 				break;
 			case 1:
 				gameFlags["hasY"] = true;
-				//yellow map looping
 				break;
 			case 2:
 				gameFlags["hasG"] = true;
-				//green map looping
-				mapCba.leftMap = mapCba;
-
 				break;
 			case 3:
 				gameFlags["hasB"] = true;
-				//blue map looping
 				break;
 		}
-	
-		loadingMap = mapC;
 		cutscene = true;
+		updateMaps();
+	}
+}
+
+//function for doing/redoing map changes. This is seperate from activate so that it can be called when the game starts (for localStorage support)
+function updateMaps() {
+	//bringing player to crossroads if it has been reached, or the start of the game if it hasn't
+	if (gameFlags["atC"]) {
+		loadingMap = mapC;
+	} else {
+		loadingMap = menuMap;
+	}
+
+	//map looping in crossroads to prevent duplicate areas
+	if (gameFlags["hasR"]) {
+		mapCaa.leftMap = mapCaa;
+	}
+
+	if (gameFlags["hasY"]) {
+		mapCab.rightMap = mapCba;
+	}
+
+	if (gameFlags["hasG"]) {
+		mapCba.leftMap = mapCba;
+	}
+
+	if (gameFlags["hasB"]) {
+		mapCbb.rightMap = mapCbb;
+	}
+
+	//map blocking for the areas of crossroads if a side of crossroads has been completed
+	if (gameFlags["hasR"] && gameFlags["hasY"]) {
+		mapC.contains.push(new Blocker(0));
+		mapC.leftMap = "NaN";
+	}
+
+	if (gameFlags["hasB"] && gameFlags["hasG"]) {
+		mapC.contains.push(new Blocker(2));
+		mapC.rightMap = "NaN";
+	}
 	
-		//if all zones have been activated, lock into the beginning zone
-		if (gameFlags["hasB"] && gameFlags["hasG"] && gameFlags["hasR"] && gameFlags["hasY"]) {
-			gameFlags["atC"] = false;
-			loadingMap = menuMap;
-			mapA4.rightMap = menuMap;
-		}
+	//if all zones have been activated, lock into the beginning zone
+	if (gameFlags["hasB"] && gameFlags["hasG"] && gameFlags["hasR"] && gameFlags["hasY"]) {
+		gameFlags["atC"] = false;
+		loadingMap = menuMap;
+		mapA4.rightMap = menuMap;
 	}
 }
 
