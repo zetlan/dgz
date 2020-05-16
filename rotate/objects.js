@@ -471,7 +471,7 @@ class Icosahedron extends Box {
 		[x, z] = rotate(x, z, radians);
 		[rx, rz] = rotate(rx, rz, radians);
 
-		return `new Icosahedron(${x}, ${y}, ${z}, ${rx}, ${ry}, ${rz}, ${dir}, ${color})`;
+		return `new Icosahedron(${x}, ${y}, ${z}, ${rx}, ${ry}, ${rz}, ${dir}, "${color}")`;
 	}
 }
 
@@ -577,19 +577,15 @@ class Custom extends Main {
 			var points2d = [];
 			var points3d = [];
 			//second for loop for each point in addition to color
-			for (var b=0;b<this.data[a].length;b++) {
+			//go until one index left (which is color)
+			for (var b=0;b<this.data[a].length-1;b++) {
 				var tempo = this.data[a][b];
-				//if the selected index is a string color code it is added to the color queue, but if not it's added to the points queue
-				if (typeof(this.data[a][b]) == "string") {
-					faceColor = tempo;
-				} else {
-					points3d.push([tempo[0] + this.x, tempo[1] + this.y, tempo[2] + this.z]);
-					points2d.push(spaceToScreen([tempo[0] + this.x, tempo[1] + this.y, tempo[2] + this.z]));
-				}
+				points3d.push([tempo[0] + this.x, tempo[1] + this.y, tempo[2] + this.z]);
+				points2d.push(spaceToScreen([tempo[0] + this.x, tempo[1] + this.y, tempo[2] + this.z]));
 			}
 
 			//building the face based off of the gathered data
-			this.nSFaces.push(new ColorableFace(points2d, points3d, this, faceColor));
+			this.nSFaces.push(new ColorableFace(points2d, points3d, this, this.data[a][this.data[a].length-1]));
 		}
 	}
 
@@ -618,20 +614,15 @@ class Custom extends Main {
 	}
 
 	tick() {
-		//reconstruct self
-		this.construct();
-		
 		//collide with player//only tick if the player should be able to collide
 		//slightly less precise than regular objects, but that's just a sacrifice I'm willing to make
 		for (var h=this.faces.length-1;h>=0;h--) {
-			if (!this.avoid) {
 				this.faces[h].tick();
-			}
 		}
-		this.avoid = false;
 	}
 
 	beDrawn() {
+		this.construct();
 		//drawing each face one by one
 		for (var h=0;h<this.faces.length;h++) {
 			this.faces[h].beDrawn();
@@ -642,8 +633,24 @@ class Custom extends Main {
 		//outputting english and all the data
 		let {x, y, z, data} = this;
 
-		//rotating xz and data
+		//rotating xz
 		[x, z] = rotate(x, z, radians);
+		//rotating data
+
+		//stringify and then parse to switch from pointer to new array
+		data = JSON.parse(JSON.stringify(data));
+		//looping through all the faces
+		for (var a=0;a<data.length;a++) {
+			//looping through all points
+			for (var b=0;b<data[a].length-1;b++) {
+				//rotating x and z
+				[data[a][b][0], data[a][b][2]] = rotate(data[a][b][0], data[a][b][2], radians);
+
+				//avoid floating point horrors
+				[data[a][b][0], data[a][b][2]] = [Math.round(data[a][b][0]), Math.round(data[a][b][2])];
+			}
+		}
+		//stringify to avoid data loss
 		data = JSON.stringify(data);
 		return `new Custom(${x}, ${y}, ${z}, ${data})`;
 	}
@@ -667,7 +674,7 @@ class Face {
 	}
 
 	tick() {
-		//collision with the player
+		//collision with all 5 points of the player
 		if (!player.avoid) {
 			player.avoid = this.collide(player.drawCoord2);
 		}
