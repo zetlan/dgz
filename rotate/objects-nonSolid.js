@@ -85,8 +85,12 @@ class Particle extends Main {
 		this.drawCoordP = this.drawCoord2;
 		this.drawCoord = spaceToScreen([this.x, this.y, this.z]);
 		this.drawCoord2 = spaceToScreen(this.abvP);
-		
+
 		this.dispSize = Math.abs(this.drawCoord[1] - this.drawCoord2[1]);
+	}
+
+	getCameraDist() {
+		return 0;
 	}
 
 	giveEnglishConstructor() {
