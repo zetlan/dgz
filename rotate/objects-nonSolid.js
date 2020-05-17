@@ -293,20 +293,20 @@ class Text {
 
 class Track extends Main {
 	constructor(x1, y1, z1, x2, y2, z2, periodINT, offsetINT, object) {
-		super((x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2);
-		this.obj = object;
+		super(x1, y1, z1);
+		this.contains = object;
 		this.construct();
 
 		this.o = offsetINT;
 		this.p = periodINT;
 
-		this.x1 = x1;
-		this.y1 = y1;
-		this.z1 = z1;
+		this.dx = 0;
+		this.dy = 0;
+		this.dz = 0;
 		
-		this.x2 = x2;
-		this.y2 = y2;
-		this.z2 = z2;
+		this.rx = x2;
+		this.ry = y2;
+		this.rz = z2;
 
 		this.xyP1 = [];
 		this.xyP2 = [];
@@ -314,21 +314,44 @@ class Track extends Main {
 
 	construct() {
 		//changing coordinates for object based on pTime
+		var [oldX, oldY, oldZ] = [this.contains.x, this.contains.y, this.contains.z];
 		//this formula models the percentage off of a sine wave customized by period, offset, and the current pTime.
 		var percent = (Math.cos((((1 / this.p) * pTime) + (this.o / this.p)) * Math.PI * 2) / 2) + 0.5;
+
 		//linterp for the correct xyz part
-		[this.obj.x, this.obj.y, this.obj.z] = [linterp(this.x1, this.x2, percent), linterp(this.y1, this.y2, percent), linterp(this.z1, this.z2, percent)];
-		this.obj.construct();
+		//I disguised xyz1/xyz2 as xyz/rx ry rz so that it would be easier to edit with the traditional editor
+		[this.contains.x, this.contains.y, this.contains.z] = [linterp(this.x, this.rx, percent), linterp(this.y, this.ry, percent), linterp(this.z, this.rz, percent)];
+		this.contains.construct();
 
-		this.xyP1 = spaceToScreen([this.x1, this.y1, this.z1]);
-		this.xyP2 = spaceToScreen([this.x2, this.y2, this.z2]);
+		this.xyP1 = spaceToScreen([this.x, this.y, this.z]);
+		this.xyP2 = spaceToScreen([this.rx, this.ry, this.rz]);
 
-		
+		//updating dx/dy/dz
+		var [newX, newY, newZ] = [this.contains.x, this.contains.y, this.contains.z];
+
+		this.dx = newX - oldX;
+		this.dy = newY - oldY;
+		this.dz = newZ - oldZ;
 	}
 
 	tick() {
 		//run collision for object
-		this.obj.tick();
+		//get collision state before object
+		var colState = [player.avoidLL, player.avoidL, player.avoid, player.avoidR, player.avoidRR];
+		colState = JSON.stringify(colState);
+
+		this.contains.tick();
+		
+		var newColState = [player.avoidLL, player.avoidL, player.avoid, player.avoidR, player.avoidRR];
+		newColState = JSON.stringify(newColState);
+		//the collision states are stringified so that they can be compared
+
+		//give the player velocity if they are on the block
+		if (newColState != colState) {
+			player.x += this.dx;
+			player.y += this.dy;
+			player.z += this.dz;
+		}
 	}
 
 	beDrawn() {
@@ -336,7 +359,20 @@ class Track extends Main {
 		this.construct();
 
 		gLine(this.xyP1, this.xyP2);
-		this.obj.beDrawn();
+		this.contains.beDrawn();
+	}
+
+	getCameraDist() {
+		var tX;
+		var tZ;
+		try {
+			[tX, tZ] = rotate((this.x + this.rx) / 2, (this.z + this.rz) / 2, loadingMap.angle);
+		} catch(error) {
+			tX =( this.x + this.rx) / 2;
+			tZ = (this.z + this.rz) / 2;
+		}
+		
+		this.cDist = getCameraDist([[tX, this.y, tZ]]);
 	}
 
 	giveEnglishConstructor() {
