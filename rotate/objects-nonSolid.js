@@ -290,3 +290,56 @@ class Text {
 		return `new Text("${text}")`;
 	}
 }
+
+class Track extends Main {
+	constructor(x1, y1, z1, x2, y2, z2, periodINT, offsetINT, object) {
+		super((x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2);
+		this.obj = object;
+		this.construct();
+
+		this.o = offsetINT;
+		this.p = periodINT;
+
+		this.x1 = x1;
+		this.y1 = y1;
+		this.z1 = z1;
+		
+		this.x2 = x2;
+		this.y2 = y2;
+		this.z2 = z2;
+
+		this.xyP1 = [];
+		this.xyP2 = [];
+	}
+
+	construct() {
+		//changing coordinates for object based on pTime
+		//this formula models the percentage off of a sine wave customized by period, offset, and the current pTime.
+		var percent = (Math.cos((((1 / this.p) * pTime) + (this.o / this.p)) * Math.PI * 2) / 2) + 0.5;
+		//linterp for the correct xyz part
+		[this.obj.x, this.obj.y, this.obj.z] = [linterp(this.x1, this.x2, percent), linterp(this.y1, this.y2, percent), linterp(this.z1, this.z2, percent)];
+		this.obj.construct();
+
+		this.xyP1 = spaceToScreen([this.x1, this.y1, this.z1]);
+		this.xyP2 = spaceToScreen([this.x2, this.y2, this.z2]);
+
+		
+	}
+
+	tick() {
+		//run collision for object
+		this.obj.tick();
+	}
+
+	beDrawn() {
+		//construct self and object (this is in beDrawn so that rotation doesn't cause visual issues)
+		this.construct();
+
+		gLine(this.xyP1, this.xyP2);
+		this.obj.beDrawn();
+	}
+
+	giveEnglishConstructor() {
+
+	}
+}
