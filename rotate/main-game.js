@@ -194,7 +194,9 @@ function main() {
 
 	//call itself through animation frame 
 	timer = window.requestAnimationFrame(main);
-	pTime += 1;
+	if (!loadingMap.rotating) {
+		pTime += 1;
+	}
 }
 
 //cutscene function, determines cutscene graphics
