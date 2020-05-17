@@ -50,7 +50,7 @@ let gameFlags = {
 	hasR: false,
 	hasY: false,
 	hasG: false,
-	hasB: true
+	hasB: false
 };
 
 //functions
@@ -482,7 +482,7 @@ function cLinterp(color1FullHex, color2FullHex, percentage) {
 	var finG = linterp(g1, g2, percentage);
 	var finB = linterp(b1, b2, percentage);
 	//converting back to hex
-	var finalHex = "#" + Math.floor(finR).toString(16) + Math.floor(finG).toString(16) + Math.floor(finB).toString(16);
+	var finalHex = "#" + ("0" + Math.floor(finR).toString(16)).substr(-2) + ("0" + Math.floor(finG).toString(16)).substr(-2) + ("0" + Math.floor(finB).toString(16)).substr(-2);
 	return finalHex;
 }
 
