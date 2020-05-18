@@ -46,7 +46,6 @@ class Map {
         if (this.rotating && this.mTime <= 1) {
 			this.angle += this.aSpeed;
 			this.rotPercent = Math.abs(loadingMap.angle / (Math.PI / 2));
-			this.orderObjects();
 
 			//fade in for the map being gone to
 			var temp = this.angle;
@@ -57,7 +56,6 @@ class Map {
 			}
 			ctx.globalAlpha = this.rotPercent;
 			try {
-				this.goingMap.orderObjects();
 				this.goingMap.beRun();
 			} catch (error) {}
 			
@@ -243,7 +241,7 @@ class Editor {
 		this.active = false;
 		this.occupies = 0;
 		this.crInd = 0;
-		this.createList = ["Cube", "Box", "PartialBox", "TiltedBox", "Wall", "Blocker", "Icosahedron", "Track"];
+		this.createList = ["Cube", "Box", "PartialBox", "TiltedBox", "Wall", "Blocker", "Icosahedron", "Octohedron", "Track"];
 		this.obj;
 
 		this.ncrmnt = 5;
@@ -371,6 +369,16 @@ class Editor {
 			//the ] key
 			case 221:
 				lEditor.active = false;
+				break;
+			//y, h, and g, for rotability
+			case 89:
+				this.obj.rotY = !this.obj.rotY;
+				break;
+			case 72:
+				this.obj.rotX = !this.obj.rotX;
+				break;
+			case 71:
+				this.obj.rotZ = !this.obj.rotZ;
 				break;
 			
 			//cycling through which object to edit (- and +)
