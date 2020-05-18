@@ -128,11 +128,8 @@ class Cube extends Main {
 		if (player.z > this.z - this.rz || loadingMap.rotating) {
 			//ticking each face
 			for (var h=this.faces.length-1;h>=0;h--) {
-				if (!this.avoid) {
 					this.faces[h].tick();
-				}
 			}
-			this.avoid = false;
 		}
 	}
 
@@ -487,6 +484,66 @@ class Icosahedron extends Box {
 		[rx, rz] = rotate(rx, rz, radians);
 
 		return `new Icosahedron(${x}, ${y}, ${z}, ${rx}, ${ry}, ${rz}, ${dir}, "${color}")`;
+	}
+}
+
+
+//octohedron class
+class Octohedron extends PartialBox {
+	constructor(x, y, z, rx, ry, rz, rotable) {
+		super(x, y, z, rx, ry, rz, rotable, rotable, rotable);
+		this.mPoints = [];
+		this.construct();
+	}
+
+	construct() {
+		this.generatePoints();
+		this.generateScreenPoints();
+		this.generateFaces();
+	}
+
+	generatePoints() {
+		this.uPoints = [];
+		this.lPoints = [];
+		this.mPoints = [];
+
+		//middle points, only 3 instead of 4 because it's facing the front
+		this.mPoints.push([this.x + this.rx, this.y, this.z]);
+		this.mPoints.push([this.x, this.y, this.z - this.rz]);
+		this.mPoints.push([this.x - this.rx, this.y, this.z]);
+
+		//top/bottom points
+		this.uPoints = [this.x, this.y + this.ry, this.z];
+		this.lPoints = [this.x, this.y - this.ry, this.z];
+	}
+	
+	generateScreenPoints() {
+		this.xyUP = [];
+		this.xyLP = [];
+		this.xyUP.push(spaceToScreen(this.mPoints[0]));
+		this.xyUP.push(spaceToScreen(this.mPoints[1]));
+		this.xyUP.push(spaceToScreen(this.mPoints[2]));
+		
+		this.xyLP.push(spaceToScreen(this.uPoints));
+		this.xyLP.push(spaceToScreen(this.lPoints));
+	}
+
+	generateNSFaces() {
+		let nSFaces = [];
+		//generates all 4 front faces
+		nSFaces.push(new Face([this.xyLP[0], this.xyUP[2], this.xyUP[1]], [this.uPoints, this.mPoints[2], this.mPoints[1]], -1, 0, 0, this.rotX, this));
+		nSFaces.push(new Face([this.xyLP[0], this.xyUP[1], this.xyUP[0]], [this.uPoints, this.mPoints[1], this.mPoints[0]], 1, 0, 0, this.rotX, this));
+		nSFaces.push(new Face([this.xyLP[1], this.xyUP[2], this.xyUP[1]], [this.lPoints, this.mPoints[2], this.mPoints[1]], -1, 0, 0, this.rotX, this));
+		nSFaces.push(new Face([this.xyLP[1], this.xyUP[1], this.xyUP[0]], [this.lPoints, this.mPoints[1], this.mPoints[0]], 1, 0, 0, this.rotX, this));
+		return nSFaces;
+	}
+
+	giveEnglishConstructor(radians) {
+		//the whole destructuring thingy
+		let {x, y, z, rx, ry, rz, rotable} = this;
+		[x, z] = rotate(x, z, radians);
+		[x, y, z] = [Math.round(x), Math.round(y), Math.round(z)];
+		return `new Octohedron(${x}, ${y}, ${z}, ${rx}, ${ry}, ${rz}, ${rotable})`;
 	}
 }
 
