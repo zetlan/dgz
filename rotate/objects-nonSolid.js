@@ -375,7 +375,16 @@ class Track extends Main {
 		this.cDist = getCameraDist([[tX, this.y, tZ]]);
 	}
 
-	giveEnglishConstructor() {
+	giveEnglishConstructor(radians) {
+		let {x, y, z, rx, ry, rz, p, o, contains} = this;
 
+		//stringifying to avoid data loss
+		contains = contains.giveEnglishConstructor(radians);
+		//rotate xz1 and xz2
+		[x, z] = rotate(x, z, radians);
+		[rx, rz] = rotate(rx, rz, radians);
+		[x, z, rx, rz] = [Math.round(x), Math.round(z), Math.round(rx), Math.round(rz)];
+
+		return `new Track(${x}, ${y}, ${z}, ${rx}, ${ry}, ${rz}, ${p}, ${o}, ${contains})`;
 	}
 }

@@ -165,6 +165,21 @@ class Box extends Cube {
 	}
 }
 
+class AlphaBox extends Box {
+	constructor(x, y, z, rx, ry, rz, alpha) {
+		super(x, y, z, rx, ry, rz);
+		this.alpha = alpha;
+	}
+
+	giveEnglishConstructor(radians) {
+		let {x, y, z, rx, ry, rz, alpha} = this;
+		[x, z] = rotate(x, z, radians);
+		[rx, rz] = rotate(rx, rz, radians);
+		[x, z, rx, rz] = [Math.round(x), Math.round(z), Math.round(rx), Math.round(rz)]
+		return (`new AlphaBox(${Math.round(x)}, ${Math.round(y)}, ${Math.round(z)}, ${Math.abs(rx)}, ${Math.abs(ry)}, ${Math.abs(rz)}, ${alpha})`);
+	}
+}
+
 class Blocker extends Box {
 	constructor(dir0Through3) {
 		switch (dir0Through3) {
@@ -696,17 +711,23 @@ class Face {
 		if (inPoly(point, this.points)) {
 			//regular case
 			if (!loadingMap.rotating) {
+				//determining whether to factor in alpha to collision
+				var multiplier = 1;
+				if (this.parent.alpha != undefined) {
+					multiplier = this.parent.alpha;
+				}
+				
 				//different collision procedures for collision values
 				//0 is none, 1 is positive, -1 is negative
 				if (this.colX != 0) {
-					player.x += this.colX * player.mS * 1.02;
+					player.x += this.colX * player.mS * 1.02 * multiplier;
 				}
 
 				//special check for y for smoother handling
 				if (this.colY) {
-					player.y += player.gravity;
+					player.y += player.gravity * multiplier;
 					if (player.dy * this.colY <= 0) {
-						player.dy = 0;
+						player.dy *= 1 - multiplier;
 					}
 
 					//adjusting player y to be closer to face y
@@ -720,9 +741,9 @@ class Face {
 
 					//step 4, if their height is lower than that raise their height
 					if (player.y < tgtH) {
-						player.y += 1;
+						player.y += 1 * multiplier;
 					} else {
-						player.y -= 1;
+						player.y -= 1 * multiplier;
 					}
 
 					//using the z percentage, if the player is about to fall off the front, slow them down
@@ -731,31 +752,31 @@ class Face {
 					}
 					//if the player is coming up the back, speed them up
 					if (zPercent > 1) {
-						player.z += player.dz / 2;
+						player.z += (player.dz / 2) * multiplier;
 					}
 				}
 
 				//special check for z to avoid collision issues when in front of an object
 				if (this.colZ != 0) {
 					if (this.xyz[2] <= player.z + 5) {
-						player.z += this.colZ * player.mS * 1.02;
+						player.z += this.colZ * player.mS * 1.02 * multiplier;
 						//if the player is out of bounds in z, make them not be
 						if (Math.abs(player.z) > mapSize) {
-							player.z += player.mS * 1.02;
+							player.z += player.mS * 1.02 * multiplier;
 						}
 						//push player slightly away from the object center
 						if (player.x < this.xyz[0]) {
-							player.x -= player.mS * 1.1;
+							player.x -= player.mS * 1.1 * multiplier;
 						} else {
-							player.x += player.mS * 1.1;
+							player.x += player.mS * 1.1 * multiplier;
 						}
 
 						//if player is out of bounds in x make them not be
 						if (Math.abs(player.x) > mapSize) {
 							if (player.x > 0) {
-								player.x -= player.mS * 1.02;
+								player.x -= player.mS * 1.02 * multiplier;
 							} else {
-								player.x += player.mS * 1.02;
+								player.x += player.mS * 1.02 * multiplier;
 							}
 						}
 					}
@@ -785,14 +806,25 @@ class Face {
 	}
 
 	beDrawn() {
-		//coloring based on rotation ability
-		if (this.rotable) {
+		//coloring based on rotation ability/alpha ability
+		if (this.parent.alpha != undefined) {
+			var temp = ctx.globalAlpha;
+			ctx.globalAlpha = this.parent.alpha;
+			ctx.fillStyle = alphaColor;
+			dPoly(this.points);
+			ctx.fill();
+			ctx.globalAlpha = temp;
+
+		} else if (this.rotable) {
 			ctx.fillStyle = ableColor;
+			dPoly(this.points);
+			ctx.fill();
 		} else {
 			ctx.fillStyle = blockColor;
+			dPoly(this.points);
+			ctx.fill();
 		}
-		dPoly(this.points);
-		ctx.fill();
+		
 	}
 }
 

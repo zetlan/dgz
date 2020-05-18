@@ -21,9 +21,11 @@ var cutsceneTime = 70;
 //colors
 var characterColor = "#000066";
 var characterOutsideColor = "#FFFFFF";
+
 var ableColor = "#AAF";
 var floorColor = "#CCE";
 var blockColor = "#69479A";
+var alphaColor = "#69995D";
 var lnColor = "#1A072C";
 var textColor = "#FCFCFC";
 var buttonColor = "#3DDC97";

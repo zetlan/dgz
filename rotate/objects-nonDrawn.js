@@ -243,7 +243,7 @@ class Editor {
 		this.active = false;
 		this.occupies = 0;
 		this.crInd = 0;
-		this.createList = ["Cube", "Box", "PartialBox", "TiltedBox", "Wall", "Blocker", "Icosahedron"];
+		this.createList = ["Cube", "Box", "PartialBox", "TiltedBox", "Wall", "Blocker", "Icosahedron", "Track"];
 		this.obj;
 
 		this.ncrmnt = 5;
@@ -399,7 +399,14 @@ class Editor {
 	createObj() {
 		let {createList, crInd} = this;
 		//javascript constructors just ignore extra arguments passed in, which is great for me
-		loadingMap.contains.push(eval(`new ` + this.createList[this.crInd] + `(0, 0, 0, 15, 15, 15, true, true, true, 0, 0, 0, 0)`));
+		switch (this.createList[this.crInd]) {
+			case "Track":
+				loadingMap.contains.push(new Track(-15, 0, 0, 15, 0, 0, 140, 0, new Cube(0, 0, 0, 20)));
+				break;
+			default:
+				loadingMap.contains.push(eval(`new ` + this.createList[this.crInd] + `(0, 0, 0, 15, 15, 15, true, true, true, 0, 0, 0, 0)`));
+		}
+		
 	}
 
 	destroyObj() {

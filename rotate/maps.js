@@ -38,9 +38,24 @@ let mapR5;
 let mapR6;
 let mapR7;
 let mapR5_F;
-let mapR
+let mapR_G;
+let mapR_H;
+
+let mapY1;
+let mapY2;
+let mapY3;
+let mapY4;
+let mapY5;
+let mapY6;
+let mapY7;
+let mapY8;
+let mapY_G;
+let mapY_H;
 
 let mapE1;
+let mapE2;
+let mapE3;
+let mapE4;
 
 let mapMT;
 
@@ -55,7 +70,7 @@ function initMaps() {
 	var nF = -1 * mapSize;
 
 	//intro maps (J+A)
-	menuMap = new Map("#A08060", [], NaN, "defaultMap"); 
+	menuMap = new Map("#A08060", [], "mapE1", "defaultMap"); 
 	menuMap.contains = [new Floor(),
 						new Box(-125, -112.5, 0, -25, 37.5, 10),
 						new Wall(3),
@@ -186,7 +201,7 @@ function initMaps() {
 	mapCba.contains = [ new Floor(), 
 						new Wall(3)];
 	
-	mapCbb = new Map("#106BA0", [], "mapCb", "mapCbb"); 
+	mapCbb = new Map("#106BA0", [], "mapCb", "mapB1"); 
 	mapCbb.contains = [ new Floor(),
 						new Wall(3)];
 
@@ -532,12 +547,85 @@ function initMaps() {
 						new CodeBlock("activate(2);")];	
 
 
-	mapMT = new Map("#888888", [], "mapMT", "mapMT"); 
+
+
+
+	//blue zone persistient objects
+	blockoTracko = new Track(50, -135, 100, -120, -135, -100, 300, 100, new PartialBox(-39, -135, -4, 20, 20, 20, true, true, true));
+	
+	//blue zone
+	mapB1 = new Map(bZoneColor, [], "mapB1", "mapB2"); 
+	mapB1.contains = [ 	new Floor(), 
+						new Wall(2), 
+						new Box(-145, -95, 0, 5, 55, 150), 
+						new Box(30, -105, 0, 5, 45, 150), 
+						new Track(0, -135, -50, 0, -65, -50, 250, 0, new Cube(0, -124, -50, 20))];
+
+	mapB2 = new Map(bZoneColor, [], "mapB1_F", "NaN"); 
+	mapB2.contains = [ 	new Floor(), 
+						new Wall(3)];
+
+	mapB1_F = new Map(bZoneColor, [], "mapB0_F", "NaN"); 
+	mapB1_F.contains = [new Floor(),
+						new PartialBox(-131, -100, 131, 20, 30, 20, false, true, false), 
+						new Box(-45, -149, 0, 105, 1, 150), 	
+						new Track(-15, -80, 130, -11, -150, -95, 230, 0, new Cube(-14, -100, 66, 20))];
+
+	mapB0_F = new Map(bZoneColor, [], "mapB3", "mapB1_F"); 
+	mapB0_F.contains = [ 	new Floor(), 
+						new Wall(1), 
+						new Box(0, -149, -45, 150, 1, 105), 
+						new Track(-130, -80, -25, 95, -150, -21, 230, 0, new Cube(11, -124, -22, 20)), 
+						new PartialBox(-131, -100, -124, 20, 30, 27, false, true, false), 
+						new Box(-159, -25, -126, 1, 18, 24), 
+						new PartialBox(-131, -71, -124, 20, 5, 27, true, true, true)];
+
+	mapB3 = new Map(bZoneColor, [], "mapB4", "mapB0_F"); 
+	mapB3.contains = [ 	new Floor(), 
+						new Wall(0), 
+						new Box(45, -149, 0, 105, 1, 150), 
+						new Track(25, -80, -130, 21, -150, 95, 230, 0, new Cube(21, -144, 75, 20)), 
+						new PartialBox(124, -100, -131, 27, 30, 20, false, true, false), 
+						new PartialBox(124, -71, -131, 27, 5, 20, true, true, true), 
+						new Box(126, -25, -159, 24, 18, 1)];
+
+	mapB4 = new Map(bZoneColor, [], "mapB5", "mapB3"); 
+	mapB4.contains = [ 	new Floor(), 
+						new Wall(3)];
+
+		
+	mapB5 = new Map(bZoneColor, [], "NaN", "mapB4"); 
+	mapB5.contains = [ 	new Floor(), 
+						new Wall(2), 
+						new Track(50, -135, -100, 50, -135, 100, 1200, 0, blockoTracko)];
+
+
+
+	//ending maps
+	mapE1 = new Map("#75593D", [], "mapE2", "menuMap"); 
+	mapE1.contains = [	new Floor(), 
+						new Wall(2), 
+						new Text("Press (X) or (L) to Rotate")];
+
+
+	mapE2 = new Map("#574635", [], "mapE3", "mapE1"); 
+	mapE2.contains = [ 	new Floor(), 
+						new Text("Pr ss X o    to  ota  ")];
+
+	mapE3 = new Map("#3B342B", [], "mapE4", "mapE2"); 
+	mapE3.contains = [ 	new Floor(), 
+						new Text("P     X       o       ")];
+
+	mapE4 = new Map("#000000", [], "mapE4", "mapE4"); 
+	mapE4.contains = [ 	new Floor()];
+
+
+	mapMT = new Map(bZoneColor, [], "mapMT", "mapMT"); 
 	mapMT.contains = [	new Floor(),
 						new Custom(0, -150, 0, [[[10,220,-10],[-10,220,-10],[-15,135,-15],[5,135,-15],"#852"],[[-10,0,-10],[-10,0,10],[-15,135,5],[-15,135,-15],"#852"],
 												[[10,0,-10],[10,0,10],[5,135,5],[5,135,-15],"#852"],[[-10,220,10],[-15,135,5],[-15,135,-15],[-10,220,-10],"#852"],
 												[[10,220,10],[5,135,5],[5,135,-15],[10,220,-10],"#852"],[[5,135,-15],[-15,135,-15],[-10,0,-10],[10,0,-10],"#852"]]),
 						new Icosahedron(0, 60, 0, 40, 35, 40, 0, "#0F0"),
-						new Track(-130, -130, -130, 130, -130, -130, 70, 10, new Cube(0, 0, 0, 15))
+						new Track(-130, -130, -130, 130, -130, -130, 400, 10, new Cube(0, 0, 0, 10))
 					 ];
 }
