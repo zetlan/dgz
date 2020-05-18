@@ -552,6 +552,7 @@ function initMaps() {
 
 	//blue zone persistient objects
 	blockoTracko = new Track(50, -135, 100, -120, -135, -100, 300, 100, new PartialBox(-39, -135, -4, 20, 20, 20, true, true, true));
+	blockoTracko2 = new Track(50, -135, 100, -120, -135, -100, 300, 100, new PartialBox(-39, -135, -4, 20, 20, 20, true, true, true));
 	
 	//blue zone
 	mapB1 = new Map(bZoneColor, [], "mapB1", "mapB2"); 
@@ -594,10 +595,16 @@ function initMaps() {
 						new Wall(3)];
 
 		
-	mapB5 = new Map(bZoneColor, [], "NaN", "mapB4"); 
+	mapB5 = new Map(bZoneColor, [], "mapB6", "mapB4"); 
 	mapB5.contains = [ 	new Floor(), 
 						new Wall(2), 
 						new Track(50, -135, -100, 50, -135, 100, 1200, 0, blockoTracko)];
+
+	mapB6 = new Map(bZoneColor, [], "mapB6", "mapB5"); 
+	mapB6.contains = [ 	new Floor(), 
+						new Wall(1), 
+						blockoTracko2,
+						new CodeBlock("sync(blockoTracko, blockoTracko2, Math.PI / 2);")];
 
 
 
