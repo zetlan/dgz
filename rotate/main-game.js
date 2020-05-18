@@ -81,33 +81,27 @@ function keyPress(u) {
 		switch (u.keyCode) {
 			//player controls
 			case 37:
-			case 65:
 				player.ax = -0.5;
 				break;
 			case 38:
-			case 87:
 				player.az = 0.5;
 				break;
 			case 39:
-			case 68:
 				player.ax = 0.5;
 				break;
 			case 40:
-			case 83:
 				player.az = -0.5;
 				break;
 			
 			//camera controls
-			//Z or K
+			//Z and X
 			case 90:
-			case 75:
 				loadingMap.startRotation(pSpeed);
 				break;
-			//X or L
 			case 88:
-			case 76:
 				loadingMap.startRotation(-1 * pSpeed);
 				break;
+
 			//the ] key
 			case 221:
 				lEditor.active = true;
