@@ -40,6 +40,7 @@ var bZoneColor = "#106BA0";
 var rParticleColor = "#CC2F41";
 var yParticleColor = "#FAF27F";
 var gParticleColor = "#3DA673";
+var bParticleColor = "#3BA5E3";
 
 //objects
 let camera;
@@ -81,15 +82,19 @@ function keyPress(u) {
 		switch (u.keyCode) {
 			//player controls
 			case 37:
+			case 65:
 				player.ax = -0.5;
 				break;
 			case 38:
+			case 87:
 				player.az = 0.5;
 				break;
 			case 39:
+			case 68:
 				player.ax = 0.5;
 				break;
 			case 40:
+			case 83:
 				player.az = -0.5;
 				break;
 			
@@ -101,7 +106,6 @@ function keyPress(u) {
 			case 88:
 				loadingMap.startRotation(-1 * pSpeed);
 				break;
-
 			//the ] key
 			case 221:
 				lEditor.active = true;
@@ -271,29 +275,6 @@ function doCutscene() {
 		ctx.strokeStyle = lnColor;
 		ctx.lineWidth = 2;
 		cutscene = false;
-	}
-}
-
-//function for activating the cutsceene
-function activate(zone0123_OrderRYGB) {
-	//only do things if the player is close to the center of the map
-	if (Math.sqrt((player.x * player.x) + (player.y * player.y) + (player.z * player.z)) < 110) {
-		switch (zone0123_OrderRYGB) {
-			case 0:
-				gameFlags["hasR"] = true;
-				break;
-			case 1:
-				gameFlags["hasY"] = true;
-				break;
-			case 2:
-				gameFlags["hasG"] = true;
-				break;
-			case 3:
-				gameFlags["hasB"] = true;
-				break;
-		}
-		cutscene = true;
-		updateMaps();
 	}
 }
 
