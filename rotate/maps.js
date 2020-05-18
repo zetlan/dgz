@@ -75,14 +75,14 @@ function initMaps() {
 						new Box(-125, -112.5, 0, -25, 37.5, 10),
 						new Wall(3),
 						new Box(0, 0, 0, -100, 150, 10),
-						new Text("Press X or L to Rotate")];
+						new Text("Press X to Rotate")];
 	
 	defaultMap = new Map("#A08060", [], "menuMap", "mapJ1");
 	defaultMap.contains = [ new Floor(),
 							new PartialBox(nF, 0, 0, 1, pF, pF, true, true, true),
 							new Box(0, 0, 0, 10, pF, pF * 0.6666666),
 							new Box(0, -92.5, 125, 10, 57.5, 25),
-							new Text(["Use WASD or arrow keys to move"])];
+							new Text(["Use the arrow keys to move"])];
 
 	mapJ1 = new Map("#A08060", [], "mapDef_F", "mapJ2"); 
 	mapJ1.contains = [ 	new Floor(), 
@@ -96,13 +96,13 @@ function initMaps() {
 							new Box(150, 0, 0, 1, 150, 150), 
 							new Box(0, 0, 0, 10, 150, 100), 
 							new Box(0, -92.5, -125, 10, 57.5, 25), 
-							new Text("Press Z or K to Counter-Rotate")];
+							new Text("Press Z to Counter-Rotate")];
 	
 	mapDef_F = new Map("#E5B25D", [], "menuMap", "mapJ1_F");
 	mapDef_F.contains = [new Floor(),
 						new PartialBox(nF, 0, 0, 1, pF, pF, true, true, true),
 						new Box(0, 0, 0, 10, pF, pF * 0.6666666),
-						new Text(["X or L"])];
+						new Text(["X"])];
 	
 	mapJ1_F = new Map("#E5B25D", [], "mapDef_F", "mapJ2_F"); 
 	mapJ1_F.contains = [	new Floor(),
@@ -550,9 +550,12 @@ function initMaps() {
 
 
 
+						
+
+
 	//blue zone persistient objects
 	blockoTracko = new Track(50, -135, 100, -120, -135, -100, 300, 100, new PartialBox(-39, -135, -4, 20, 20, 20, true, true, true));
-	blockoTracko2 = new Track(50, -135, 100, -120, -135, -100, 300, 100, new PartialBox(-39, -135, -4, 20, 20, 20, true, true, true));
+	blockoTracko2 = new Track(50, -135, 100, 100, -135, -120, 300, 100, new PartialBox(-39, -135, -4, 20, 20, 20, true, true, true));
 	
 	//blue zone
 	mapB1 = new Map(bZoneColor, [], "mapB1", "mapB2"); 
@@ -598,13 +601,33 @@ function initMaps() {
 	mapB5 = new Map(bZoneColor, [], "mapB6", "mapB4"); 
 	mapB5.contains = [ 	new Floor(), 
 						new Wall(2), 
-						new Track(50, -135, -100, 50, -135, 100, 1200, 0, blockoTracko)];
+						new Box(0, -100, 185, 160, 50, 1),
+						new Track(50, -105, -100, 50, -105, 100, 1200, 0, blockoTracko), 
+						new CodeBlock("sync(blockoTracko, blockoTracko2, Math.PI / 2);")];
 
-	mapB6 = new Map(bZoneColor, [], "mapB6", "mapB5"); 
+	mapB6 = new Map(bZoneColor, [], "mapB7", "mapB5"); 
 	mapB6.contains = [ 	new Floor(), 
 						new Wall(1), 
 						blockoTracko2,
+						new Box(-185, -90, 0, 1, 60, 170),
+						new PartialBox(-70, -25, -20, 15, 5, 55, true, true, true), 
+						new Track(-68, -75, -129, -68, -35, -129, 300, 150, new Cube(-68, -35, -129, 20)),
 						new CodeBlock("sync(blockoTracko, blockoTracko2, Math.PI / 2);")];
+
+	mapB7 = new Map(bZoneColor, [], "mapB_G", "mapB6"); 
+	mapB7.contains = [ 	new Floor(), 
+						new Wall(0), 
+						new Track(129, -75, -68, 129, -35, -68, 300, 150, new Cube(129, -36, -68, 20)), 
+						new PartialBox(20, -30, -70, 55, 5, 35, true, true, true), 
+						new Box(0, -95, -135, 195, 70, 20)];
+
+	mapB_G = new Map(bZoneColor, [], "NaN", "mapB7"); 
+	mapB_G.contains = [	new Floor(), 
+						new Wall(3)];
+
+
+
+
 
 
 
@@ -612,16 +635,16 @@ function initMaps() {
 	mapE1 = new Map("#75593D", [], "mapE2", "menuMap"); 
 	mapE1.contains = [	new Floor(), 
 						new Wall(2), 
-						new Text("Press (X) or (L) to Rotate")];
+						new Text("Press (X) to Rotate")];
 
 
 	mapE2 = new Map("#574635", [], "mapE3", "mapE1"); 
 	mapE2.contains = [ 	new Floor(), 
-						new Text("Pr ss X o    to  ota  ")];
+						new Text("Pr_ss X t_ r_ta__")];
 
 	mapE3 = new Map("#3B342B", [], "mapE4", "mapE2"); 
 	mapE3.contains = [ 	new Floor(), 
-						new Text("P     X       o       ")];
+						new Text("P____ X _o ______")];
 
 	mapE4 = new Map("#000000", [], "mapE4", "mapE4"); 
 	mapE4.contains = [ 	new Floor()];
