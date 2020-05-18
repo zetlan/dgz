@@ -621,12 +621,24 @@ function initMaps() {
 						new PartialBox(20, -30, -70, 55, 5, 35, true, true, true), 
 						new Box(0, -95, -135, 195, 70, 20)];
 
-	mapB_G = new Map(bZoneColor, [], "NaN", "mapB7"); 
+	mapB_G = new Map(bZoneColor, [], "mapB_H", "mapB_H"); 
 	mapB_G.contains = [	new Floor(), 
 						new Wall(3)];
 
-
-
+	mapB_H = new Map("#106BA0", [], "mapB_H", "mapB_H"); 
+	mapB_H.contains = [ 	new Floor(), 
+						new PartialBox(-49, -85, 74, 1, 75, 110, true, true, true), 
+						new Box(-44, -80, 74, 1, 80, 110), 
+						new Track(-110, -140, 0, -110, -60, 0, 140, 0, new PartialBox(-110, -76, 0, 20, 20, 20, true, true, true)), 
+						new PartialBox(0, -110, 0, 25, 25, 25, true, true, true), 
+						new Particle(-50, 150, 0, bParticleColor), 
+						new Particle(0, 0, 50, bParticleColor), 
+						new Particle(0, -150, 0, bParticleColor),
+						new Particle(0, 0, 0, bParticleColor),
+						new Particle(-150, -50, -50, bParticleColor),
+						new Particle(50, 50, 0, bParticleColor),
+						new Particle(0, -50, 150, bParticleColor),
+						new CodeBlock("activate(3);")];
 
 
 
@@ -656,6 +668,7 @@ function initMaps() {
 												[[10,0,-10],[10,0,10],[5,135,5],[5,135,-15],"#852"],[[-10,220,10],[-15,135,5],[-15,135,-15],[-10,220,-10],"#852"],
 												[[10,220,10],[5,135,5],[5,135,-15],[10,220,-10],"#852"],[[5,135,-15],[-15,135,-15],[-10,0,-10],[10,0,-10],"#852"]]),
 						new Icosahedron(0, 60, 0, 40, 35, 40, 0, "#0F0"),
-						new Track(-130, -130, -130, 130, -130, -130, 400, 10, new Cube(0, 0, 0, 10))
+						new Track(-130, -130, -130, 130, -130, -130, 400, 10, new Cube(0, 0, 0, 10)),
+						new Octohedron(-40, -80, -60, 15, 30, 15, true)
 					 ];
 }
