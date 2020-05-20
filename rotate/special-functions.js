@@ -32,3 +32,23 @@ function activate(zone0123_OrderRYGB) {
 		updateMaps();
 	}
 }
+
+//function for true reset
+function trueReset() {
+	//give user a warning
+	if (confirm("This action cannot be undone. Would you like to reset completely? \n(Press OK to reset, Cancel to not)")) {
+	//reset game flags
+	gameFlags = {
+		atC: false,
+		hasR: false,
+		hasY: false,
+		hasG: false,
+		hasB: false
+	};
+
+	//push to local storage
+
+	//refresh page
+	window.location.reload();
+	}
+}
