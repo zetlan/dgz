@@ -241,7 +241,7 @@ class Editor {
 		this.active = false;
 		this.occupies = 0;
 		this.crInd = 0;
-		this.createList = ["Cube", "Box", "PartialBox", "TiltedBox", "Wall", "Blocker", "Icosahedron", "Octohedron", "Track"];
+		this.createList = ["Cube", "Box", "PartialBox", "TiltedBox", "Wall", "Blocker", "Icosahedron", "Octohedron", "Track", "AlphaBox"];
 		this.obj;
 
 		this.ncrmnt = 5;
@@ -263,10 +263,9 @@ class Editor {
 
 		ctx.fillStyle = textColor;
 		ctx.font = "17px Century Gothic";
-		let {x, y, z, rx, ry, rz} = this.obj;
-		ctx.fillText("creation object: " + this.createList[this.crInd], canvas.width * 0.5, canvas.height * 0.85);
-		ctx.fillText(`Selected object: ` + this.obj.constructor.name, canvas.width * 0.5, canvas.height * 0.89);
-		ctx.fillText(`With coords (${x}, ${y}, ${z}) and radii (${rx}, ${ry}, ${rz})`, canvas.width * 0.5, canvas.height * 0.93)
+		let {x, y, z, rx, ry, rz, alpha} = this.obj;
+		ctx.fillText(`creation object: ${this.createList[this.crInd]}, selected object: ${this.obj.constructor.name}`, canvas.width * 0.5, canvas.height * 0.89);
+		ctx.fillText(`With coords (${x}, ${y}, ${z}), radii (${rx}, ${ry}, ${rz}), and ${alpha} alpha`, canvas.width * 0.5, canvas.height * 0.93)
 		ctx.fillText("Currently in: " + loadingMap.name, canvas.width * 0.5, canvas.height * 0.97);
 
 		//drawing border
@@ -337,33 +336,33 @@ class Editor {
 			
 			//i, o, p, and backspace (i creates, o duplicates, p cycles, and backspace deletes the currently selected object)
 			case 73:
-				lEditor.createObj();
+				this.createObj();
 				break;
 			case 79:
 				loadingMap.contains.push(eval(this.obj.giveEnglishConstructor(0)));
 				break;
 			case 80:
-				lEditor.crInd += 1;
-				if (lEditor.crInd > lEditor.createList.length - 1) {
-					lEditor.crInd = 0;
+				this.crInd += 1;
+				if (this.crInd > this.createList.length - 1) {
+					this.crInd = 0;
 				}
 				break;
 			case 8:
-				lEditor.destroyObj();
+				this.destroyObj();
 				break;
 			
 			//j, k, m, and n, for tilt
 			case 74:
-				lEditor.obj.XYt += (lEditor.ncrmnt - 3) / 8;
+				this.obj.XYt += (this.ncrmnt - 3) / 8;
 				break;
 			case 75:
-				lEditor.obj.XZt += (lEditor.ncrmnt - 3) / 8;
+				this.obj.XZt += (this.ncrmnt - 3) / 8;
 				break;
 			case 77:
-				lEditor.obj.ZXt += (lEditor.ncrmnt - 3) / 8;
+				this.obj.ZXt += (this.ncrmnt - 3) / 8;
 				break;
 			case 78:
-				lEditor.obj.ZYt += (lEditor.ncrmnt - 3) / 8;
+				this.obj.ZYt += (this.ncrmnt - 3) / 8;
 				break;
 			
 			//the ] key
@@ -379,6 +378,23 @@ class Editor {
 				break;
 			case 71:
 				this.obj.rotZ = !this.obj.rotZ;
+				break;
+			//r and f for opacity, only do if opacity already exists
+			case 82:
+				if (this.obj.alpha != undefined) {
+					this.obj.alpha += this.ncrmnt / 20;
+					if (this.obj.alpha > 1) {
+						this.obj.alpha = 1;
+					}
+				}
+				break;
+			case 70:
+				if (this.obj.alpha != undefined) {
+					this.obj.alpha -= this.ncrmnt / 20;
+					if (this.obj.alpha < 0) {
+						this.obj.alpha = 0;
+					}
+				}
 				break;
 			
 			//cycling through which object to edit (- and +)
