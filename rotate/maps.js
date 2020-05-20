@@ -80,7 +80,7 @@ function initMaps() {
 	defaultMap = new Map("#A08060", [], "menuMap", "mapJ1");
 	defaultMap.contains = [ new Floor(),
 							new PartialBox(nF, 0, 0, 1, pF, pF, true, true, true),
-							new Box(0, 0, 0, 10, pF, pF * 0.6666666),
+							new Box(0, 0, 0, 10, pF, 100),
 							new Box(0, -92.5, 125, 10, 57.5, 25),
 							new Text(["Use the arrow keys to move"])];
 
@@ -260,7 +260,7 @@ function initMaps() {
 
 	mapR6 = new Map(rZoneColor, [], "mapR5_F", "mapR7"); 
 	mapR6.contains = [ 	new Floor(), 
-						new PartialBox(-140, -52, -27, 15, 10, 25, true, true, true), 
+						new PartialBox(-140, -42, -27, 15, 10, 25, true, true, true), 
 						new Box(0, -110, -45, 150, 40, 5), 
 						new PartialBox(132, -55, -71, 11, 10, 20, true, true, true), 
 						new PartialBox(-80, -110, -115, 15, 15, 15, true, true, true)];
@@ -377,8 +377,8 @@ function initMaps() {
 	mapY7.contains = [ 	new Floor(), 
 						new Wall(1), 
 						new Box(20, -95, 125, 5, 55, 25), 
-						new PartialBox(0, -50, 125, 100, 15, 25, true, true, true), 
 						new Box(-90, -118, 101, 25, 30, 25), 
+						new PartialBox(0, -55, 120, 100, 15, 25, true, true, true), 
 						new Box(56, -120, 75, 30, 5, 75), 
 						new Box(19, -115, 26, 5, 35, 62), 
 						new TiltedBox(-130, -125, -5, 30, 15, 70, true, true, true, 0, 0, 0.5, 0.25), 
@@ -474,7 +474,7 @@ function initMaps() {
 	mapG6 = new Map(gZoneColor, [], "mapG5", "mapG7"); 
 	mapG6.contains = [ 	new Floor(), 
 						new Box(65, -110, -100, 15, 15, 35), 
-						new PartialBox(8, -100, -110, 2, 50, 40, true, true, true), 
+						new PartialBox(8, -100, -115, 2, 50, 40, true, true, true), 
 						new PartialBox(-7, -60, -115, 2, 30, 35, true, true, true), 
 						new Box(0, -90, -130, 5, 60, 20)];
 
@@ -625,20 +625,33 @@ function initMaps() {
 	mapB_G.contains = [	new Floor(), 
 						new Wall(3)];
 
-	mapB_H = new Map("#106BA0", [], "mapB_H", "mapB_H"); 
-	mapB_H.contains = [ 	new Floor(), 
-						new PartialBox(-49, -85, 74, 1, 75, 110, true, true, true), 
+	mapB_H = new Map(bZoneColor, [], "mapB_H", "mapB_H"); 
+	mapB_H.contains = [	new Floor(), 
 						new Box(-44, -80, 74, 1, 80, 110), 
-						new Track(-110, -140, 0, -110, -60, 0, 140, 0, new PartialBox(-110, -76, 0, 20, 20, 20, true, true, true)), 
-						new PartialBox(0, -110, 0, 25, 25, 25, true, true, true), 
-						new Particle(-50, 150, 0, bParticleColor), 
-						new Particle(0, 0, 50, bParticleColor), 
-						new Particle(0, -150, 0, bParticleColor),
-						new Particle(0, 0, 0, bParticleColor),
-						new Particle(-150, -50, -50, bParticleColor),
-						new Particle(50, 50, 0, bParticleColor),
-						new Particle(0, -50, 150, bParticleColor),
-						new CodeBlock("activate(3);")];
+						new PartialBox(-49, -85, 74, 1, 75, 110, true, true, true), 
+						new PartialBox(-5, -65, -120, 30, 25, 25, true, true, true), 
+						new Track(-110, -140, 0, -110, -60, 0, 140, 0, new PartialBox(-110, -104, 0, 20, 20, 20, true, true, true)), 
+						new CodeBlock("activate(3);"), 
+						new Octohedron(-240, 240, 40, 15, 30, 15, true), 
+						new Octohedron(125, 165, 115, 15, 30, 15, true), 
+						new Octohedron(230, 130, 20, 15, 30, 15, true), 
+						new Octohedron(155, 200, 20, 15, 30, 15, true), 
+						new Octohedron(-95, 210, 20, 15, 30, 15, true), 
+						new Octohedron(-130, 155, 10, 15, 30, 15, true), 
+						new Octohedron(195, 165, -40, 15, 30, 15, true), 
+						new Octohedron(245, 130, -100, 15, 30, 15, true), 
+						new Octohedron(0, 165, -10, 15, 30, 15, true), 
+						new Octohedron(-50, 120, -20, 15, 30, 15, true), 
+						new Octohedron(-160, 90, -130, 15, 30, 15, true), 
+						new Octohedron(110, 40, -190, 15, 30, 15, true), 
+						new Particle(-50, 150, 0), 
+						new Particle(0, 0, 50), 
+						new Particle(0, -150, 0), 
+						new Particle(0, 0, 0), 
+						new Particle(-150, -50, -50), 
+						new Particle(50, 50, 0), 
+						new Particle(0, -50, 150)];
+
 
 
 
@@ -647,7 +660,7 @@ function initMaps() {
 	mapE1 = new Map("#75593D", [], "mapE2", "menuMap"); 
 	mapE1.contains = [	new Floor(), 
 						new Wall(2), 
-						new Text("Press (X) to Rotate")];
+						new Text("Press X to Rotate")];
 
 
 	mapE2 = new Map("#574635", [], "mapE3", "mapE1"); 
@@ -658,8 +671,9 @@ function initMaps() {
 	mapE3.contains = [ 	new Floor(), 
 						new Text("P____ X _o ______")];
 
-	mapE4 = new Map("#000000", [], "mapE4", "mapE4"); 
-	mapE4.contains = [ 	new Floor()];
+	mapE4 = new Map(eZoneColor, [], "mapE5", "mapE3"); 
+	mapE4.contains = [ 	new Floor(),
+						new AlphaBox(-150, 0, 0, 1, 150, 150, 1)];
 
 
 	mapMT = new Map(bZoneColor, [], "mapMT", "mapMT"); 
