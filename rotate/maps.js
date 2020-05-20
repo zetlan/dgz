@@ -69,6 +69,8 @@ function initMaps() {
 	var pF = mapSize;
 	var nF = -1 * mapSize;
 
+	var spaces = "                                      ";
+
 	//intro maps (J+A)
 	menuMap = new Map("#A08060", [], "mapE1", "defaultMap"); 
 	menuMap.contains = [new Floor(),
@@ -660,20 +662,167 @@ function initMaps() {
 	mapE1 = new Map("#75593D", [], "mapE2", "menuMap"); 
 	mapE1.contains = [	new Floor(), 
 						new Wall(2), 
-						new Text("Press X to Rotate")];
+						new Text("Press X to Rotate" + spaces)];
 
 
 	mapE2 = new Map("#574635", [], "mapE3", "mapE1"); 
 	mapE2.contains = [ 	new Floor(), 
-						new Text("Pr_ss X t_ r_ta__")];
+						new Text("Press X to Rotate" + spaces + spaces)];
 
 	mapE3 = new Map("#3B342B", [], "mapE4", "mapE2"); 
 	mapE3.contains = [ 	new Floor(), 
-						new Text("P____ X _o ______")];
+						new Text("Press X to Rotate" + spaces + spaces + spaces)];
 
 	mapE4 = new Map(eZoneColor, [], "mapE5", "mapE3"); 
-	mapE4.contains = [ 	new Floor(),
-						new AlphaBox(-150, 0, 0, 1, 150, 150, 1)];
+	mapE4.contains = [ 	new Floor(), 
+						new AlphaBox(-150, 0, 0, 1, 150, 150, 1), 
+						new Box(0, -90, 0, 150, 60, 5), 
+						new Text("Press F to fade")];
+
+	mapE5 = new Map(eZoneColor, [], "mapE6", "mapE4"); 
+	mapE5.contains = [ 	new Floor(), 
+						new Box(-145, -90, 0, 5, 60, 150), 
+						new PartialBox(30, -55, -40, 25, 15, 35, true, true, true), 
+						new PartialBox(15, -63, -70, 50, 15, 35, true, true, true), 
+						new AlphaBox(-15, -100, -118, 25, 45, 38, 0),
+						new Text("Press R to counter-fade")];
+
+	mapE6 = new Map(eZoneColor, [], "mapE7", "mapE5"); 
+	mapE6.contains = [ 	new Floor(), 
+						new Wall(0), 
+						new PartialBox(40, -55, 30, 35, 15, 25, true, true, true), 
+						new PartialBox(70, -63, 15, 35, 15, 50, true, true, true),
+						new Box(0, -90, -131, 150, 60, 20)];
+
+	mapE7 = new Map(eZoneColor, [], "mapEC", "NaN"); 
+	mapE7.contains = [ 	new Floor(),
+						new Wall(3)];
+
+	mapEC = new Map("#222222", [], "mapEC1", "mapEC"); 
+	mapEC.contains = [ 	new Floor(), 
+						new Icosahedron(90, -110, 25, 40, 30, 50, true, "#8F0"), 
+						new Icosahedron(-70, -100, -125, 50, 50, 50, true, "#8F0"), 
+						new Icosahedron(30, -110, -160, 5, 30, 25, true, "#8F0"),
+						new Text("ads" + spaces + spaces + "Welcome to ")];
+
+	mapEC1 = new Map("#002200", [], "mapEC4", "mapEC2"); 
+	mapEC1.contains = [	new Floor(), 
+						new Wall(1),
+						new Box(0, -85, -75, 5, 65, 75)];
+
+	mapEC2 = new Map("#002200", [], "mapEC1", "mapEC3"); 
+	mapEC2.contains = [ 	new Floor(), 
+						new Wall(0), 
+						new Box(75, -85, 0, 75, 65, 5), 
+						new Box(5, -85, -75, 5, 65, 75)];
+
+	mapEC3 = new Map("#002200", [], "NaN", "mapEC5"); 
+	mapEC3.contains = [	new Floor(), 
+						new Wall(3)];
+
+	mapEC4 = new Map("#002200", [], "mapEC3", "mapEC1"); 
+	mapEC4.contains = [ 	new Floor(), 
+						new Wall(2), 
+						new Box(-75, -85, 0, 75, 65, 5), 
+						new Box(-150, -85, -75, 1, 65, 75)];	
+
+	mapEC5 = new Map("#0s02200", [], "mapEC5", "mapEC6"); 
+	mapEC5.contains = [ 	new Floor(), 
+						new PartialBox(60, -105, 125, 15, 45, 15, true, true, true), 
+						new PartialBox(-148, -73, -1, 1, 77, 151, true, true, true), 
+						new Box(-143, -75, 0, 2, 75, 150), 
+						new Box(0, -149, 0, 150, 1, 150), 
+						new PartialBox(115, -65, -85, 15, 10, 20, true, true, true), 
+						new PartialBox(-45, -107, -135, 11, 43, 15, true, true, true)];
+
+	mapEC6 = new Map("#000022", [], "mapEC6", "mapEC7"); 
+	mapEC6.contains = [ 	new Floor(), 
+						new PartialBox(60, -105, 125, 15, 45, 15, true, true, true), 
+						new PartialBox(-148, -73, -1, 1, 77, 152, true, true, true), 
+						new Box(-143, -75, 0, 2, 75, 150), 
+						new Box(0, -149, 0, 150, 1, 150), 
+						new PartialBox(-45, -107, -135, 11, 43, 15, true, true, true)];
+
+	mapEC7 = new Map("#220000", [], "mapEC6", "mapED1"); 
+	mapEC7.contains = [ 	new Floor()];
+
+	mapED1 = new Map("#440022", [], "mapEC7", "mapED2"); 
+	mapED1.contains = [new Floor(), new PartialBox(0, -150, 0, 150, 0, 150, true, true, true)];
+
+	mapED2 = new Map("#882244", [], "mapED3", "mapED2"); 
+	mapED2.contains = [ 	new Floor(),
+							new PartialBox(75, -150, 75, 75, 0, 75, true, true, true), 
+							new PartialBox(-75, -150, 75, 75, 0, 75, true, true, true), 
+							new PartialBox(75, -150, -75, 75, 0, 75, true, true, true), 
+							new PartialBox(-75, -150, -75, 75, 0, 75, true, true, true)];
+
+	mapED3 = new Map("#AA4488", [], "mapED4", "mapED2"); 
+	mapED3.contains = [	new Floor(),
+						new PartialBox(100, -150, 100, 50, 0, 50, true, true, true), 
+						new PartialBox(-100, -150, 100, 50, 0, 50, true, true, true), 
+						new PartialBox(0, -150, 100, 50, 0, 50, true, true, true), 
+						new PartialBox(100, -150, 0, 50, 0, 50, true, true, true), 
+						new PartialBox(-100, -150, 0, 50, 0, 50, true, true, true), 
+						new PartialBox(0, -150, 0, 50, 0, 50, true, true, true), 
+						new PartialBox(100, -150, -100, 50, 0, 50, true, true, true), 
+						new PartialBox(-100, -150, -100, 50, 0, 50, true, true, true), 
+						new PartialBox(0, -150, -100, 50, 0, 50, true, true, true)];
+
+	mapED4 = new Map("#AA88AA", [], "mapED5", "mapED3"); 
+	mapED4.contains = [ new PartialBox(120, -150, 120, 30, 0, 30, true, false, true), 
+						new PartialBox(-120, -150, 120, 30, 0, 30, true, false, true), 
+						new PartialBox(60, -150, 120, 30, 0, 30, true, false, true), 
+						new PartialBox(-60, -150, 120, 30, 0, 30, true, false, true), 
+						new PartialBox(0, -150, 120, 30, 0, 30, true, false, true), 
+						new PartialBox(120, -150, 60, 30, 0, 30, true, false, true), 
+						new PartialBox(-120, -150, 60, 30, 0, 30, true, false, true), 
+						new PartialBox(60, -150, 60, 30, 0, 30, true, false, true), 
+						new PartialBox(-60, -150, 60, 30, 0, 30, true, false, true), 
+						new PartialBox(0, -150, 60, 30, 0, 30, true, false, true), 
+						new PartialBox(120, -150, 0, 30, 0, 30, true, false, true), 
+						new PartialBox(-120, -150, 0, 30, 0, 30, true, false, true), 
+						new PartialBox(60, -150, 0, 30, 0, 30, true, false, true), 
+						new PartialBox(-60, -150, 0, 30, 0, 30, true, false, true), 
+						new PartialBox(0, -150, 0, 30, 0, 30, true, true, true), 
+						new PartialBox(120, -150, -60, 30, 0, 30, true, false, true), 
+						new PartialBox(-120, -150, -60, 30, 0, 30, true, false, true), 
+						new PartialBox(60, -150, -60, 30, 0, 30, true, false, true), 
+						new PartialBox(-60, -150, -60, 30, 0, 30, true, false, true), 
+						new PartialBox(0, -150, -60, 30, 0, 30, true, false, true), 
+						new PartialBox(120, -150, -120, 30, 0, 30, true, false, true), 
+						new PartialBox(-120, -150, -120, 30, 0, 30, true, false, true), 
+						new PartialBox(60, -150, -120, 30, 0, 30, true, false, true), 
+						new PartialBox(-60, -150, -120, 30, 0, 30, true, false, true), 
+						new PartialBox(0, -150, -120, 30, 0, 30, true, false, true)];
+
+	mapED5 = new Map("#FFAAAA", [], "mapED6", "mapED4"); 
+	mapED5.contains = [	new PartialBox(-120, -150, 60, 30, 0, 30, true, true, true), 
+						new PartialBox(-120, -150, 0, 30, 0, 30, true, false, true), 
+						new PartialBox(-60, -150, 0, 30, 0, 30, true, false, true), 
+						new PartialBox(0, -150, 0, 30, 0, 30, true, true, false), 
+						new PartialBox(120, -150, -120, 30, 0, 30, true, true, true), 
+						new PartialBox(-60, -150, -120, 30, 0, 30, true, true, true), 
+						new PartialBox(60, -150, -120, 30, 0, 30, true, false, true), 
+						new PartialBox(0, -150, -120, 30, 0, 30, true, false, true)];
+
+	mapED6 = new Map("#FFCCAA", [], "mapED7", "mapED5"); 
+	mapED6.contains = [	new PartialBox(120, -150, 120, 30, 0, 30, true, true, true), 
+						new PartialBox(60, -150, 120, 30, 0, 30, true, false, true), 
+						new PartialBox(-60, -150, 120, 30, 0, 30, true, true, true), 
+						new PartialBox(0, -150, 120, 30, 0, 30, true, false, true), 
+						new PartialBox(120, -150, 60, 30, 0, 30, true, false, true), 
+						new PartialBox(120, -150, -60, 30, 0, 30, true, true, true), 
+						new PartialBox(-60, -150, -120, 30, 0, 30, true, true, true)];
+
+	mapED7 = new Map("#FFFFCC", [], "NaN", "mapED6"); 
+	mapED7.contains = [	new PartialBox(60, -150, 120, 30, 0, 30, true, true, true), 
+						new PartialBox(60, -150, 60, 30, 0, 30, true, false, true), 
+						new PartialBox(60, -150, 0, 30, 0, 30, true, false, true), 
+						new PartialBox(-120, -150, -60, 30, 0, 30, true, false, true), 
+						new PartialBox(120, -150, -60, 30, 0, 30, true, false, true), 
+						new PartialBox(60, -150, -60, 30, 0, 30, true, false, true), 
+						new PartialBox(-120, -150, -120, 30, 0, 30, true, false, true), 
+						new PartialBox(-60, -150, -120, 30, 0, 30, true, true, true)];
 
 
 	mapMT = new Map(bZoneColor, [], "mapMT", "mapMT"); 

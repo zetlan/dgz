@@ -98,6 +98,14 @@ function keyPress(u) {
 			case 83:
 				player.az = -0.5;
 				break;
+
+			//r and f
+			case 82:
+				player.opSpeed = player.mO;
+				break;
+			case 70:
+				player.opSpeed = -1 * player.mO;
+				break;
 			
 			//camera controls
 			//Z and X
@@ -126,6 +134,7 @@ function keyPress(u) {
 function keyNegate(u) {
     //similar to keyPress, but for negation. The if statements are so the controls feel smooth.
     switch (u.keyCode) {
+		//movement
         case 37:
         case 65:
 			if (player.ax < 0) {
@@ -155,6 +164,17 @@ function keyNegate(u) {
 			camera.x = 0;
 			camera.y = 0;
 			camera.z = -2 * mapSize;
+			break;
+		case 82:
+			if (player.opSpeed == player.mO) {
+				player.opSpeed = 0;
+			}
+			
+			break;
+		case 70:
+			if (player.opSpeed == -1 * player.mO) {
+				player.opSpeed = 0;
+			}
 			break;
     }
 

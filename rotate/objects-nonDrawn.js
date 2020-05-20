@@ -381,19 +381,21 @@ class Editor {
 				break;
 			//r and f for opacity, only do if opacity already exists
 			case 82:
-				if (this.obj.alpha != undefined) {
-					this.obj.alpha += this.ncrmnt / 20;
-					if (this.obj.alpha > 1) {
-						this.obj.alpha = 1;
+				if (this.obj.alHome != undefined) {
+					this.obj.alHome += this.ncrmnt / 20;
+					if (this.obj.alHome > 1) {
+						this.obj.alHome = 1;
 					}
+					this.obj.alpha = this.obj.alHome;
 				}
 				break;
 			case 70:
-				if (this.obj.alpha != undefined) {
-					this.obj.alpha -= this.ncrmnt / 20;
-					if (this.obj.alpha < 0) {
-						this.obj.alpha = 0;
+				if (this.obj.alHome != undefined) {
+					this.obj.alHome -= this.ncrmnt / 20;
+					if (this.obj.alHome < 0) {
+						this.obj.alHome = 0;
 					}
+					this.obj.alpha = this.obj.alHome;
 				}
 				break;
 			
@@ -862,7 +864,8 @@ class Camera extends Main {
 //code block class executes code blocks written in the constrcutor
 class CodeBlock extends Main {
 	constructor(codeSTRING) {
-		super(camera.x, camera.y, camera.z);
+		super(camera.x, camera.y, Number.MAX_SAFE_INTEGER);
+		//they get a coordinate of extremely far away but not infinite so that they go after the floor but before everything else
 
 		this.code = codeSTRING;
 	}

@@ -130,6 +130,8 @@ class Character extends Particle {
 		this.friction = 0.8;
 		this.gravity = 0.5;
 		this.opSpeed = 0;
+
+		this.tgt;
     }
 
     tick() {
@@ -169,7 +171,10 @@ class Character extends Particle {
 			this.dy = -1 * this.mV;
 		}
 
-		//actions to take if not rotating
+		//check for a target block
+		this.tgt = this.getAlphaObj();
+
+		//actions to take only if not rotating
 		if (!loadingMap.rotating) {
 			//moving player
 			this.x += this.dx;
@@ -177,7 +182,20 @@ class Character extends Particle {
 			this.z += this.dz;
 
 			//changing opacity of target block
+			if (this.tgt) {
+				this.tgt.alpha += this.opSpeed;
+
+				//keeping opacity in bounds
+				if (this.tgt.alpha > 1 || this.tgt.alpha < 0) {
+					if (this.tgt.alpha > 1) {
+						this.tgt.alpha = 1;
+					} else {
+						this.tgt.alpha = 0;
+					}
+				}
+			}
 		}
+		
 		this.adjustPoints();
 
 		//reset avoidance
@@ -239,6 +257,42 @@ class Character extends Particle {
 		if (this.opSpeed != 0) {
 
 		}
+	}
+
+
+	//function for determining which object to edit with the brightness/alpha editor (r/f)
+	getAlphaObj() {
+		//variable to store conditions for being the lowest/where the lowest was located
+		var lowCheck = [-1, Infinity];
+
+		//loop through all map objects
+		for (var j=0;j<loadingMap.contains.length;j++) {
+			/*undefined + anything results in NaN, and anything + NaN results in NaN,
+			so an easy way to check if it's valid is to see if the values sum to NaN.
+			*/
+			var fsRef = loadingMap.contains[j];
+			//if it's a valid object (has x y z, rx ry rz, and alpha) check it for editing
+			if (!Number.isNaN(fsRef.x + fsRef.y + fsRef.z + fsRef.rx + fsRef.ry + fsRef.rz + fsRef.alpha)) {
+				//get values for comparison
+				var xPerDist = Math.abs(this.x - fsRef.x) / fsRef.rx;
+				var yPerDist = Math.abs(this.y - fsRef.y) / fsRef.ry;
+				var zPerDist = Math.abs(this.z - fsRef.z) / fsRef.rz;
+
+				//if its values are lower than the previous values, overwrite them
+				var totalDist = xPerDist + yPerDist + zPerDist;
+
+				if (lowCheck[1] > totalDist) {
+					lowCheck = [j, totalDist];
+				}
+			}
+		}
+		//return the final object
+		if (lowCheck[0] > -1) {
+			return loadingMap.contains[lowCheck[0]];
+		} else {
+			return false;
+		}
+		
 	}
 
 	adjustPoints() {

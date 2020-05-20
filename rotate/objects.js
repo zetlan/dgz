@@ -166,14 +166,15 @@ class AlphaBox extends Box {
 	constructor(x, y, z, rx, ry, rz, alpha) {
 		super(x, y, z, rx, ry, rz);
 		this.alpha = alpha;
+		this.alHome = alpha;
 	}
 
 	giveEnglishConstructor(radians) {
-		let {x, y, z, rx, ry, rz, alpha} = this;
+		let {x, y, z, rx, ry, rz, alHome} = this;
 		[x, z] = rotate(x, z, radians);
 		[rx, rz] = rotate(rx, rz, radians);
 		[x, z, rx, rz] = [Math.round(x), Math.round(z), Math.round(rx), Math.round(rz)]
-		return (`new AlphaBox(${Math.round(x)}, ${Math.round(y)}, ${Math.round(z)}, ${Math.abs(rx)}, ${Math.abs(ry)}, ${Math.abs(rz)}, ${alpha})`);
+		return (`new AlphaBox(${Math.round(x)}, ${Math.round(y)}, ${Math.round(z)}, ${Math.abs(rx)}, ${Math.abs(ry)}, ${Math.abs(rz)}, ${alHome})`);
 	}
 }
 

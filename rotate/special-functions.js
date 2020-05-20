@@ -52,3 +52,23 @@ function trueReset() {
 	window.location.reload();
 	}
 }
+
+//keeping the player on the maze platforms
+function falseFloor() {
+	//create a 5x5 array
+	var ground = [	[0, 0, 0, 0, 0],
+					[0, 0, 0, 0, 0],
+					[0, 0, 0, 0, 0],
+					[0, 0, 0, 0, 0],
+					[0, 0, 0, 0, 0]];
+	
+}
+//converting real coordinates into square coordinates
+function coordToSquare(x, y) {
+	return [x, y]
+}
+//final cutscene
+function finalCutscene() {
+	//lock player controls
+	[player.ax, player.az] = [0, 0];
+}
