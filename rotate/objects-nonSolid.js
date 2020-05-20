@@ -123,11 +123,13 @@ class Character extends Particle {
 		this.ax = 0;
 		this.az = 0;
 
-		//mS is max horizontal movement, mV is max vertical movement
+		//mS is max horizontal movement, mV is max vertical movement speed, mO is max opacity speed
 		this.mS = 1.8;
 		this.mV = 9.8;
+		this.mO = 0.05;
 		this.friction = 0.8;
 		this.gravity = 0.5;
+		this.opSpeed = 0;
     }
 
     tick() {
@@ -167,11 +169,14 @@ class Character extends Particle {
 			this.dy = -1 * this.mV;
 		}
 
-		//move player if not rotating
+		//actions to take if not rotating
 		if (!loadingMap.rotating) {
+			//moving player
 			this.x += this.dx;
 			this.y += this.dy;
 			this.z += this.dz;
+
+			//changing opacity of target block
 		}
 		this.adjustPoints();
 
@@ -228,6 +233,11 @@ class Character extends Particle {
 			gPoint(this.fDC[0], this.fDC[1], this.dispSize);
 			ctx.fill();
 			ctx.globalAlpha = temp2;
+		}
+
+		//outer ring
+		if (this.opSpeed != 0) {
+
 		}
 	}
 
