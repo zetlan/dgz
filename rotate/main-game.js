@@ -36,6 +36,7 @@ var rZoneColor = "#FF5468";
 var yZoneColor = "#F9FFBD";
 var gZoneColor = "#70C1B3";
 var bZoneColor = "#106BA0";
+var eZoneColor = "#000000";
 
 var rParticleColor = "#CC2F41";
 var yParticleColor = "#FAF27F";
