@@ -511,6 +511,7 @@ class Octohedron extends PartialBox {
 		this.mPoints.push([this.x + this.rx, this.y, this.z]);
 		this.mPoints.push([this.x, this.y, this.z - this.rz]);
 		this.mPoints.push([this.x - this.rx, this.y, this.z]);
+		this.mPoints.push([this.x, this.y, this.z + this.rz]);
 
 		//top/bottom points
 		this.uPoints = [this.x, this.y + this.ry, this.z];
@@ -523,6 +524,7 @@ class Octohedron extends PartialBox {
 		this.xyUP.push(spaceToScreen(this.mPoints[0]));
 		this.xyUP.push(spaceToScreen(this.mPoints[1]));
 		this.xyUP.push(spaceToScreen(this.mPoints[2]));
+		this.xyUP.push(spaceToScreen(this.mPoints[3]));
 		
 		this.xyLP.push(spaceToScreen(this.uPoints));
 		this.xyLP.push(spaceToScreen(this.lPoints));
@@ -535,6 +537,14 @@ class Octohedron extends PartialBox {
 		nSFaces.push(new Face([this.xyLP[0], this.xyUP[1], this.xyUP[0]], [this.uPoints, this.mPoints[1], this.mPoints[0]], 1, 0, 0, this.rotX, this));
 		nSFaces.push(new Face([this.xyLP[1], this.xyUP[2], this.xyUP[1]], [this.lPoints, this.mPoints[2], this.mPoints[1]], -1, 0, 0, this.rotX, this));
 		nSFaces.push(new Face([this.xyLP[1], this.xyUP[1], this.xyUP[0]], [this.lPoints, this.mPoints[1], this.mPoints[0]], 1, 0, 0, this.rotX, this));
+
+		//generate back faces if rotating
+		if (loadingMap != undefined && loadingMap.rotating) {
+			nSFaces.push(new Face([this.xyLP[0], this.xyUP[2], this.xyUP[3]], [this.uPoints, this.mPoints[2], this.mPoints[1]], -1, 0, 0, this.rotX, this));
+			nSFaces.push(new Face([this.xyLP[0], this.xyUP[3], this.xyUP[0]], [this.uPoints, this.mPoints[1], this.mPoints[0]], 1, 0, 0, this.rotX, this));
+			nSFaces.push(new Face([this.xyLP[1], this.xyUP[2], this.xyUP[3]], [this.lPoints, this.mPoints[2], this.mPoints[1]], -1, 0, 0, this.rotX, this));
+			nSFaces.push(new Face([this.xyLP[1], this.xyUP[3], this.xyUP[0]], [this.lPoints, this.mPoints[1], this.mPoints[0]], 1, 0, 0, this.rotX, this));
+		}
 		return nSFaces;
 	}
 
@@ -770,8 +780,11 @@ class Face {
 			if (!loadingMap.rotating) {
 				//determining whether to factor in alpha to collision
 				var multiplier = 1;
-				if (this.parent.alpha != undefined) {
-					multiplier = this.parent.alpha;
+				if (this.parent.alpha != undefined && !Number.isNaN(this.parent.alpha)) {
+					/*using the cubed value because without it the partial solid effect doesn't start until about 0.2 alpha. 
+					Cubing (or just raising it to a power) makes it so that the partial solid effect actually takes
+					up more of the 0-1 space. */
+					multiplier = this.parent.alpha * this.parent.alpha * this.parent.alpha;
 				}
 				
 				//different collision procedures for collision values
@@ -843,7 +856,7 @@ class Face {
 				 
 			} else if (loadingMap.ableToSwap) {
 				//rotation case
-				if (!this.rotable) {
+				if (!this.rotable && !(this.parent.alpha < 0.2)) {
 					loadingMap.aSpeed *= -1;
 					loadingMap.ableToSwap = false;
 					console.log("swapped rotation direction using face type", this.colX, this.colY, this.colZ, "\n with parent", this.parent.constructor.name);
@@ -864,11 +877,11 @@ class Face {
 
 	beDrawn() {
 		//coloring based on rotation ability/alpha ability
-		if (this.parent.alpha != undefined) {
+		if (this.parent.alpha != undefined && !Number.isNaN(this.parent.alpha)) {
 			var temp = ctx.globalAlpha;
-			ctx.globalAlpha = this.parent.alpha;
 			ctx.fillStyle = alphaColor;
 			dPoly(this.points);
+			ctx.globalAlpha = this.parent.alpha;
 			ctx.fill();
 			ctx.globalAlpha = temp;
 
