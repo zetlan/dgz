@@ -487,9 +487,9 @@ function initMaps() {
 						new Box(95, -135, 90, 56, 20, 1), 
 						new Box(-105, -90, 0, 45, 60, 5), 
 						new PartialBox(-110, -100, -8, 40, 50, 2, true, true, true), 
+						new Box(-95, -150, -80, 55, 0, 70), 
 						new Box(75, -120, -76, 75, 30, 1), 
-						new Box(-85, -115, -105, 50, 10, 70), 
-						new Box(-43, -120, -95, 1, 40, 46)];
+						new Box(-41, -115, -105, 2, 35, 46)];
 
 	mapG8 = new Map(gZoneColor, [], "mapG7_F", "mapG9"); 
 	mapG8.contains = [ 	new Floor(), 

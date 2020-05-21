@@ -773,6 +773,9 @@ class Face {
 		if (!player.avoidRR) {
 			player.avoidRR = this.collide(player.drawCoordRR);
 		}
+		if (!player.avoidD) {
+			player.avoidD = this.collide(player.drawCoord);
+		}
 	}
 
 	collide(point) {
@@ -869,6 +872,7 @@ class Face {
 					player.avoidL = true;
 					player.avoidRR = true;
 					player.avoidLL = true;
+					player.avoidD = true;
 					return true;
 				}	
 			}

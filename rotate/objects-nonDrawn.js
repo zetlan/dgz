@@ -84,6 +84,7 @@ class Map {
 				this.aSpeed = 0;
 				this.rotPercent = 0;
 				ctx.globalAlpha = 1;
+				player.remote = 2;
 				this.orderObjects();
             }
 		}
@@ -100,7 +101,7 @@ class Map {
 	tick() {
 		for (var k=this.contains.length-1;k>=0;k--) {
 			this.contains[k].tick();
-			if (player.avoid && player.avoidL && player.avoidR && player.avoidLL && player.avoidRR) {
+			if (player.avoid && player.avoidL && player.avoidR && player.avoidLL && player.avoidRR && player.avoidD) {
 				k = 0;
 			}
 		}

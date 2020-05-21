@@ -115,6 +115,7 @@ class Character extends Particle {
 		this.avoidLL = false;
 		this.avoidRR = false;
 		this.avoid = false;
+		this.avoidD = false;
 		
 		this.r = 7.5;
 		this.dispSize = 0;
@@ -210,6 +211,7 @@ class Character extends Particle {
 		this.avoidR = false;
 		this.avoidLL = false;
 		this.avoidRR = false;
+		this.avoidD = false;
     }
 
     beDrawn() {
