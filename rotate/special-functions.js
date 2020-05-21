@@ -28,7 +28,8 @@ function activate(zone0123_OrderRYGB) {
 				gameFlags["hasB"] = true;
 				break;
 		}
-		cutscene = true;
+		cutscene = 1;
+		handleLocalStorage(true);
 		updateMaps();
 	}
 }
@@ -47,6 +48,7 @@ function trueReset() {
 	};
 
 	//push to local storage
+	handleLocalStorage(true);
 
 	//refresh page
 	window.location.reload();
@@ -112,18 +114,6 @@ function falseFloor() {
 		if (value == 1) {
 			player.z += player.dz;
 		}
-		/*
-		//testing value one more time, if not double the player's dx/dz
-		tP = getSquare(player.x, player.z);
-		try {
-			value = ground[tP[1]][tP[0]];
-		} catch(error) {
-			value = 0;
-		}
-		if (value != 1) {
-			player.dx *= 2;
-			player.dz *= 2;
-		} */
 	}
 }
 
@@ -133,13 +123,17 @@ function getSquare(x, z) {
 }
 //converting real coordinates into square coordinates
 //final cutscene
-function finalCutscene() {
+function activateFinalCutscene() {
 	//same comparison as normal cutscene
 	if (Math.abs(player.x) < 20 && Math.abs(player.z) < 20 && Math.abs(player.y) < 105) {
 		//lock player controls
 		[player.ax, player.az] = [0, 0];
 		[player.dx, player.dy, player.dz] = [0, 0, 0];
 		player.gravity = 0.2;
+
+		//set cutscene to 2, the value for the final cutscene
+		cutscene = 2;
+		gameFlags["done"] = true;
+		handleLocalStorage(true);
 	}
-	
 }

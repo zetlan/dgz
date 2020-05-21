@@ -22,8 +22,8 @@ var cutsceneTime = 70;
 var characterColor = "#000066";
 var characterOutsideColor = "#FFFFFF";
 
-var ableColor = "#AAF";
-var floorColor = "#CCE";
+var ableColor = "#AAAAFF";
+var floorColor = "#CCCCEE";
 var blockColor = "#69479A";
 var alphaColor = "#69995D";
 var lnColor = "#1A072C";
@@ -67,6 +67,7 @@ function setup() {
 
 	camera = new Camera(0, 0, -2 * mapSize, 230);	
 	initMaps();
+	handleLocalStorage(false);
 	updateMaps();
 	player = new Character(pStart["x"], pStart["y"], pStart["z"]);
 	
@@ -198,10 +199,12 @@ function main() {
 		ctx.globalAlpha = temp;
 	}
 	
-	if (cutscene) {
-		//cutscene stuffs
+	if (cutscene == 1) {
 		doCutscene();
 	} else {
+		if (cutscene == 2) {
+			doFinalCutscene();
+		}
 		//regular gameplay
 	
 		//run object draws/ticks
@@ -300,6 +303,30 @@ function doCutscene() {
 	}
 }
 
+function doFinalCutscene() {
+	cTime += 1;
+
+	player.beDrawn();
+	var totalTime = cutsceneTime * 2;
+	var percent = (cTime / totalTime) * (cTime / totalTime) * (cTime / totalTime);
+
+	//bringing all colors closer to white
+	ableColor = cLinterp(ableColor, "#FFFFFF", percent);
+	floorColor = cLinterp(floorColor, "#FFFFFF", percent);
+	blockColor = cLinterp(blockColor, "#FFFFFF", percent);
+	alphaColor = cLinterp(alphaColor, "#FFFFFF", percent);
+	lnColor = cLinterp(lnColor, "#FFFFFF", percent);
+	ctx.strokeStyle = lnColor;
+
+	if (cTime > totalTime) {
+		//finishing the cutscene
+		cTime = 0;
+		player.dy = 4;
+		loadingMap = mapE_HFinal;
+		cutscene = false;
+	}
+}
+
 //function for doing/redoing map changes. This is seperate from activate so that it can be called when the game starts (for localStorage support)
 function updateMaps() {
 	//bringing player to crossroads if it has been reached, or the start of the game if it hasn't
@@ -342,6 +369,12 @@ function updateMaps() {
 		gameFlags["atC"] = false;
 		loadingMap = menuMap;
 		mapA4.rightMap = menuMap;
+	}
+
+	//if really done, be done
+	if (gameFlags["done"]) {
+		loadingMap = mapE_HFinal;
+		pStart["y"] = -1000;
 	}
 }
 
@@ -608,4 +641,26 @@ function reset(mapToGoTo) {
 	loadingMap.rotating = 0;
 	lEditor = new Editor();
 	window.requestAnimationFrame(main);
+}
+
+//handles reading/writing to local storage
+function handleLocalStorage(writeToStorage) {
+	if (writeToStorage) {
+		//turn gameflags into a string that can be written to the rotate_data section
+		var toWrite = gameFlags;
+		toWrite = JSON.stringify(toWrite);
+		//write it
+		window.localStorage["rotate_data"] = toWrite;
+	} else {
+		//turn the things in the messages section of local storage into a string that can be read into gameFlags
+		var toRead = window.localStorage["rotate_data"];
+		toRead = JSON.parse(toRead);
+
+		//make sure it's somewhat safe, and then make it into the game flags
+		if (typeof(toRead) == "object") {
+			gameFlags = toRead;
+		} else {
+			console.log("invalid type specified in localStorage --> rotate_data, defaulting to site tags")
+		}
+	}
 }
