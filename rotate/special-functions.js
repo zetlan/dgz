@@ -55,20 +55,91 @@ function trueReset() {
 
 //keeping the player on the maze platforms
 function falseFloor() {
-	//create a 5x5 array
-	var ground = [	[0, 0, 0, 0, 0],
-					[0, 0, 0, 0, 0],
-					[0, 0, 0, 0, 0],
-					[0, 0, 0, 0, 0],
-					[0, 0, 0, 0, 0]];
-	
+	//make sure remote control is on
+	player.remote = 2;
+
+	//only run when not rotating, like normal movement
+	//there is most likely a better way to do this but I'm sick of working on it and just want to finish the game
+	if (!loadingMap.rotating) {
+		//create a 5x5 array
+		var ground = [	[0, 0, 0, 0, 0],
+						[0, 0, 0, 0, 0],
+						[0, 0, 0, 0, 0],
+						[0, 0, 0, 0, 0],
+						[0, 0, 0, 0, 0]];
+
+		//converting all tile objects in the map into 1s on the ground array
+		for (var g=0;g<loadingMap.contains.length;g++) {
+			//if it's a partialbox with y -150, count it as a floor tile
+			if (loadingMap.contains[g].y == -150 && loadingMap.contains[g].constructor.name == "PartialBox") {
+				//transforming coordinates
+				var [tX, tZ] = getSquare(loadingMap.contains[g].x, loadingMap.contains[g].z);
+				//one last check to make sure it will work
+				if (tX % 1 == 0 && tZ % 1 == 0) {
+					ground[tZ][tX] = 1;
+				}
+			}
+		}
+		//now that the array has been achieved, the player can be moved.
+		var value;
+		var newVal;
+		var tP;
+
+		//y is easiest
+		player.y += player.dy;
+
+		//x
+		//getting the value of the square if dx were to be applied
+		tP = getSquare(player.x + player.dx, player.z);
+		try {
+			value = ground[tP[1]][tP[0]];
+		} catch(error) {
+			value = 0;
+		}
+		//if the value is still a valid square, move the player
+		if (value == 1) {
+			player.x += player.dx;
+		}
+
+		//z
+		//same thing, but for z
+		tP = getSquare(player.x, player.z + player.dz);
+		try {
+			value = ground[tP[1]][tP[0]];
+		} catch(error) {
+			value = 0;
+		}
+		if (value == 1) {
+			player.z += player.dz;
+		}
+		/*
+		//testing value one more time, if not double the player's dx/dz
+		tP = getSquare(player.x, player.z);
+		try {
+			value = ground[tP[1]][tP[0]];
+		} catch(error) {
+			value = 0;
+		}
+		if (value != 1) {
+			player.dx *= 2;
+			player.dz *= 2;
+		} */
+	}
+}
+
+function getSquare(x, z) {
+
+	return [Math.floor(((x + 30) / 60) + 2), Math.floor(((z - 30) / -60) + 2)];
 }
 //converting real coordinates into square coordinates
-function coordToSquare(x, y) {
-	return [x, y]
-}
 //final cutscene
 function finalCutscene() {
-	//lock player controls
-	[player.ax, player.az] = [0, 0];
+	//same comparison as normal cutscene
+	if (Math.abs(player.x) < 20 && Math.abs(player.z) < 20 && Math.abs(player.y) < 105) {
+		//lock player controls
+		[player.ax, player.az] = [0, 0];
+		[player.dx, player.dy, player.dz] = [0, 0, 0];
+		player.gravity = 0.2;
+	}
+	
 }
