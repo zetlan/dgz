@@ -646,13 +646,18 @@ function handleLocalStorage(writeToStorage) {
 	} else {
 		//turn the things in the messages section of local storage into a string that can be read into gameFlags
 		var toRead = window.localStorage["rotate_data"];
-		toRead = JSON.parse(toRead);
+		try {
+			toRead = JSON.parse(toRead);
+		} catch (error) {
+			console.log(`could not parse localStorage --> rotate_data --> ${toRead}, defaulting to site tags`);
+		}
+		
 
 		//make sure it's somewhat safe, and then make it into the game flags
 		if (typeof(toRead) == "object") {
 			gameFlags = toRead;
 		} else {
-			console.log("invalid type specified in localStorage --> rotate_data, defaulting to site tags")
+			console.log("invalid type specified in localStorage --> rotate_data, defaulting to site tags");
 		}
 	}
 }
