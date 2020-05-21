@@ -818,7 +818,7 @@ class Face {
 					}
 
 					//using the z percentage, if the player is about to fall off the front, slow them down
-					if (zPercent < 0.05) {
+					if (zPercent < 0.05 && player.remote == 0) {
 						player.dz = 0;
 					}
 					//if the player is coming up the back, speed them up
