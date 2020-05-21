@@ -122,6 +122,7 @@ class Character extends Particle {
 		
 		this.ax = 0;
 		this.az = 0;
+		this.remote = false;
 
 		//mS is max horizontal movement, mV is max vertical movement speed, mO is max opacity speed
 		this.mS = 1.8;
@@ -177,9 +178,13 @@ class Character extends Particle {
 		//actions to take only if not rotating
 		if (!loadingMap.rotating) {
 			//moving player
-			this.x += this.dx;
-			this.y += this.dy;
-			this.z += this.dz;
+			if (this.remote > 0) {
+				this.remote -= 1;
+			} else {
+				this.x += this.dx;
+				this.y += this.dy;
+				this.z += this.dz;
+			}
 
 			//changing opacity of target block
 			if (this.tgt) {
@@ -195,7 +200,7 @@ class Character extends Particle {
 				}
 			}
 		}
-		
+
 		this.adjustPoints();
 
 		//reset avoidance
