@@ -51,6 +51,7 @@ let lEditor;
 
 let gameFlags = {
 	atC: false,
+	atEC: false,
 	hasR: false,
 	hasY: false,
 	hasG: false,
@@ -205,6 +206,11 @@ function main() {
 		}
 	}
 
+	//every once in a while sync with localstorage
+	if (pTime % 100 == 53) {
+		handleLocalStorage(true);
+	}
+
 	//call itself through animation frame 
 	timer = window.requestAnimationFrame(main);
 	if (!loadingMap.rotating) {
@@ -318,10 +324,13 @@ function doFinalCutscene() {
 //function for doing/redoing map changes. This is seperate from activate so that it can be called when the game starts (for localStorage support)
 function updateMaps() {
 	//bringing player to crossroads if it has been reached, or the start of the game if it hasn't
+	loadingMap = menuMap;
+
 	if (gameFlags["atC"]) {
 		loadingMap = mapC;
-	} else {
-		loadingMap = menuMap;
+	}
+	if (gameFlags["atEC"]) {
+		loadingMap = mapEC;
 	}
 
 	//map looping in crossroads to prevent duplicate areas

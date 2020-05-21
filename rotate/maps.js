@@ -384,7 +384,7 @@ function initMaps() {
 						new Box(56, -120, 75, 30, 5, 75), 
 						new Box(19, -115, 26, 5, 35, 62), 
 						new TiltedBox(-130, -125, -5, 30, 15, 70, true, true, true, 0, 0, 0.5, 0.25), 
-						new Box(85, -89, 10, 60, 66, 5), 
+						new Box(85, -94, 10, 60, 61, 5), 
 						new PartialBox(125, -105, -80, 25, 45, 15, true, true, true), 
 						new Box(56, -133, -75, 30, 17, 75), 
 						new TiltedBox(111, -135, -112, 10, 15, 28, true, true, true, 0, 0, 0.25, 2), 
@@ -515,16 +515,16 @@ function initMaps() {
 
 	mapG7_F = new Map(gZoneColor, [], "mapG_G", "mapG8"); 
 	mapG7_F.contains = [new Floor(), 
+						new Wall(0), 
 						new Box(50, -135, 100, 1, 15, 50), 
 						new Box(-40, -120, 75, 1, 30, 76), 
 						new PartialBox(-37, -120, 75, 1, 30, 76, true, true, true), 
 						new Box(95, -135, 50, 56, 15, 1), 
-						new Wall(0), 
 						new Box(-95, -135, -50, 55, 15, 1), 
 						new PartialBox(100, -100, -53, 50, 50, 1, true, true, true), 
-						new Box(-148, -110, -100, 1, 40, 50), 
 						new Box(-40, -120, -75, 1, 30, 76), 
 						new PartialBox(-37, -120, -75, 1, 30, 76, true, true, true), 
+						new Box(-148, -110, -135, 1, 40, 15), 
 						new PartialBox(54, -100, -100, 1, 50, 51, true, true, true), 
 						new Box(50, -100, -100, 1, 50, 50)];
 
@@ -590,7 +590,7 @@ function initMaps() {
 	mapB3.contains = [ 	new Floor(), 
 						new Wall(0), 
 						new Box(45, -149, 0, 105, 1, 150), 
-						new Track(25, -80, -130, 21, -150, 95, 230, 0, new Cube(21, -144, 75, 20)), 
+						new Track(25, -80, -130, 21, -150, 95, 230, 0, new PartialBox(21, -144, 75, 20, 20, 20, false, true, false)), 
 						new PartialBox(124, -100, -131, 27, 30, 20, false, true, false), 
 						new PartialBox(124, -71, -131, 27, 5, 20, true, true, true), 
 						new Box(126, -25, -159, 24, 18, 1)];
@@ -658,6 +658,7 @@ function initMaps() {
 
 
 
+
 	//ending maps
 	mapE1 = new Map("#75593D", [], "mapE2", "menuMap"); 
 	mapE1.contains = [	new Floor(), 
@@ -703,7 +704,8 @@ function initMaps() {
 						new Icosahedron(90, -110, 25, 40, 30, 50, true, "#8F0"), 
 						new Icosahedron(-70, -100, -125, 50, 50, 50, true, "#8F0"), 
 						new Icosahedron(30, -110, -160, 5, 30, 25, true, "#8F0"),
-						new Text("ads" + spaces + spaces + "Welcome to ")];
+						new Text("ads" + spaces + spaces + "Welcome to "),
+						new CodeBlock(`gameFlags["atEC"] = true;`)];
 
 	mapEC1 = new Map("#002200", [], "mapEC4", "mapEC2"); 
 	mapEC1.contains = [	new Floor(), 
