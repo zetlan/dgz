@@ -726,7 +726,7 @@ function initMaps() {
 						new Box(-75, -85, 0, 75, 65, 5), 
 						new Box(-150, -85, -75, 1, 65, 75)];	
 
-	mapEC5 = new Map("#0s02200", [], "mapEC5", "mapEC6"); 
+	mapEC5 = new Map("#002200", [], "mapEC5", "mapEC6"); 
 	mapEC5.contains = [ 	new Floor(), 
 						new PartialBox(60, -105, 125, 15, 45, 15, true, true, true), 
 						new PartialBox(-148, -73, -1, 1, 77, 151, true, true, true), 
@@ -736,8 +736,8 @@ function initMaps() {
 						new PartialBox(-45, -107, -135, 11, 43, 15, true, true, true)];
 
 	mapEC6 = new Map("#000022", [], "mapEC6", "mapEC7"); 
-	mapEC6.contains = [ 	new Floor(), 
-						new PartialBox(60, -105, 125, 15, 45, 15, true, true, true), 
+	mapEC6.contains = [	new Floor(), 
+						new PartialBox(55, -95, 125, 15, 5, 15, true, true, true), 
 						new PartialBox(-148, -73, -1, 1, 77, 152, true, true, true), 
 						new Box(-143, -75, 0, 2, 75, 150), 
 						new Box(0, -149, 0, 150, 1, 150), 
@@ -823,13 +823,14 @@ function initMaps() {
 						new PartialBox(-60, -150, -120, 30, 0, 30, true, false, true)];
 
 	mapED7 = new Map("#CCCCCC", [], "mapED8", "mapED6"); 
-	mapED7.contains = [	new CodeBlock("falseFloor();"), 
+	mapED7.contains = [ 	new CodeBlock("falseFloor();"), 
 						new PartialBox(60, -150, 120, 30, 0, 30, true, true, true), 
 						new PartialBox(60, -150, 60, 30, 0, 30, true, false, true), 
 						new PartialBox(-120, -150, 0, 30, 0, 30, true, true, true), 
 						new PartialBox(60, -150, 0, 30, 0, 30, true, false, true), 
 						new PartialBox(120, -150, -60, 30, 0, 30, true, false, true), 
 						new PartialBox(60, -150, -60, 30, 0, 30, true, false, true), 
+						new PartialBox(120, -150, -120, 30, 0, 30, true, false, true), 
 						new AlphaBox(-150, -95, -120, 1, 25, 30, 1), 
 						new PartialBox(-60, -150, -120, 30, 0, 30, true, true, true), 
 						new PartialBox(-150, -35, -120, 0, 35, 30, false, false, false), 
@@ -853,6 +854,7 @@ function initMaps() {
 
 	mapE_H = new Map("#FFFFFF", [], "mapE_H", "mapED8"); 
 	mapE_H.contains = [	new CodeBlock("falseFloor();"), 
+						new CodeBlock("activateFinalCutscene();"),
 						new PartialBox(-120, -150, 120, 30, 0, 30, true, true, true), 
 						new PartialBox(-60, -150, 120, 30, 0, 30, true, false, true), 
 						new PartialBox(0, -150, 120, 30, 0, 30, true, false, true), 
@@ -875,8 +877,8 @@ function initMaps() {
 
 	
 	mapE_HFinal = new Map("#FFFFFF", [], "mapE_HFinal", "mapE_HFinal");
-	mapE_HFinal.contains = [new PartialBox(-120, -150, 120, 0, 0, 0, true, true, true)];
-	 
+	mapE_HFinal.contains = [new PartialBox(-120, -2000, 120, 0, 0, 0, true, true, true)];
+
 	mapMT = new Map(bZoneColor, [], "mapMT", "mapMT"); 
 	mapMT.contains = [	new Floor(),
 						new Custom(0, -150, 0, [[[10,220,-10],[-10,220,-10],[-15,135,-15],[5,135,-15],"#852"],[[-10,0,-10],[-10,0,10],[-15,135,5],[-15,135,-15],"#852"],
