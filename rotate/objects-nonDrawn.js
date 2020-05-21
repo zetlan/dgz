@@ -853,7 +853,6 @@ class Camera extends Main {
         super(x, y, z);
 
 		this.scale = scale;
-		this.vertical = false;
 	}
 	
 	getCameraDist() {

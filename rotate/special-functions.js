@@ -60,6 +60,17 @@ function falseFloor() {
 	//make sure remote control is on
 	player.remote = 2;
 
+	//just making absolutely sure the player is in bounds
+	while (Math.abs(player.x) > mapSize) {
+		player.x *= 0.99;
+		player.dx = 0;
+	}
+
+	while (Math.abs(player.z) > mapSize) {
+		player.z *= 0.99;
+		player.dz = 0;
+	}
+
 	//only run when not rotating, like normal movement
 	//there is most likely a better way to do this but I'm sick of working on it and just want to finish the game
 	if (!loadingMap.rotating) {
@@ -113,6 +124,23 @@ function falseFloor() {
 		}
 		if (value == 1) {
 			player.z += player.dz;
+		}
+
+		//if the player is still on a bad square, just let them control
+		tP = getSquare(player.x, player.z);
+		try {
+			value = ground[tP[1]][tP[0]];
+		} catch(error) {
+			value = 0;
+		}
+
+		if (value == 0) {
+			player.remote = 0;
+		} else {
+			//if the player is on a square, make sure that they're above the floor
+			if (player.y < -152) {
+				player.y = -150;
+			}
 		}
 	}
 }

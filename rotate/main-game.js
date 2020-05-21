@@ -121,12 +121,6 @@ function keyPress(u) {
 			case 221:
 				lEditor.active = true;
 				break;
-			case 32:
-				camera.vertical = true;
-				camera.x = 0;
-				camera.y = 2 * mapSize;
-				camera.z = 0;
-				break;
 		}
 	} else {
 		lEditor.handleInput(u);
@@ -160,12 +154,6 @@ function keyNegate(u) {
 			if (player.az < 0) {
 				player.az = 0;
 			}
-			break;
-		case 32:
-			camera.vertical = false;
-			camera.x = 0;
-			camera.y = 0;
-			camera.z = -2 * mapSize;
 			break;
 		case 82:
 			if (player.opSpeed == player.mO) {
@@ -441,13 +429,8 @@ function spaceToScreen(pointArr) {
 	tZ -= camera.z;
 
 	//step 2: divide by axis perpendicular to camera
-	if (camera.vertical) {
-		tX /= (tY * -1);
-		tY = (tZ * -1) / tY;
-	} else {
-		tX /= tZ;
-		tY /= tZ;
-	}
+	tX /= tZ;
+	tY /= tZ;
 	
 
 	//step 2.5: account for camera scale
