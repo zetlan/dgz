@@ -54,7 +54,8 @@ let gameFlags = {
 	hasR: false,
 	hasY: false,
 	hasG: false,
-	hasB: false
+	hasB: false,
+	done: false
 };
 
 //functions
