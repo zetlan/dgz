@@ -638,9 +638,9 @@ function initMaps() {
 	mapB7 = new Map(bZoneColor, [], "mapB_G", "mapB6"); 
 	mapB7.contains = [ 	new Floor(), 
 						new Wall(0), 
-						new Track(129, -75, -68, 129, -35, -68, 300, 150, new Cube(129, -36, -68, 20)), 
+						new Track(129, -75, -68, 129, -35, -68, 300, 150, new Cube(129, -74, -68, 20)), 
 						new PartialBox(20, -30, -70, 55, 5, 35, true, true, true), 
-						new Box(0, -95, -135, 195, 70, 20)];
+						new Box(0, -90, -135, 195, 55, 20)];
 
 	mapB_G = new Map(bZoneColor, [], "mapB_H", "mapB_H"); 
 	mapB_G.contains = [	new Floor(), 
