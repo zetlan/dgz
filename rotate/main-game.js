@@ -65,6 +65,7 @@ function setup() {
     canvas = document.getElementById("cvsPharmacy");
 	ctx = canvas.getContext("2d");
 	ctx.lineWidth = 2;
+	ctx.lineJoin = "round";
 
 	camera = new Camera(0, 0, -2 * mapSize, 230);	
 	initMaps();
