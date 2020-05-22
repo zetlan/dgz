@@ -142,6 +142,19 @@ function falseFloor() {
 				player.y = -150;
 			}
 		}
+	} else {
+		//if rotation is happening, make sure the player isn't too far off a square
+
+		//this gets the fractional part of the square the player is in
+		tP = [(((player.x + 30) / 60) + 2) % 1, (((player.z - 30) / -60) + 2) % 1];
+
+		//if the fractional part is too far off the center, stop the rotation
+		if ((tP[0] < 0.1 || tP[0] > 0.9) || (tP[1] < 0.1 || tP[1] > 0.9)) {
+			if (loadingMap.ableToSwap) {
+				loadingMap.aSpeed *= -1;
+				loadingMap.ableToSwap = false;
+			}
+		}
 	}
 }
 

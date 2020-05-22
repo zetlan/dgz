@@ -101,7 +101,7 @@ class Map {
 	tick() {
 		for (var k=this.contains.length-1;k>=0;k--) {
 			this.contains[k].tick();
-			if (player.avoid && player.avoidL && player.avoidR && player.avoidLL && player.avoidRR && player.avoidD) {
+			if (player.avoid && player.avoidL && player.avoidR && player.avoidLL && player.avoidRR) {
 				k = 0;
 			}
 		}

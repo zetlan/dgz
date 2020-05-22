@@ -312,7 +312,7 @@ function doFinalCutscene() {
 	lnColor = cLinterp(lnColor, "#FFFFFF", percent);
 	ctx.strokeStyle = lnColor;
 
-	if (cTime > totalTime) {
+	if (cTime > cutsceneTime * 1.1) {
 		//finishing the cutscene
 		cTime = 0;
 		player.dy = 4;

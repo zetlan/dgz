@@ -212,16 +212,17 @@ function initMaps() {
 
 
 	//red zone	
-	mapR1 = new Map(rZoneColor, [], "mapR4", "mapR2"); 
+	mapR1 = new Map(rZoneColor, [], "mapRS1", "mapR2"); 
 	mapR1.contains = [ 	new Floor(), 
+						new Wall(0), 
 						new TiltedBox(26, -37, 156, 45, 5, 15, false, false, false, -0.5, 0, 0, 0), 
 						new Box(60, -150, 120, 45, 25, 0), 
 						new PartialBox(140, -100, 6, 25, 5, 70, true, true, true), 
-						new Wall(0), 
 						new Box(30, -130, 6, 0, 11, 107), 
-						new Box(-35, -80, 0, 10, 70, 150), 
+						new Box(-35, -80, 5, 10, 70, 145), 
 						new Box(150, -95, -85, 15, 15, 15), 
 						new PartialBox(25, -135, -135, 25, 15, 15, true, true, true), 
+						new AlphaBox(-35, -80, -145, 10, 70, 5, true), 
 						new PartialBox(-10, -25, -135, 15, 15, 15, true, true, true)];
 	
 	mapR2 = new Map(rZoneColor, [], "mapR1", "mapR3"); 
@@ -319,6 +320,23 @@ function initMaps() {
 						new Particle(-150, -50, 0, rParticleColor),
 						new Particle(-50, 150, 50, rParticleColor),
 						new CodeBlock("activate(0);")];
+	
+						
+	mapRS1 = new Map(rZoneColor, [], "mapRS2", "mapR1"); 
+	mapRS1.contains = [ 	new Floor(), 
+						new Wall(3)];
+
+	mapRS2 = new Map(rZoneColor, [], "mapRS2", "mapRS1"); 
+	mapRS2.contains = [ 	new Floor(), 
+						new Wall(2), 
+						new Wall(2), 
+						new Octohedron(-30, 55, -65, 15, 15, 15, undefined), 
+						new Track(-80, -100, -175, 15, 0, 0, 140, 0, new Cube(-77, -97, -169, 20)), 
+						new Octohedron(-55, -15, -80, 15, 15, 15, undefined), 
+						new Octohedron(15, 50, -80, 15, 15, 15, undefined), 
+						new Octohedron(-30, 25, -80, 15, 15, 15, undefined), 
+						new Icosahedron(10, -90, -100, 25, 25, 25, true, "#F0F"), 
+						new AlphaBox(-5, -135, -135, 15, 15, 15, true)];
 
 
 
@@ -571,17 +589,18 @@ function initMaps() {
 	mapB2.contains = [ 	new Floor(), 
 						new Wall(3)];
 
-	mapB1_F = new Map(bZoneColor, [], "mapB0_F", "NaN"); 
-	mapB1_F.contains = [new Floor(),
+	mapB1_F = new Map(bZoneColor, [], "mapB0_F", "mapBS1"); 
+	mapB1_F.contains = [new Floor(), 
 						new PartialBox(-131, -100, 131, 20, 30, 20, false, true, false), 
-						new Box(-45, -149, 0, 105, 1, 150), 	
-						new Track(-15, -80, 130, -11, -150, -95, 230, 0, new Cube(-14, -100, 66, 20))];
+						new Box(-45, -149, 0, 105, 1, 150), 
+						new AlphaBox(149, 0, 0, 1, 150, 150, 1), 
+						new Track(-15, -80, 130, -11, -150, -95, 230, 0, new PartialBox(21, -144, 75, 20, 20, 20, false, true, false))];
 
 	mapB0_F = new Map(bZoneColor, [], "mapB3", "mapB1_F"); 
-	mapB0_F.contains = [ 	new Floor(), 
+	mapB0_F.contains = [new Floor(), 
 						new Wall(1), 
 						new Box(0, -149, -45, 150, 1, 105), 
-						new Track(-130, -80, -25, 95, -150, -21, 230, 0, new Cube(11, -124, -22, 20)), 
+						new Track(-130, -80, -25, 95, -150, -21, 230, 0, new PartialBox(21, -144, 75, 20, 20, 20, false, true, false)), 
 						new PartialBox(-131, -100, -124, 20, 30, 27, false, true, false), 
 						new Box(-159, -25, -126, 1, 18, 24), 
 						new PartialBox(-131, -71, -124, 20, 5, 27, true, true, true)];
@@ -654,9 +673,25 @@ function initMaps() {
 						new Particle(50, 50, 0), 
 						new Particle(0, -50, 150)];
 
+	mapBS1 = new Map(bZoneColor, [], "mapB1_F", "mapBS2"); 
+	mapBS1.contains = [	new Floor(), 
+						new AlphaBox(0, 0, -150, 150, 150, 1, 0),
+						new Text("I don't like this zone :(")];
+
+	mapBS2 = new Map(bZoneColor, [], "mapBS1", "mapBS3"); 
+	mapBS2.contains = [	new Floor(), 
+						new Text("Also sorry about the glitches in the last section")];
+
+	mapBS3 = new Map(bZoneColor, [], "mapBS2", "mapBS3"); 
+	mapBS3.contains = [	new Floor(), 
+						new Text("maybe I'll fix them eventually")];
 
 
 
+
+
+
+						
 
 
 	//ending maps
@@ -695,16 +730,34 @@ function initMaps() {
 						new PartialBox(70, -63, 15, 35, 15, 50, true, true, true),
 						new Box(0, -90, -131, 150, 60, 20)];
 
-	mapE7 = new Map(eZoneColor, [], "mapEC", "NaN"); 
+	mapE7 = new Map(eZoneColor, [], "NaN", "mapE6_F"); 
 	mapE7.contains = [ 	new Floor(),
 						new Wall(3)];
 
+	mapE6_F = new Map(eZoneColor, [], "mapE7", "mapE5_F"); 
+	mapE6_F.contains = [new Floor(), 
+						new Wall(0), 
+						new Wall(2), 
+						new Box(20, -95, 0, 15, 55, 150), 
+						new AlphaBox(-110, -148, -130, 40, 2, 20, 0), 
+						new AlphaBox(-34, -66, -107, 15, 11, 35, 0), 
+						new PartialBox(-5, -45, -137, 10, 5, 13, true, true, true)];
+
+	mapE5_F = new Map(eZoneColor, [], "mapE6_F", "mapEC"); 
+	mapE5_F.contains = [new Floor(), 
+						new Wall(3)];
+
+
+				
+
+	
+	//ending after crossroads
 	mapEC = new Map("#222222", [], "mapEC1", "mapEC"); 
 	mapEC.contains = [ 	new Floor(), 
 						new Icosahedron(90, -110, 25, 40, 30, 50, true, "#8F0"), 
 						new Icosahedron(-70, -100, -125, 50, 50, 50, true, "#8F0"), 
 						new Icosahedron(30, -110, -160, 5, 30, 25, true, "#8F0"),
-						new Text("ads" + spaces + spaces + "Welcome to "),
+						new Text("The crossroads" + spaces + spaces + "Welcome to "),
 						new CodeBlock(`gameFlags["atEC"] = true;`)];
 
 	mapEC1 = new Map("#002200", [], "mapEC4", "mapEC2"); 
@@ -798,26 +851,33 @@ function initMaps() {
 						new PartialBox(0, -150, -120, 30, 0, 30, true, false, true),
 						new CodeBlock("falseFloor();")];
 
-	mapED5 = new Map("#CCAAAA", [], "mapED6", "mapED4"); 
-	mapED5.contains = [ 	new CodeBlock("falseFloor();"), 
+	mapED5 = new Map("#AACCAA", [], "mapED6", "mapED4"); 
+	mapED5.contains = [	new CodeBlock("falseFloor();"), 
+						new PartialBox(-120, -151, 60, 35, 0, 35, true, false, true), 
 						new PartialBox(-120, -150, 60, 30, 0, 30, true, true, true), 
 						new PartialBox(-120, -150, 0, 30, 0, 30, true, false, true), 
 						new PartialBox(-60, -150, 0, 30, 0, 30, true, false, true), 
 						new PartialBox(0, -150, 0, 30, 0, 30, true, false, true), 
+						new PartialBox(120, -151, -120, 35, 0, 35, true, false, true), 
 						new PartialBox(120, -150, -120, 30, 0, 30, true, true, true), 
-						new PartialBox(60, -150, -120, 30, 0, 30, true, false, true), 
+						new PartialBox(-60, -151, -120, 35, 0, 35, true, false, true), 
 						new PartialBox(-60, -150, -120, 30, 0, 30, true, true, true), 
+						new PartialBox(60, -150, -120, 30, 0, 30, true, false, true), 
 						new PartialBox(0, -150, -120, 30, 0, 30, true, false, true)];
 
 	mapED6 = new Map("#CCCCAA", [], "mapED7", "mapED5"); 
 	mapED6.contains = [	new CodeBlock("falseFloor();"), 
+						new PartialBox(120, -151, 120, 35, 0, 35, true, false, true), 
 						new PartialBox(120, -150, 120, 30, 0, 30, true, true, true), 
 						new PartialBox(60, -150, 120, 30, 0, 30, true, false, true), 
+						new PartialBox(0, -151, 120, 35, 0, 35, true, false, true), 
 						new PartialBox(0, -150, 120, 30, 0, 30, true, true, true), 
+						new PartialBox(-120, -151, 60, 35, 0, 35, true, false, true), 
 						new PartialBox(-120, -150, 60, 30, 0, 30, true, true, true), 
 						new PartialBox(-120, -150, 0, 30, 0, 30, true, false, true), 
 						new PartialBox(60, -150, 0, 30, 0, 30, true, false, true), 
 						new PartialBox(0, -150, 0, 30, 0, 30, true, false, true), 
+						new PartialBox(120, -151, -60, 35, 0, 35, true, false, true), 
 						new PartialBox(-120, -150, -60, 30, 0, 30, true, false, true), 
 						new PartialBox(120, -150, -60, 30, 0, 30, true, true, true), 
 						new PartialBox(60, -150, -60, 30, 0, 30, true, false, true), 
@@ -826,56 +886,66 @@ function initMaps() {
 
 	mapED7 = new Map("#CCCCCC", [], "mapED8", "mapED6"); 
 	mapED7.contains = [ 	new CodeBlock("falseFloor();"), 
+						new PartialBox(60, -151, 120, 35, 0, 35, true, false, true), 
 						new PartialBox(60, -150, 120, 30, 0, 30, true, true, true), 
 						new PartialBox(60, -150, 60, 30, 0, 30, true, false, true), 
+						new PartialBox(-120, -151, 0, 40, 0, 40, true, false, true), 
 						new PartialBox(-120, -150, 0, 30, 0, 30, true, true, true), 
 						new PartialBox(60, -150, 0, 30, 0, 30, true, false, true), 
 						new PartialBox(120, -150, -60, 30, 0, 30, true, false, true), 
 						new PartialBox(60, -150, -60, 30, 0, 30, true, false, true), 
 						new PartialBox(120, -150, -120, 30, 0, 30, true, false, true), 
 						new AlphaBox(-150, -95, -120, 1, 25, 30, 1), 
+						new PartialBox(-60, -151, -120, 40, 0, 40, true, false, true), 
 						new PartialBox(-60, -150, -120, 30, 0, 30, true, true, true), 
 						new PartialBox(-150, -35, -120, 0, 35, 30, false, false, false), 
 						new AlphaBox(0, -149, -120, 15, 1, 15, 1)];
 
 	mapED8 = new Map("#CCCCFF", [], "mapE_H", "mapED7"); 
-	mapED8.contains = [ 	new CodeBlock("falseFloor();"), 
-						new PartialBox(120, -150, 120, 30, 0, 30, true, true, true), 
+	mapED8.contains = [	new CodeBlock("falseFloor();"), 
+						new PartialBox(-120, -151, 120, 35, 0, 35, true, false, true), 
+						new PartialBox(120, -151, 120, 35, 0, 35, true, false, true), 
 						new PartialBox(-120, -150, 120, 30, 0, 30, true, true, true), 
-						new PartialBox(120, -150, 60, 30, 0, 30, true, false, true), 
+						new PartialBox(120, -150, 120, 30, 0, 30, true, true, true), 
 						new PartialBox(-120, -150, 60, 30, 0, 30, true, false, true), 
+						new PartialBox(120, -150, 60, 30, 0, 30, true, false, true), 
 						new PartialBox(60, -150, 60, 30, 0, 30, true, false, true), 
 						new PartialBox(0, -150, 60, 30, 0, 30, true, false, true), 
 						new PartialBox(-120, -150, 0, 30, 0, 30, true, false, true), 
 						new PartialBox(0, -150, 0, 30, 0, 30, true, false, true), 
 						new PartialBox(120, -150, -60, 30, 0, 30, true, false, true), 
 						new PartialBox(120, -150, -120, 30, 0, 30, true, false, true), 
-						new PartialBox(60, -150, -120, 30, 0, 30, true, false, true), 
+						new PartialBox(-60, -151, -120, 35, 0, 35, true, false, true), 
 						new PartialBox(-60, -150, -120, 30, 0, 30, true, true, true), 
+						new PartialBox(60, -150, -120, 30, 0, 30, true, false, true), 
 						new PartialBox(0, -150, -120, 30, 0, 30, true, false, true)];
 
 	mapE_H = new Map("#FFFFFF", [], "mapE_H", "mapED8"); 
 	mapE_H.contains = [	new CodeBlock("falseFloor();"), 
-						new CodeBlock("activateFinalCutscene();"),
+						new CodeBlock("activateFinalCutscene();"), 
+						new PartialBox(-120, -151, 120, 35, 0, 35, true, false, true), 
 						new PartialBox(-120, -150, 120, 30, 0, 30, true, true, true), 
 						new PartialBox(-60, -150, 120, 30, 0, 30, true, false, true), 
 						new PartialBox(0, -150, 120, 30, 0, 30, true, false, true), 
 						new PartialBox(-150, -120, 60, 0, 30, 30, false, false, false), 
 						new PartialBox(0, -150, 60, 30, 0, 30, true, false, true), 
-						new PartialBox(-120, -150, 0, 30, 0, 30, true, true, true), 
+						new PartialBox(-120, -151, 0, 35, 0, 35, true, false, true), 
 						new PartialBox(-150, -120, 0, 0, 30, 30, false, false, false), 
+						new PartialBox(-120, -150, 0, 30, 0, 30, true, true, true), 
 						new PartialBox(0, -150, 0, 30, 0, 30, true, false, true), 
 						new AlphaBox(0, -123, 0, 30, 27, 30, true), 
-						new PartialBox(120, -150, -60, 30, 0, 30, true, true, true), 
-						new PartialBox(-120, -150, -60, 30, 0, 30, true, false, true), 
+						new PartialBox(120, -151, -60, 35, 0, 35, true, false, true), 
 						new PartialBox(-150, -120, -60, 0, 30, 30, false, false, false), 
+						new PartialBox(-120, -150, -60, 30, 0, 30, true, false, true), 
+						new PartialBox(120, -150, -60, 30, 0, 30, true, true, true), 
 						new PartialBox(-150, -60, -90, 0, 30, 60, false, false, false), 
-						new PartialBox(120, -150, -120, 30, 0, 30, true, false, true), 
-						new PartialBox(-120, -150, -120, 30, 0, 30, true, false, true), 
 						new PartialBox(-150, -120, -120, 0, 30, 30, false, false, false), 
+						new PartialBox(-120, -150, -120, 30, 0, 30, true, false, true), 
+						new PartialBox(120, -150, -120, 30, 0, 30, true, false, true), 
 						new PartialBox(60, -150, -120, 30, 0, 30, true, false, true), 
-						new PartialBox(0, -150, -120, 30, 0, 30, true, true, true), 
-						new PartialBox(-150, 0, -120, 0, 30, 30, false, false, false)];
+						new PartialBox(0, -151, -120, 35, 0, 35, true, false, true), 
+						new PartialBox(-150, 0, -120, 0, 30, 30, false, false, false), 
+						new PartialBox(0, -150, -120, 30, 0, 30, true, true, true)];
 
 	
 	mapE_HFinal = new Map("#FFFFFF", [], "mapE_HFinal", "mapE_HFinal");

@@ -773,8 +773,12 @@ class Face {
 		if (!player.avoidRR) {
 			player.avoidRR = this.collide(player.drawCoordRR);
 		}
-		if (!player.avoidD) {
-			player.avoidD = this.collide(player.drawCoord);
+
+		//only check the lower point if rotating
+		if (loadingMap.rotating) {
+			if (!player.avoidD) {
+				player.avoidD = this.collide(player.drawCoord);
+			}
 		}
 	}
 
