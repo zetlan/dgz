@@ -378,7 +378,7 @@ function initMaps() {
 						new Box(-60, -120, -75, 30, 5, 75), 
 						new Box(90, -118, -101, 25, 30, 25), 
 						new PartialBox(-85, -55, -110, 15, 15, 45, true, true, true), 
-						new Box(-20, -90, -125, 5, 60, 25)];
+						new Box(-20, -95, -125, 5, 55, 25)];
 
 	mapY6 = new Map(yZoneColor, [], "mapY5", "mapY7"); 
 	mapY6.contains = [ 	new Floor(), 
