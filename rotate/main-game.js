@@ -89,18 +89,22 @@ function keyPress(u) {
 			case 37:
 			case 65:
 				player.ax = -0.5;
+				u.preventDefault();
 				break;
 			case 38:
 			case 87:
 				player.az = 0.5;
+				u.preventDefault();
 				break;
 			case 39:
 			case 68:
 				player.ax = 0.5;
+				u.preventDefault();
 				break;
 			case 40:
 			case 83:
 				player.az = -0.5;
+				u.preventDefault();
 				break;
 
 			//r and f
