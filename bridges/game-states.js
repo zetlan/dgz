@@ -6,7 +6,7 @@ function runMenu() {
 	ctx.textAlign = "center";
 	ctx.font = "20px Comic Sans MS";
 	ctx.fillText("Bridge game is a existance 0u0", canvas.width * 0.5, canvas.height * 0.5);
-	ctx.fillText("Press owO (“w”) to start", canvas.width * 0.5, canvas.height * 0.6);
+	ctx.fillText("Press Z to start", canvas.width * 0.5, canvas.height * 0.6);
 
 }
 
@@ -16,14 +16,35 @@ function runMap() {
 	}
 	human.tick();
 	human.beDrawn();
+
+	//drawing editor things
+	if (editor.occupies > -1) {
+		//border
+		ctx.beginPath();
+		ctx.globalAlpha = 0.5;
+		ctx.strokeStyle = editorColor;
+		ctx.lineWidth = 20;
+		ctx.rect(5, 5, canvas.width - 10, canvas.height - 10);
+		ctx.stroke();
+
+		//highlight edit point
+		ctx.beginPath();
+		ctx.globalAlpha = 1;
+		ctx.lineWidth = 5;
+		ctx.ellipse(editor.object.p[editor.point][0], editor.object.p[editor.point][1], 2, 2, 0, 0, Math.PI * 2);
+		ctx.stroke();
+		ctx.lineWidth = 10;
+		
+	}
+	
 }
 
 function runGame() {
 	human.tick();
-	for (var i = 0; i > appleArray.length; i ++){
+	for (var i = 0; i > appleArray.length; i++){
 		appleArray[i].tick();
 	}
-	for (var i = 0; i > appleArray.length; i ++){
+	for (var i = 0; i > appleArray.length; i++){
 		appleArray[i].beDrawn();
 	}
 	human.beDrawn();
