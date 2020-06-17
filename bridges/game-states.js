@@ -12,13 +12,18 @@ function runMenu() {
 
 function runMap() {
 	for (var a=0;a<loadingMap.length;a++) {
+		loadingMap[a].tick();
 		loadingMap[a].beDrawn();
 	}
+	//player / camera
 	human.tick();
 	human.beDrawn();
 
+	camera.xOffset = human.x - ((canvas.width / 2) / camera.scale);
+	camera.yOffset = human.y - ((canvas.height / 2) / camera.scale);
+
 	//drawing editor things
-	if (editor.occupies > -1) {
+	if (editor.active) {
 		//border
 		ctx.beginPath();
 		ctx.globalAlpha = 0.5;
@@ -28,15 +33,16 @@ function runMap() {
 		ctx.stroke();
 
 		//highlight edit point
-		ctx.beginPath();
-		ctx.globalAlpha = 1;
-		ctx.lineWidth = 5;
-		ctx.ellipse(editor.object.p[editor.point][0], editor.object.p[editor.point][1], 2, 2, 0, 0, Math.PI * 2);
-		ctx.stroke();
-		ctx.lineWidth = 10;
-		
+		if (editor.object != undefined) {
+			ctx.beginPath();
+			ctx.globalAlpha = 1;
+			ctx.lineWidth = 5;
+			var drawPoint = adjustForCamera(editor.object.p[editor.point]);
+			ctx.ellipse(drawPoint[0], drawPoint[1], 2, 2, 0, 0, Math.PI * 2);
+			ctx.stroke();
+			ctx.lineWidth = 10;
+		}
 	}
-	
 }
 
 function runGame() {

@@ -1,3 +1,11 @@
+
+function adjustForCamera(xyPoint) {
+	//adjusts an xy coordinate to go to screen
+	var adjustedPoint = [(xyPoint[0] - camera.xOffset) * camera.scale, (xyPoint[1] - camera.yOffset) * camera.scale];
+	return adjustedPoint;
+}
+
+
 function convertToPolar(x, y) {
 	var direction = Math.atan2(x, y) + Math.PI;
 	var magnitude = Math.sqrt((x * x) + (y * y));
@@ -52,9 +60,9 @@ function inPoly(xyPoint, polyPoints) {
 	//to test if a point is in a polygon, a line is drawn out to infinity (or close enough)
 	//and it's checked against all lines in the polygon. If it hits an odd number of lines, it is inside.
 
-	//making collision line
+	//making collision line that extends a long distance to the positive x direction
 	var linP1 = xyPoint;
-	var linP2 = [canvas.width, xyPoint[1]];
+	var linP2 = [8675309, xyPoint[1]];
 
 	var intersectNum = 0;
 	//checking against all polygon lines
@@ -137,7 +145,36 @@ function lineIntersect(lin1p1, lin1p2, lin2p1, lin2p2) {
 	}
 }
 
+function mapOutput() {
+	//outputs the current map as a string
+
+	//goes through all the elements in the map and appends them to an array as a string
+	let outputMap = [];
+	for (var f=0;f<loadingMap.length;f++) {
+		outputMap.push(loadingMap[f].giveEnglishConstructor());
+	}
+
+	//stringify constructor array
+	outputMap = JSON.stringify(outputMap);
+
+	//misc. changes for conversion to proper format
+	outputMap = outputMap.replace(/"/g, '');
+	outputMap = outputMap.replace(/,n/g, ',\nn');
+	console.log(outputMap);
+}
+
 function rotate(x, y, radians) {
 	[x, y] = [(x * Math.cos(radians)) - (y * Math.sin(radians)), (y * Math.cos(radians)) + (x * Math.sin(radians))];
 	return [x, y];
+}
+
+//rounds a 2d array
+function round2dArray(arr) {
+	for (var u=0;u<arr.length;u++) {
+		for (var v=0;v<arr[u].length;v++) {
+			arr[u][v] = Math.round(arr[u][v]);
+		}
+	}
+
+	return arr;
 }

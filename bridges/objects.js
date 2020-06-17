@@ -2,19 +2,32 @@
 
 class Island {
 	constructor (points) {
-		this.p = points;
+		this.p = round2dArray(points);
 	}
 	
 	beDrawn() {
+		//drawing polygon with camera offset built in
 		ctx.beginPath();
 		ctx.fillStyle = groundColor;
 		ctx.strokeStyle = beachColor;  
-		ctx.moveTo(this.p[0][0], this.p[0][1]);
+		var dStart = adjustForCamera(this.p[0]);
+		ctx.moveTo(dStart[0], dStart[1]);
 		for(var a = 1; a < this.p.length + 2; a++) {
-			ctx.lineTo(this.p[a%(this.p.length)][0], this.p[a%(this.p.length)][1]);
+			var dPoint = adjustForCamera(this.p[a%(this.p.length)]);
+			ctx.lineTo(dPoint[0], dPoint[1]);
 		}
 		ctx.fill();
 		ctx.stroke();
+	}
+
+	tick() {
+
+		
+	}
+
+	giveEnglishConstructor() {
+		var pText = JSON.stringify(this.p);
+		return `new Island(${pText})`;
 	}
 }
 	
@@ -22,10 +35,11 @@ class Island {
 
 class Bridge {
 	constructor (points, startLength) {
-		this.p = points;
+		this.p = round2dArray(points);
 		this.bridgeLength = Math.floor(getDistBetween(points[0][0], points[0][1], points[1][0], points[1][1]));
 		this.startLength = startLength;
 		this.bridgeArr = [];
+		this.tolerance = 10;
 		this.constructBridge();
 	}
 
@@ -43,14 +57,12 @@ class Bridge {
 
 	beDrawn() {
 		//terms for readability
-		var x1 = this.p[0][0];
-		var y1 = this.p[0][1];
-		var x2 = this.p[1][0];
-		var y2 = this.p[1][1];
+		var [x1, y1] = adjustForCamera(this.p[0]);
+		var [x2, y2] = adjustForCamera(this.p[1]);
 
 		//main bridge path
 		ctx.strokeStyle = bridgeColor;
-		dLine(this.p[0], this.p[1]);
+		dLine([x1, y1], [x2, y2]);
 
 		//start blob
 		ctx.fillStyle = bridgeStartColor;
@@ -61,9 +73,20 @@ class Bridge {
 		ctx.fillStyle = bridgeEndColor;
 		dPoint(x2, y2, 5);
 		ctx.fill();
-		
+	}
 
+	tick() {
+		//if the player is near the start of the bridge, move them to the end
+		if (Math.abs(human.x - this.p[0][0]) < this.tolerance && Math.abs(human.y - this.p[0][1]) < this.tolerance) {
+			[human.x, human.y] = this.p[1];
+			human.confirmHome();
+		}
+	}
 
+	giveEnglishConstructor() {
+		var pText = JSON.stringify(this.p);
+		var sText = this.startLength;
+		return `new Bridge(${pText}, ${sText})`;
 	}
 }
 
@@ -100,6 +123,7 @@ class MenuPlayer {
 		this.ay = 0;
 		this.dx = 0;
 		this.dy = 0;
+		this.dc = 0;
 		this.x = x;
 		this.y = y;
 
@@ -108,8 +132,9 @@ class MenuPlayer {
 		this.fric = 0.85;
 		this.mFric = 0.92;
 
-		this.mS = 5;
-		this.aSpeed = 0.25;
+		this.mS = 2.5;
+		this.aSpeed = 0.2;
+		this.cSpeed = 0.05;
 		this.home = -1;
 		this.confirmHome();
 	}
@@ -119,6 +144,17 @@ class MenuPlayer {
 		//updating velocity and position
 		this.dx += this.ax;
 		this.dy += this.ay;
+
+		//updating camera scroll
+		if (this.dc != 0) {
+			if (camera.scale * (1 + this.dc) < camera.scrollValues.max && camera.scale * (1 + this.dc) > camera.scrollValues.min) {
+				camera.scale *= (1 + this.dc);
+				//recenter camera
+				camera.xOffset = human.x - ((canvas.width / 2) / camera.scale);
+				camera.yOffset = human.y - ((canvas.height / 2) / camera.scale);
+			}
+		}
+		
 
 		//friction
 		if (Math.abs(this.ax) + Math.abs(this.ay) > 0) {
@@ -172,7 +208,8 @@ class MenuPlayer {
 	beDrawn() {
 		ctx.beginPath();
 		ctx.fillStyle = playerColor;
-		ctx.ellipse(this.x, this.y, this.r, this.r, 0, 0, Math.PI * 2);
+		var dSpot = adjustForCamera([this.x, this.y]);
+		ctx.ellipse(dSpot[0], dSpot[1], this.r, this.r, 0, 0, Math.PI * 2);
 		ctx.fill();
 	}
 
