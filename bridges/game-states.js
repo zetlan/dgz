@@ -19,6 +19,7 @@ function runMap() {
 	human.tick();
 	human.beDrawn();
 
+	//centering camera on player
 	camera.xOffset = human.x - ((canvas.width / 2) / camera.scale);
 	camera.yOffset = human.y - ((canvas.height / 2) / camera.scale);
 
@@ -45,18 +46,21 @@ function runMap() {
 	}
 }
 
+
 function runGame() {
 	human.tick();
-	for (var i = 0; i > appleArray.length; i++){
-		appleArray[i].tick();
-	}
-	for (var i = 0; i > appleArray.length; i++){
-		appleArray[i].beDrawn();
-	}
 	human.beDrawn();
 	//bridge you have to be ticked! Haha curvy quotes go “brrrrrrrrrr”
 }
 
 function runGameOver() {
+	//background
+	ctx.fillStyle = "#FFFFFF";
+	ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+	//text
+	ctx.fillStyle = "#BABA69";
+	ctx.textAlign = "center";
+	ctx.font = "20px Comic Sans MS";
+	ctx.fillText("yuo died lol", canvas.width * 0.5, canvas.height * 0.5);
 }

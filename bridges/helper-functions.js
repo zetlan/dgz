@@ -13,18 +13,6 @@ function convertToPolar(x, y) {
 	return polar;
 }
 
-function dLine(startXYArr, endXYArr) {
-	ctx.beginPath();
-	ctx.moveTo(startXYArr[0], startXYArr[1]);
-	ctx.lineTo(endXYArr[0], endXYArr[1]);
-	ctx.stroke();
-}
-
-function dPoint(x, y, size) {
-	ctx.beginPath();
-	ctx.ellipse(x, y, size, size, 0, 0, Math.PI * 2);
-}
-
 function getDistBetween(x1, y1, x2, y2) {
 	//subtract position of a from b
 	x2 -= x1;
@@ -177,4 +165,15 @@ function round2dArray(arr) {
 	}
 
 	return arr;
+}
+
+function switchToGameState() {
+	human = theGameCharacter;
+	camera.xOffset = 0;
+	camera.yOffset = 0;
+	gameState = "game";
+}
+
+function switchToMapState() {
+
 }

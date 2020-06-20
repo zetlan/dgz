@@ -76,10 +76,11 @@ class Bridge {
 	}
 
 	tick() {
-		//if the player is near the start of the bridge, move them to the end
+		//if the player is near the start of the bridge, move them to the end and go into bridge mode
 		if (Math.abs(human.x - this.p[0][0]) < this.tolerance && Math.abs(human.y - this.p[0][1]) < this.tolerance) {
 			[human.x, human.y] = this.p[1];
 			human.confirmHome();
+			switchToGameState();
 		}
 	}
 
@@ -89,33 +90,6 @@ class Bridge {
 		return `new Bridge(${pText}, ${sText})`;
 	}
 }
-
-class GamePlayer {
-	constructor (x, y) {
-		this.x = x;
-		this.y = y;
-
-		this.dx = 0;
-		this.dy = 0;
-
-		this.ax = 0;
-		this.ay = 0;
-		this.friction = 0.85;
-		this.movingFriction = 0.92;
-
-		this.mS = 5;
-	}
-
-
-	tick() {
-
-	}
-
-	beDrawn() {
-
-	}
-}
-
 
 class MenuPlayer {
 	constructor (x, y) {
@@ -132,7 +106,6 @@ class MenuPlayer {
 		this.fric = 0.85;
 		this.mFric = 0.92;
 
-		this.mS = 2.5;
 		this.aSpeed = 0.2;
 		this.cSpeed = 0.05;
 		this.home = -1;
@@ -141,12 +114,48 @@ class MenuPlayer {
 
 
 	tick() {
-		//updating velocity and position
-		this.dx += this.ax;
-		this.dy += this.ay;
-
 		//updating camera scroll
+		this.updateCameraScroll();
+
+		//updating velocity
+		this.updateXVelocity();
+		this.updateYVelocity();
+
+		//if not in a home, try to be in a home
+		if (this.home == -1) {
+			this.confirmHome();
+		}
+
+		//updating position
+		this.move();
+		
+	}
+
+	beDrawn() {
+		ctx.fillStyle = playerColor;
+		var dSpot = adjustForCamera([this.x, this.y]);
+		dPoint(dSpot[0], dSpot[1], this.r);
+		ctx.fill();
+	}
+
+	confirmHome() {
+		this.home = -1;
+		//loop through all islands and find which one player is inside
+		for (var u=0;u<loadingMap.length;u++) {
+			//only check if it’s an island
+			if (loadingMap[u].constructor.name == "Island") {
+				if (inPoly([this.x, this.y], loadingMap[u].p)) {
+					this.home = u;
+					u = loadingMap.length + 1;
+				}
+			}
+		}
+	}
+
+	updateCameraScroll() {
+		//only attempt an update if the camera is moving in the first place
 		if (this.dc != 0) {
+			//if the change will still be within the maximum / minimum values, update the camera scroll
 			if (camera.scale * (1 + this.dc) < camera.scrollValues.max && camera.scale * (1 + this.dc) > camera.scrollValues.min) {
 				camera.scale *= (1 + this.dc);
 				//recenter camera
@@ -154,19 +163,34 @@ class MenuPlayer {
 				camera.yOffset = human.y - ((canvas.height / 2) / camera.scale);
 			}
 		}
-		
+	}
 
-		//friction
-		if (Math.abs(this.ax) + Math.abs(this.ay) > 0) {
-			[this.dx, this.dy] = [this.dx * this.mFric, this.dy * this.mFric];
+	updateXVelocity() {
+		//player input
+		this.dx += this.ax;
+		
+		//friction, changes depending on if moving or not
+		if (Math.abs(this.ax) > 0) {
+			this.dx *= this.mFric;
 		} else {
-			[this.dx, this.dy] = [this.dx * this.fric, this.dy * this.fric];
+			this.dx *= this.fric;
 		}
-		//if not in a home, try to be in a home
-		if (this.home == -1) {
-			this.confirmHome();
+	}
+
+	updateYVelocity() {
+		//player input
+		this.dy += this.ay;
+		
+		//friction, changes depending on if moving or not
+		if (Math.abs(this.ay) > 0) {
+			this.dy *= this.mFric;
+		} else {
+			this.dy *= this.fric;
 		}
-		//checking for validity while moving
+	}
+
+	move() {
+		//if the player has a home, make sure the movement happens inside that
 		if (this.home != -1)  {
 			//actual movement
 			//getting 5 copies of the xy movement; offset by -90, -45, 0, 45, and 90 degrees
@@ -204,28 +228,36 @@ class MenuPlayer {
 			this.y += this.dy;
 		}
 	}
+}
 
-	beDrawn() {
-		ctx.beginPath();
-		ctx.fillStyle = playerColor;
-		var dSpot = adjustForCamera([this.x, this.y]);
-		ctx.ellipse(dSpot[0], dSpot[1], this.r, this.r, 0, 0, Math.PI * 2);
-		ctx.fill();
+
+class GamePlayer extends MenuPlayer {
+	constructor (x, y) {
+		super(x, y);
+		//making sure confirmHome doesn't get called every turn
+		this.home = 1;
+
+		//changing a few properties
+		this.r = 12;
+		this.aSpeed = 0.4;
 	}
 
 	confirmHome() {
-		//loop through all islands and find which one player is inside
-		for (var u=0;u<loadingMap.length;u++) {
-			//only check if it’s an island
-			if (loadingMap[u].constructor.name == "Island") {
-				if (inPoly([this.x, this.y], loadingMap[u].p)) {
-					this.home = u;
-					u = loadingMap.length + 1;
-				}
-			}
-		}
+	}
+
+	updateCameraScroll() {
+	}
+
+	updateYVelocity() {
+		
+	}
+
+	move() {
+		this.x += this.dx;
+		this.y += this.dy;
 	}
 }
+
 
 
 class Apple {
