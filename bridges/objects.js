@@ -8,8 +8,8 @@ class Island {
 	beDrawn() {
 		//drawing polygon with camera offset built in
 		ctx.beginPath();
-		ctx.fillStyle = groundColor;
-		ctx.strokeStyle = beachColor;  
+		ctx.fillStyle = color_ground;
+		ctx.strokeStyle = color_beach;  
 		var dStart = adjustForCamera(this.p[0]);
 		ctx.moveTo(dStart[0], dStart[1]);
 		for(var a = 1; a < this.p.length + 2; a++) {
@@ -61,16 +61,16 @@ class Bridge {
 		var [x2, y2] = adjustForCamera(this.p[1]);
 
 		//main bridge path
-		ctx.strokeStyle = bridgeColor;
+		ctx.strokeStyle = color_bridge;
 		dLine([x1, y1], [x2, y2]);
 
 		//start blob
-		ctx.fillStyle = bridgeStartColor;
+		ctx.fillStyle = color_bridgeStart;
 		dPoint(x1, y1, 5);
 		ctx.fill();
 
 		//end blob
-		ctx.fillStyle = bridgeEndColor;
+		ctx.fillStyle = color_bridgeEnd;
 		dPoint(x2, y2, 5);
 		ctx.fill();
 	}
@@ -80,7 +80,8 @@ class Bridge {
 		if (Math.abs(human.x - this.p[0][0]) < this.tolerance && Math.abs(human.y - this.p[0][1]) < this.tolerance) {
 			[human.x, human.y] = this.p[1];
 			human.confirmHome();
-			switchToGameState();
+			loadingBridge = this.bridgeArr;
+			switchToGameplayState();
 		}
 	}
 
@@ -132,7 +133,7 @@ class MenuPlayer {
 	}
 
 	beDrawn() {
-		ctx.fillStyle = playerColor;
+		ctx.fillStyle = color_player;
 		var dSpot = adjustForCamera([this.x, this.y]);
 		dPoint(dSpot[0], dSpot[1], this.r);
 		ctx.fill();
@@ -239,7 +240,13 @@ class GamePlayer extends MenuPlayer {
 
 		//changing a few properties
 		this.r = 12;
-		this.aSpeed = 0.4;
+		this.aSpeed = 0.5;
+		this.mFric = 0.95;
+		this.gravity = 0.4;
+		this.jumpForce = 10;
+		this.canJump = false;
+
+		this.inWater = false;
 	}
 
 	confirmHome() {
@@ -249,19 +256,59 @@ class GamePlayer extends MenuPlayer {
 	}
 
 	updateYVelocity() {
-		
+		//applying jump force if able to jump
+		if (this.ay < 0) {
+			this.ay = 0;
+			if (this.canJump) {
+				this.dy = -1 * this.jumpForce;
+				this.canJump = false;
+			}
+		}
+		//applying gravity
+		this.dy += this.gravity;
+
+		//counteract gravity if on a bridge segment x wise, having a dy that will take you below the bridge, and being the bridge segment y wise
+		if (loadingBridge[Math.floor(this.x / bridgeSegmentWidth)] > 0 && this.y + this.dy > bridgeHeight - bridgeSegmentHeight && this.y < bridgeHeight) {
+			this.dy = 0;
+			this.canJump = true;
+		}
 	}
 
 	move() {
 		this.x += this.dx;
 		this.y += this.dy;
 	}
+
+	tick() {
+		super.tick();
+		//check for going into water
+		if (this.y > waterHeight) {
+			if (!this.inWater) {
+				this.inWater = true;
+				this.gravity /= 2;
+				this.jumpForce /= 2;
+				this.aSpeed -= 0.1;
+				//creating splashes, whose height is proportional to the speed at which the water is entered
+				waveArray.push(new Wave(this.x / waterSegmentWidth, 1 - (1 / Math.abs(this.dy / 4)), 5, wavePropogationRate));
+				waveArray.push(new Wave(this.x / waterSegmentWidth, 1 - (1 / Math.abs(this.dy / 4)), 5, -1 * wavePropogationRate));
+			}
+		} else {
+			if (this.inWater) {
+				this.inWater = false;
+				this.gravity *= 2;
+				this.jumpForce *= 2;
+				this.aSpeed += 0.1;
+			}
+			
+			
+		}
+	}
 }
 
 
 
 class Apple {
-	constructor(x, y, velocity){
+	constructor(x, y, velocity) {
 		this.x = x;
 		this.y = y;
 		this.v = velocity;
@@ -283,5 +330,47 @@ class Apple {
 	
 	endGame() {
 		gameState = "gameover";
+	}
+}
+
+class Wave {
+	constructor(startIndex, startHeight0to1, spread, movement) {
+		this.x = startIndex;
+		this.height = startHeight0to1;
+		this.size = spread;
+		this.d = movement;
+
+		//bounding height
+		if (this.height < 0) {
+			this.height = 0;
+		}
+		if (this.height > 1) {
+			this.height = 1;
+		}
+	}
+
+	tick() {
+		//update movement
+		this.x += this.d;
+
+		//place self on water array based on characteristics
+		//determining characteristics
+		var startInd = Math.ceil(this.x - this.size);
+		var endInd = Math.ceil(this.x + this.size);
+		var tile = startInd;
+
+		//only update the indeces within the size portion, otherwise cosine wave shennanigans occur
+		while (tile < endInd) {
+			//equation for calculating how high water should be, sorry about the less than ideal explanation.
+			//Just know it's a cosine wave cut off after the first wave, with some adjustments to fit the format of the water array.
+			loadingWater[tile] += ((Math.cos(((tile - this.x) * Math.PI) / this.size) / 2) + 0.5) * this.height;
+			tile += 1;
+		}
+		//every time ticked, height decreases a bit
+		this.height *= 0.99;
+		//if height is lower, decrease more
+		if (this.height < 0.05) {
+			this.height *= 0.9;
+		}
 	}
 }

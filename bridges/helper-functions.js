@@ -167,13 +167,44 @@ function round2dArray(arr) {
 	return arr;
 }
 
-function switchToGameState() {
+function switchToGameplayState() {
 	human = theGameCharacter;
 	camera.xOffset = 0;
 	camera.yOffset = 0;
 	gameState = "game";
+
+	//initializing water
+	loadingWater = [];
+	//figure out ratio of water indeces to bridge indeces, calculate number of waters
+	var wRatio = bridgeSegmentWidth / waterSegmentWidth;
+	var waterIndeces = (loadingBridge.length * wRatio) + 10;
+
+	//initilize array with number of indeces specified
+
+	loadingWater = [];
+	for (var q=0;q<waterIndeces;q++) {
+		loadingWater.push(0);
+	}
 }
 
 function switchToMapState() {
 
+}
+
+function updateWater() {
+	//zero the array
+	for (var g=0;g<loadingWater.length;g++) {
+		loadingWater[g] = 0;
+	}
+
+	//loop through the wave objects
+	for (var d=0;d<waveArray.length;d++) {
+		//update object
+		waveArray[d].tick();
+
+		//if object is queued for death, make it die
+		if (waveArray[d].height < 0.01) {
+			waveArray.splice(d, 1);
+		}
+	}
 }

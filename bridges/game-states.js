@@ -11,31 +11,37 @@ function runMenu() {
 }
 
 function runMap() {
-	for (var a=0;a<loadingMap.length;a++) {
-		loadingMap[a].tick();
-		loadingMap[a].beDrawn();
-	}
-	//player / camera
+	//background
+	ctx.fillStyle = color_water;
+	ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+	//player ticking
 	human.tick();
-	human.beDrawn();
 
 	//centering camera on player
 	camera.xOffset = human.x - ((canvas.width / 2) / camera.scale);
 	camera.yOffset = human.y - ((canvas.height / 2) / camera.scale);
+
+	for (var a=0;a<loadingMap.length;a++) {
+		loadingMap[a].tick();
+		loadingMap[a].beDrawn();
+	}
+
+	//drawing player, goes last
+	human.beDrawn();	
 
 	//drawing editor things
 	if (editor.active) {
 		//border
 		ctx.beginPath();
 		ctx.globalAlpha = 0.5;
-		ctx.strokeStyle = editorColor;
+		ctx.strokeStyle = color_editor;
 		ctx.lineWidth = 20;
 		ctx.rect(5, 5, canvas.width - 10, canvas.height - 10);
 		ctx.stroke();
 
 		//highlight edit point
 		if (editor.object != undefined) {
-			ctx.beginPath();
 			ctx.globalAlpha = 1;
 			ctx.lineWidth = 5;
 			var drawPoint = adjustForCamera(editor.object.p[editor.point]);
@@ -48,9 +54,28 @@ function runMap() {
 
 
 function runGame() {
+	//background
+	ctx.fillStyle = color_background;
+	ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+	//player things
 	human.tick();
 	human.beDrawn();
-	//bridge you have to be ticked! Haha curvy quotes go “brrrrrrrrrr”
+
+	//bridge you have to be ticked! `Haha curvy quotes go “brrrrrrrrrr”`
+	//drawing bridge
+	dBridge();
+
+	//ticking/drawing water
+	updateWater();
+	dWater();
+
+	//ticking/drawing debris
+
+	
+
+	//ticking/drawing bridge machine
+	pTime += 1;
 }
 
 function runGameOver() {

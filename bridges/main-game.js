@@ -13,17 +13,33 @@ var ctx;
 var timer;
 var gameState = "menu";
 
-var bridgeColor = "#000000";
-var bridgeStartColor = "#00FF00";
-var bridgeEndColor = "#E65F5C";
-var groundColor = "#22DE44";
-var beachColor = "#43BD90";
-var backgroundColor = "#639BDB";
-var playerColor = "#FF00FF";
-var editorColor = "#FF8888";
+var color_bridge = "#000000";
+var color_bridgeStart = "#00FF00";
+var color_bridgeEnd = "#E65F5C";
+var color_ground = "#22DE44";
+var color_beach = "#43BD90";
+var color_water = "#639BDB";
+var color_background = "#A3C5FF";
+var color_player = "#FF00FF";
+var color_editor = "#FF8888";
 
+var pTime = 0;
+
+//to clarify, the height of the thing here is its default position, relative to the screen.
+//However, the height of a segment is its variance from that position.
+//For example, the bridge starts at 75% of the screen, but extends 12 pixels below that. (bridgeHeight + bridgeSegmentHeight)
 var bridgeHeight;
+var bridgeSegmentWidth = 36;
+var bridgeSegmentHeight = 12;
+
+
+var waterSegmentWidth = 24;
+var waterSegmentHeight = 50;
 var waterHeight;
+
+var wavePropogationRate = 0.2;
+var waveHeightSmall = 0.2;
+var waveHeightMedium = 0.5;
 
 //objectos
 let loadingMap = [	new Island([[-20,-679],[-86,-745],[1,-836],[100,-776],[74,-685]]),
@@ -45,6 +61,8 @@ let loadingMap = [	new Island([[-20,-679],[-86,-745],[1,-836],[100,-776],[74,-68
 				];
 
 let loadingBridge = [];
+let loadingWater = [];
+let waveArray = [];
 let debrisArray = [];
 
 
@@ -239,10 +257,6 @@ function handleMouseUp(a) {
 }
 
 function main() {
-	//background
-	ctx.fillStyle = backgroundColor;
-	ctx.fillRect(0, 0, canvas.width, canvas.height);
-
 	switch (gameState) {
 		case "menu":
 			runMenu();
