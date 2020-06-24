@@ -13,6 +13,9 @@ var ctx;
 var timer;
 var gameState = "menu";
 
+var button_z = false;
+var pTime = 0;
+
 var color_bridge = "#000000";
 var color_bridgeStart = "#00FF00";
 var color_bridgeEnd = "#E65F5C";
@@ -25,15 +28,15 @@ var color_editor = "#FF8888";
 var color_machine = "#888888";
 var color_debris = "#888888";
 
-var pTime = 0;
+var islandShoreThickness = 10;
 
 //to clarify, the height of the thing here is its default position, relative to the screen.
 //However, the height of a segment is its variance from that position.
 //For example, the bridge starts at 75% of the screen, but extends 12 pixels below that. (bridgeHeight + bridgeSegmentHeight)
 var bridgeHeight;
 var bridgeSegmentWidth = 36;
+var bridgeWorldSegmentWidth = 2.5;
 var bridgeSegmentHeight = 12;
-
 
 var waterSegmentWidth = 24;
 var waterSegmentHeight = 50;
@@ -66,7 +69,7 @@ let loadingMap = [	new Island([[-20,-679],[-86,-745],[1,-836],[100,-776],[74,-68
 					new Bridge([[-425,123],[-359,7]], 3)
 				];
 
-let loadingBridge = [];
+let loadingBridge;
 let loadingWater = [];
 let waveArray = [];
 let debrisArray = [];
@@ -104,7 +107,7 @@ let machine;
 function setup() {
 	canvas = document.getElementById("cucumber");
 	ctx = canvas.getContext("2d");
-	ctx.lineWidth = 10;
+	ctx.lineWidth = islandShoreThickness * camera.scale;
 	ctx.lineJoin = "round";
 
 	bridgeHeight = 0.75 * canvas.height;
@@ -128,6 +131,8 @@ function handleKeyPress(u) {
 			if (gameState == "game") {
 				human.buildBridge();
 			}
+			button_z = true;
+			window.setTimeout(zNegate, 30);
 			break;
 		case 37:
 			human.ax = -1 * human.aSpeed;

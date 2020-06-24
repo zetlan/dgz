@@ -9,7 +9,7 @@ class Island {
 		//drawing polygon with camera offset built in
 		ctx.beginPath();
 		ctx.fillStyle = color_ground;
-		ctx.strokeStyle = color_beach;  
+		ctx.strokeStyle = color_beach;
 		var dStart = adjustForCamera(this.p[0]);
 		ctx.moveTo(dStart[0], dStart[1]);
 		for(var a = 1; a < this.p.length + 2; a++) {
@@ -36,11 +36,13 @@ class Island {
 class Bridge {
 	constructor (points, startLength) {
 		this.p = round2dArray(points);
-		this.bridgeLength = Math.floor(getDistBetween(points[0][0], points[0][1], points[1][0], points[1][1]));
+		this.bridgeLength = Math.floor(getDistBetween(points[0][0], points[0][1], points[1][0], points[1][1]) / bridgeWorldSegmentWidth);
 		this.startLength = startLength;
 		this.bridgeArr = [];
 		this.tolerance = 10;
 		this.constructBridge();
+		this.opacity = 0;
+		this.completed = false;
 	}
 
 	constructBridge() {
@@ -61,34 +63,77 @@ class Bridge {
 		var [x2, y2] = adjustForCamera(this.p[1]);
 
 		//main bridge path
+		ctx.globalAlpha = this.opacity;
 		ctx.strokeStyle = color_bridge;
 		dLine([x1, y1], [x2, y2]);
+		ctx.globalAlpha = 1;
 
 		//start blob
-		ctx.fillStyle = color_bridgeStart;
+		//if player is near, color it green. Otherwise, red
+		if (this.playerIsNear(0)) {
+			ctx.fillStyle = color_bridgeStart;
+		} else {
+			ctx.fillStyle = color_bridgeEnd;
+		}
 		dPoint(x1, y1, 5);
 		ctx.fill();
+		
 
 		//end blob
-		ctx.fillStyle = color_bridgeEnd;
+		//same color system here
+		if (this.playerIsNear(1)) {
+			ctx.fillStyle = color_bridgeStart;
+		} else {
+			ctx.fillStyle = color_bridgeEnd;
+		}
 		dPoint(x2, y2, 5);
 		ctx.fill();
 	}
 
 	tick() {
-		//if the player is near the start of the bridge, move them to the end and go into bridge mode
-		if (Math.abs(human.x - this.p[0][0]) < this.tolerance && Math.abs(human.y - this.p[0][1]) < this.tolerance) {
-			[human.x, human.y] = this.p[1];
-			human.confirmHome();
-			loadingBridge = this.bridgeArr;
-			switchToGameplayState();
+		//if the player is near one end of the bridge, activate bridge mode
+		if (button_z) {
+			if (this.playerIsNear(0)) {
+				this.moveThroughSelfTo(1);
+			}
+
+			if (this.playerIsNear(1)) {
+				this.moveThroughSelfTo(0);
+			}
 		}
+		//every once in a while, check opacity
+		if (pTime % 46 == 0) {
+			this.checkOpacity();
+		}
+	}
+
+	playerIsNear(index) {
+		if (Math.abs(human.x - this.p[index][0]) < this.tolerance && Math.abs(human.y - this.p[index][1]) < this.tolerance) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	moveThroughSelfTo(index) {
+		[human.x, human.y] = this.p[index];
+		human.confirmHome();
+		loadingBridge = this;
+		switchToGameplayState();
 	}
 
 	giveEnglishConstructor() {
 		var pText = JSON.stringify(this.p);
 		var sText = this.startLength;
 		return `new Bridge(${pText}, ${sText})`;
+	}
+
+	checkOpacity() {
+		this.opacity = 0;
+		for (var t=0;t<this.bridgeArr.length;t++) {
+			this.opacity += this.bridgeArr[t];
+		}
+		this.opacity /= this.bridgeArr.length;
 	}
 }
 
@@ -268,7 +313,13 @@ class GamePlayer extends MenuPlayer {
 		this.dy += this.gravity;
 
 		//counteract gravity if on a bridge segment x wise, having a dy that will take you below the bridge, and being the bridge segment y wise
-		if (loadingBridge[Math.floor(this.x / bridgeSegmentWidth)] > 0 && this.y + this.dy > bridgeHeight - bridgeSegmentHeight && this.y < bridgeHeight) {
+		if (loadingBridge.bridgeArr[Math.floor(this.x / bridgeSegmentWidth)] > 0 && this.y + this.dy > bridgeHeight - bridgeSegmentHeight && this.y < bridgeHeight) {
+			//different forced height for different bridge versions
+			if (loadingBridge.bridgeArr[Math.floor(this.x / bridgeSegmentWidth)] == 1) {
+				this.y = bridgeHeight - this.r;
+			} else if (loadingBridge.bridgeArr[Math.floor(this.x / bridgeSegmentWidth)] == 0.5) {
+				this.y = (bridgeHeight + (bridgeSegmentHeight * 0.5)) - this.r ;
+			}
 			this.dy = 0;
 			this.canJump = true;
 		}
@@ -311,18 +362,28 @@ class GamePlayer extends MenuPlayer {
 		if (this.y < waterHeight) {
 			var humanTile = Math.floor(human.x / bridgeSegmentWidth);
 			//center
-			if (!loadingBridge[humanTile]) {
-				loadingBridge[humanTile] = 1;
+			if (loadingBridge.bridgeArr[humanTile] == 0) {
+				loadingBridge.bridgeArr[humanTile] = 1;
 			}
 
 			//left
-			else if (!loadingBridge[humanTile-1]) {
-				loadingBridge[humanTile-1] = 1;
+			else if (loadingBridge.bridgeArr[humanTile-1] == 0) {
+				loadingBridge.bridgeArr[humanTile-1] = 1;
 			}
 
 			//right
-			else if (!loadingBridge[humanTile+1]) {
-				loadingBridge[humanTile+1] = 1;
+			else if (loadingBridge.bridgeArr[humanTile+1] == 0) {
+				loadingBridge.bridgeArr[humanTile+1] = 1;
+			}
+
+			//left2
+			else if (loadingBridge.bridgeArr[humanTile-2] == 0) {
+				loadingBridge.bridgeArr[humanTile-2] = 1;
+			}
+
+			//right2
+			else if (loadingBridge.bridgeArr[humanTile+2] == 0) {
+				loadingBridge.bridgeArr[humanTile+2] = 1;
 			}
 		}
 	}
@@ -389,9 +450,15 @@ class Machine {
 		}
 
 		//move
+		this.move();
 
 		//age
 		this.age += 1;
+
+		//exit gameplay if at end of bridge
+		if (this.x > loadingBridge.bridgeArr.length * bridgeSegmentWidth) {
+			switchToMapState();
+		}
 	}
 
 	beDrawn() {
@@ -410,6 +477,37 @@ class Machine {
 
 		//push debris to the debris array
 		debrisArray.push(new Debris(this.x, this.y, debrisVel[0], debrisVel[1]));
+
+	}
+
+	move() {
+		//if no target position is set, 
+		if (this.targetX == this.x) {
+			//decide whether to move
+			var problem = false;
+			var selfTile = Math.floor(this.x / bridgeSegmentWidth);
+			for (var g=0;g<11;g++) {
+				if (loadingBridge.bridgeArr[selfTile + g] == 0) {
+					problem = true;
+				}
+			}
+
+			//set a target position
+			if (problem == false) {
+				this.targetX = this.x + (bridgeSegmentWidth * 5);
+			}
+		} else {
+			//move closer to the target position
+			var difference = this.targetX - this.x;
+			difference *= 0.05;
+			this.x += difference;
+			//if the difference is small enough, just move there
+			if (Math.abs(this.targetX - this.x) < 1) {
+				this.x = this.targetX;
+			}
+		}
+
+		
 
 	}
 
@@ -497,18 +595,24 @@ class Debris {
 			if (this.weak) {
 				waveArray.push(new Wave(this.x / waterSegmentWidth, waveHeightSmall, 3, wavePropogationRate));
 				waveArray.push(new Wave(this.x / waterSegmentWidth, waveHeightSmall, 3, -1 * wavePropogationRate));
+				this.aSpeed *= 0.8;
 			} else {
 				waveArray.push(new Wave(this.x / waterSegmentWidth, waveHeightMedium, 3, wavePropogationRate));
 				waveArray.push(new Wave(this.x / waterSegmentWidth, waveHeightMedium, 3, -1 * wavePropogationRate));
+				this.aSpeed *= 0.8;
 			}
-
 		}
+
+		//change rotation
+		this.a += this.aSpeed;
 	}
 
 	beDrawn() {
 		var drawPos = adjustForCamera([this.x, this.y]);
+		ctx.beginPath();
 		ctx.fillStyle = color_debris;
-		ctx.fillRect(drawPos[0], drawPos[1], this.r, this.r);
+		ctx.ellipse(drawPos[0], drawPos[1], this.r * 0.5, this.r * 1.5, this.a, 0, Math.PI * 2);
+		ctx.fill();
 	}
 
 	destroyBridge() {
@@ -517,12 +621,14 @@ class Debris {
 			//check for tile self is in
 			var selfTile = Math.floor(this.x / bridgeSegmentWidth);
 			//if it's there, lower its strength
-			if (loadingBridge[selfTile] > 0) {
-				loadingBridge[selfTile] -= 0.5;
+			if (loadingBridge.bridgeArr[selfTile] > 0) {
+				loadingBridge.bridgeArr[selfTile] -= 0.5;
 
 				//make self weaker
 				if (!this.weak) {
 					this.weak = true;
+					this.r /= 2;
+					this.aSpeed /= 2;
 					this.dy = -10 * this.gravity;
 				} else {
 					//just destroy self if already weak

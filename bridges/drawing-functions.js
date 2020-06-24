@@ -25,9 +25,9 @@ function dBridge() {
     for (var e=startInd;e<endInd;e++) {
         //console.log(e, startPos + (bridgeSegmentWidth * tiles), bridgeHeight);
         //if the bridge segment exists, draw it
-        if (loadingBridge[e] == 1) { 
+        if (loadingBridge.bridgeArr[e] == 1) { 
             ctx.fillRect((bridgeSegmentWidth * tiles) - startPos, bridgeHeight, bridgeSegmentWidth * 0.95, bridgeSegmentHeight);
-        } else if (loadingBridge[e] == 0.5) {
+        } else if (loadingBridge.bridgeArr[e] == 0.5) {
             ctx.fillRect((bridgeSegmentWidth * tiles) - startPos, bridgeHeight + bridgeSegmentHeight * 0.5, bridgeSegmentWidth * 0.95, bridgeSegmentHeight * 0.5);
         }
 

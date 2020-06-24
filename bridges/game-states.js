@@ -50,6 +50,7 @@ function runMap() {
 			ctx.lineWidth = 10;
 		}
 	}
+	pTime += 1;
 }
 
 
@@ -88,13 +89,14 @@ function runGame() {
 
 	//camera scroll
 
-	//forwards
+	
 	var screenHumanPos = adjustForCamera([human.x, human.y]);
-	if (screenHumanPos[0] > canvas.width * 0.75) {
+	//forwards, keep player out of the 25% right zone but make sure to not go off the right edge
+	if (screenHumanPos[0] > canvas.width * 0.75 && camera.xOffset < (loadingBridge.bridgeArr.length * bridgeSegmentWidth) - canvas.width) {
 		camera.xOffset = human.x - canvas.width * 0.75;
 	}
 
-	//backwards
+	//backwards, keep player out of the 25% left zone but make sure to not go off the left edge
 	if (screenHumanPos[0] < canvas.width * 0.25 && camera.xOffset > 10) {
 		camera.xOffset = human.x - canvas.width * 0.25;
 	};

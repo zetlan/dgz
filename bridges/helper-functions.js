@@ -105,7 +105,7 @@ function getIntersectPoint(xyPoint1 , xyPoint2, polyPoints) {
 }
 
 //not a very complex function, but this way I don't have to write out the equation every time
-function lerp(val1, val2, percentage0to1) {
+function linterp(val1, val2, percentage0to1) {
 	return val1 + ((val2 - val1) * percentage0to1);
 }
 
@@ -174,11 +174,13 @@ function switchToGameplayState() {
 	camera.scale = 1;
 	gameState = "game";
 
+	
+
 	//initializing water
 	loadingWater = [];
 	//figure out ratio of water indeces to bridge indeces, calculate number of waters
 	var wRatio = bridgeSegmentWidth / waterSegmentWidth;
-	var waterIndeces = (loadingBridge.length * wRatio) + 10;
+	var waterIndeces = (loadingBridge.bridgeArr.length * wRatio) + 10;
 
 	//initilize array with number of indeces specified
 
@@ -189,7 +191,8 @@ function switchToGameplayState() {
 }
 
 function switchToMapState() {
-
+	human = theMenuCharacter;
+	gameState = "map";
 }
 
 function updateWater() {
@@ -208,4 +211,8 @@ function updateWater() {
 			waveArray.splice(d, 1);
 		}
 	}
+}
+
+function zNegate() {
+	button_z = false;
 }
