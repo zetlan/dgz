@@ -171,6 +171,7 @@ function switchToGameplayState() {
 	human = theGameCharacter;
 	camera.xOffset = 0;
 	camera.yOffset = 0;
+	camera.scale = 1;
 	gameState = "game";
 
 	//initializing water

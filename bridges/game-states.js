@@ -71,10 +71,34 @@ function runGame() {
 	dWater();
 
 	//ticking/drawing debris
+	for (var y=0;y<debrisArray.length;y++) {
+		debrisArray[y].tick();
+		debrisArray[y].beDrawn();
+
+		//remove debris from array if too far off the screen
+		if (debrisArray[y].y > canvas.height * 1.3) {
+			debrisArray.splice(y, 1);
+		}
+	}
 
 	
-
 	//ticking/drawing bridge machine
+	machine.tick();
+	machine.beDrawn();
+
+	//camera scroll
+
+	//forwards
+	var screenHumanPos = adjustForCamera([human.x, human.y]);
+	if (screenHumanPos[0] > canvas.width * 0.75) {
+		camera.xOffset = human.x - canvas.width * 0.75;
+	}
+
+	//backwards
+	if (screenHumanPos[0] < canvas.width * 0.25 && camera.xOffset > 10) {
+		camera.xOffset = human.x - canvas.width * 0.25;
+	};
+
 	pTime += 1;
 }
 

@@ -22,6 +22,8 @@ var color_water = "#639BDB";
 var color_background = "#A3C5FF";
 var color_player = "#FF00FF";
 var color_editor = "#FF8888";
+var color_machine = "#888888";
+var color_debris = "#888888";
 
 var pTime = 0;
 
@@ -40,6 +42,10 @@ var waterHeight;
 var wavePropogationRate = 0.2;
 var waveHeightSmall = 0.2;
 var waveHeightMedium = 0.5;
+
+var machineRadius = 40;	
+
+var debrisGravity = 0.5;
 
 //objectos
 let loadingMap = [	new Island([[-20,-679],[-86,-745],[1,-836],[100,-776],[74,-685]]),
@@ -91,6 +97,7 @@ let mouse = {
 let human;
 let theMenuCharacter;
 let theGameCharacter;
+let machine;
 
 //functions
 
@@ -106,6 +113,7 @@ function setup() {
 	theMenuCharacter = new MenuPlayer(0, 0);
 	theGameCharacter = new GamePlayer(0, canvas.height * 0.5);
 	human = theMenuCharacter;
+	machine = new Machine();
 
 	timer = window.requestAnimationFrame(main);
 }
@@ -116,6 +124,9 @@ function handleKeyPress(u) {
 		case 90:
 			if (gameState == "menu") {
 			gameState = "map";
+			}
+			if (gameState == "game") {
+				human.buildBridge();
 			}
 			break;
 		case 37:

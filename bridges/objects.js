@@ -46,12 +46,12 @@ class Bridge {
 	constructBridge() {
 		//starting with the starting segments
 		for (var r=0;r<this.startLength;r++) {
-			this.bridgeArr.push(true);
+			this.bridgeArr.push(1);
 		}
 
 		//segments to be built
 		for (var s=0;s<this.bridgeLength - this.startLength;s++) {
-			this.bridgeArr.push(false);
+			this.bridgeArr.push(0);
 		}
 	}
 
@@ -275,7 +275,9 @@ class GamePlayer extends MenuPlayer {
 	}
 
 	move() {
-		this.x += this.dx;
+		if (this.x + this.dx > 0) {
+			this.x += this.dx;
+		}
 		this.y += this.dy;
 	}
 
@@ -303,33 +305,26 @@ class GamePlayer extends MenuPlayer {
 			
 		}
 	}
-}
 
+	buildBridge() {
+		//only build bridge if above water
+		if (this.y < waterHeight) {
+			var humanTile = Math.floor(human.x / bridgeSegmentWidth);
+			//center
+			if (!loadingBridge[humanTile]) {
+				loadingBridge[humanTile] = 1;
+			}
 
+			//left
+			else if (!loadingBridge[humanTile-1]) {
+				loadingBridge[humanTile-1] = 1;
+			}
 
-class Apple {
-	constructor(x, y, velocity) {
-		this.x = x;
-		this.y = y;
-		this.v = velocity;
-		this.g = 2; //gravity
-	}
-
-	tick() {
-		this.y += this.v;
-		this.v = this.g * ((this.v/this.g) + 1);
-
-		if((this.x > human.x-10) && (this.x < human.x+10) && (this.y > human.y)){
-			human.resetApple();
-		} else if(this.y > waterHeight){
-			endGame();
-		} else if(this.y > bridgeHeight){
-			loadingBridge[Math.floor(this.x / canvas.width)] = false;
+			//right
+			else if (!loadingBridge[humanTile+1]) {
+				loadingBridge[humanTile+1] = 1;
+			}
 		}
-	}
-	
-	endGame() {
-		gameState = "gameover";
 	}
 }
 
@@ -371,6 +366,171 @@ class Wave {
 		//if height is lower, decrease more
 		if (this.height < 0.05) {
 			this.height *= 0.9;
+		}
+	}
+}
+
+class Machine {
+	constructor() {
+		this.x = bridgeSegmentWidth;
+		this.y = bridgeHeight;
+		this.r = machineRadius;
+		this.age = 0;
+		this.targetX = bridgeSegmentWidth;
+	}
+
+	tick() {
+		//collide with player
+		this.collideWithPlayer();
+
+		//create debris
+		if (pTime % 100 == 50) {
+			this.createDebris();
+		}
+
+		//move
+
+		//age
+		this.age += 1;
+	}
+
+	beDrawn() {
+		ctx.fillStyle = color_machine;
+		var p1 = adjustForCamera([this.x - this.r, this.y - this.r]);
+		ctx.fillRect(p1[0], p1[1], this.r * 2, this.r * 2);
+	}
+
+	createDebris() {
+		//randomly select the position where the debris should land, from +bridgeSegmentWidth to almost the edge of the screen
+		var landPos = (Math.random() * (canvas.width - bridgeSegmentWidth * 3)) + bridgeSegmentWidth * 2;
+		landPos += this.x;
+
+		//get velocity needed to land debris in that spot
+		var debrisVel = this.calculateVelocity([landPos, waterHeight], [this.x, this.y], canvas.height * 0.8);
+
+		//push debris to the debris array
+		debrisArray.push(new Debris(this.x, this.y, debrisVel[0], debrisVel[1]));
+
+	}
+
+	calculateVelocity(landingSpot, startingSpot, peakHeight) {
+		//based on gravity and peak height (where gravity has cancelled out initial velocity) get initial dy
+
+		//by the way, here's how I got dy
+		/*
+		the parabola describing time and height is gx^2 + vx + o, with g being gravity, v being initial velocity, and o being offset.
+		We know what the peak height, the gravity, and the offset should be, and peak height is obtained with the equation -v / 2g, so we can replace 
+		every instance of x with -v / 2g, since we want the equation to represent velocity that will get us to the highest point.
+		The equation is now y = g(-v / 2g)(-v / 2g) + v(-v / 2g) + o, which simplifies to (-v^2g / 4g^2) + (v^2 / -2g) + o.
+		We can now rewrite this in terms of v to get..
+		
+		v = sqrt(4go - 4gy) where g is gravity, o is offset, and y is the target height. (gravity is always 0.5)
+
+		So yay! That's how to get the y velocity for the target height!
+		*/
+		var grav = debrisGravity / -2;
+		var initDy = Math.sqrt(4 * grav * (landingSpot[1] - startingSpot[1]) - 4 * grav * peakHeight);
+
+		//getting the position of the intercept is easy, just use the quadratic equation
+		var interceptTime = (-1 * initDy - Math.sqrt((initDy * initDy) - (4 * grav * (landingSpot[1] - startingSpot[1])))) / (2 * grav);
+		
+		//divide total distance covered by total time to get velocity per tick
+		var totalDist = landingSpot[0] - startingSpot[0];
+		var initDx = totalDist / interceptTime;
+		//flip dy to account for screen coordinates
+		initDy *= -1;
+
+		//return solution
+		return [initDx, initDy];
+	}
+
+	collideWithPlayer() {
+		//sideways
+		if (human.x > this.x && human.x - human.r <= this.x + this.r && human.y > this.y - this.r) {
+			human.dx = 0.5;
+		}
+
+		//upways
+		if (human.x > this.x - this.r && human.x < this.x + this.r && human.y < this.y && human.y + human.r > this.y - this.r * 1.05) {
+			human.dy = -1 * human.gravity;
+			//force player to be above the machine
+
+			human.canJump = true;
+		}
+	}
+}
+
+class Debris {
+	constructor(x, y, dx, dy) {
+		this.x = x;
+		this.y = y;
+		this.r = 10;
+		this.a = Math.random() * Math.PI * 2;
+		this.aSpeed = Math.random() - 0.5;
+		this.dx = dx;
+		this.dy = dy;
+		this.gravity = debrisGravity;
+		this.inWater = false;
+		this.weak = false;
+	}
+
+	tick() {
+		//changing velocity
+		this.dy += this.gravity;
+
+		//changing position
+		this.x += this.dx;
+		this.y += this.dy;
+
+		//colliding with bridge
+		this.destroyBridge();
+
+		//colliding with water
+		if (!this.inWater && this.y > waterHeight) {
+			//physics changes
+			this.inWater = true;
+			this.dy /= 2;
+			this.dx *= 1.1;
+			this.gravity /= 2;
+
+			//wave creation
+			if (this.weak) {
+				waveArray.push(new Wave(this.x / waterSegmentWidth, waveHeightSmall, 3, wavePropogationRate));
+				waveArray.push(new Wave(this.x / waterSegmentWidth, waveHeightSmall, 3, -1 * wavePropogationRate));
+			} else {
+				waveArray.push(new Wave(this.x / waterSegmentWidth, waveHeightMedium, 3, wavePropogationRate));
+				waveArray.push(new Wave(this.x / waterSegmentWidth, waveHeightMedium, 3, -1 * wavePropogationRate));
+			}
+
+		}
+	}
+
+	beDrawn() {
+		var drawPos = adjustForCamera([this.x, this.y]);
+		ctx.fillStyle = color_debris;
+		ctx.fillRect(drawPos[0], drawPos[1], this.r, this.r);
+	}
+
+	destroyBridge() {
+		//check for the correct y range
+		if (this.y + this.r > bridgeHeight && this.y - this.r < bridgeHeight + bridgeSegmentHeight) {
+			//check for tile self is in
+			var selfTile = Math.floor(this.x / bridgeSegmentWidth);
+			//if it's there, lower its strength
+			if (loadingBridge[selfTile] > 0) {
+				loadingBridge[selfTile] -= 0.5;
+
+				//make self weaker
+				if (!this.weak) {
+					this.weak = true;
+					this.dy = -10 * this.gravity;
+				} else {
+					//just destroy self if already weak
+					this.inWater = true;
+					this.y = canvas.height * 147;
+				}
+				
+			}
 		}
 	}
 }
