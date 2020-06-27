@@ -3,7 +3,7 @@
   	<head>
     	<meta charset="utf-8">
     	<meta name="viewport" content="width=device-width">
-    	<title>Lovely Linies</title>
+    	<title>Square Maze Generator</title>
 		<style>
 
 		body {
@@ -12,9 +12,11 @@
 		#canvas {
 			border-style: double;
 			border-color: slateblue;
-			margin: auto;
-			display: block;
-		}
+        }
+        #mid {
+            text-align: center;
+            margin-right: 15%;
+        }
 		</style>
   	</head>
 	<body>
@@ -22,8 +24,7 @@
             var loadingMaze = [];
             var arrSize = 20;
             var squareSize = 20;
-			var changeSpeed = 0;
-            var maxChangeSpeed = 0.0055;
+            var wThick = 2;
             
             var timer;
 
@@ -36,8 +37,9 @@
                 ctx = canvas.getContext("2d");
 
                 document.getElementById("cellRange").oninput = updateCellNum;
+                document.getElementById("sizeRange").oninput = updateCellSize;
+                document.getElementById("thickRange").oninput = updateWallThickness;
 
-                squareSize;
                 [canvas.width, canvas.height] = [squareSize * arrSize, squareSize * arrSize];
 
 				centerX = canvas.width / 2;
@@ -69,26 +71,21 @@
                 for (var c=0;c<loadingMaze.length;c++) {
                     for (var d=0;d<loadingMaze[c].length;d++) {
 
-                        ctx.fillStyle = "#FFFFFF";
-                        if (loadingMaze[c][d][2]) {
-                            ctx.fillRect(d * squareSize, c * squareSize, squareSize, squareSize);
-                        }
-
-                        //drawing walls
+                        //drawing walls, some numbers are multiplied when added to avoid concatination
                         ctx.fillStyle = color_wall;
                         if (loadingMaze[c][d][1]) {
-                            ctx.fillRect(d * squareSize, c * squareSize, squareSize, 1);
+                            ctx.fillRect((d * squareSize), (c * squareSize), (squareSize*1)+(wThick*1), wThick);
                         }
 
                         if (loadingMaze[c][d][0]) {
-                            ctx.fillRect(d * squareSize, c * squareSize, 1, squareSize);
-                        }                        
+                            ctx.fillRect((d * squareSize), (c * squareSize), wThick, (squareSize*1)+(wThick*1));
+                        }
+                        
+                        //lower and right boundary walls
+                        ctx.fillRect(0, canvas.height-wThick, canvas.width, wThick);
+                        ctx.fillRect(canvas.width-wThick, 0, wThick, canvas.height);
                     }
                 }
-            }
-
-            function drawPlayer() {
-
             }
 
             function generateMaze() {
@@ -173,16 +170,28 @@
             }
 
             function updateCellNum() {
-                snakeThick = this.value;
-                //updating existing snakes
-                for (var d=0;d<snakes.length;d++) {
-                    snakes[d].r = snakeThick;
-                }
+                arrSize = this.value;
+                [canvas.width, canvas.height] = [squareSize * arrSize, squareSize * arrSize];
+                
+                //redraw the maze
+                resetMaze();
+            }
+
+            function updateCellSize() {
+                squareSize = this.value;
+                [canvas.width, canvas.height] = [squareSize * arrSize, squareSize * arrSize];
+            }
+
+            function updateWallThickness() {
+                wThick = this.value;
             }
         </script>
-        <div id="centeredThings">
-    	    <canvas id="canvas" width="400" height="400"></canvas>
-            <input type="range" min="2" max="30" value="10" class="slider" id="cellRange">
+        <div id="mid">
+            <p>Change number of cells: <input type="range" min="3" max="60" value="20" class="slider" id="cellRange"></p>
+            <p>Change cell size: <input type="range" min="4" max="30" value="20" class="slider" id="sizeRange"></p>
+            <p>Change wall thickness: <input type="range" min="1" max="5" value="1" class="slider" id="thickRange"></p>
+            <button id="resetButton" onclick="resetMaze();">Get new maze</button><br>
+            <canvas id="canvas" width="400" height="400"></canvas>
         </div>
     	
 	</body>
