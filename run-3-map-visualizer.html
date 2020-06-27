@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+  	<head>
+    	<meta charset="utf-8">
+    	<meta name="viewport" content="width=device-width">
+    	<title>Square Maze Generator</title>
+		<style>
+            body {
+                background-color: slateblue;
+            }
+            #canvas, #canvas2 {
+                border-style: double;
+                border-color: slateblue;
+                margin: auto;
+                position: absolute;
+                margin-left: 500px;
+                float: right;
+            }
+
+            #mapSizeControls {
+                position: absolute; 
+                top:1; 
+                left:0;
+            }
+
+            #textOnRight {
+                float: right;
+                margin-right: 20px;
+                margin-top: -200px;
+            }
+
+            #mapSpot {
+                font-family: 'Courier New', Courier, monospace;
+                font-size: small;
+                position: absolute;
+                margin-top: 140px;
+            }
+		</style>
+  	</head>
+	<body>
+		<script type="text/javascript">
+			window.onload = setup;
+			function setup() {      
+				canvas = document.getElementById("canvas");
+                ctx = canvas.getContext("2d");
+
+                [canvas.width, canvas.height] = [squareSize * arrSize, squareSize * arrSize];
+
+				centerX = canvas.width / 2;
+                centerY = canvas.height / 2;
+
+                //setting up maze
+                resetMaze();
+                
+                timer = window.requestAnimationFrame(draw);
+			}
+
+			function drawTunnel() {
+                timer = window.requestAnimationFrame(draw);
+            }
+
+            function updateType() {
+
+            }
+
+            function updateColor() {
+
+            }
+
+            function parseData() {
+
+            }
+        </script>
+        <div id="mid">
+            <p>Input number of sides: <input type="range" min="3" max="60" value="20" class="slider" id="cellRange"></p>
+            <p>Input tiles per side: <input type="range" min="4" max="30" value="20" class="slider" id="sizeRange"></p>
+            <p>Which tile are you inputting data for?</p>
+            <button id="resetButton" onclick="resetMaze();">Generate Tunnel</button><br>
+            <canvas id="canvas" width="400" height="400"></canvas>
+        </div>
+    	
+	</body>
+</html>
