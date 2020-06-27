@@ -35,7 +35,7 @@ var islandShoreThickness = 10;
 //For example, the bridge starts at 75% of the screen, but extends 12 pixels below that. (bridgeHeight + bridgeSegmentHeight)
 var bridgeHeight;
 var bridgeSegmentWidth = 36;
-var bridgeWorldSegmentWidth = 2.5;
+var bridgeWorldSegmentWidth = 4;
 var bridgeSegmentHeight = 12;
 
 var waterSegmentWidth = 24;
@@ -72,7 +72,6 @@ let loadingMap = [	new Island([[-20,-679],[-86,-745],[1,-836],[100,-776],[74,-68
 let loadingBridge;
 let loadingWater = [];
 let waveArray = [];
-let debrisArray = [];
 
 
 
@@ -98,9 +97,8 @@ let mouse = {
 }
 
 let human;
-let theMenuCharacter;
+let theMapCharacter;
 let theGameCharacter;
-let machine;
 
 //functions
 
@@ -113,10 +111,9 @@ function setup() {
 	bridgeHeight = 0.75 * canvas.height;
 	waterHeight = 0.85 * canvas.height;
 
-	theMenuCharacter = new MenuPlayer(0, 0);
+	theMapCharacter = new MenuPlayer(0, 0);
 	theGameCharacter = new GamePlayer(0, canvas.height * 0.5);
-	human = theMenuCharacter;
-	machine = new Machine();
+	human = theMapCharacter;
 
 	timer = window.requestAnimationFrame(main);
 }
@@ -125,14 +122,7 @@ function handleKeyPress(u) {
 	switch (u.keyCode) {
 		//player controls
 		case 90:
-			if (gameState == "menu") {
-			gameState = "map";
-			}
-			if (gameState == "game") {
-				human.buildBridge();
-			}
-			button_z = true;
-			window.setTimeout(zNegate, 30);
+			zHandle();
 			break;
 		case 37:
 			human.ax = -1 * human.aSpeed;
@@ -284,6 +274,7 @@ function main() {
 			runGame();
 			break;
 		case "gameover":
+			runGameOver();
 			break;
 	}
 

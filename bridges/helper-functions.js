@@ -167,8 +167,20 @@ function round2dArray(arr) {
 	return arr;
 }
 
-function switchToGameplayState() {
+//for switching to the gameplay state, from the map
+function switchToGameplayState(startAtEnd) {
 	human = theGameCharacter;
+	//position the player
+	if (startAtEnd) {
+		human.x = (loadingBridge.bridgeArr.length * bridgeSegmentWidth) - 10;
+	} else {
+		human.x = 10;
+	}
+	
+	human.y = canvas.width * 0.5;
+
+	[human.dx, human.dy] = [0, 0];
+	[human.ax, human.ay] = [0, 0];
 	camera.xOffset = 0;
 	camera.yOffset = 0;
 	camera.scale = 1;
@@ -176,23 +188,41 @@ function switchToGameplayState() {
 
 	
 
-	//initializing water
-	loadingWater = [];
+	
 	//figure out ratio of water indeces to bridge indeces, calculate number of waters
 	var wRatio = bridgeSegmentWidth / waterSegmentWidth;
 	var waterIndeces = (loadingBridge.bridgeArr.length * wRatio) + 10;
 
 	//initilize array with number of indeces specified
 
+	//initializing water
 	loadingWater = [];
 	for (var q=0;q<waterIndeces;q++) {
 		loadingWater.push(0);
 	}
 }
 
+//for switching to the map, from the gameplay
 function switchToMapState() {
-	human = theMenuCharacter;
+	human = theMapCharacter;
+	loadingBridge.completed = true;
+	[human.x, human.y] = loadingBridge.destination;
+	[human.dx, human.dy] = [0, 0];
+	[human.ax, human.ay] = [0, 0];
+	human.confirmHome();
 	gameState = "map";
+}
+
+//for switching to gameover, from the gameplay
+function switchToGameoverState(showMessage) {
+	human = theMapCharacter;
+
+	if (showMessage) {
+		gameState = "gameover";
+	} else {
+		gameState = "map";
+	}
+	
 }
 
 function updateWater() {
@@ -215,4 +245,25 @@ function updateWater() {
 
 function zNegate() {
 	button_z = false;
+}
+
+function zHandle() {
+	switch (gameState) {
+		case "menu":
+			gameState = "map";
+			break;
+		case "map":
+			//set the z flag to true for the bridges / NPCs to detect it
+			button_z = true;
+			window.setTimeout(zNegate, 30);
+			break;
+		case "game":
+			human.buildBridge();
+			break;
+		case "gameover":
+			gameState = "map";
+			break;
+	}
+
+		
 }

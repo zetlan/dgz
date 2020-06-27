@@ -35,14 +35,25 @@ class Island {
 
 class Bridge {
 	constructor (points, startLength) {
+		//map attributes
 		this.p = round2dArray(points);
 		this.bridgeLength = Math.floor(getDistBetween(points[0][0], points[0][1], points[1][0], points[1][1]) / bridgeWorldSegmentWidth);
 		this.startLength = startLength;
-		this.bridgeArr = [];
 		this.tolerance = 10;
-		this.constructBridge();
+		this.worldDestination = [];
 		this.opacity = 0;
+		
+
+		//gameplay attributes
+		this.bridgeArr = [];
 		this.completed = false;
+		this.debris = [];
+		this.machine;
+		this.clearCondition = "";
+
+		//ew, but it's necessary
+		let self = this;
+		window.setTimeout(function() {self.constructBridge();}, 1);
 	}
 
 	constructBridge() {
@@ -55,6 +66,9 @@ class Bridge {
 		for (var s=0;s<this.bridgeLength - this.startLength;s++) {
 			this.bridgeArr.push(0);
 		}
+
+		//initialize machine
+		this.machine = new Machine();
 	}
 
 	beDrawn() {
@@ -98,7 +112,14 @@ class Bridge {
 			}
 
 			if (this.playerIsNear(1)) {
-				this.moveThroughSelfTo(0);
+				if (this.completed) {
+					this.moveThroughSelfTo(0);
+				} else {
+					//swap positions to sustain consistiency
+					[this.p[0], this.p[1]] = [this.p[1], this.p[0]];
+					this.moveThroughSelfTo(1);
+				}
+				
 			}
 		}
 		//every once in a while, check opacity
@@ -116,10 +137,24 @@ class Bridge {
 	}
 
 	moveThroughSelfTo(index) {
-		[human.x, human.y] = this.p[index];
-		human.confirmHome();
+		this.destination = this.p[index];
 		loadingBridge = this;
-		switchToGameplayState();
+		//if completed, make sure the debris array is empty
+		if (this.completed) {
+			this.debris = [];
+		}
+		//set to the appropriate clear condition
+		if (this.completed) {
+			if (index == 1) {
+				this.clearCondition = "human.x > loadingBridge.bridgeArr.length * bridgeSegmentWidth;";
+			} else {
+				this.clearCondition = "human.x < 0;";
+			}
+		} else {
+			this.clearCondition = "loadingBridge.machine.x > loadingBridge.bridgeArr.length * bridgeSegmentWidth";
+		}
+		
+		switchToGameplayState(!index);
 	}
 
 	giveEnglishConstructor() {
@@ -134,6 +169,15 @@ class Bridge {
 			this.opacity += this.bridgeArr[t];
 		}
 		this.opacity /= this.bridgeArr.length;
+	}
+
+	checkForLeave(showSplashScreen) {
+		//if the clear condition is true, leave to map. If not, gameover.
+		if (eval(this.clearCondition)) {
+			switchToMapState();
+		} else {
+			switchToGameoverState(showSplashScreen);
+		}
 	}
 }
 
@@ -312,21 +356,11 @@ class GamePlayer extends MenuPlayer {
 		//applying gravity
 		this.dy += this.gravity;
 
-		//counteract gravity if on a bridge segment x wise, having a dy that will take you below the bridge, and being the bridge segment y wise
-		if (loadingBridge.bridgeArr[Math.floor(this.x / bridgeSegmentWidth)] > 0 && this.y + this.dy > bridgeHeight - bridgeSegmentHeight && this.y < bridgeHeight) {
-			//different forced height for different bridge versions
-			if (loadingBridge.bridgeArr[Math.floor(this.x / bridgeSegmentWidth)] == 1) {
-				this.y = bridgeHeight - this.r;
-			} else if (loadingBridge.bridgeArr[Math.floor(this.x / bridgeSegmentWidth)] == 0.5) {
-				this.y = (bridgeHeight + (bridgeSegmentHeight * 0.5)) - this.r ;
-			}
-			this.dy = 0;
-			this.canJump = true;
-		}
+		this.counterGravity();
 	}
 
 	move() {
-		if (this.x + this.dx > 0) {
+		if (loadingBridge.completed || (this.x + this.dx > 0 && this.x + this.dx < loadingBridge.bridgeArr.length * bridgeSegmentWidth)) {
 			this.x += this.dx;
 		}
 		this.y += this.dy;
@@ -354,6 +388,20 @@ class GamePlayer extends MenuPlayer {
 			}
 			
 			
+		}
+	}
+
+	counterGravity() {
+		//counteract gravity if on a bridge segment x wise, having a dy that will take you below the bridge, and being the bridge segment y wise
+		if (loadingBridge.bridgeArr[Math.floor(this.x / bridgeSegmentWidth)] > 0 && this.y + this.dy > bridgeHeight - bridgeSegmentHeight && this.y < bridgeHeight) {
+			//different forced height for different bridge versions
+			if (loadingBridge.bridgeArr[Math.floor(this.x / bridgeSegmentWidth)] == 1) {
+				this.y = bridgeHeight - this.r;
+			} else if (loadingBridge.bridgeArr[Math.floor(this.x / bridgeSegmentWidth)] == 0.5) {
+				this.y = (bridgeHeight + (bridgeSegmentHeight * 0.5)) - this.r ;
+			}
+			this.dy = 0;
+			this.canJump = true;
 		}
 	}
 
@@ -437,6 +485,9 @@ class Machine {
 		this.y = bridgeHeight;
 		this.r = machineRadius;
 		this.age = 0;
+		this.checkDistance = 12;
+		this.throwDistance = 7;
+		this.moveDistance = 5;
 		this.targetX = bridgeSegmentWidth;
 	}
 
@@ -445,7 +496,7 @@ class Machine {
 		this.collideWithPlayer();
 
 		//create debris
-		if (pTime % 100 == 50) {
+		if (!loadingBridge.completed && pTime % 100 == 50) {
 			this.createDebris();
 		}
 
@@ -454,11 +505,6 @@ class Machine {
 
 		//age
 		this.age += 1;
-
-		//exit gameplay if at end of bridge
-		if (this.x > loadingBridge.bridgeArr.length * bridgeSegmentWidth) {
-			switchToMapState();
-		}
 	}
 
 	beDrawn() {
@@ -469,14 +515,14 @@ class Machine {
 
 	createDebris() {
 		//randomly select the position where the debris should land, from +bridgeSegmentWidth to almost the edge of the screen
-		var landPos = (Math.random() * (canvas.width - bridgeSegmentWidth * 3)) + bridgeSegmentWidth * 2;
+		var landPos = (Math.random() * (bridgeSegmentWidth * (this.throwDistance - 2))) + bridgeSegmentWidth * 2;
 		landPos += this.x;
 
 		//get velocity needed to land debris in that spot
 		var debrisVel = this.calculateVelocity([landPos, waterHeight], [this.x, this.y], canvas.height * 0.8);
 
 		//push debris to the debris array
-		debrisArray.push(new Debris(this.x, this.y, debrisVel[0], debrisVel[1]));
+		loadingBridge.debris.push(new Debris(this.x, this.y, debrisVel[0], debrisVel[1]));
 
 	}
 
@@ -486,7 +532,7 @@ class Machine {
 			//decide whether to move
 			var problem = false;
 			var selfTile = Math.floor(this.x / bridgeSegmentWidth);
-			for (var g=0;g<11;g++) {
+			for (var g=0;g<this.checkDistance;g++) {
 				if (loadingBridge.bridgeArr[selfTile + g] == 0) {
 					problem = true;
 				}
@@ -494,7 +540,7 @@ class Machine {
 
 			//set a target position
 			if (problem == false) {
-				this.targetX = this.x + (bridgeSegmentWidth * 5);
+				this.targetX = this.x + (bridgeSegmentWidth * this.moveDistance);
 			}
 		} else {
 			//move closer to the target position
@@ -506,9 +552,6 @@ class Machine {
 				this.x = this.targetX;
 			}
 		}
-
-		
-
 	}
 
 	calculateVelocity(landingSpot, startingSpot, peakHeight) {
@@ -583,6 +626,13 @@ class Debris {
 		//colliding with bridge
 		this.destroyBridge();
 
+		//colliding with edge of world
+		if (this.x > loadingBridge.bridgeArr.length * bridgeSegmentWidth) {
+			//destroy self
+			this.inWater = true;
+			this.y = canvas.height * 147;
+		}
+
 		//colliding with water
 		if (!this.inWater && this.y > waterHeight) {
 			//physics changes
@@ -635,7 +685,6 @@ class Debris {
 					this.inWater = true;
 					this.y = canvas.height * 147;
 				}
-				
 			}
 		}
 	}
