@@ -62,8 +62,6 @@
                 //drawing the cells
                 drawMaze();
 
-                //drawing the player
-                drawPlayer();
                 timer = window.requestAnimationFrame(draw);
             }
             
@@ -128,7 +126,6 @@
                         //if not, choose one at random
                         var chosenIndex = Math.floor(Math.random() * unvisitedNeighbors.length);
                         var chosen = unvisitedNeighbors[chosenIndex];
-                        console.log(chosenIndex, unvisitedNeighbors);
 
                         //break the walls between them
                         switch (chosen[1]) {
@@ -171,6 +168,7 @@
 
             function updateCellNum() {
                 arrSize = this.value;
+                document.getElementById("cellNum").innerHTML = arrSize;
                 [canvas.width, canvas.height] = [squareSize * arrSize, squareSize * arrSize];
                 
                 //redraw the maze
@@ -179,17 +177,19 @@
 
             function updateCellSize() {
                 squareSize = this.value;
+                document.getElementById("cellSize").innerHTML = squareSize;
                 [canvas.width, canvas.height] = [squareSize * arrSize, squareSize * arrSize];
             }
 
             function updateWallThickness() {
                 wThick = this.value;
+                document.getElementById("thickVal").innerHTML = wThick;
             }
         </script>
         <div id="mid">
-            <p>Change number of cells: <input type="range" min="3" max="60" value="20" class="slider" id="cellRange"></p>
-            <p>Change cell size: <input type="range" min="4" max="30" value="20" class="slider" id="sizeRange"></p>
-            <p>Change wall thickness: <input type="range" min="1" max="5" value="1" class="slider" id="thickRange"></p>
+            <p>Change number of cells: <input type="range" min="3" max="60" value="20" class="slider" id="cellRange"> (<span id="cellNum">20</span> cells/side)</p>
+            <p>Change cell size: <input type="range" min="4" max="30" value="20" class="slider" id="sizeRange"> (<span id="cellSize">20</span> pixels per cell)</p>
+            <p>Change wall thickness: <input type="range" min="1" max="5" value="1" class="slider" id="thickRange"> (<span id="thickVal">1</span> pixel(s) thick)</p>
             <button id="resetButton" onclick="resetMaze();">Get new maze</button><br>
             <canvas id="canvas" width="400" height="400"></canvas>
         </div>
