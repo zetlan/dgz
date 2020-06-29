@@ -13,8 +13,9 @@
 	<body>
         <script type="text/javascript">
             window.onload = setup;
+            window.addEventListener("keydown", handleKeyDown, true);
 
-            var squareSize = 13;
+            var squareSize = 15;
             var tunnelTileHeight = 5;
             var tunnelTileFarthest = 0;
 
@@ -23,12 +24,34 @@
             var subBgColor = "#FF00FF";
             var iceColor = "#CCC";
             var iceSecondaryColor = "#999";
-            var boxColor = "CCC";
+            var crumblingTileColor = "#888";
+            var crumblingTileSecondaryColor = "#444444";
+            var conveyorColor = "#0088FF";
+            var conveyorSecondaryColor = "#0000FF";
+            var boxColor = "#CCCCCC";
+            var boxSecondaryColor = "#222222";
 
             let tunnelTileArray = [];
             let tunnelTileData = [];
 
-            
+            let camera_xOffset = 0;
+
+
+
+            let tileAssociation = {
+                "~undefined": 1,
+                "~light": 2,
+                "~crumbling": 3,
+                "~ice": 4,
+                "~slow": 5,
+                "~fast": 6,
+                "~left": 7,
+                "~right": 8,
+                "~box": 9,
+                "~rotatedZBox": 10,
+                "~steepRamp": 11, //regular tile ramps
+                "~ramp": 12 //ice ramp
+             };
 
             let translation = {
                             "0": 0,
@@ -106,6 +129,21 @@
 				centerX = canvas.width / 2;
                 centerY = canvas.height / 2;
             }
+
+            function handleKeyDown(zozzle) {
+                switch (zozzle.keyCode) {
+                    case 37:
+                        camera_xOffset -= squareSize;
+                        drawTunnel();
+                        zozzle.preventDefault();
+                        break;
+                    case 39:
+                        camera_xOffset += squareSize;
+                        drawTunnel();
+                        zozzle.preventDefault();
+                        break;
+                }
+            }
             
 
 
@@ -113,20 +151,8 @@
             //drawing functions here
 
 			function writeTunnel() {
-                //tunnel-specific settings
-                tunnelTileHeight = document.getElementById("tiles").value;
-                tunnelTileColor = document.getElementById("color").value;
-
-                tunnelTileData[0] = document.getElementById("tile_reg").value;
-                tunnelTileData[1] = document.getElementById("tile_glo").value;
-                tunnelTileData[2] = document.getElementById("tile_crm").value;
-                tunnelTileData[3] = document.getElementById("tile_ice").value;
-                tunnelTileData[4] = document.getElementById("tile_slo").value;
-                tunnelTileData[5] = document.getElementById("tile_fas").value;
-                tunnelTileData[6] = document.getElementById("tile_box").value;
-                tunnelTileData[7] = document.getElementById("tile_b45").value;
-                tunnelTileData[8] = document.getElementById("tile_rmp").value;
-                tunnelTileData[9] = document.getElementById("tile_irp").value;
+                //turn raw input into slightly more managable data
+                subdivideData();
 
                 //yOff = document.getElementById('yshift').value;
                 //color = document.getElementById('color').value;
@@ -142,7 +168,6 @@
                     //only process the index if the data is real
                     if (tunnelTileData[j]) {
                         parseData(tunnelTileData[j], j);
-                        console.log(j);
                     }
                 }
 
@@ -164,7 +189,7 @@
                         ctx.fillRect(m * squareSize, n * squareSize, 1, squareSize);
                         ctx.fillRect(m * squareSize, n * squareSize, squareSize, 1);
                         if (tunnelTileArray[n][m] > 0) {
-                            drawTile(m * squareSize, n * squareSize, tunnelTileArray[n][m]);
+                            drawTile((m * squareSize) - camera_xOffset, n * squareSize, tunnelTileArray[n][m]);
                         }
                     }
                 }
@@ -183,44 +208,108 @@
                         ctx.fillStyle = tunnelTileColor;
                         ctx.fillRect(ex, why, squareSize-1, squareSize-1);
                         ctx.fillStyle = "#FFFFFF";
-                        ctx.globalAlpha = 0.5;
+                        ctx.globalAlpha = 0.6;
                         ctx.fillRect(ex, why, squareSize-1, squareSize-1);
                         ctx.globalAlpha = 1;
                         break;
                     case 3:
                         //crumbling
-                        ctx.fillStyle = tunnelTileColor;
+                        ctx.fillStyle = crumblingTileColor;
                         ctx.fillRect(ex, why, squareSize-1, squareSize-1);
+                        ctx.strokeStyle = crumblingTileSecondaryColor;
+                        ctx.beginPath();
+                        ctx.moveTo(ex + (squareSize * 0.1), why + (squareSize * 0.1));
+                        ctx.lineTo(ex + (squareSize * 0.8), why + (squareSize * 0.8));
+
+                        ctx.moveTo(ex + (squareSize * 0.8), why + (squareSize * 0.1));
+                        ctx.lineTo(ex + (squareSize * 0.1), why + (squareSize * 0.8));
+
+                        ctx.stroke();
                         ctx.fillStyle = "#FFFFFF";
-                        ctx.globalAlpha = 0.5;
-                        ctx.fillRect(ex, why, squareSize-1, squareSize-1);
-                        ctx.globalAlpha = 1;
                         break;
                     case 4:
                         //ice
+                        ctx.fillStyle = iceColor;
+                        ctx.fillRect(ex, why, squareSize-1, squareSize-1);
+                        ctx.fillStyle = iceSecondaryColor;
+                        ctx.beginPath();
+                        ctx.ellipse(ex + squareSize * 0.5, why + squareSize * 0.5, squareSize * 0.2, squareSize * 0.2, 0, 0, Math.PI * 2);
+                        ctx.fill();
                         break;
                     case 5:
                         //slow
+                        ctx.fillStyle = conveyorColor;
+                        ctx.fillRect(ex, why, squareSize-1, squareSize-1);
+                        ctx.fillStyle = conveyorSecondaryColor;
+                        ctx.beginPath();
+                        ctx.moveTo(ex + (squareSize * 0.2), why + (squareSize * 0.5));
+                        ctx.lineTo(ex + (squareSize * 0.8), why + (squareSize * 0.1));
+                        ctx.lineTo(ex + (squareSize * 0.8), why + (squareSize * 0.9));
+                        ctx.fill();
                         break;
                     case 6:
                         //fast
+                        ctx.fillStyle = conveyorColor;
+                        ctx.fillRect(ex, why, squareSize-1, squareSize-1);
+                        ctx.fillStyle = conveyorSecondaryColor;
+                        ctx.beginPath();
+                        ctx.moveTo(ex + (squareSize * 0.8), why + (squareSize * 0.5));
+                        ctx.lineTo(ex + (squareSize * 0.2), why + (squareSize * 0.1));
+                        ctx.lineTo(ex + (squareSize * 0.2), why + (squareSize * 0.9));
+                        ctx.fill();
                         break;
                     case 7:
-                        //box-normal
+                        //left
+                        ctx.fillStyle = conveyorColor;
+                        ctx.fillRect(ex, why, squareSize-1, squareSize-1);
+                        ctx.fillStyle = conveyorSecondaryColor;
+                        ctx.beginPath();
+                        ctx.moveTo(ex + (squareSize * 0.5), why + (squareSize * 0.2));
+                        ctx.lineTo(ex + (squareSize * 0.1), why + (squareSize * 0.8));
+                        ctx.lineTo(ex + (squareSize * 0.9), why + (squareSize * 0.8));
+                        ctx.fill();
                         break;
                     case 8:
-                        //box-45
+                        //right
+                        ctx.fillStyle = conveyorColor;
+                        ctx.fillRect(ex, why, squareSize-1, squareSize-1);
+                        ctx.fillStyle = conveyorSecondaryColor;
+                        ctx.beginPath();
+                        ctx.moveTo(ex + (squareSize * 0.5), why + (squareSize * 0.8));
+                        ctx.lineTo(ex + (squareSize * 0.1), why + (squareSize * 0.2));
+                        ctx.lineTo(ex + (squareSize * 0.9), why + (squareSize * 0.2));
+                        ctx.fill();
                         break;
                     case 9:
-                        //tile ramp
-                        ctx.fillStyle = tunnelTileColor;
-                        ctx.fillRect(ex, why, (squareSize*0.5)-1, squareSize-1);
+                        //box-normal
+                        ctx.fillStyle = boxColor;
+                        ctx.fillRect(ex, why, squareSize-1, squareSize-1);
+                        ctx.beginPath();
+                        ctx.strokeStyle = boxSecondaryColor;
+                        ctx.rect(ex + (squareSize * 0.2), why + (squareSize * 0.2), (squareSize * 0.6) - 1, (squareSize * 0.6) - 1);
+                        ctx.stroke();
                         break;
                     case 10:
+                        //box-45
+                        ctx.fillStyle = boxColor;
+                        ctx.fillRect(ex, why, squareSize-1, squareSize-1);
+                        ctx.strokeStyle = boxSecondaryColor;
+                        ctx.beginPath();
+                        ctx.moveTo(ex + (squareSize * 0.1), why + (squareSize * 0.5));
+                        ctx.lineTo(ex + (squareSize * 0.8), why + (squareSize * 0.5));
+                        ctx.stroke();
+                        break;
+                    case 11:
+                        //tile ramp
+                        ctx.fillStyle = tunnelTileColor;
+                        ctx.fillRect(ex, why, (squareSize*0.6)-1, squareSize-1);
+                        break;
+                    case 12:
                         //ice ramp
+                        ctx.fillStyle = iceColor;
+                        ctx.fillRect(ex, why, (squareSize*0.6)-1, squareSize-1);
                         break;
                 }
-                
             }
 
             
@@ -230,7 +319,49 @@
 
 
             //data parsing functions here
+            function subdivideData() {
+                //split raw input using vertical separators
+                var rawInput = document.getElementById("dataSpot").value;
+                rawInput = rawInput.split("|");
 
+                //looping through all indeces of the array to classify them
+                tunnelTileData = [];
+                for (var q=0;q<rawInput.length;q++) {
+                    sortDataType(rawInput[q]);
+                }
+            }
+
+            function sortDataType(datum) {
+                //if it's a color tag, update the color
+                if (datum.includes("color")) {
+                    //take the last 6 chars as the color code
+                    tunnelTileColor = "#" + datum.substr(datum.length-6, 6);
+                }
+
+                //if it's a layout tag, update the tiles per row
+                if (datum.includes("layout")) {
+                    //splice out the non-numbers
+                    var layoutNumberBits = datum.replace("layout-tunnel", "");
+                    layoutNumberBits = "[" + layoutNumberBits + "]";
+                    layoutNumberBits = JSON.parse(layoutNumberBits);
+                    tunnelTileHeight = layoutNumberBits[0] * layoutNumberBits[1];
+                }
+
+                //if it's a data tag, update the data array
+                if (datum.includes("terrain-pos")) {
+                    //first splice out the terrain pos
+                    var dataBit = datum.replace("terrain-pos-", "");
+                    //splice out the type definition
+
+                    dataBit = dataBit.split("~");
+                    dataBit[1] = "~" + dataBit[1];
+
+                    //use the second part (after the tilda) to know where to place the first part (actual data)
+                    var position = tileAssociation[dataBit[1]];
+                    
+                    tunnelTileData[position] = dataBit[0];
+                }
+            }
 
             //takes in raw data and returns the 2d array of the tunnel tile types
             function parseData(data, tileTypeNum) {
@@ -249,16 +380,13 @@
                     var row = posCounter % tunnelTileHeight;
                     var column = Math.floor(posCounter / tunnelTileHeight);
 
-                    console.log(row, column);
-
                     //if the array is empty or has a 0 at the given position, put this data value on it
                     if (tunnelTileArray[row][column] == undefined || tunnelTileArray[row][column] == 0) {
-                        tunnelTileArray[row][column] = newData[posCounter];
+                        tunnelTileArray[row][column] = newData[posCounter] * tileTypeNum;
                     }
 
                     posCounter += 1;
                 }
-
                 //if this string of data is longer than the others, update the tunnel length
             }
 
@@ -327,21 +455,9 @@
             }
         </script>
         <div id="mid">
-            <p>Input Tiles per row (number of sides * Tiles per side): <input id="tiles" value=7 type="number" min="3" max="40" size="4"></p>
-            <p>Input tunnel color:  <input id="color" value="#00FFFF" type="text" size="10"></p>
-            <br>
-            <p>You do not have to fill in all of these text boxes. You only have to fill in at least 1 with tunnel data to get a tunnel drawn to the screen.</p>
-            <p>Input regular tile data:       <input id="tile_reg" type="text" size="100"></p>
-            <p>Input glowing tile data:       <input id="tile_glo" type="text" size="100"></p>
-            <p>Input crumbling tile data:     <input id="tile_crm" type="text" size="100"></p>
-            <p>Input ice tile data:           <input id="tile_ice" type="text" size="100"></p>
-            <p>Input slow conveyor tile data: <input id="tile_slo" type="text" size="100"></p>
-            <p>Input fast conveyor tile data: <input id="tile_fas" type="text" size="100"></p>
-            <p>Input box tile data:           <input id="tile_box" type="text" size="100"></p>
-            <p>Input 45° box tile data:       <input id="tile_b45" type="text" size="100"></p>
-            <p>Input ramp tile data:          <input id="tile_rmp" type="text" size="100"></p>
-            <p>Input ice ramp tile data:      <input id="tile_irp" type="text" size="100"></p>
-            <p>Which tile are you inputting data for?</p>
+            <p>Please input map data below.</p>
+            <textarea id="dataSpot" cols="50" rows="10"></textarea>
+            <p>Use the left/right arrow keys to scroll the tunnel camera.</p>
             <button id="resetButton" onclick="writeTunnel();">Generate Tunnel</button><br>
             <canvas id="canvas" width="1000" height="600"></canvas>
         </div>
