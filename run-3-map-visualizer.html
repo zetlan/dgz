@@ -3,80 +3,488 @@
   	<head>
     	<meta charset="utf-8">
     	<meta name="viewport" content="width=device-width">
-    	<title>Square Maze Generator</title>
+    	<title>Tunnel Visualizer</title>
 		<style>
             body {
                 background-color: slateblue;
             }
-            #canvas, #canvas2 {
-                border-style: double;
-                border-color: slateblue;
-                margin: auto;
-                position: absolute;
-                margin-left: 500px;
-                float: right;
-            }
-
-            #mapSizeControls {
-                position: absolute; 
-                top:1; 
-                left:0;
-            }
-
-            #textOnRight {
-                float: right;
-                margin-right: 20px;
-                margin-top: -200px;
-            }
-
-            #mapSpot {
-                font-family: 'Courier New', Courier, monospace;
-                font-size: small;
-                position: absolute;
-                margin-top: 140px;
-            }
 		</style>
   	</head>
 	<body>
-		<script type="text/javascript">
-			window.onload = setup;
+        <script type="text/javascript">
+            window.onload = setup;
+            window.addEventListener("keydown", handleKeyDown, true);
+
+            var squareSize = 15;
+            var tunnelTileHeight = 5;
+            var tunnelTileFarthest = 0;
+
+            var tunnelTileColor = "#FFFF00";
+            var bgColor = "#110022";
+            var subBgColor = "#FF00FF";
+            var iceColor = "#CCC";
+            var iceSecondaryColor = "#999";
+            var crumblingTileColor = "#888";
+            var crumblingTileSecondaryColor = "#444444";
+            var conveyorColor = "#0088FF";
+            var conveyorSecondaryColor = "#0000FF";
+            var boxColor = "#CCCCCC";
+            var boxSecondaryColor = "#222222";
+
+            var ringColor = "#FFCC66";
+            var batteryColor = "#FF00FF";
+
+            let tunnelTileArray = [];
+            let tunnelTileData = [];
+            let tunnelBatteries = [];
+
+            let camera_xOffset = 0;
+
+
+
+            let tileAssociation = {
+                "~undefined": 1,
+                "~glow": 2,
+                "~crumbling": 3,
+                "~ice": 4,
+                "~slow": 5,
+                "~fast": 6,
+                "~left": 7,
+                "~right": 8,
+                "~box": 9,
+                "~rotatedZBox": 10,
+                "~steepRamp": 11, //regular tile ramps
+                "~ramp": 12, //ice ramp
+                "~movable": 13,
+                "~battery": 14
+             };
+
+            let translation = {
+                            "0": 0,
+                            "1": 1,
+                            "2": 2,
+                            "3": 3,
+                            "4": 4,
+                            "5": 5,
+                            "6": 6,
+                            "7": 7,
+                            "8": 8,
+                            "9": 9,
+                            ":": 10,
+                            ";": 11,
+                            "<": 12,
+                            "=": 13,
+                            ">": 14,
+                            "?": 15,
+                            "@": 16,
+                            "A": 17,
+                            "B": 18,
+                            "C": 19,
+                            "D": 20,
+                            "E": 21,
+                            "F": 22,
+                            "G": 23,
+                            "H": 24,
+                            "I": 25,
+                            "J": 26,
+                            "K": 27,
+                            "L": 28,
+                            "M": 29,
+                            "N": 30,
+                            "O": 31,
+                            "P": 32,
+                            "Q": 33,
+                            "R": 34,
+                            "S": 35,
+                            "T": 36,
+                            "U": 37,
+                            "V": 38,
+                            "W": 39,
+                            "X": 40,
+                            "Y": 41,
+                            "Z": 42,
+                            "[": 43,
+                            "\\": 44,
+                            "]": 45,
+                            "^": 46,
+                            "_": 47,
+                            "`": 48,
+                            "a": 49,
+                            "b": 50,
+                            "c": 51,
+                            "d": 52,
+                            "e": 53,
+                            "f": 54,
+                            "g": 55,
+                            "h": 56,
+                            "i": 57,
+                            "j": 58,
+                            "k": 59,
+                            "l": 60,
+                            "m": 61,
+                            "n": 62,
+                            "o": 63,
+                            };
+
+            //setup function
+			
 			function setup() {      
 				canvas = document.getElementById("canvas");
                 ctx = canvas.getContext("2d");
 
-                [canvas.width, canvas.height] = [squareSize * arrSize, squareSize * arrSize];
-
 				centerX = canvas.width / 2;
                 centerY = canvas.height / 2;
+            }
 
-                //setting up maze
-                resetMaze();
+            function handleKeyDown(zozzle) {
+                switch (zozzle.keyCode) {
+                    case 37:
+                        camera_xOffset -= squareSize;
+                        drawTunnel();
+                        zozzle.preventDefault();
+                        break;
+                    case 39:
+                        camera_xOffset += squareSize;
+                        drawTunnel();
+                        zozzle.preventDefault();
+                        break;
+                }
+            }
+            
+
+
+
+            //drawing functions here
+
+			function writeTunnel() {
+                //turn raw input into slightly more managable data
+                subdivideData();
+                //generate tunnel array
+                tunnelTileArray = [];
+                tunnelTileFarthest = 0;
+                for (var g=0;g<tunnelTileHeight;g++) {
+                    tunnelTileArray.push([]);
+                }
+
+                //parse the tunnel data
+                for (var j=0;j<tunnelTileData.length;j++) {
+                    //only process the index if the data is real
+                    if (tunnelTileData[j]) {
+                        parseData(tunnelTileData[j], j);
+                    }
+                }
+
+                //draw the thing
+
+                drawTunnel();
+            }
+
+            function drawTunnel() {
+                //background
+                ctx.fillStyle = bgColor;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                //loop through all squares
                 
-                timer = window.requestAnimationFrame(draw);
-			}
+                for (var n=0;n<tunnelTileArray.length;n++) {
+                    for (var m=0;m<tunnelTileArray[n].length;m++) {
+                        //drawing lines
+                        ctx.fillStyle = subBgColor;
+                        ctx.fillRect(m * squareSize, n * squareSize, 1, squareSize);
+                        ctx.fillRect(m * squareSize, n * squareSize, squareSize, 1);
+                        if (tunnelTileArray[n][m] > 0) {
+                            drawTile((m * squareSize) - camera_xOffset, n * squareSize, tunnelTileArray[n][m]);
+                        }
+                    }
+                }
 
-			function drawTunnel() {
-                timer = window.requestAnimationFrame(draw);
+                //I just gave up with the tile system for batteries
+                for (var p=0;p<tunnelBatteries.length;p++) {
+                    drawTile((tunnelBatteries[p][0] * squareSize) - camera_xOffset, tunnelBatteries[p][1] * squareSize, tileAssociation["~battery"]);
+                    console.log("e");
+                }
+
             }
 
-            function updateType() {
+            //handles the textures/drawing of all tiles
+            function drawTile(ex, why, type) {
+                switch (type) {
+                    case 1:
+                        //regular
+                        ctx.fillStyle = tunnelTileColor;
+                        ctx.fillRect(ex, why, squareSize-1, squareSize-1);
+                        break;
+                    case 2:
+                        //light
+                        ctx.fillStyle = tunnelTileColor;
+                        ctx.fillRect(ex, why, squareSize-1, squareSize-1);
+                        ctx.fillStyle = "#FFFFFF";
+                        ctx.globalAlpha = 0.6;
+                        ctx.fillRect(ex, why, squareSize-1, squareSize-1);
+                        ctx.globalAlpha = 1;
+                        break;
+                    case 3:
+                        //crumbling
+                        ctx.fillStyle = crumblingTileColor;
+                        ctx.fillRect(ex, why, squareSize-1, squareSize-1);
+                        ctx.strokeStyle = crumblingTileSecondaryColor;
+                        ctx.beginPath();
+                        ctx.moveTo(ex + (squareSize * 0.1), why + (squareSize * 0.1));
+                        ctx.lineTo(ex + (squareSize * 0.8), why + (squareSize * 0.8));
 
+                        ctx.moveTo(ex + (squareSize * 0.8), why + (squareSize * 0.1));
+                        ctx.lineTo(ex + (squareSize * 0.1), why + (squareSize * 0.8));
+
+                        ctx.stroke();
+                        ctx.fillStyle = "#FFFFFF";
+                        break;
+                    case 4:
+                        //ice
+                        ctx.fillStyle = iceColor;
+                        ctx.fillRect(ex, why, squareSize-1, squareSize-1);
+                        ctx.fillStyle = iceSecondaryColor;
+                        ctx.beginPath();
+                        ctx.ellipse(ex + squareSize * 0.5, why + squareSize * 0.5, squareSize * 0.2, squareSize * 0.2, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                        break;
+                    case 5:
+                        //slow
+                        ctx.fillStyle = conveyorColor;
+                        ctx.fillRect(ex, why, squareSize-1, squareSize-1);
+                        ctx.fillStyle = conveyorSecondaryColor;
+                        ctx.beginPath();
+                        ctx.moveTo(ex + (squareSize * 0.2), why + (squareSize * 0.5));
+                        ctx.lineTo(ex + (squareSize * 0.8), why + (squareSize * 0.1));
+                        ctx.lineTo(ex + (squareSize * 0.8), why + (squareSize * 0.9));
+                        ctx.fill();
+                        break;
+                    case 6:
+                        //fast
+                        ctx.fillStyle = conveyorColor;
+                        ctx.fillRect(ex, why, squareSize-1, squareSize-1);
+                        ctx.fillStyle = conveyorSecondaryColor;
+                        ctx.beginPath();
+                        ctx.moveTo(ex + (squareSize * 0.8), why + (squareSize * 0.5));
+                        ctx.lineTo(ex + (squareSize * 0.2), why + (squareSize * 0.1));
+                        ctx.lineTo(ex + (squareSize * 0.2), why + (squareSize * 0.9));
+                        ctx.fill();
+                        break;
+                    case 7:
+                        //left
+                        ctx.fillStyle = conveyorColor;
+                        ctx.fillRect(ex, why, squareSize-1, squareSize-1);
+                        ctx.fillStyle = conveyorSecondaryColor;
+                        ctx.beginPath();
+                        ctx.moveTo(ex + (squareSize * 0.5), why + (squareSize * 0.2));
+                        ctx.lineTo(ex + (squareSize * 0.1), why + (squareSize * 0.8));
+                        ctx.lineTo(ex + (squareSize * 0.9), why + (squareSize * 0.8));
+                        ctx.fill();
+                        break;
+                    case 8:
+                        //right
+                        ctx.fillStyle = conveyorColor;
+                        ctx.fillRect(ex, why, squareSize-1, squareSize-1);
+                        ctx.fillStyle = conveyorSecondaryColor;
+                        ctx.beginPath();
+                        ctx.moveTo(ex + (squareSize * 0.5), why + (squareSize * 0.8));
+                        ctx.lineTo(ex + (squareSize * 0.1), why + (squareSize * 0.2));
+                        ctx.lineTo(ex + (squareSize * 0.9), why + (squareSize * 0.2));
+                        ctx.fill();
+                        break;
+                    case 9:
+                        //box-normal
+                        ctx.fillStyle = boxColor;
+                        ctx.fillRect(ex, why, squareSize-1, squareSize-1);
+                        ctx.beginPath();
+                        ctx.strokeStyle = boxSecondaryColor;
+                        ctx.rect(ex + (squareSize * 0.2), why + (squareSize * 0.2), (squareSize * 0.6) - 1, (squareSize * 0.6) - 1);
+                        ctx.stroke();
+                        break;
+                    case 10:
+                        //box-45
+                        ctx.fillStyle = boxColor;
+                        ctx.fillRect(ex, why, squareSize-1, squareSize-1);
+                        ctx.strokeStyle = boxSecondaryColor;
+                        ctx.beginPath();
+                        ctx.moveTo(ex + (squareSize * 0.1), why + (squareSize * 0.5));
+                        ctx.lineTo(ex + (squareSize * 0.8), why + (squareSize * 0.5));
+                        ctx.stroke();
+                        break;
+                    case 11:
+                        //tile ramp
+                        ctx.fillStyle = tunnelTileColor;
+                        ctx.fillRect(ex, why, (squareSize*0.6)-1, squareSize-1);
+                        break;
+                    case 12:
+                        //ice ramp
+                        ctx.fillStyle = iceColor;
+                        ctx.fillRect(ex, why, (squareSize*0.6)-1, squareSize-1);
+                        break;
+                    case 13:
+                        //tile with ring
+                        ctx.fillStyle = tunnelTileColor;
+                        ctx.fillRect(ex, why, squareSize-1, squareSize-1);
+                        ctx.strokeStyle = ringColor;
+                        ctx.beginPath();
+                        ctx.ellipse(ex + (squareSize * 0.5), why + (squareSize * 0.5), squareSize * 0.2, squareSize * 0.2, 0, 0, Math.PI * 180);
+                        ctx.stroke();
+                        break;
+                    case 14:
+                        //battery
+                        ctx.strokeStyle = batteryColor;
+                        ctx.beginPath();
+                        ctx.moveTo(ex + (squareSize * 0.25), why + (squareSize * 0.75));
+                        ctx.lineTo(ex + (squareSize * 0.5), why + (squareSize * 0.2));
+                        ctx.lineTo(ex + (squareSize * 0.75), why + (squareSize * 0.8));
+                        ctx.lineTo(ex + (squareSize * 0.25), why + (squareSize * 0.75));
+                        ctx.stroke();
+                        break;
+                }
             }
 
-            function updateColor() {
+            
 
+
+
+
+
+            //data parsing functions here
+            function subdivideData() {
+                var rawInput = document.getElementById("dataSpot").value;
+                //remove color indicators, I don't want to deal with that
+                rawInput = rawInput.replace("~color-1", "");
+                rawInput = rawInput.replace("~color-0", "");
+
+                //split input using vertical separators
+                rawInput = rawInput.split("|");
+
+                //looping through all indeces of the array to classify them
+                tunnelTileData = [];
+                tunnelBatteries = [];
+                for (var q=0;q<rawInput.length;q++) {
+                    sortDataType(rawInput[q]);
+                }
             }
 
-            function parseData() {
+            function sortDataType(datum) {
+                //if it's a color tag, update the color
+                if (datum.includes("color")) {
+                    //take the last 6 chars as the color code
+                    tunnelTileColor = "#" + datum.substr(datum.length-6, 6);
+                }
 
+                //if it's a layout tag, update the tiles per row
+                if (datum.includes("layout")) {
+                    //splice out the non-numbers
+                    var layoutNumberBits = datum.replace("layout-tunnel", "");
+                    layoutNumberBits = "[" + layoutNumberBits + "]";
+                    layoutNumberBits = JSON.parse(layoutNumberBits);
+                    tunnelTileHeight = layoutNumberBits[0] * layoutNumberBits[1];
+                }
+
+                //if it's a data tag, update the data array
+                if (datum.includes("terrain-pos")) {
+                    //first splice out the terrain pos
+                    var dataBit = datum.replace("terrain-pos-", "");
+                    //splice out the type definition
+
+                    dataBit = dataBit.split("~");
+                    dataBit[1] = "~" + dataBit[1];
+
+                    //use the second part (after the tilda) to know where to place the first part (actual data)
+                    var position = tileAssociation[dataBit[1]];
+
+                    tunnelTileData[position] = dataBit[0];
+                    console.log(dataBit[1], position);
+                }
+            }
+
+            //takes in terrain data and returns the 2d array of the tunnel tile types
+            function parseData(data, tileTypeNum) {
+                //first step is to parse the stars
+                data = parseStars(data);
+
+                //next step is converting the data to 1s/0s
+                var newData = "";
+                for (var e=0;e<data.length;e++) {
+                    newData += ("000000" + (translation[data[e]]).toString(2)).substr(-6);
+                }
+
+                //final step is to map the 1s/0s onto the tunnel array
+                var posCounter = 0;
+                while (posCounter < newData.length) {
+                    var row = posCounter % tunnelTileHeight;
+                    var column = Math.floor(posCounter / tunnelTileHeight);
+
+                    //if the array is empty or has a 0 at the given position, put this data value on it
+                    if (tunnelTileArray[row][column] == undefined || tunnelTileArray[row][column] == 0) {
+                        //if this tile is a powercell though, add to the powercell array instead
+                        if (tileTypeNum == tileAssociation["~battery"] && tunnelTileArray[row][column] != 0) {
+                            tunnelBatteries.push([column, row]);
+                        } else {
+                            tunnelTileArray[row][column] = newData[posCounter] * tileTypeNum;
+                        }
+                    }
+
+                    posCounter += 1;
+                }
+                //if this string of data is longer than the others, update the tunnel length
+            }
+
+            function parseStars(data) {
+                //loop through all characters of the data
+                for (var u=0;u<data.length;u++) {
+                    //if the character is a star, look forwards for other stars
+                    if (data[u] == "*") {
+                        var detectorChar = u+1;
+                        var starNum = 1;
+
+                        //determining number of stars/number of repeats
+                        while (data[detectorChar] == "*") {
+                            detectorChar += 1;
+                            starNum += 1;
+                        }
+                        var repeatTimes = translation[data[detectorChar]];
+
+                        //removing the stars and indicator number from the original data
+                        data = spliceOut(data, u, detectorChar+1);
+
+                        //extending the data through the duplication process
+                        var charsToRepeat = data.substr(u-starNum, starNum);
+                        for (var g=0;g<repeatTimes-1;g++) {
+                            data = spliceIn(data, u, charsToRepeat);
+                        }
+                    }
+                }
+                return data;
+            }
+
+
+
+
+
+
+            //string modification functions
+            function spliceOut(string, charStart, charEnd) {
+                var start = string.slice(0, charStart);
+                var end = string.slice(charEnd, string.length);
+
+                return start + end;
+            }
+
+            function spliceIn(string, startChar, string2) {
+                var start = string.slice(0, startChar);
+                var end = string.slice(startChar, string.length);
+                var middle = string2;
+
+                return start + middle + end;
             }
         </script>
         <div id="mid">
-            <p>Input number of sides: <input type="range" min="3" max="60" value="20" class="slider" id="cellRange"></p>
-            <p>Input tiles per side: <input type="range" min="4" max="30" value="20" class="slider" id="sizeRange"></p>
-            <p>Which tile are you inputting data for?</p>
-            <button id="resetButton" onclick="resetMaze();">Generate Tunnel</button><br>
-            <canvas id="canvas" width="400" height="400"></canvas>
+            <p>Please input map data below.</p>
+            <textarea id="dataSpot" cols="50" rows="10"></textarea>
+            <p>Use the left/right arrow keys to scroll the tunnel camera.</p>
+            <button id="resetButton" onclick="writeTunnel();">Generate Tunnel</button><br>
+            <canvas id="canvas" width="1000" height="600"></canvas>
         </div>
     	
 	</body>
