@@ -31,8 +31,12 @@
             var boxColor = "#CCCCCC";
             var boxSecondaryColor = "#222222";
 
+            var ringColor = "#FFCC66";
+            var batteryColor = "#FF00FF";
+
             let tunnelTileArray = [];
             let tunnelTileData = [];
+            let tunnelBatteries = [];
 
             let camera_xOffset = 0;
 
@@ -40,7 +44,7 @@
 
             let tileAssociation = {
                 "~undefined": 1,
-                "~light": 2,
+                "~glow": 2,
                 "~crumbling": 3,
                 "~ice": 4,
                 "~slow": 5,
@@ -50,7 +54,9 @@
                 "~box": 9,
                 "~rotatedZBox": 10,
                 "~steepRamp": 11, //regular tile ramps
-                "~ramp": 12 //ice ramp
+                "~ramp": 12, //ice ramp
+                "~movable": 13,
+                "~battery": 14
              };
 
             let translation = {
@@ -153,9 +159,6 @@
 			function writeTunnel() {
                 //turn raw input into slightly more managable data
                 subdivideData();
-
-                //yOff = document.getElementById('yshift').value;
-                //color = document.getElementById('color').value;
                 //generate tunnel array
                 tunnelTileArray = [];
                 tunnelTileFarthest = 0;
@@ -193,6 +196,13 @@
                         }
                     }
                 }
+
+                //I just gave up with the tile system for batteries
+                for (var p=0;p<tunnelBatteries.length;p++) {
+                    drawTile((tunnelBatteries[p][0] * squareSize) - camera_xOffset, tunnelBatteries[p][1] * squareSize, tileAssociation["~battery"]);
+                    console.log("e");
+                }
+
             }
 
             //handles the textures/drawing of all tiles
@@ -309,6 +319,25 @@
                         ctx.fillStyle = iceColor;
                         ctx.fillRect(ex, why, (squareSize*0.6)-1, squareSize-1);
                         break;
+                    case 13:
+                        //tile with ring
+                        ctx.fillStyle = tunnelTileColor;
+                        ctx.fillRect(ex, why, squareSize-1, squareSize-1);
+                        ctx.strokeStyle = ringColor;
+                        ctx.beginPath();
+                        ctx.ellipse(ex + (squareSize * 0.5), why + (squareSize * 0.5), squareSize * 0.2, squareSize * 0.2, 0, 0, Math.PI * 180);
+                        ctx.stroke();
+                        break;
+                    case 14:
+                        //battery
+                        ctx.strokeStyle = batteryColor;
+                        ctx.beginPath();
+                        ctx.moveTo(ex + (squareSize * 0.25), why + (squareSize * 0.75));
+                        ctx.lineTo(ex + (squareSize * 0.5), why + (squareSize * 0.2));
+                        ctx.lineTo(ex + (squareSize * 0.75), why + (squareSize * 0.8));
+                        ctx.lineTo(ex + (squareSize * 0.25), why + (squareSize * 0.75));
+                        ctx.stroke();
+                        break;
                 }
             }
 
@@ -320,12 +349,17 @@
 
             //data parsing functions here
             function subdivideData() {
-                //split raw input using vertical separators
                 var rawInput = document.getElementById("dataSpot").value;
+                //remove color indicators, I don't want to deal with that
+                rawInput = rawInput.replace("~color-1", "");
+                rawInput = rawInput.replace("~color-0", "");
+
+                //split input using vertical separators
                 rawInput = rawInput.split("|");
 
                 //looping through all indeces of the array to classify them
                 tunnelTileData = [];
+                tunnelBatteries = [];
                 for (var q=0;q<rawInput.length;q++) {
                     sortDataType(rawInput[q]);
                 }
@@ -358,12 +392,13 @@
 
                     //use the second part (after the tilda) to know where to place the first part (actual data)
                     var position = tileAssociation[dataBit[1]];
-                    
+
                     tunnelTileData[position] = dataBit[0];
+                    console.log(dataBit[1], position);
                 }
             }
 
-            //takes in raw data and returns the 2d array of the tunnel tile types
+            //takes in terrain data and returns the 2d array of the tunnel tile types
             function parseData(data, tileTypeNum) {
                 //first step is to parse the stars
                 data = parseStars(data);
@@ -382,7 +417,12 @@
 
                     //if the array is empty or has a 0 at the given position, put this data value on it
                     if (tunnelTileArray[row][column] == undefined || tunnelTileArray[row][column] == 0) {
-                        tunnelTileArray[row][column] = newData[posCounter] * tileTypeNum;
+                        //if this tile is a powercell though, add to the powercell array instead
+                        if (tileTypeNum == tileAssociation["~battery"] && tunnelTileArray[row][column] != 0) {
+                            tunnelBatteries.push([column, row]);
+                        } else {
+                            tunnelTileArray[row][column] = newData[posCounter] * tileTypeNum;
+                        }
                     }
 
                     posCounter += 1;
