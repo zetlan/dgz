@@ -181,6 +181,26 @@ class Bridge {
 	}
 }
 
+class OrbPerson {
+	constructor(x, y, inputText) {
+		this.conversing = false;
+		this.lineNumber = 0;
+		this.text = inputText;
+	}
+
+	tick() {
+
+	}
+
+	beDrawn() {
+
+	}
+
+	handleConversation() {
+
+	}
+}
+
 class MenuPlayer {
 	constructor (x, y) {
 		this.ax = 0;
@@ -360,10 +380,30 @@ class GamePlayer extends MenuPlayer {
 	}
 
 	move() {
+		//don't go off the world edge
 		if (loadingBridge.completed || (this.x + this.dx > 0 && this.x + this.dx < loadingBridge.bridgeArr.length * bridgeSegmentWidth)) {
-			this.x += this.dx;
+			//don't go inside the machine
+			if (loadingBridge.machine.doesPlayerCollide(this.dx, 0) == false) {
+				this.x += this.dx;
+			} else {
+				//if the machine is moving, push to the right
+				if (loadingBridge.machine.targetX != loadingBridge.machine.x) {
+					this.x = loadingBridge.machine.x + loadingBridge.machine.r + this.r;
+				}
+
+				//just push to the right a little anyways
+				this.x += 1;
+			}
 		}
-		this.y += this.dy;
+
+		//don't go inside the machine
+		if (loadingBridge.machine.doesPlayerCollide(0, this.dy) == false) {
+			this.y += this.dy;
+		} else {
+			this.y = loadingBridge.machine.y - loadingBridge.machine.r - this.r - this.gravity;
+			this.canJump = true;
+			this.dy = this.gravity * -1;
+		}
 	}
 
 	tick() {
@@ -492,9 +532,6 @@ class Machine {
 	}
 
 	tick() {
-		//collide with player
-		this.collideWithPlayer();
-
 		//create debris
 		if (!loadingBridge.completed && pTime % 100 == 50) {
 			this.createDebris();
@@ -585,18 +622,16 @@ class Machine {
 		return [initDx, initDy];
 	}
 
-	collideWithPlayer() {
-		//sideways
-		if (human.x > this.x && human.x - human.r <= this.x + this.r && human.y > this.y - this.r) {
-			human.dx = 0.5;
-		}
+	doesPlayerCollide(addedDx, addedDy) {
+		var hPos = [human.x + addedDx, human.y + addedDy];
+		//determines if the player (with some added velocity) is inside the machines bounding box
+		var boundingBox = this.r + human.r;
 
-		//upways
-		if (human.x > this.x - this.r && human.x < this.x + this.r && human.y < this.y && human.y + human.r > this.y - this.r * 1.05) {
-			human.dy = -1 * human.gravity;
-			//force player to be above the machine
-
-			human.canJump = true;
+		//if the human's position is inside the bounding box, return true
+		if ((hPos[0] < this.x + boundingBox) && (hPos[0] > this.x - boundingBox) && (hPos[1] < this.y + boundingBox) && (hPos[1] > this.y - boundingBox)) {
+			return true;
+		} else {
+			return false;
 		}
 	}
 }

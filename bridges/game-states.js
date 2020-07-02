@@ -50,6 +50,12 @@ function runMap() {
 			ctx.lineWidth = 10;
 		}
 	}
+
+	//if a conversation is happening, draw it
+	if (conversationFlag > -1) {
+		loadingMap[conversationFlag].handleConversation();
+	}
+
 	pTime += 1;
 }
 
@@ -88,30 +94,7 @@ function runGame() {
 	loadingBridge.machine.beDrawn();
 
 	//camera scroll
-
-	
-	var screenHumanPos = adjustForCamera([human.x, human.y]);
-	//forwards, keep player out of the 25% right zone
-	if (screenHumanPos[0] > canvas.width * 0.75) {
-		camera.xOffset = human.x - canvas.width * 0.75;
-		//make sure not to go off the right edge
-		if (camera.xOffset > (loadingBridge.bridgeArr.length * bridgeSegmentWidth) - canvas.width - 10) {
-			camera.xOffset = (loadingBridge.bridgeArr.length * bridgeSegmentWidth) - canvas.width - 10;
-		}
-	}
-
-	//backwards, keep player out of the 25% left zone but make sure to not go off the left edge
-	if (screenHumanPos[0] < canvas.width * 0.25 && camera.xOffset > 10) {
-		camera.xOffset = human.x - canvas.width * 0.25;
-	};
-	//if the player is out of bounds or the machine is out of bounds while on the first run-through, check for leaving
-	if (human.y > canvas.height || (loadingBridge.machine.x > loadingBridge.bridgeArr.length * bridgeSegmentWidth && !loadingBridge.completed)) {
-		console.log("human offscreen down: " + (human.y > canvas.height) + "\n", "machine complete: " + (loadingBridge.machine.x > loadingBridge.bridgeArr.length * bridgeSegmentWidth && !loadingBridge.completed));
-		loadingBridge.checkForLeave(true);
-	} else if (human.x < 0 || human.x > loadingBridge.bridgeArr.length * bridgeSegmentWidth) {
-		console.log("human offscreen left: " + (human.x < 0) + "\n", "human offscreen right: " + (human.x > loadingBridge.bridgeArr.length * bridgeSegmentWidth));
-		loadingBridge.checkForLeave(false);
-	}
+	handleGameplayCameraScroll();
 
 	pTime += 1;
 }

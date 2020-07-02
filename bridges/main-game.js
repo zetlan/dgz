@@ -28,6 +28,8 @@ var color_editor = "#FF8888";
 var color_machine = "#888888";
 var color_debris = "#888888";
 
+var conversationFlag = -1;
+
 var islandShoreThickness = 10;
 
 //to clarify, the height of the thing here is its default position, relative to the screen.
@@ -66,7 +68,9 @@ let loadingMap = [	new Island([[-20,-679],[-86,-745],[1,-836],[100,-776],[74,-68
 					new Bridge([[293,-879],[537,-738]], 5),
 					new Bridge([[692,-613],[920,-328]], 5),
 					new Bridge([[-594,863],[-445,864]], 5),
-					new Bridge([[-425,123],[-359,7]], 3)
+					new Bridge([[-425,123],[-359,7]], 3),
+
+					new OrbPerson(-338, -163, messages_first)
 				];
 
 let loadingBridge;
