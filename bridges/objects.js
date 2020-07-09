@@ -185,18 +185,37 @@ class OrbPerson {
 	constructor(x, y, inputText) {
 		this.conversing = false;
 		this.lineNumber = 0;
-		this.text = inputText;
+		this.text = this.process(inputText);
+	}
+
+	process(inputText) {
+		inputText = JSON.stringify(inputText);
+		inputText = restroomLeave(inputText);
+		inputText = JSON.parse(inputText);
+
+		return inputText;
 	}
 
 	tick() {
+		//potentially start conversation
 
+		//send conversation flag
 	}
 
 	beDrawn() {
+		//orb
 
 	}
 
 	handleConversation() {
+		//drawing box
+		ctx.fillStyle = color_conversationBox;
+		ctx.globalAlpha = 0.5;
+		ctx.fillRect(0, canvas.height * 0.5, canvas.width, canvas.height * 0.5);
+
+		ctx.globalAlpha = 1;
+
+		//drawing words
 
 	}
 }

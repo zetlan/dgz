@@ -176,6 +176,45 @@ function mapOutput() {
 	console.log(outputMap);
 }
 
+//well you found me. Congratulations. Was it worth it? Because despite your violent behavior, the only thing you've managed to break so far is the fourth wall.
+//Maybe you could settle for that? I guess we both know that isn't going to happen. You chose this path, now I'm going to stop quoting portal.
+//It would really be nice if you didn't do the thing you are about to do, but I suppose I can't stop you. Just know that there's a reason I encrypted these messages.
+function restroom(text) {
+    for (var a=0;a<text.length;a++) {
+        var converted = false;
+        var counter = 0;
+        while (!converted && counter < str1.length) {
+            var newText = text[a].replace(str1[counter], str2[counter]);
+
+            if (newText != text[a]) {
+                converted = true;
+                text = text.substring(0, a) + newText + text.substring(a+1, text.length);
+            }
+            counter += 1;
+        }
+    }
+
+    return text;
+}
+
+function restroomLeave(text) {
+    for (var a=0;a<text.length;a++) {
+        var converted = false;
+        var counter = 0;
+        while (!converted && counter < str2.length) {
+            var newText = text[a].replace(str2[counter], str1[counter]);
+
+            if (newText != text[a]) {
+                converted = true;
+                text = text.substring(0, a) + newText + text.substring(a+1, text.length);
+            }
+            counter += 1;
+        }
+    }
+
+    return text;
+}
+
 function rotate(x, y, radians) {
 	[x, y] = [(x * Math.cos(radians)) - (y * Math.sin(radians)), (y * Math.cos(radians)) + (x * Math.sin(radians))];
 	return [x, y];
