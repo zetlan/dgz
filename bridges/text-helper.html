@@ -1,0 +1,75 @@
+<html>
+	<!--
+		Copyright Davis Zetlan
+		July-9-2020
+	-->
+
+	<head>
+		<title>Bridges Text Helper</title>
+		<style>
+			body {
+				background-color: slateblue;
+			}
+
+			#coco { 
+				margin: auto;
+				text-align: center;
+				display: block;
+			}
+
+			#centerModule {
+				text-align: center;
+				margin: auto;
+			}
+		</style>
+        
+        <script>
+            window.onload = setup;
+            window.addEventListener("keydown", handleKeyPress, false);
+
+            //vars
+            var canvas;
+            var ctx;
+            var timer;
+
+            //functions
+            function setup() {
+                canvas = document.getElementById("cucumber");
+                ctx = canvas.getContext("2d");
+                ctx.lineWidth = islandShoreThickness * camera.scale;
+                ctx.lineJoin = "round";
+
+                bridgeHeight = 0.75 * canvas.height;
+                waterHeight = 0.85 * canvas.height;
+
+                theMapCharacter = new MenuPlayer(0, 0);
+                theGameCharacter = new GamePlayer(0, canvas.height * 0.5);
+                human = theMapCharacter;
+
+                timer = window.requestAnimationFrame(main);
+            }
+
+            function handleKeyPress(u) {
+                //adding or subtracting which to display from
+                updateCanvas();
+            }
+
+            function updateCanvas() {
+
+            }
+        </script>
+	</head>
+	<body>
+        <!--text area-->
+        <div id="textBoxArea">
+        
+        </div>
+        <button onclick="addTextBox()">Add a line</button>
+
+        <!--display area-->
+		<div id="centerModule">
+			<canvas id="coco" width="640" height="480"></canvas><br>
+		</div>
+	</body>
+</html>
+
