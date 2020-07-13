@@ -84,34 +84,34 @@ class Bridge {
 
 		//start blob
 		//if player is near, color it green. Otherwise, red
-		if (this.playerIsNear(0)) {
+		if (playerIsNear(this.p[0])) {
 			ctx.fillStyle = color_bridgeStart;
 		} else {
 			ctx.fillStyle = color_bridgeEnd;
 		}
-		dPoint(x1, y1, 5);
+		dPoint(x1, y1, ctx.lineWidth / 2);
 		ctx.fill();
 		
 
 		//end blob
 		//same color system here
-		if (this.playerIsNear(1)) {
+		if (playerIsNear(this.p[1])) {
 			ctx.fillStyle = color_bridgeStart;
 		} else {
 			ctx.fillStyle = color_bridgeEnd;
 		}
-		dPoint(x2, y2, 5);
+		dPoint(x2, y2, ctx.lineWidth / 2);
 		ctx.fill();
 	}
 
 	tick() {
 		//if the player is near one end of the bridge, activate bridge mode
 		if (button_z) {
-			if (this.playerIsNear(0)) {
+			if (playerIsNear(this.p[0])) {
 				this.moveThroughSelfTo(1);
 			}
 
-			if (this.playerIsNear(1)) {
+			if (playerIsNear(this.p[1])) {
 				if (this.completed) {
 					this.moveThroughSelfTo(0);
 				} else {
@@ -125,14 +125,6 @@ class Bridge {
 		//every once in a while, check opacity
 		if (pTime % 46 == 0) {
 			this.checkOpacity();
-		}
-	}
-
-	playerIsNear(index) {
-		if (Math.abs(human.x - this.p[index][0]) < this.tolerance && Math.abs(human.y - this.p[index][1]) < this.tolerance) {
-			return true;
-		} else {
-			return false;
 		}
 	}
 
@@ -182,40 +174,59 @@ class Bridge {
 }
 
 class OrbPerson {
-	constructor(x, y, inputText) {
+	constructor(x, y, color, inputText) {
+		this.p = [[x, y]];
+		this.color = color;
 		this.conversing = false;
 		this.lineNumber = 0;
-		this.text = this.process(inputText);
-	}
-
-	process(inputText) {
-		inputText = JSON.stringify(inputText);
-		inputText = restroomLeave(inputText);
-		inputText = JSON.parse(inputText);
-
-		return inputText;
+		this.text = inputText;
+		this.playerLockInfo = {x: 0, y: 0, scale: 0}
 	}
 
 	tick() {
 		//potentially start conversation
+		if (!this.conversing) {
+			if (playerIsNear(this.p[0]) && button_z) {
+				this.conversing = true;
+				this.playerLockInfo = {x: human.x, y: human.y, scale: camera.scale};
 
-		//send conversation flag
+				//display text
+				document.getElementById(conversation_storage).innerHTML = this.text[this.lineNumber][0];
+				button_z = false;
+			}
+		} else {
+			//if already conversing, lock the player's movement and camera scroll
+			[human.ax, human.ay, human.dx, human.dy, human.dc, human.x, human.y] = [0, 0, 0, 0, 0, this.playerLockInfo.x, this.playerLockInfo.y];
+			camera.scale = this.playerLockInfo.scale;
+
+			//whenever the z button is pressed move forwards a line
+			if (playerIsNear(this.p[0]) && button_z) {
+				this.lineNumber += 1;
+
+				//display text unless out of lines, in which case terminate the conversation
+				if (this.lineNumber > this.text.length-1) {
+					//end conversation
+					this.conversing = false;
+					this.lineNumber = 0;
+					document.getElementById(conversation_storage).innerHTML = "";
+				} else {
+					//display text
+					document.getElementById(conversation_storage).innerHTML = this.text[this.lineNumber][0];
+				}
+
+				button_z = false;
+			}
+			//update the flag for drawing the text box
+			conversation_drawBox = true;
+		}
 	}
 
 	beDrawn() {
 		//orb
-
-	}
-
-	handleConversation() {
-		//drawing box
-		ctx.fillStyle = color_conversationBox;
-		ctx.globalAlpha = 0.5;
-		ctx.fillRect(0, canvas.height * 0.5, canvas.width, canvas.height * 0.5);
-
-		ctx.globalAlpha = 1;
-
-		//drawing words
+		ctx.fillStyle = this.color;
+		var tPos = adjustForCamera(this.p[0]);
+		dPoint(tPos[0], tPos[1], radius_NPC);
+		ctx.fill();
 
 	}
 }
@@ -230,7 +241,7 @@ class MenuPlayer {
 		this.x = x;
 		this.y = y;
 
-		this.r = 7;
+		this.r = radius_player;
 
 		this.fric = 0.85;
 		this.mFric = 0.92;
@@ -542,7 +553,7 @@ class Machine {
 	constructor() {
 		this.x = bridgeSegmentWidth;
 		this.y = bridgeHeight;
-		this.r = machineRadius;
+		this.r = radius_machine;
 		this.age = 0;
 		this.checkDistance = 12;
 		this.throwDistance = 7;

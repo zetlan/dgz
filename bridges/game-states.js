@@ -51,9 +51,13 @@ function runMap() {
 		}
 	}
 
-	//if a conversation is happening, draw it
-	if (conversationFlag > -1) {
-		loadingMap[conversationFlag].handleConversation();
+	//if a conversation is happening, draw the text box for it
+	if (conversation_drawBox) {
+		ctx.fillStyle = color_textBox;
+		ctx.globalAlpha = 0.5;
+		ctx.fillRect(0, canvas.height * 0.55, canvas.width, canvas.height * 0.45);
+		ctx.globalAlpha = 1;
+		conversation_drawBox = false;
 	}
 
 	pTime += 1;

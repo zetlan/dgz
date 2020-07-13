@@ -21,6 +21,19 @@
 				text-align: center;
 				margin: auto;
 			}
+
+			#textHolder {
+				position: relative;
+				margin: auto;
+				text-align: left;
+				margin-top: -200;
+				max-width: 600px;
+				min-width: 600px;
+
+				font-family:'Courier New', Courier, monospace;
+				font-size: 20px;
+				color: slateblue;
+			}
 		</style>
 		<script src="helper-functions.js"></script>
 		<script src="drawing-functions.js"></script>
@@ -33,6 +46,8 @@
 	<body>
 		<div id="centerModule">
 			<canvas id="cucumber" width="640" height="480"></canvas><br>
+
+			<p id="textHolder" width="640" height="240"></p>
 		</div>
 	</body>
 </html>

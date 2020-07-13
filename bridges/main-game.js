@@ -16,19 +16,28 @@ var gameState = "menu";
 var button_z = false;
 var pTime = 0;
 
+var color_background = "#A3C5FF";
+var color_beach = "#43BD90";
 var color_bridge = "#000000";
 var color_bridgeStart = "#00FF00";
 var color_bridgeEnd = "#E65F5C";
-var color_ground = "#22DE44";
-var color_beach = "#43BD90";
-var color_water = "#639BDB";
-var color_background = "#A3C5FF";
-var color_player = "#FF00FF";
-var color_editor = "#FF8888";
-var color_machine = "#888888";
 var color_debris = "#888888";
+var color_editor = "#FF8888";
+var color_ground = "#22DE44";
+var color_water = "#639BDB";
+var color_player = "#FF00FF";
+var color_machine = "#888888";
+var color_textBox = "#CCCCFF";
 
-var conversationFlag = -1;
+var distance_tolerance = 10;
+
+var radius_NPC = 7;
+var radius_player = 7;
+var radius_machine = 40;
+var radius_worldBridge = 5;
+
+var conversation_drawBox = false;
+var conversation_storage = "textHolder";
 
 var islandShoreThickness = 10;
 
@@ -47,8 +56,6 @@ var waterHeight;
 var wavePropogationRate = 0.2;
 var waveHeightSmall = 0.2;
 var waveHeightMedium = 0.5;
-
-var machineRadius = 40;	
 
 var debrisGravity = 0.5;
 
@@ -70,7 +77,7 @@ let loadingMap = [	new Island([[-20,-679],[-86,-745],[1,-836],[100,-776],[74,-68
 					new Bridge([[-594,863],[-445,864]], 5),
 					new Bridge([[-425,123],[-359,7]], 3),
 
-					new OrbPerson(-338, -163, messages_first)
+					new OrbPerson(-338, -163, "#008800", messages_first)
 				];
 
 let loadingBridge;
@@ -185,6 +192,7 @@ function handleKeyPress(u) {
 
 		}
 	}
+	u.preventDefault();
 }
 
 function handleKeyNegate(u) {
