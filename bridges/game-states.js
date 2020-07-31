@@ -94,8 +94,10 @@ function runGame() {
 
 	
 	//ticking/drawing bridge machine
-	loadingBridge.machine.tick();
-	loadingBridge.machine.beDrawn();
+	if (!loadingBridge.completed) {
+		loadingBridge.machine.tick();
+		loadingBridge.machine.beDrawn();
+	}
 
 	//camera scroll
 	handleGameplayCameraScroll();

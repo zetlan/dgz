@@ -174,8 +174,8 @@ class Bridge {
 }
 
 class OrbPerson {
-	constructor(x, y, color, inputText) {
-		this.p = [[x, y]];
+	constructor(xyPos, color, inputText) {
+		this.p = [xyPos];
 		this.color = color;
 		this.conversing = false;
 		this.lineNumber = 0;
@@ -188,10 +188,8 @@ class OrbPerson {
 		if (!this.conversing) {
 			if (playerIsNear(this.p[0]) && button_z) {
 				this.conversing = true;
+				this.updateTextBox(this.text[this.lineNumber]);
 				this.playerLockInfo = {x: human.x, y: human.y, scale: camera.scale};
-
-				//display text
-				document.getElementById(conversation_storage).innerHTML = this.text[this.lineNumber][0];
 				button_z = false;
 			}
 		} else {
@@ -203,17 +201,17 @@ class OrbPerson {
 			if (playerIsNear(this.p[0]) && button_z) {
 				this.lineNumber += 1;
 
-				//display text unless out of lines, in which case terminate the conversation
+				//if out of lines, end the conversation
 				if (this.lineNumber > this.text.length-1) {
 					//end conversation
 					this.conversing = false;
 					this.lineNumber = 0;
-					document.getElementById(conversation_storage).innerHTML = "";
+					this.updateTextBox(["", false]);
+					
 				} else {
 					//display text
-					document.getElementById(conversation_storage).innerHTML = this.text[this.lineNumber][0];
+					this.updateTextBox(this.text[this.lineNumber]);
 				}
-
 				button_z = false;
 			}
 			//update the flag for drawing the text box
@@ -228,6 +226,20 @@ class OrbPerson {
 		dPoint(tPos[0], tPos[1], radius_NPC);
 		ctx.fill();
 
+	}
+
+	updateTextBox(line) {
+		if (line[1]) {
+			document.getElementById(conversation_storage).style.color = color_player;
+		} else {
+			document.getElementById(conversation_storage).style.color = this.color;
+		}
+		document.getElementById(conversation_storage).innerHTML = line[0];
+	}
+
+	giveEnglishConstructor() {
+		let [p, color] = [this.p, this.color];
+		return `new OrbPerson([${p}], '${color}', inputText)`;
 	}
 }
 
@@ -416,13 +428,10 @@ class GamePlayer extends MenuPlayer {
 			if (loadingBridge.machine.doesPlayerCollide(this.dx, 0) == false) {
 				this.x += this.dx;
 			} else {
-				//if the machine is moving, push to the right
-				if (loadingBridge.machine.targetX != loadingBridge.machine.x) {
+				//if the machine is moving, and the palyer is on the right side, push to the right
+				if (loadingBridge.machine.targetX != loadingBridge.machine.x && this.x > loadingBridge.machine.x) {
 					this.x = loadingBridge.machine.x + loadingBridge.machine.r + this.r;
 				}
-
-				//just push to the right a little anyways
-				this.x += 1;
 			}
 		}
 

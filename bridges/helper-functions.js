@@ -205,7 +205,7 @@ function switchToGameplayState(startAtEnd) {
 	human = theGameCharacter;
 	//position the player
 	if (startAtEnd) {
-		human.x = (loadingBridge.bridgeArr.length * bridgeSegmentWidth) - 10;
+		human.x = (loadingBridge.bridgeArr.length * (bridgeSegmentWidth - 1)) - 10;
 	} else {
 		human.x = 10;
 	}
