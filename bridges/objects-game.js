@@ -30,6 +30,7 @@ class GamePlayer extends MenuPlayer {
 				this.canJump = false;
 			}
 		}
+	
 		//applying gravity
 		this.dy += this.gravity;
 
@@ -241,6 +242,11 @@ class Machine {
 			//if the difference is small enough, just move there
 			if (Math.abs(this.targetX - this.x) < 1) {
 				this.x = this.targetX;
+			}
+
+			//if the machine is offscreen, exit the gameplay
+			if (this.x > loadingBridge.bridgeArr.length * (bridgeSegmentWidth + 4)) {
+				switchToMapState();
 			}
 		}
 	}

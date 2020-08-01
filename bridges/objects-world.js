@@ -172,10 +172,11 @@ class Bridge {
 }
 
 class OrbPerson {
-	constructor(xyPos, color, inputText) {
+	constructor(xyPos, color, inputText, ID) {
 		this.p = [xyPos];
 		this.color = color;
-		this.conversing = false;
+        this.conversing = false;
+        this.id = ID; //ID is used for updating what the orbs say after each bridge has been completed
 		this.lineNumber = 0;
 		this.text = inputText;
 		this.playerLockInfo = {x: 0, y: 0, scale: 0}

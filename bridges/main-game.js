@@ -30,6 +30,7 @@ var color_machine = "#888888";
 var color_textBox = "#CCCCFF";
 
 var distance_tolerance = 10;
+var distance_shoreDiameter = 10;
 
 var radius_NPC = 7;
 var radius_player = 7;
@@ -39,7 +40,7 @@ var radius_worldBridge = 5;
 var conversation_drawBox = false;
 var conversation_storage = "textHolder";
 
-var islandShoreThickness = 10;
+
 
 //to clarify, the height of the thing here is its default position, relative to the screen.
 //However, the height of a segment is its variance from that position.
@@ -115,7 +116,7 @@ let theGameCharacter;
 function setup() {
 	canvas = document.getElementById("cucumber");
 	ctx = canvas.getContext("2d");
-	ctx.lineWidth = islandShoreThickness * camera.scale;
+	ctx.lineWidth = distance_shoreDiameter * camera.scale;
 	ctx.lineJoin = "round";
 
 	bridgeHeight = 0.75 * canvas.height;

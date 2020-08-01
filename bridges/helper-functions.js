@@ -119,9 +119,9 @@ function handleGameplayCameraScroll() {
 	if (screenHumanPos[0] < canvas.width * 0.25 && camera.xOffset > 10) {
 		camera.xOffset = human.x - canvas.width * 0.25;
 	};
-	//if the player is out of bounds or the machine is out of bounds while on the first run-through, check for leaving
-	if (human.y > canvas.height || (loadingBridge.machine.x > loadingBridge.bridgeArr.length * bridgeSegmentWidth && !loadingBridge.completed)) {
-		console.log("human offscreen down: " + (human.y > canvas.height) + "\n", "machine complete: " + (loadingBridge.machine.x > loadingBridge.bridgeArr.length * bridgeSegmentWidth && !loadingBridge.completed));
+	//if the player is out of bounds, check for leaving
+	if (human.y > canvas.height) {
+		console.log("human offscreen down: true");
 		loadingBridge.checkForLeave(true);
 	} else if (human.x < 0 || human.x > loadingBridge.bridgeArr.length * bridgeSegmentWidth) {
 		console.log("human offscreen left: " + (human.x < 0) + "\n", "human offscreen right: " + (human.x > loadingBridge.bridgeArr.length * bridgeSegmentWidth));

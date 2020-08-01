@@ -46,9 +46,9 @@ function runMap() {
 			ctx.lineWidth = 5;
 			var drawPoint = adjustForCamera(editor.object.p[editor.point]);
 			ctx.ellipse(drawPoint[0], drawPoint[1], 2, 2, 0, 0, Math.PI * 2);
-			ctx.stroke();
-			ctx.lineWidth = 10;
+			ctx.stroke();	
 		}
+		ctx.lineWidth = distance_shoreDiameter * camera.scale;
 	}
 
 	//if a conversation is happening, draw the text box for it
