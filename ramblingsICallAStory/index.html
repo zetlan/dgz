@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+
+    <head>
+        <title>Incoherent ramblings that I am calling a story</title>
+
+        <style>
+            body {
+                background-color: slateblue;
+                font-family: Arial, Helvetica, sans-serif;
+            }
+
+            #top-text {
+                color: white;
+                font-size: 30px;
+                text-align: center;
+            }
+
+            #chapter-list {
+                color: white;
+                font-size: 20px;
+                text-align: center;
+                margin-top: 50px;
+            }
+        </style>
+
+        <!--surely this is the best way to do file linkage-->
+        <script src="testing123.js"></script>
+
+        <script type="text/javascript">
+            //function for putting the wordies into the text location
+            function activateWordies(chapterNumber) {
+                var source = "chapters_" + chapterNumber;
+                try {
+                    document.getElementById("wordParagraph").innerHTML = eval(source);
+                } catch (error) {
+                    document.getElementById("wordParagraph").innerHTML = "hey sorry, that chapter doesn't exist yet, you can contact our complaints department if you want";
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <div id="top-text">
+            <p>
+                A collection of words organized into chapters that may or may not connect to each other
+            </p>
+            <p>
+                Written by _̷̳̺́̂̄_̵̧̧͈͔͇͉͈͊͊̕͘_̵̛̫͖̳̠͂̅̄͐̎̍͜_̷̧̧̀̔̆̌̌̌_ Clementine
+            </p>
+        </div>
+        <div id="chapter-list">
+            <p>
+                <b>
+                chapters:
+                </b>
+                <br>
+                <button onclick="activateWordies(0);">Chapter 0</button><br>
+                <button onclick="activateWordies(2);">Chapter 2</button><br>
+                <button onclick="activateWordies(131231312312321312);">Chapter  ̴̱̥̲̙̱̜̀̂̏̾͒̽̃́</button><br>
+            </p>
+        </div>
+
+        <div id="wordSpot">
+            <p id="wordParagraph">this is where the wordies go when you press a chapter button</p>
+        </div>
+    </body>
+</html>

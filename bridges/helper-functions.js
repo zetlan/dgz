@@ -104,6 +104,31 @@ function getIntersectPoint(xyPoint1 , xyPoint2, polyPoints) {
 	return [intersectsAt, (intersectsAt + 1) % polyPoints.length];
 }
 
+function handleGameplayCameraScroll() {
+	var screenHumanPos = adjustForCamera([human.x, human.y]);
+	//forwards, keep player out of the 25% right zone
+	if (screenHumanPos[0] > canvas.width * 0.75) {
+		camera.xOffset = human.x - canvas.width * 0.75;
+		//make sure not to go off the right edge
+		if (camera.xOffset > (loadingBridge.bridgeArr.length * bridgeSegmentWidth) - canvas.width - 10) {
+			camera.xOffset = (loadingBridge.bridgeArr.length * bridgeSegmentWidth) - canvas.width - 10;
+		}
+	}
+
+	//backwards, keep player out of the 25% left zone but make sure to not go off the left edge
+	if (screenHumanPos[0] < canvas.width * 0.25 && camera.xOffset > 10) {
+		camera.xOffset = human.x - canvas.width * 0.25;
+	};
+	//if the player is out of bounds, check for leaving
+	if (human.y > canvas.height) {
+		console.log("human offscreen down: true");
+		loadingBridge.checkForLeave(true);
+	} else if (human.x < 0 || human.x > loadingBridge.bridgeArr.length * bridgeSegmentWidth) {
+		console.log("human offscreen left: " + (human.x < 0) + "\n", "human offscreen right: " + (human.x > loadingBridge.bridgeArr.length * bridgeSegmentWidth));
+		loadingBridge.checkForLeave(false);
+	}
+}
+
 //not a very complex function, but this way I don't have to write out the equation every time
 function linterp(val1, val2, percentage0to1) {
 	return val1 + ((val2 - val1) * percentage0to1);
@@ -151,6 +176,14 @@ function mapOutput() {
 	console.log(outputMap);
 }
 
+function playerIsNear(xyPoint) {
+	if (Math.abs(human.x - xyPoint[0]) < distance_tolerance && Math.abs(human.y - xyPoint[1]) < distance_tolerance) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
 function rotate(x, y, radians) {
 	[x, y] = [(x * Math.cos(radians)) - (y * Math.sin(radians)), (y * Math.cos(radians)) + (x * Math.sin(radians))];
 	return [x, y];
@@ -172,7 +205,7 @@ function switchToGameplayState(startAtEnd) {
 	human = theGameCharacter;
 	//position the player
 	if (startAtEnd) {
-		human.x = (loadingBridge.bridgeArr.length * bridgeSegmentWidth) - 10;
+		human.x = (loadingBridge.bridgeArr.length * (bridgeSegmentWidth - 1)) - 10;
 	} else {
 		human.x = 10;
 	}

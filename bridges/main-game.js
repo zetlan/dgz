@@ -16,19 +16,31 @@ var gameState = "menu";
 var button_z = false;
 var pTime = 0;
 
+var color_background = "#A3C5FF";
+var color_beach = "#43BD90";
 var color_bridge = "#000000";
 var color_bridgeStart = "#00FF00";
 var color_bridgeEnd = "#E65F5C";
-var color_ground = "#22DE44";
-var color_beach = "#43BD90";
-var color_water = "#639BDB";
-var color_background = "#A3C5FF";
-var color_player = "#FF00FF";
-var color_editor = "#FF8888";
-var color_machine = "#888888";
 var color_debris = "#888888";
+var color_editor = "#FF8888";
+var color_ground = "#22DE44";
+var color_water = "#639BDB";
+var color_player = "#FF00FF";
+var color_machine = "#888888";
+var color_textBox = "#CCCCFF";
 
-var islandShoreThickness = 10;
+var distance_tolerance = 10;
+var distance_shoreDiameter = 10;
+
+var radius_NPC = 7;
+var radius_player = 7;
+var radius_machine = 40;
+var radius_worldBridge = 5;
+
+var conversation_drawBox = false;
+var conversation_storage = "textHolder";
+
+
 
 //to clarify, the height of the thing here is its default position, relative to the screen.
 //However, the height of a segment is its variance from that position.
@@ -46,28 +58,27 @@ var wavePropogationRate = 0.2;
 var waveHeightSmall = 0.2;
 var waveHeightMedium = 0.5;
 
-var machineRadius = 40;	
-
 var debrisGravity = 0.5;
 
 //objectos
 let loadingMap = [	new Island([[-20,-679],[-86,-745],[1,-836],[100,-776],[74,-685]]),
 					new Island([[80,-385],[-30,-378],[0,-478]]),
-					new Island([[-749,284],[-862,401],[-962,341],[-954,59],[-959,54],[-964,49],[-969,44],[-974,39],[-979,34],[-984,29],[-989,24],[-869,-123],[-759,-319],[-516,-369],[-256,-313],[-66,-223],[11,-89],[-22,77],[-59,207],[-59,374],[4,521],[-66,687],[-199,744],[-312,867],[-469,931],[-432,796],[-312,686],[-176,479],[-170,282],[-190,142],[-200,32],[-233,-24],[-236,12],[-213,269],[-200,399],[-276,569],[-440,716],[-553,812],[-622,924],[-692,837],[-672,717],[-612,627],[-452,561],[-299,451],[-246,247],[-306,24],[-479,-9],[-636,81],[-716,151]]),
+					new Island([[-749,284],[-862,401],[-962,341],[-954,59],[-959,54],[-964,49],[-969,44],[-974,39],[-979,34],[-984,29],[-989,24],[-869,-123],[-759,-319],[-516,-369],[-256,-313],[-66,-223],[11,-89],[-22,77],[-59,207],[-59,374],[4,521],[-66,687],[-199,744],[-312,867],
+								[-469,931],[-432,796],[-312,686],[-176,479],[-170,282],[-190,142],[-200,32],[-233,-24],[-236,12],[-213,269],[-200,399],[-276,569],[-440,716],[-553,812],[-622,924],[-692,837],[-672,717],[-612,627],[-452,561],[-299,451],[-246,247],[-306,24],[-479,-9],[-636,81],[-716,151]]),
 					new Island([[169,-892],[292,-860],[329,-962],[245,-1054],[136,-1072],[102,-1004]]),
 					new Island([[1122,-283],[1156,-119],[1216,-3],[1069,-26],[939,54],[896,-109],[809,-193],[866,-313],[989,-369]]),
 					new Island([[562,-790],[666,-787],[746,-700],[719,-620],[622,-580],[539,-617],[516,-710]]),
 					new Island([[-647,171],[-695,268],[-704,359],[-687,372],[-666,345],[-653,249],[-577,182],[-480,162],[-422,209],[-404,294],[-457,383],[-520,414],[-526,431],[-507,439],[-457,423],[-380,354],[-355,234],[-419,118],[-539,113]]),
 					new Island([[515,1577],[508,1695],[398,1712],[291,1655],[374,1565]]),
-
 					new Bridge([[-169,-261],[-17,-390]], 5),
 					new Bridge([[5,-455],[24,-696]], 5),
 					new Bridge([[35,-810],[149,-935]], 5),
 					new Bridge([[293,-879],[537,-738]], 5),
 					new Bridge([[692,-613],[920,-328]], 5),
 					new Bridge([[-594,863],[-445,864]], 5),
-					new Bridge([[-425,123],[-359,7]], 3)
-				];
+					new Bridge([[-425,123],[-359,7]], 3),
+					new OrbPerson([420,1648], '#008800', messages_first, "secretBoi"),
+					new OrbPerson([-414.38300685914356,142.24533148336684], '#3626A7', messages_tutorial, "frendo_first")];
 
 let loadingBridge;
 let loadingWater = [];
@@ -105,13 +116,13 @@ let theGameCharacter;
 function setup() {
 	canvas = document.getElementById("cucumber");
 	ctx = canvas.getContext("2d");
-	ctx.lineWidth = islandShoreThickness * camera.scale;
+	ctx.lineWidth = distance_shoreDiameter * camera.scale;
 	ctx.lineJoin = "round";
 
 	bridgeHeight = 0.75 * canvas.height;
 	waterHeight = 0.85 * canvas.height;
 
-	theMapCharacter = new MenuPlayer(0, 0);
+	theMapCharacter = new MenuPlayer(-487, 415);
 	theGameCharacter = new GamePlayer(0, canvas.height * 0.5);
 	human = theMapCharacter;
 
@@ -178,9 +189,13 @@ function handleKeyPress(u) {
 				//adding a bridge
 				loadingMap.push(new Bridge([[0, 0], [25, 25]], 5));
 				break;
+			case 67:
+				//adding an orb
+				loadingMap.push(new OrbPerson([0, 0], "#FF00FF", []));
 
 		}
 	}
+	u.preventDefault();
 }
 
 function handleKeyNegate(u) {
