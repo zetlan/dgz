@@ -1,1 +1,20 @@
-var chapters_0 = "This is a test chamber. This is a test. It has 4 walls and 87 floors.";
+var chapters_19843 = "'you fool. You egg. You absolute nutmeg.' As it turns out, two out of the three of those is a correct description of me. Well, I guess *was* a correct description of me. Now I am simply a fool.";
+var chapters_19844 = "This is a test chamber. This is a test. It has 4 walls and 87 floors.";
+
+var chapters_0 = ""
+
+
+
+
+var chapters_2 = `How can a NOT gate do its work? For when the power is on, it is easy to simply divert the flow of power. Shutting down a communications line takes no more than the press of a button, and anyone who has witnessed a lightning strike first hand knows that electricity is more than capable of destroying the results of itself. The laws of thermodynamics state that in a closed system, entropy must eventually increase. Entropy, being the lack of information in a system. When a cup of coffee is uniformly distributed, the horrible liquid in perfect harmony with itself, there is only one way to describe the coffee. Writers may disagree, but writers are stupid. <br><br>
+I conducted a survey yesterday, in which I went around to all my friends asking about the status of writers. Horribly underpaid, in my opinion, however all of my compatriots aquiesced among themselves that writers are in fact at the very lower end of the hierarchy of respectable jobs! After all, no writers have ever remained friends with over two people. This is why the conversities we had were extremely brief.  <br><br>
+Returning to the initial concept at hand, entropy must always increase. In the perfectly balanced cup of coffee, when a human drinks it, they are drinking pure coffee. And the disappointment of the taste is pure as well. However. When one produces from within the premises of their own saline kitchen, a frothy cappuccino, well then the possibilities are endless! Cappucinos not only taste a thousand times more invigorating than plain coffee, but there are ingredianents mixed in as well! The foam, swirling like ten thousand tiny galaxies, dances across the surface of the liquid. The amount of information contained in a single cup of cappuccino is immeasurable. <br><br>
+Now. Is this to condemn the likes of the coffee in favor of drinking hot chocolate, where marshmallows melt and change state, a chaotic undercurrent is contained within the container? Or Cappuccino, where the taste is pleasing to the tongue and the soul of a little girl? Partially yes. However. It is more. <br><br>
+When a NOT gate receives no power, it faces a dilemma. For how is one to produce from a state of nothing? NOT gates receive one input, and one input alone. They send one output, and one output alone. How can one induce a current when one receives no current? For producing energy would break the very laws of thermodynamics that appear to govern our universe? Why then, must we be subject to the ever-changing cost of a kilowatt, when a NOT gate could produce current all on it's own? It's baffling, the will of the people silenced by a single gate, so tiny it could fit under someone's fingernail. And yet, here we are. At a crossroads, with one side having eternal bliss, and one side containing only suffering. Hell hath its layers like an onion, says Dante, but in reality, hell is the simple NOT gate, generating its power when none is supplied to it. <br><br>
+Why must we separate our gates into binaries? Why must a NOT gate return a 1 when it is given a 0? Did we ever stop to consider the impacts that we may be having on the world, and by extension, the NOT gate? Of course not. it would be silly. However.<br><br>  
+<br>
+However. <br>
+<br>
+It has been nine hours and forty-five minutes since the last time I spoke to a NOT gate. They were a nice fellow, although technically, if you look closely, they are more complicated than just outputting a 1 when given a 0. The life of the NOT gate is a complex process, fully open to the whims of the electrons whizzing past on an ionizing wind. However, if you get to know them better, they are actually quite a nice fellow, and I am glad I could learn from them.<br>
+<br>
+I must go. The cappuccino calls.`;

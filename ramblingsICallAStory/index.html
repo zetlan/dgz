@@ -30,13 +30,11 @@
         <script type="text/javascript">
             //function for putting the wordies into the text location
             function activateWordies(chapterNumber) {
-                switch (chapterNumber) {
-                    case 0:
-                        document.getElementById("wordParagraph").innerHTML = chapters_0;
-                        break;
-                    default:
-                        document.getElementById("wordParagraph").innerHTML = "hey sorry, that chapter doesn't exist yet, you can contact our complaints department if you want";
-                        break;
+                var source = "chapters_" + chapterNumber;
+                try {
+                    document.getElementById("wordParagraph").innerHTML = eval(source);
+                } catch (error) {
+                    document.getElementById("wordParagraph").innerHTML = "hey sorry, that chapter doesn't exist yet, you can contact our complaints department if you want";
                 }
             }
         </script>
@@ -44,7 +42,7 @@
     <body>
         <div id="top-text">
             <p>
-                A collection of words organized into chapters that may or may not connect to eachother
+                A collection of words organized into chapters that may or may not connect to each other
             </p>
             <p>
                 Written by _̷̳̺́̂̄_̵̧̧͈͔͇͉͈͊͊̕͘_̵̛̫͖̳̠͂̅̄͐̎̍͜_̷̧̧̀̔̆̌̌̌_ Clementine
@@ -57,6 +55,8 @@
                 </b>
                 <br>
                 <button onclick="activateWordies(0);">Chapter 0</button><br>
+                <button onclick="activateWordies(2);">Chapter 2</button><br>
+                <button onclick="activateWordies(131231312312321312);">Chapter  ̴̱̥̲̙̱̜̀̂̏̾͒̽̃́</button><br>
             </p>
         </div>
 
