@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+
+    <head>
+        <title>Incoherent ramblings that I am calling a story</title>
+
+        <style>
+            body {
+                background-color: slateblue;
+                font-family: Arial, Helvetica, sans-serif;
+            }
+
+            #top-text {
+                color: white;
+                font-size: 30px;
+                text-align: center;
+            }
+
+            #chapter-list {
+                color: white;
+                font-size: 20px;
+                text-align: center;
+                margin-top: 50px;
+            }
+        </style>
+
+        <!--surely this is the best way to do file linkage-->
+        <script src="testing123.js"></script>
+
+        <script type="text/javascript">
+            //function for putting the wordies into the text location
+            function activateWordies(chapterNumber) {
+                switch (chapterNumber) {
+                    case 0:
+                        document.getElementById("wordParagraph").innerHTML = chapters_0;
+                        break;
+                    default:
+                        document.getElementById("wordParagraph").innerHTML = "hey sorry, that chapter doesn't exist yet, you can contact our complaints department if you want";
+                        break;
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <div id="top-text">
+            <p>
+                A collection of words organized into chapters that may or may not connect to eachother
+            </p>
+            <p>
+                Written by _̷̳̺́̂̄_̵̧̧͈͔͇͉͈͊͊̕͘_̵̛̫͖̳̠͂̅̄͐̎̍͜_̷̧̧̀̔̆̌̌̌_ Clementine
+            </p>
+        </div>
+        <div id="chapter-list">
+            <p>
+                <b>
+                chapters:
+                </b>
+                <br>
+                <button onclick="activateWordies(0);">Chapter 0</button><br>
+            </p>
+        </div>
+
+        <div id="wordSpot">
+            <p id="wordParagraph">this is where the wordies go when you press a chapter button</p>
+        </div>
+    </body>
+</html>
