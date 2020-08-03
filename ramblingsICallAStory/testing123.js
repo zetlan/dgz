@@ -5,6 +5,15 @@ var chapters_0 = ``;
 
 
 
+var chapters_1 = `Josh grumbles at nothing in particular as our spacecraft flies through the void. He's always frustrated at something, whether it's me, the other members of the team (Cynthia and Rob), or the world in general. Finally he says something. "Why are we on this stupid ship?". I sigh. We've been over this a million times, and yet he still insists on attempting to drag us back down to the planet. "I told you", I respond, "We weren't happy on the planet. Leaving was the only way to survive." "Well, maybe you all should have just smiled and dealt with it! Maybe, Bobby, instead of coming up with smart retorts, you should take inspiration from Teardrop!"<br>
+<br>
+So we sit in silence as the craft ascends further away from the planet's surface, and eventually turns parallel to it. The craft is relatively spacious, with living quarters for all of us connected to a central room where we can chat or just stare out the high quality windows. I think they're some sort of specialized glass, because they've never cracked or broken, although I always worry that they might. I don't completely understand the furniture on the ship. I've never counted it, but there always seems to be just quite not enough furniture to go around. As a result, Rob is sitting on the floor. He reminds us to drink water, and I remind him that we left all our water on the planet.<br>
+<br>
+Perhaps that was not a good idea.<br>
+<br>
+I'm still thinking when Josh cuts in again. "We should have at least brought water on this stupid trip. Seriously, we could have just stayed on the planet. Cynthia's the only one dragging us up here." As if on cue, Cynthia walks in. "Hi," she says, like someone who doesn't know how to speak. I certainly don't know how to speak either.<br>
+<br>
+Josh leaves. Rob is still sitting on the floor, even though there are now enough chairs for all three of us to sit in, most likely because`;
 
 var chapters_2 = `How can a NOT gate do its work? For when the power is on, it is easy to simply divert the flow of power. Shutting down a communications line takes no more than the press of a button, and anyone who has witnessed a lightning strike first hand knows that electricity is more than capable of destroying the results of itself. The laws of thermodynamics state that in a closed system, entropy must eventually increase. Entropy, being the lack of information in a system. When a cup of coffee is uniformly distributed, the horrible liquid in perfect harmony with itself, there is only one way to describe the coffee. Writers may disagree, but writers are stupid. <br><br>
 I conducted a survey yesterday, in which I went around to all my friends asking about the status of writers. Horribly underpaid, in my opinion, however all of my compatriots aquiesced among themselves that writers are in fact at the very lower end of the hierarchy of respectable jobs! After all, no writers have ever remained friends with over two people. This is why the conversities we had were extremely brief.  <br><br>
