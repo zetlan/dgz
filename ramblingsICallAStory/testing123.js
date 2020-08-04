@@ -221,3 +221,89 @@ This is not helpful. If I have no true self, then it doesn't make sense that wit
 My carpet is pretty soft, and the constant whirr of the fans of my laptop is comforting, even though there are other grinding, crashing, and unpleasant sounds that pervade the air in my room. I attempt to not focus on them, in failure. Disappointed, I call up one of my friends to talk to him. "Hey Bobby, how are you?" He responds.<br>
 <br>
 `;
+
+
+
+
+var chapters_9 = `I look out through the window of the ship into the endless void, and receive thousands of tiny specks of light in return. Space is beautiful, it's a type of well-ordered chaos not seen in many places. There's just a type of amazement I feel, when looking out, realizing that the whole vast expanse really has a depth to it, and isn't just a flat projection. When one looks at the sky from a planet, it seems endless, but it's really just a thin line between you and deep space. The space though, goes on forever, as far as we know.<br>
+<br>
+<br>
+I counted the chairs today. There were 7 chairs, one was ornately decorated with circles and mahogany ridges. I had never seen it before, so I'm pretty sure that someone is adding furniture to the central room somehow. Perhaps Josh or Rob is taking the furniture out of their room and moving it to the center room? I haven't really seen their rooms, since I usually spend my time either in this central room, or in my own. There isn't any furniture in my room, just a whiteboard and a really comfortable floor.<br>
+<br>
+The vibrant blue star comes into our field of view as we pass the dark side of the planet. I am thinking about our situation, and I feel that there isn't really anything to be done about it. I know Josh will probably yell at me later for thinking that, because we "gotta keep moving" in his own words, but really what is there to do? One day it seemed like everything was fine, the next day the world turned upside down and we had to leave the planet. Cynthia would probably know better than me, but she's never divulged the full reason. Ever since we left, the passage of time has seemed so surreal. We orbit the planet approximately once every 125 minutes, meaning that the day and night cycle isn't really a good indicator of how long we've been up here. Don't get me wrong, watching the celestial bodies is still cool and all, but I would really rather be grounded and not have to deal with thinking about everything at once. Sometimes it seems like the hours pass by in a flash, and sometimes it seems like the time drags on and on, without any real progression. <br>
+<br>
+I want to talk to someone else. I pull myself away from the window and think about who to talk to. Josh is out of the question, because he doesn't like being talked to by anyone else, so that just leaves Rob and Cynthia, both of whom are not great conversation partners. Cynthia also wants to go back home, but before we do we have to officially resolve the issue of not having to leave again and confronting the mob that was outside our fortress, and I'm really not the type of person to do that. So, that just leaves Rob.<br>
+<br>
+Opening his door he beckons me in and I sit down on one of the chairs in his room. Perhaps that's where the new chairs are coming from. His room is extremely well furnished. There is a bed with blue sheets in the corner farthest from the door, six wooden chairs arranged in a circle around the center of the room, and a dresser. I'm not really sure how many pairs of clothes he has, but he certainly has the most out of all of us. I'm getting distracted. Gosh, so many things on this ship don't make sense. We've been up here for at least 3 weeks and you mean to tell me there's no kitchen on this ship? There's got to be one around here somewhere. "Bobby," Rob brings me back to reality. "Yeah?" I reply, still thinking about the lack of a kitchen. "You should drink some water." Well I know that, but we really are sort of in a shortage of glasses due to the lack of a kitchen.<br>
+<br>
+I cannot believe this. How did this happen? We built this ship. We should know where the kitchen is, but is there really no kitchen? I don't remember seeing one in the blueprints, but then again, there were only 3 rooms in the blueprints, but we have 5. How did we build a spaceship without proper blueprints for the spaceship? I have not eaten in months, and to be honest I feel fine, but I would really like a good watermelon. Unfortunately, there are no watermelons on this ship, since there is no kitchen.<br>
+<br>
+Have you ever had a watermelon? Some people tell me that they just taste like crunchy water, but I disagree. They are extremely watery, (90% water, as Cynthia helpfully told me) but they're also sweet and they can be cut into triangles, then eaten in those triangles. Similar to pizza, but sweet instead of savory.<br>
+<br>
+<br>
+<br>
+I am preparing a watermelon in the kitchen. Josh says that watermelons are disgusting and just taste like crunchy water, but I disagree. I enjoy cutting up my watermelon into squares, and then eating the squares off a plate. It makes me feel fancy, like I am a fine british child at a british table. Unfortunately, britain probably would not be receptive if we landed there, due to its nonexistence at the moment. I pop a square of watermelon into my mouth. The others probably haven't found the kitchen yet, because they've all been occupied with their own tasks, but I have had time to explore. Unlike some people here, I am happy with myself.<br>
+<br>
+I suppose I shouldn't put others down like that, it's not completely their fault because`;
+
+
+
+
+var chapters_10 = `Macaroni and cheese is a strange dish, one that I do not have often on the principle that macaroni and cheese really does not taste that good. It is a passable meal, but the kind that one can buy from the store is not of the best quality. When I refer to macaroni in cheese, I am generally talking about the store bought kind, and not the kind made by people for special occasions or just to consume. Why do I need to make this distinction? Mainly, because the amount of quality taste in each type of macaroni is worlds different. <br>
+<br>
+Store bought macaroni is generally a bit bland, the noodles are extremely small, and the cheese is fake cheese dust sprinkled on top of the dish as it is being cooked. This kind is edible, but I would not go out of my way to eat it. Home made macaroni and cheese on the other hand, is a bit more difficult to describe. Everybody has their own way of making it. Sometimes breadcrumbs are added, sometimes multiple types of cheese are layered on top of one another. The noodle size varies greatly. Because of this, the consumption of home made mac-C (what the cool kids call macaroni and cheese) is generally much more interesting and pleasurable to the taste buds.<br>
+<br>
+Because of the clear superiority of home-made mac-C, one may wonder why store mac-C continues to exist. It may be a sign of the times then, that one day my family and I arrived home after a journey across society, only to find a box of uncooked store bough mac-C strewn across the lower part of our driveway. It was a strange event, as this was at approximately 21:00, meaning that it was dark outside. I took a few pictures, but due to the unfortunate size and shape of the noodles, it just looks like a rather large collection of worms on the asphalt.<br>
+<br>
+The Box was completely intact.<br>
+The packet of fake cheese was completely intact.<br>
+All of the macaronis were intact. The only odd thing about the box of mac-C was that it was on our driveway, and that it had somehow managed to spill without anybody noticing it.<br>
+<br>
+<br>
+I am still trying to imagine the circumstances that could have lead to the creation of this event. I am relatively sure that it was not us, running over a stray box of mac-C on the way into the car space, because if such a collision had occurred, the box would be crushed, the contents smeared along a predictable pattern. The box wasn't even in the path that our car took from the road to our garage.<br>
+<br>
+I can therefore only come to the conclusion that someone must have, in a fit of blind rage, taken an innocent box of mac-C, ripped open the top, and hurled it upon the ground, where the contents spilled out and the perpetrator fled. I do have to wonder what their grudge against a humble box of store mac-C was, but perhaps it was the overwhelming mediocrity of the taste that finally got to them.<br>
+<br>
+But the point is no. I am not going to talk about the [■■■■■■■■■■■ ■■■■■■■■]`;
+//yep, it really is just a set of squares. No fancy tricks to block out the text, really just a square character.
+//Sorry that searching here didn't yield anything /:
+
+
+
+
+
+var chapters_11 = `<p style="font-family:courier;">Planet summary: Tenalp<br>
+<br>
+Tenalp takes roughly 174 minutes to orbit, and has a mass of roughly 2.854 * 10^25 kilograms.<br>
+<br>
+<br>
+Land map:<br>
+<br>
+■ land ................................. - ocean<br>
+<br>
+------------------------------------------------<br>
+■■■■---■■■---■■■■---■■-----■■■-■■■■--■■■■----■■■<br>
+■■---■■■---■■■■■■■■■■■■■■----■■■■■■---■■--■■--■■<br>
+■■-------■■■■■■■■■----■■■■■■■---■■■■■■---■■■■-■■<br>
+■■■■■■■■■■■■■■■------------■■■■■■■■■■■■■■■■■■--■<br>
+-■■■■■■■■-----------■■■■------------■■■■■■■■■■--<br>
+--■■■■■■■■■-----■■■■■■■■■■---------■■■■■■■■■■■■■<br>
+■--■■■■■■■■■---■■■■■■■■■■■■------■■■■■■■■■■■■■■■<br>
+■■---■■■■■■-----■■■■■■■■■■-------■■■■■■■■■-■■■■■<br>
+■■■■----■■-------■■■■■■■■---------■■■■■■■---■■■■<br>
+■■■■■■--------------■■■-------■-----■■■■■■--■■■■<br>
+■■■■-----------------------■■■■■■---■■■■■■■■■■■■<br>
+■■■--------------------■■■■■■■■■■■■--■■■■■■■■■■■<br>
+-■■■--------------■■■■■■■■■■■■■■■■■--------■■■■-<br>
+------------------------------------------------<br>
+<br>
+The atmosphere is extremely thin, roughly 0.04 ATM at sea level, and contains mostly carbon dioxide with some trace amounts of hydrogen. No plant life exists, and the soil is powdery. Clouds form regularly, although it is unknown what they are made of, as the atmosphere is theoretically too thin to support them. The seas have a pH of 1.342, and as such are extremely unsafe for human life.<br>
+<br>
+Two known colonies have been to Tenalp. The first one is the british colonies, arriving close to timestep 136871932, and then splitting into two colonies due to disagreements. As of timestep 137144490, only the colony farthest from the equator remains.<br>
+<br>
+<br>
+Climate varies greatly due to the lack of atmosphere. Near the equator, temperatures can range from 10° to -100°. This is due to the large thermal mass of the oceans, which reduces temperature range, and a continual warming force from the inside of the planet.<br>
+<br>
+Closer to the poles, the temperature is slightly colder, with a range of -10° to -130°. Both poles are covered by the ocean, but no freezing has been seen to occur.<br>
+<br>
+The second colony is of unknown origin, and appears to be very expansionist, covering a radius of 47 miles as of timestep 137144590. It is located approximately halfway from the equator to the north pole.</p>`;
