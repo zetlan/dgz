@@ -64,9 +64,34 @@ I stare out the window at the purple planet below, the occasional patch of orang
 <br>
 "Drink some water, you two," Rob cuts in, I take a sip of water and`;
 
+
+
+
+
+
 var chapters_19843 = "'you fool. You egg. You absolute nutmeg.' As it turns out, two out of the three of those is a correct description of me. Well, I guess *was* a correct description of me. Now I am simply a fool.";
 
 var chapters_19844 = "This is a test chamber. This is a test. It has 4 walls and 87 floors.";
+
+var chapters_19845 = `ett
+två
+tre
+fyra
+...
+
+
+
+ok. Ett två tree fyra f...
+
+...
+
+stop that! You're not being helpful, you know that?
+
+ett två tre fyra-
+
+fyra-
+
+it's really not that hard. It's just a collection of syllables. You're making this difficult.`;
 
 
 var chapters_5 = `<p style="font-family:courier; text-align: center">■■■■■■■■■ START OF FILE ■■■■■■■■■<br>
@@ -265,8 +290,109 @@ I am still trying to imagine the circumstances that could have lead to the creat
 I can therefore only come to the conclusion that someone must have, in a fit of blind rage, taken an innocent box of mac-C, ripped open the top, and hurled it upon the ground, where the contents spilled out and the perpetrator fled. I do have to wonder what their grudge against a humble box of store mac-C was, but perhaps it was the overwhelming mediocrity of the taste that finally got to them.<br>
 <br>
 But the point is no. I am not going to talk about the [■■■■■■■■■■■ ■■■■■■■■]`;
-//yep, it really is just a set of squares. No fancy tricks to block out the text, really just a square character.
-//Sorry that searching here didn't yield anything /:
+
+
+
+
+
+var chapters_1a = `Question: Steven has 7 apples. He grows 3 more with his apple tree. How many apples does Steven have?<br>
+<br>
+Response: 10<br>
+<br>
+Feedback: Incorrect. Steven has 9 apples. The demons take one.<br>
+<br>
+<br>
+<br>
+<br>
+Question: Steven has 4 apples: He grows 8 more with his apple tree. How many apples does Steven have?<br>
+<br>
+Response: 11?<br>
+<br>
+Feedback: Incorrect. Steven has 10 apples. The demons take two. Bonus points for mentioning his left hand, which the demons also take.<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+Question: Amy has 3 apples. She grows 4 more with her apple tree. How many apples does Amy have?<br>
+<br>
+Response: .<br>
+<br>
+Feedback: please submit a valid response. Your current response, "." is not acceptable.<br>
+<br>
+Response: afsd<br>
+<br>
+Feedback: please submit a valid response. Your current response, "afsd" is not acceptable.<br>
+<br>
+Response: 3<br>
+<br>
+Feedback: Incorrect. The demons are nice to Amy. She gets to keep all of her apples, leaving her with 7.<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+Question: Steven is trying to fall asleep. He gets into bed at 20:03. Given that it takes him 1/4th of an hour to fall asleep, At what time does he fall asleep?<br>
+<br>
+Response: demons? keep him from going to sleep?<br>
+<br>
+Feedback: Incorrect. He is haunted by them in his dreams. Steven is having a mid-life crisis. Steven hates his current situation, so he decides to install anti-demon doors onto his house. The doors are not working. The demons are already inside. He attempts to quell them. Perhaps it is ok to listen? No. Only screams can be heard from the demons.<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+Question: if-<br>
+<br>
+Response: what is the purpose of this? Why are you giving me these questions? What are they supposed to teach?<br>
+<br>
+Feedback:<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+Question: being Steven is a disease. Don't be Steven. Don't be Steven.<br>
+<br>
+Response: that's a bit creepy. Also you haven't really specified what specific characteristics of Steven are problematic. You can't just tell someone to not be someone, and then don't tell them what being that something entails. It would kind of be like<br>
+<br>
+Feedback: character limit reached.<br>
+<br>
+Feedback: please submit a valid response. Your current response, "that's a bit creepy Also..." is not acceptable.<br>
+<br>
+Response: ok<br>
+<br>
+Feedback: Correct.<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+Question: This wasn't a problem four years ago. Why is it a problem now? Can it stop? Can the world stop conspiring against Steven? He should just tell the demons to leave, <br>
+<br>
+Response: can I leave now?<br>
+<br>
+Feedback: ok sure `;
+
+
+
+var chapters_1b = `So in the end, have we really learned anything from this whole venture? Or is it just another rehashing of the same conversation?
+
+The world is not a meritocracy. That's one of the many lies perpetuated by people who would benefit from you working and not questioning the system. If someone can waltz in here and achieve in 1 month what it took someone else 3 years to do, then I think perhaps talent and skill are a little lackluster of an explanation. What then, are we supposed to do with the pieces of society? 
+
+I say cast them into the sun, and hopefully we'll never have to deal with them again.
+
+I want computer chips to be made better, and I want corporations to not be greedy, and I want a million different things about myself and the world around me. However, I can't have those, because the world is not magical.
+
+And no, those are not my thoughts, those are the thoughts of !!!Um!! A fictional character! Named *spins wheel* Amy! (who let the girl names on the spinner? Jeff? Was it you?
+
+
+Yes Jeff. You're fired. I told you boy names only, but you didn't listen. 
+
+*sigh* anyways, what was I saying?
+
+Amy's kind of a good name, not going to lie. What are some of the others? Lily? Hmm..`;
 
 
 
@@ -307,3 +433,67 @@ Climate varies greatly due to the lack of atmosphere. Near the equator, temperat
 Closer to the poles, the temperature is slightly colder, with a range of -10° to -130°. Both poles are covered by the ocean, but no freezing has been seen to occur.<br>
 <br>
 The second colony is of unknown origin, and appears to be very expansionist, covering a radius of 47 miles as of timestep 137144590. It is located approximately halfway from the equator to the north pole.</p>`;
+
+
+
+
+var chapters_12 = `Josh scowls at me across the kitchen. I am eating a slice of watermelon, cut into a triangle, because I think that's the best shape to eat watermelon in. Alas, I have more things to worry about than just the status of my watermelon slice. I glance over at him. "Yes?" I venture. "I don't think Cynthia is really part of the team," he responds.<br>
+<br>
+Well. That's a new one.<br>
+<br>
+"Where did you get that idea?"<br>
+<br>
+"Think about it," he continues. "She just showed up here about a month ago, just unannounced, walked right in through the front door or something. Nobody does that! But here she is. She's also the only girl. Why are we letting girls in here now?"<br>
+<br>
+I sigh. I'm not even really sure where to start with this. "Well for one, she's here, on the spaceship, which means she's a part of team, no matter how she got here. Also, I'm pretty sure her gender is irrelevant to how seriously she should be taken." <br>
+<br>
+Josh is still unhappy with that. "Okay but she's probably not even a real person. It's probably just Rob playing a trick on us or something. I mean, when's the last time someone new showed up?" I think back, and the answer is I don't know. I've known Josh and Rob for as long as I can remember, so I guess he does have a point there. Perhaps the question is phrased wrong though, I know it's wrong. I think about it some more.<br>
+<br>
+"Maybe she isn't a new person? Maybe she's always been here, and we just didn't notice? I mean, I didn't notice this kitchen until Cynthia pointed it out last week."<br>
+<br>
+"No, that's stupid. We would have noticed her." Josh responds. "And she's caused nothing but problems since she arrived. First the angry mob, then the whole gOiNg tO SpACe thing, seriously, what's that about? Are we just expected to go along with this? I'm trying to get our lives back, and everybody here is just crazy!"<br>
+<br>
+He seems to be getting more frustrated, and I'm also tired of arguing with him, so I quietly finish my watermelon and leave. Fine. At least the kitchen is cool. We have a dishwasher, a sink, a fridge, where the watermelon is stored, and a freezer, because Rob loves his ice cubes. Josh has been refusing to eat anything, on the principle that anything found by Cynthia is dangerous. Whatever.<br>
+<br>
+I take my leave of the kitchen through the one entrance there is to it, and realize I don't completely know how to get back to the main room on my own. There's a bit of a series of twisting passageways between the common room and the kitchen, and I've never actually memorized the way back.<br>
+<br>
+"Hmm..." I muse as I reach the first fork in the tunnel. You would think that this ship would have been designed better, given that it was designed by us, but there are`;
+
+
+
+
+
+
+
+var chapters_13 = `I rush up the stairs of the fortress as the screams echo from below. Panting, I burst into Rob's room. "Oh, hey," Rob says, upon seeing me. Gasping for breath, I close the door behind me and collapse into a chair.<br>
+<br>
+"Yeah,... what the HECK? Why are there demons?" I exclaim. Rob does not seem phased at all by this. "Oh yeah, those. We knew this would happen eventually. All we can do is run from them and put up these signs." He gestures to a pile of cat pictures he has by his bedside table. Looking around the room, I notice that the walls are plastered with many, many cat pictures. Rob has prepared.<br>
+<br>
+I am still confused. "This still makes no sense. Why... are there demons? Can't we just... tell them to go away?" Rob sighs. "You can try, but they won't respond. You'll just get screamed at. The only thing we can really do is put up the cat pictures and run if we need to. By the way, drink water. That may help." Rob slides a glass of water over to me from his position at the table.<br>
+<br>
+I don't understand Rob. He always seems to be busy with something, whether it's solving puzzles, drawing, working on math, which I can't stand, or reminding everyone to drink water. Rob has a strange way of sitting in his chair as well, he sits a bit like a frog. I always thought his back would hurt, but he doesn't seem to mind. "Why are you so calm about this?" I ask. "Bobby, I've known this was coming for a while. Nobody else listened to me, even when the first one showed up a few years ago. To be honest, I hoped you would listen, because Josh is the only other one, and of course he wouldn't listen." Right. I know Josh, and he doesn't like Rob. Rob is too cringey for him apparently. He is right, there was an increase in tension and screams a few years ago, but I didn't really pay attention to it because I was busy trying to manage contacts outside of the fortress. Josh is... Josh... after all.<br>
+<br>
+"Well, I'm sorry for not listening to you?" I venture. Rob waves me away. "I have work to do. Try not to let them get to you." I slowly walk out of the room, and brave the increase in screams from below.`;
+
+
+
+
+
+var chapters_14 = `I am running through the twisting mess of corridors the ship has laid out for me. I can hear them behind me, which I must run. I take a left, a right, another left, perhaps double back and loop around?<br>
+<br>
+Dance dance, how long can we do the devil dance?<br>
+<br>
+I am exhausted, but this is how I run. As fast as I can go, eventually I'll escape. Two more lefts, then a right, darn it. A dead end. That costs me time.<br>
+<br>
+I can hear them closing in, but I can't give up. I've ran before, and I can do it again. Backtracking, I take a left this time, then two rights. I burst into the common room panting, but free. <br>
+<br>
+"Huh. You look tired." Josh remarks. I glare at him, and retreat to my room.`;
+
+
+var chapters_15 = `I am staring out one of the many windows at the planet, thinking. I do sometimes wonder what I am trying to accomplish up here. At the very least, Rob doesn't seem to be affected by the change of scenery at all, he's just off in his room all the time, with his pictures of cats. He doesn't really seem to mind me, which is a nice change of pace from Josh, who absolutely hates me, and makes it known.<br>
+<br>
+I quite enjoy looking at the poles of the planet. Although they aren't much different from the oceans at the equator, the vibrant blue auroras in the upper atmospheres make it great to just watch, and the north pole is always visible from our plane of orbit, so it makes a good point of reference. Our star, (Rob tells me it's called Pental 348, but I think that's not a very pretty name) is currently not visible, but it most likely will be in a few minutes.<br>
+<br>
+I wonder if my goal is to convince everyone else here that I exist. If that's the case, then we should be descending back to the planet right around now, because I already know Josh will never budge, and the others don't really care or have already accepted me. That must mean there's something else I need to accomplish. However, what could it possibly be?<br>
+<br>
+Bobby suddenly bursts into the common room from the passage to the kitchen. He appears to be quite out of breath. Perhaps he was running the whole way? I will have to ask him about that later. I like Bobby, although sometimes we disagree on things, like the best choice of dressing, or `;
