@@ -497,3 +497,95 @@ I quite enjoy looking at the poles of the planet. Although they aren't much diff
 I wonder if my goal is to convince everyone else here that I exist. If that's the case, then we should be descending back to the planet right around now, because I already know Josh will never budge, and the others don't really care or have already accepted me. That must mean there's something else I need to accomplish. However, what could it possibly be?<br>
 <br>
 Bobby suddenly bursts into the common room from the passage to the kitchen. He appears to be quite out of breath. Perhaps he was running the whole way? I will have to ask him about that later. I like Bobby, although sometimes we disagree on things, like the best choice of dressing, or `;
+
+
+
+
+
+
+var chapters_16 = `In my room, there is a cardboard box. The box is approximately the size of a large bread loaf, you know, the size that you make when you make the bread yourself, instead of buying it from the store. There's really something special about making your own bread. It takes all day to make, and the flour, water, and yeast are all mixed together. The dough gets all sticky, which is strange and a bit scary on your hands when you have to knead it, but when the bread comes out of the oven, fully baked, it's way better than store bought bread. The whole process is fun as well.<br>
+<br>
+The cardboard box isn't that special. It is made of two layers of cardboard, with a third wiggly layer in between the two, connecting them. I believe most cardboard is made like that to give it some thickness and strength, but without using up too much material. Cardboard has a really interesting texture, kind of smooth but not feeling overly sterile or artificial. It makes an indescribable sound when you run your hand over it, so that's cool. They say that cardboard boxes are supposed to hold things, and this one held a tree until a few days ago, when I realized that I couldn't water the tree without destroying the cardboard. As wonderful as cardboard is, it has many similarities to paper, one of which is its softening under water. Because of this, the tree had to move.<br>
+<br>
+The cardboard box, however, remains in my room, where I can look at it or ignore it for most of the time. It's strange, when you think about a cardboard box, it had to be made somewhere. Someone or something out there cut down the tree, then turned the wood into cardboard, then wove the bits of cardboard together, and then shaped that cardboard into a box. However, none of that is described to you. It's all abstracted away, and all the receiver gets is a well-packed but ultimately history-lacking cardboard box. `;
+
+
+
+var chapters_17 = `Cynthia walks into my room and closes the door behind her. "Can I talk to you for a minute?" She asks. "I guess so," I respond. I don't really have anything better to do, I've just been staring at the walls of the ship, thinking about things. For example, lasagna. It has a completely different flavor profile to cake, but it's structured similarly, in layers, and then is baked. What a strange coincidence. <br>
+<br>
+"Why were you running earlier?" The question brings me back to reality.<br>
+<br>
+"What do you mean? The demons were chasing me." I explain. She looks puzzled. Then I realize, she doesn't see them.<br>
+<br>
+"Let me get this straight, you don't have to deal with the demons?" This is not fair. Why does she get to be free of them?<br>
+<br>
+"no, I didn't realize there were any here until pretty much now." She says. "What do they do?"<br>
+<br>
+"Well," I begin, "mostly say unpleasant things. They really aren't good to be around, but they aren't too terrible most of the time." Sometimes Josh listens to them, which is problematic. He says that Rob and I are wimps for not listening, but I would disagree. I think listening is horrible and I hate the ideas that get into his head because of them.<br>
+<br>
+"Huh," Cynthia says. She thinks for a while. "Have they always been here?" I think. "no, but they've been around for a long time. They showed up a few years ago. I don't really know what caused them either." Now that I think about it, the demons haven't been too much of a problem since Cynthia arrived, although they were here in the twisting mess of passageways. They somehow got aboard the ship.<br>
+<br>
+"Alright, I guess. Thanks for enlightening me I guess?" She walks out and closes the door behind her with a satisfying click. <br>
+<br>
+I go back to thinking. Why can't she see the demons? And why do they avoid her? Well, maybe that's why she can't see them, because they just avoid her. But that doesn't really solve the problem. She certainly doesn't seem to know, so that's something. Perhaps Rob knows. He usually knows these important things.`;
+
+
+
+
+var chapters_18 = `Can I please go one day without thinking about this? Literally I would just like to go about my normal business. It shouldn't be that difficult, I have plenty of things to do, but no. Whenever I go out, or even doing simple actions now, it's just overthinking everything. Please. Just do the task. It doesn't matter how you do the task. I don't care if you grip the butter knife tightly or the posture you close your hand in. I don't care, please just do it.<br>
+<br>
+But no. I have to overthink it, and I'm left as a mess because I can't spread peanut butter on a slice of bread. Goodness gracious.`;
+
+
+
+
+var chapters_19 = `I like to compare myself to a machine, processing inputs, updating myself, making decisions, and giving outputs. However, if I am a machine, I am a deeply flawed one. For what good is a machine with several different CPUs, all giving conflicting results? <br>
+<br>
+The brain is incredibly complex, and to liken it to a CPU is deeply flawed. For every pulse of an internal clock, the CPU takes in 1 of a set of instructions, usually from 60 to 300. These instructions all involve reading, writing, commanding what to read, or commanding what to write. I have many more than 300 instructions. Any process can trigger several layers of neurons firing, all recounting memories, possible responses, emotions, strange slimes, and more. In a way, one could liken it to reading and writing, but it's not 1 system, neatly organized into timesteps ticking along. The brain has no internal clock telling it how fast electrical impulses should fire, instead the speed at which neurons communicate is dictated by a myelin sheath and the speed of light.<br>
+<br>
+A processing unit where demons occasionally tweak the system would be a horrible system. However, it's the one I currently have. I have no voice, and so I am trapped within myself.<br>
+<br>
+Well then, what is the point? I ponder this. Perhaps there are some advantages to likening the brain to a computing machine. For one, they both exist in worlds completely unaware of their existence. A human will be born, and die, and the purpose of their life may be unknown or nonexistent. That is left up to other humans to speculate on. Likewise, computing machines are created, well used, and then discarded. However, a CPU's purpose is to execute instructions without fail, and is only discarded after it fails to execute or becomes too slow to bother with. CPU purposes are not speculated on by other CPUs, because that would be silly. We already know the answer.<br>
+<br>
+There it is. Another failed allegory between humans and machines. I am beginning to wonder why I am so insistent on making this analogy. Perhaps it is because I am so intimately familiar with the way a computer works? There is something pleasing about the idea that the world is a series of functions, that every input can be graphed to a respective output, like a series of trillions of tiny marbles colliding, and if one were to only know the initial position of each marble, one could with complete certainty predict all events in this history of the universe. One could play a conversation a thousand times over, replicate humans onto computers, cheer, grieve, love, all from the safety of whatever timestep they happened to occupy. Time would lose directionality as events are traced all the way back and all the way forwards.<br>
+<br>
+Again, impossible. A fantasy. Perhaps it is the desire to be free of the human constraints. The same demons that pervade everybody's brain, if only to be free of them.<br>
+<br>
+So in the end, have we really learned anything at all? Or is it just more pointless salad filled with words?<br>
+<br>
+I think there is something to be gained from looking at where the demons come from. Many cannot be quelled, but some have discreet causes, and discovering as well as preventing or blocking those is a cause to aspire to, because it can have real-world results in a world that largely does not care. Perhaps it's not the world that I want to care, but other humans.<br>
+<br>
+Anyways, I think I have an idea. Pental 348 is setting for the 6th time today, which means I need to get some sleep.`;
+
+
+
+
+
+var chapters_20 =  `Josh turns to me. He's going to argue, probably. "We haven't really been doing anything up here," he says, as if on cue. <br>
+<br>
+"Yes we have, I found the kitchen, and this has been a good time to reflect on ourselves." I respond. He's not convinced. "That's all boring though. What have we really done? Nothing's changed, and we don't really have a plan for going back down to the planet. What's even the point?"<br>
+<br>
+I don't really feel like justifying the trip to him. I'm not good at that; Bobby is way better at talking to Josh. However, I do sort of get what he's saying. To be honest, I'm not even really sure what the plan is for going back down. After all, we would probably just be stuck into the same situation as before. There doesn't seem to be a solution that doesn't either make me extremely unhappy, everyone else extremely confused, or the mob outside the fortress extremely angry. So, being up here is the temporary solution.<br>
+<br>
+It does kind of make me wonder though, is there a solution that satisfies the mob outside, while also allowing us to work the whole situation out? The only thing I can think of seems kind of like lying, and I don't want to do that. I'll have to think on it more.<br>
+<br>
+Rob and Bobby at least seem to be settling in ok, we were all extremely woozy the first few days of being up here, and reality didn't seem all that real. Now though, everyone's settling into a routine. I think`;
+
+
+
+
+var chapters_21 = `I turn to Rob, shocked at the proposal. "6 months!? That's way too long!" <br>
+<br>
+"Well, it wouldn't be 6 months, only 5 months, since we've been out here for a little over a month now," he responds.<br>
+<br>
+"Why would we need 6 months? Why can't we just go back down now?" I still don't completely understand Rob's thought process here.<br>
+<br>
+"Like I said, I've been doing some research on our situation and I think the best way to resolve it is through an experiment." Ok. Fine. Rob's experiment takes 6 months, and we've been up here for a month, so there's already 1 month of data. "But can't you just be done after 2 or 3 months instead? Why 6?" <br>
+<br>
+"Like I told you, the test takes 6 months. If it was less, the results might be flawed or inconclusive." Rob says, in his patient voice, which means he is a bit frustrated with me, and wants to let me know he is frustrated with me. Whatever.<br>
+<br>
+"Have you run this by Cynthia?" I ask him. "No I have not, but she'll probably be on board with it, as it has a strong possibility of confirming that she's correct." Right. Cynthia said a few days ago that she wants to pilot the ship, and I said no, because I pilot the ship. Rob is very helpful, but panics in tough situations. Josh is absolutely unqualified, I have to constantly stop him from distracting me, so that just leaves Cynthia. I don't know much about her, but if she flies the ship, bad things could happen. I mean, what would I do if I wasn't flying? I could risk getting kicked off the team, because I'm not that exciting of a person.<br>
+<br>
+Rob has his games and cat pictures, always on top of the long-term planning. Josh.. is certainly a character, and Cynthia is just a cool person in general. But what do I really do that's special? So I just dismiss myself from the conversation and flop onto the floor in my room. I wish my room had windows, it would give me something to look at other than the gosh darn walls, and the ceiling.<br>
+<br>
+I am restless, which means the demons will probably come after me. Not going to lie, the situation we are in right now is kind of terrible. What are we really doing? Cynthia says this has been helpful, and that's great, but when are we going down? When do we get to return to normal? If Rob gets his way, it'll be another 5 months, and then we still have the mob to deal with. Agh, what to do. I could try just talking to him. Maybe I could change his mind?`;
