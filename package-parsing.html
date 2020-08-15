@@ -5,7 +5,7 @@
 	<html>
 
 	<head>
-		<title>Package Parsing v2.0</title>
+		<title>Package Parsing v2.02</title>
 		<meta charset="utf-8">
 		<style>
 		body {
@@ -53,6 +53,8 @@
 			var deliverers_rate = 0.03;
 			var deliverers_sending = false;
 
+			var display_vignetting = 0.85;
+
 			var font_large = "40px Courier";
 			var font_small = "20px Courier";
 
@@ -62,12 +64,12 @@
 			var game_endingDelay = 240;
 			var game_deliverer_addTime = 1200;
 			var game_deliverer_baseTime = 750;
-			var game_deliverer_timeMultiplier = 1.1;
+			var game_deliverer_timeMultiplier = 1;
 			var game_trust = 5;
 			var game_highTrust = game_trust;
 			var game_phase = 0;
 
-			var text_menu = ["Welcome to Package Parsing v2.0!",
+			var text_menu = ["Welcome to Package Parsing!",
 							"",
 							"You are the owner of a package delivery service, ",
 							"and must sort and deliver packages.",
@@ -145,7 +147,7 @@
 			/*this function is the main function that repeats every time the timer goes off. It clears the screen and then draws everything.  */
 			function main() {
 				//the background
-				var gradient = ctx.createRadialGradient(centerX, centerY, 30, centerX, centerY, canvas.height * 0.85);
+				var gradient = ctx.createRadialGradient(centerX, centerY, 30, centerX, centerY, canvas.height * display_vignetting);
 				gradient.addColorStop(0, color_background);
 				gradient.addColorStop(1, "slateblue");
 
@@ -258,10 +260,37 @@
 				}
 			}
 
+			function increaseGameDifficulty() {
+				game_clock += 1;
+				if (game_clock > game_deliverer_addTime) {
+					//working out next time to add deliverer
+					game_deliverer_addTime += game_deliverer_baseTime;
+					game_deliverer_baseTime *= game_deliverer_timeMultiplier;
+
+					//adding another deliverer if there aren't already too many
+					if (deliverers_array.length < deliverers_max) {
+						deliverers_array.push(new Deliverer(deliverers_array.length));
+					} else {
+						//if there are already too many, then increase the frequency and speed with which they operate
+						if (deliverers_frequency > 105) {
+							deliverers_frequency -= 50;
+						}
+
+						if (deliverers_rate < 0.15) {
+							deliverers_rate += 0.01;
+						}
+					}
+				}
+			}
+
 			function startGame() {
 				//first reset things
 				stage_array = [8, 8, 8];
+
 				deliverers_array = [];
+				deliverers_frequency = 1000;
+				deliverers_rate = 0.03;
+
 				collectors_array = [];
 
 				game_clock = 0;
@@ -310,18 +339,8 @@
 
 				//incrementing game stuffies
 				if (game_trust > 0) {
-					game_clock += 1;
-					if (game_clock > game_deliverer_addTime) {
-						//working out next time to add deliverer
-						game_deliverer_addTime += game_deliverer_baseTime;
-						game_deliverer_baseTime *= game_deliverer_timeMultiplier;
-
-						//adding another deliverer if there aren't already too many
-						if (deliverers_array.length < deliverers_max) {
-							deliverers_array.push(new Deliverer(deliverers_array.length));
-						}
-					}
-
+					increaseGameDifficulty();
+					//updating high score
 					if (game_trust > game_highTrust) {
 						game_highTrust = game_trust;
 					}
