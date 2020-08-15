@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <!doctype html>
 
 <!-- Copyright Davis Zetlan,
@@ -582,4 +583,512 @@
 	<canvas id="canvas" width="640" height="480">
 	</canvas>
 </body>
+=======
+	<!doctype html>
+
+	<!-- Copyright Davis Zetlan,
+		October-17-2019          -->
+	<html>
+
+	<head>
+		<title>Package Parsing v2.0</title>
+		<meta charset="utf-8">
+		<style>
+		body {
+			background-color: slateblue;
+		}
+
+		#canvas {
+			margin: auto;
+			border-style: double;
+			border-color: slateblue;
+			display: block;
+			
+		}
+		</style>
+
+
+		<script type="text/javascript">
+			window.addEventListener("keydown", keyPress, false);
+			
+			//I store all my global variables at the start of my code so I know where to find them
+			var canvas;
+			var ctx;
+			
+			var color_background = "#BDE8FF";
+			var color_deliverer = "#008800";
+			var color_deliverer_shadow = "#006622";
+			var color_stage = "#AAAAFF";
+			var color_stage_shadow = "#7777D4";
+			var boxColor = "#8888FF";
+			var color_text = "#222266";
+			var color_collector = "#33FF33";
+			var color_collector_shadow = "#12DE78";
+			var color_select1 = "#FF8800";
+			var color_select2 = "#FF8888";
+
+			var collectors_number = 5;
+			var collectors_shadow_offset = 5;
+			var collectors_array = [];
+			
+			var deliverers_array = [];
+			var deliverers_shadow_offset = 3;
+			var deliverers_initial = 3;
+			var deliverers_max = 30;
+			var deliverers_frequency = 1000;
+			var deliverers_rate = 0.03;
+			var deliverers_sending = false;
+
+			var font_large = "40px Courier";
+			var font_small = "20px Courier";
+
+			var game_animation;
+			var game_animation_speed = 12;
+			var game_clock = 0;
+			var game_endingDelay = 240;
+			var game_deliverer_addTime = 1200;
+			var game_deliverer_baseTime = 750;
+			var game_deliverer_timeMultiplier = 1.1;
+			var game_trust = 5;
+			var game_highTrust = game_trust;
+			var game_phase = 0;
+
+			var text_menu = ["Welcome to Package Parsing v2.0!",
+							"",
+							"You are the owner of a package delivery service, ",
+							"and must sort and deliver packages.",
+							"Use the arrow keys to change the location pointed to,",
+							"and use Z to send a package off.",
+							"",
+							"Press Z to start."];
+			
+			//since all the packages are represented as a number, this array is used to turn them into visible things drawn on the screen
+			var packages_textures = ["§","Ω","≈","∞","•", "«", "ð", "¶", " "];
+			var packages_maxID = 7;
+			var packages_destinations = [0, 1, 1, 2, 2, 3, 3, 4];
+			var packages_key = [["§"], ["Ω", "≈"], ["∞", "•"], ["«", "ð"], ["¶"]];
+
+			var stage_array = [8, 8, 8];
+			var stage_arm_selection = 0;
+			var stage_arm_selection_animation = 0;
+			var stage_angle_difference = Math.PI / 8;
+			var stage_arm_length = 120;
+			var stage_arm_width = 10;
+			var stage_size = 0.15;
+			var stage_shadow_offset = 5;
+			
+			var centralWidth = 120;
+			var centerX;
+			var centerY;
+			
+			
+			window.onload = setup;
+			
+			//the initializing function.
+			function setup() {
+				canvas = document.getElementById("canvas");
+				ctx = canvas.getContext("2d");
+				ctx.lineJoin = "round";
+
+				centerX = canvas.width / 2;
+				centerY = canvas.height / 2;
+				game_animation = window.requestAnimationFrame(main);
+			
+				
+			}
+			
+			function keyPress(hn) {
+				switch (hn.keyCode) {
+					case 27:
+						reset();
+						break;
+					case 37:
+						stage_arm_selection -= 2;
+					case 39:
+						stage_arm_selection += 1;
+
+						//keeping stage arm in bounds
+						if (stage_arm_selection < 0 || stage_arm_selection > collectors_number - 1) {
+							if (stage_arm_selection < 0) {
+								stage_arm_selection = collectors_number - 1;
+							} else {
+								stage_arm_selection = 0;
+							}
+						}
+						break;
+					case 90:
+						game_phase += 1;
+						if (game_phase > 0 && game_trust > 0) {
+							validatePackage();
+						}
+						break;
+				}
+			}
+			
+			function receive() {
+			}
+			
+			/*this function is the main function that repeats every time the timer goes off. It clears the screen and then draws everything.  */
+			function main() {
+				//the background
+				var gradient = ctx.createRadialGradient(centerX, centerY, 30, centerX, centerY, canvas.height * 0.85);
+				gradient.addColorStop(0, color_background);
+				gradient.addColorStop(1, "slateblue");
+
+				// Set the fill style and draw a rectangle
+				ctx.fillStyle = gradient;
+				ctx.clearRect(0, 0, canvas.width, canvas.height);
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+				switch (game_phase) {
+					case -1:
+						drawGameOver();
+						break;
+					case 0:
+						drawMenu();
+						break;
+					case 1:
+					default:
+						runGame();
+						break;
+				}
+				game_animation = window.requestAnimationFrame(main);
+			}
+
+
+			//drawing functions!
+
+
+			function dEllipse(color, x, y, xRadius, yRadius, rotation, startAngle, endAngle) {
+				ctx.fillStyle = color;
+				ctx.beginPath();
+				ctx.ellipse(x, y, xRadius, yRadius, rotation, startAngle, endAngle)
+				ctx.fill();
+			}
+
+
+			function drawCenterModule() {
+				//body shadow
+				dEllipse(color_stage_shadow, centerX, centerY + stage_shadow_offset, canvas.width * stage_size, canvas.height * stage_size, 0, 0, Math.PI * 2);
+
+				//arm calculations
+				//bringing animated arm closer to selected spot
+				stage_arm_selection_animation = ((stage_arm_selection_animation * ((game_animation_speed / 3) - 1)) + stage_arm_selection) / (game_animation_speed / 3);
+				//calculating where to draw the arm at
+				var armPosX = stage_arm_length * Math.sin((Math.ceil(collectors_number / -2) * stage_angle_difference) + (stage_angle_difference * stage_arm_selection_animation));
+				var armPosY = stage_arm_length * 0.75 * Math.cos((Math.ceil(collectors_number / -2) * stage_angle_difference) + (stage_angle_difference * stage_arm_selection_animation));
+
+				//arm
+				ctx.lineWidth = stage_arm_width;
+				ctx.strokeStyle = color_stage_shadow;
+				ctx.beginPath();
+				ctx.moveTo(centerX - 3, centerY + stage_shadow_offset);
+				ctx.lineTo(centerX + armPosX, centerY + stage_shadow_offset - armPosY);
+				ctx.lineTo(centerX + 3, centerY + stage_shadow_offset);
+				ctx.stroke();
+
+				//arm 2
+				ctx.lineWidth = stage_arm_width;
+				ctx.strokeStyle = color_stage;
+				ctx.beginPath();
+				ctx.moveTo(centerX - 3, centerY);
+				ctx.lineTo(centerX + armPosX, centerY - armPosY);
+				ctx.lineTo(centerX + 3, centerY);
+				ctx.stroke();
+
+				//body
+				dEllipse(color_stage, centerX, centerY, canvas.width * stage_size, canvas.height * stage_size, 0, 0, Math.PI * 2);
+
+				//packages
+				ctx.fillStyle = color_text;
+				ctx.font = font_large;
+				for (var c=0;c<stage_array.length;c++) {
+					ctx.fillText(packages_textures[stage_array[c]], centerX, centerY + 10 + (40 * (c - 1)));
+				}
+			}
+
+			function drawGameOver() {
+				ctx.fillStyle = color_text;
+				ctx.font = font_small;
+				ctx.fillText("The Package Manufacturers no longer trust you.", centerX, canvas.height * 0.3);
+				ctx.fillText("Your business was good while it lasted, though.", centerX, canvas.height * 0.35);
+				ctx.fillText(`Highest Total Trust: ${game_highTrust}`, centerX, canvas.height * 0.45);
+				ctx.fillText(`Time lasted: ${(game_clock / 60).toFixed(2)} seconds`, centerX, canvas.height * 0.5);
+			}
+
+			function drawMenu() {
+				ctx.fillStyle = color_text;
+				ctx.font = font_small;
+				for (var i=0;i<text_menu.length;i++) {
+					ctx.fillText(text_menu[i], centerX, canvas.height * (0.2 + (i * 0.05)));
+				}
+
+				startGame();
+			}
+
+			function drawScoreText() {
+				ctx.font = font_small;
+				ctx.fillStyle = color_text;
+				ctx.fillText(`Trust: ${game_trust}`, canvas.width * 0.25, canvas.height * 0.98);
+				ctx.fillText(`Time: ${(game_clock / 60).toFixed(2)}`, canvas.width * 0.75, canvas.height * 0.98);
+			}
+
+			function endGame() {
+				//pre-end of game stuff
+				for (var a=0;a<deliverers_array.length;a++) {
+					deliverers_array[a].number = deliverers_array.length + 1;
+				}
+
+				for (var b=0;b<collectors_array.length;b++) {
+					collectors_array[b].number = collectors_array.length + 1;
+				}
+			}
+
+			function startGame() {
+				//first reset things
+				stage_array = [8, 8, 8];
+				deliverers_array = [];
+				collectors_array = [];
+
+				game_clock = 0;
+				game_deliverer_addTime = 1200;
+				game_deliverer_baseTime = 750;
+				deliverers_sending = false;
+				game_trust = 5;
+				game_highTrust = 0;
+				game_endingDelay = 240;
+
+				//text stuffies
+				ctx.font = font_large;
+				ctx.textAlign = "center";
+
+				//populating deliverer array
+				while (deliverers_array.length < deliverers_initial) {
+					deliverers_array.push(new Deliverer(deliverers_array.length));
+				}
+
+				//populating reciever array
+				for (var e=0;e<collectors_number;e++) {
+					collectors_array.push(new Collector(e));
+				}
+			}
+
+			function runGame() {
+				//drawing center module
+				drawCenterModule();
+
+
+				//deliverers
+				for (var a=0;a<deliverers_array.length;a++) {
+					deliverers_array[a].beDrawn();
+					deliverers_array[a].tick();
+				}
+
+				//recievers
+				for (var b=0;b<collectors_array.length;b++) {
+					collectors_array[b].beDrawn();
+					collectors_array[b].tick();
+				}
+
+				drawScoreText();
+
+
+
+				//incrementing game stuffies
+				if (game_trust > 0) {
+					game_clock += 1;
+					if (game_clock > game_deliverer_addTime) {
+						//working out next time to add deliverer
+						game_deliverer_addTime += game_deliverer_baseTime;
+						game_deliverer_baseTime *= game_deliverer_timeMultiplier;
+
+						//adding another deliverer if there aren't already too many
+						if (deliverers_array.length < deliverers_max) {
+							deliverers_array.push(new Deliverer(deliverers_array.length));
+						}
+					}
+
+					if (game_trust > game_highTrust) {
+						game_highTrust = game_trust;
+					}
+				} else {
+					game_trust = 0;
+					game_endingDelay -= 1;
+					if (game_endingDelay == 0) {
+						game_phase = -1;
+					}
+				}
+				
+			}
+
+			function validatePackage() {
+				//if the package in slot zero is going to its correct location, remove it and update the rest
+				if (stage_arm_selection == packages_destinations[stage_array[0]]) {
+					for (var d=0;d<stage_array.length-1;d++) {
+						stage_array[d] = stage_array[d + 1];
+					}
+					stage_array[stage_array.length-1] = packages_maxID + 1;
+				}
+			}
+
+
+
+
+
+
+
+			//classes!
+
+			class SharedFunctionality {
+				constructor(number) {
+					this.adjustDelay = game_animation_speed;
+					this.size = 15;
+					this.number = number;
+					this.x = canvas.width;
+
+					this.targetX = 0;
+					this.y = 0;
+					this.shadowY = 0;
+					this.color = "#FFFFFF";
+					this.shadowColor = "#FFFFFF";
+				}
+
+				beDrawn() {
+					dEllipse(this.shadowColor, this.x, this.shadowY, this.size, this.size * 0.75, 0, 0, Math.PI * 2);
+					dEllipse(this.color, this.x, this.y, this.size, this.size * 0.75, 0, 0, Math.PI * 2);
+				}
+
+				tick() {
+					//move according to x / target x
+					this.x = ((this.x * (this.adjustDelay - 1)) + this.targetX) / this.adjustDelay;
+				}
+			}
+
+
+
+			class Deliverer extends SharedFunctionality {
+				constructor(number) {
+					super(number);
+
+					this.targetX = (canvas.width / (deliverers_array.length + 1)) * (this.number + 1);
+					this.y = canvas.height * 0.9;
+					this.shadowY = this.y + deliverers_shadow_offset;
+
+					this.color = color_deliverer;
+					this.shadowColor = color_deliverer_shadow;
+
+					this.progress = 0;
+					this.deliveryNumber = 8;
+				}
+
+				beDrawn() {
+					super.beDrawn();
+
+					//draw current delivery package over self, simple linterp towards the center
+					var modProg = this.progress * this.progress * this.progress;
+					var drawX = this.x + (modProg * (centerX - this.x));
+					var drawY = this.y + 5 + (modProg * (centerY - this.y));
+					ctx.font = font_small;
+					ctx.fillStyle = color_text;
+					ctx.fillText(packages_textures[this.deliveryNumber], drawX, drawY);
+				}
+
+				tick() {
+					//decide whether to send a package
+					/*the condition for sending a package is a 1/frequency random chance.
+					The chance is also increased if the stage is empty, and is 0 if trust is below 0 */
+					var activeFrequency = Infinity;
+					if (game_trust > 0) {
+						activeFrequency = deliverers_frequency / (1 + 2 * (stage_array[0] == 8));
+					}
+					var sendPackage = Math.floor(Math.random() * activeFrequency) == 5;
+					//if decided to possibly send a package, additional checks are added for making sure self is not already sending a package
+					if (sendPackage && this.progress == 0) {
+						this.deliveryNumber = Math.floor(Math.random() * (packages_maxID + 0.99));
+					}
+
+					//advancing the package forwards
+					if ((this.deliveryNumber != 8 && !deliverers_sending && game_trust > 0) || this.progress > 0) {
+						deliverers_sending = true;
+						this.progress += deliverers_rate;
+						if (this.progress >= 1) {
+							
+							for (var g=0;g<stage_array.length;g++) {
+								//completing the delivery
+								if (stage_array[g] == 8) {
+									stage_array[g] = this.deliveryNumber;
+									this.deliveryNumber = 8;
+									game_trust += 1;
+									g = stage_array.length + 1;
+								}
+							}
+
+							//failing the delivery
+							if (this.deliveryNumber != 8) {
+								game_trust -= 5;
+								this.deliveryNumber = 8;
+								if (game_trust <= 0) {
+									endGame();
+								}
+							}
+
+							//things that happen regardless of delivery outcome
+							this.progress = 0;
+							deliverers_sending = false;
+						}
+					}
+
+					//moving
+					this.targetX = (canvas.width / (deliverers_array.length + 1)) * (this.number + 1);
+					super.tick();
+					
+				}
+			}
+
+			class Collector extends SharedFunctionality {
+				constructor(number) {
+					super(number);
+
+					this.size = 25;
+					this.y = canvas.height * 0.1;
+					this.shadowY = this.y + collectors_shadow_offset;
+
+					this.color = color_collector;
+					this.shadowColor = color_collector_shadow;
+				}
+
+				beDrawn() {
+					super.beDrawn();
+					//drawing what to recieve
+					var target = packages_key[this.number];
+					if (target == undefined) {
+						target = packages_textures[8];
+					}
+						
+					ctx.font = font_small;
+					ctx.fillStyle = color_text;
+					for (var f=0;f<target.length;f++) {
+						ctx.fillText(target[f], this.x, this.y + 10 + (15 * (f - 1)));
+					}
+				}
+
+				tick() {
+					this.targetX = (canvas.width / (collectors_array.length + 1)) * (this.number + 1);
+					super.tick();
+				}
+			}
+
+
+
+
+
+
+
+		</script>
+	</head>
+	<body>
+		<canvas id="canvas" width="640" height="480">
+		</canvas>
+	</body>
+>>>>>>> development
 </html>
