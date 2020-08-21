@@ -1,9 +1,67 @@
 class Map {
-	constructor(bgColor, worldData, entityData, exitData) {
+	constructor(bgColor, worldData, playerDefaultPos, entityData, exitData) {
 		this.bg = bgColor;
 		this.data = worldData;
+		this.playerPos = playerDefaultPos;
+		//check just to make sure the map is enterable, I want to have some safety
+		if (this.playerPos.length != 2) {
+			this.playerPos = [1, 1];
+		}
 		this.entities = entityData;
+		this.connections = exitData;
+		this.completed = false;
 		this.season = 0;
+
+		this.exiting = false;
+		this.exitProgress = 0;
+		this.exitingTo = undefined;
+
+
+		//ack gross I wish this syntax didn't exist but here we are
+		var self = this;
+		window.setTimeout(function() {self.convertConnections();}, 1);
+	}
+
+	tick() {
+		for (var a=0;a<this.entities.length;a++) {
+			this.entities[a].tick();
+			this.entities[a].beDrawn();
+		}
+
+		//if the player is on an exit block (number) when the map hasn't been completed, force them into an exit
+		var forceSwitch = false;
+		try {
+			var forceSwitch = !this.connections[this.data[player.y][player.x]].completed;
+		} catch (error) {}
+
+		if (this.data[player.y][player.x] * 2 > -1 && forceSwitch) {
+			this.exiting = true;
+			this.exitingTo = this.connections[this.data[player.y][player.x]];
+		}
+
+		//if in exiting mode, do screen fade stuffies
+		if (this.exiting) {
+			ctx.fillStyle = color_mapFade;
+			ctx.globalAlpha = this.exitProgress;
+			ctx.fillRect(0, 0, canvas.width, canvas.height);
+			this.exitProgress += display_mapSwitchSpeed;
+
+			if (this.exitProgress >= 1) {
+				//actually switch maps
+				this.exitProgress = 0;
+				this.exiting = false;
+				loading_map = this.exitingTo;
+				//updating player position
+				[player.x, player.y] = loading_map.playerPos;
+			}
+			
+		}
+	}
+
+	convertConnections() {
+		for (var c=0;c<this.connections.length;c++) {
+			this.connections[c] = eval(this.connections[c]);
+		}
 	}
 }
 
@@ -70,5 +128,22 @@ class Player {
 		//parsing move code
 		this.target = [this.x + move_codes[moveCode][0], this.y + move_codes[moveCode][1]];
 		
+	}
+}
+
+
+class Text {
+	constructor(string, x, y) {
+		this.x = x;
+		this.y = y;
+		this.text = string;
+	}
+
+	tick() {}
+
+	beDrawn() {
+		var drawCoords = spaceToScreen(this.x, this.y);
+		ctx.fillStyle = color_text;
+		ctx.fillText(this.text, drawCoords[0], drawCoords[1] + (tile_size * 0.25));
 	}
 }
