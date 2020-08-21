@@ -14,14 +14,18 @@ var color_stage = "#AAAAFF";
 var color_stage_shadow = "#7777D4";
 
 var color_error = "#FF00FF";
+var color_exit = "#AAAAAA";
+var color_exit_center = "#888888";
+var color_floor = "#008888";
+var color_mapFade = "#FFFFFF";
 var color_text = "#222266";
 var color_wall = "#004444";
-var color_floor = "#008888";
 
 var color_select1 = "#FF8800";
 var color_select2 = "#FF8888";
 
 var display_vignetting = 0.6;
+var display_mapSwitchSpeed = 0.02;
 
 var editor_active = false;
 var editor_block = "A";
@@ -60,6 +64,8 @@ function setup() {
 	canvas = document.getElementById("canvas");
 	ctx = canvas.getContext("2d");
 	ctx.lineJoin = "round";
+	ctx.font = font_medium;
+	ctx.textAlign = "center";
 
 	centerX = canvas.width / 2;
 	centerY = canvas.height / 2;
@@ -132,12 +138,8 @@ function main() {
 	//draw world
 	drawMap();
 
-	//draw / tick entities
-	/*
-	for (var a=0;a<loading_map.entities.length;a++) {
-		loading_map.entities[a].tick();
-		loading_map.entities[a].beDrawn();
-	} */
+	//ticking world thigns
+	loading_map.tick();
 
 	//draw player
 	player.tick();
@@ -146,6 +148,10 @@ function main() {
 	//editor things if active
 	if (editor_active) {
 		//drawing box around edge
+
+		//drawing coordinates
+		ctx.fillStyle = color_player;
+		ctx.fillText(`X: ${player.x} Y: ${player.y}`, canvas.width * 0.5, canvas.height * 0.95);
 	}
 
 	//vignetting
@@ -226,7 +232,7 @@ function drawMap() {
 			drawMapSquare(squareX, squareY, value);
 
 			//draw grid if editor is active
-			if (editor_active && tileStartY + yM > 0) {
+			if (editor_active && tileStartY + yM > 0 && tileStartX + xM > 0) {
 				var prevPos1 = spaceToScreen(tileStartX + xM - 1, tileStartY + yM);
 				var prevPos2 = spaceToScreen(tileStartX + xM, tileStartY + yM - 1);
 				ctx.beginPath();
