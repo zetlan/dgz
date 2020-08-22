@@ -1,20 +1,30 @@
 class Map {
-	constructor(bgColor, worldData, playerDefaultPos, entityData, exitData) {
+	constructor(bgColor, worldData, playerDefaultPos, entityData, exitData, completedOPTIONAL) {
 		this.bg = bgColor;
-		this.data = worldData;
-		this.playerPos = playerDefaultPos;
-		//check just to make sure the map is enterable, I want to have some safety
-		if (this.playerPos.length != 2) {
-			this.playerPos = [1, 1];
-		}
-		this.entities = entityData;
 		this.connections = exitData;
 		this.completed = false;
-		this.season = 0;
+		this.data = worldData;
+		this.entities = entityData;
 
 		this.exiting = false;
 		this.exitProgress = 0;
 		this.exitingTo = undefined;
+
+		this.name = "NO CONNECTIONS ERROR: UNINITIALIZED NAME";
+		this.parent = undefined;
+		this.playerPos = playerDefaultPos;
+		this.playerPosDefault = playerDefaultPos;
+		this.season = 0;
+
+		//check just to make sure the map is enterable, I want to have some safety
+		if (this.playerPos.length != 2) {
+			this.playerPos = [1, 1];
+			this.playerPosDefault = [1, 1];
+		}
+
+		if (completedOPTIONAL) {
+			this.completed = true;
+		}
 
 
 		//ack gross I wish this syntax didn't exist but here we are
@@ -23,20 +33,49 @@ class Map {
 	}
 
 	tick() {
+		//tick all entities
 		for (var a=0;a<this.entities.length;a++) {
 			this.entities[a].tick();
 			this.entities[a].beDrawn();
 		}
 
+		//handle exits
+		this.handleExit();
+	}
+
+	convertConnections() {
+		for (var c=0;c<this.connections.length;c++) {
+			var name = this.connections[c];
+			this.connections[c] = eval(this.connections[c]);
+			this.connections[c].name = name;
+		}
+	}
+
+	handleExit() {
+		//get the block the player is currently on
+		var playerBlock = " ";
+		try {
+			playerBlock = this.data[player.y][player.x];
+		} catch (error) {}
+
 		//if the player is on an exit block (number) when the map hasn't been completed, force them into an exit
 		var forceSwitch = false;
 		try {
-			var forceSwitch = !this.connections[this.data[player.y][player.x]].completed;
+			var forceSwitch = !this.connections[playerBlock].completed;
 		} catch (error) {}
 
-		if (this.data[player.y][player.x] * 2 > -1 && forceSwitch) {
+		//starting an exit
+		if (forceSwitch) {
 			this.exiting = true;
 			this.exitingTo = this.connections[this.data[player.y][player.x]];
+			this.exitingTo.parent = this;
+		}
+
+		//other way to exit is through the exit block, which completes the map as well
+		if (playerBlock == "e") {
+			this.exiting = true;
+			this.exitingTo = this.parent;
+			this.completed = true;
 		}
 
 		//if in exiting mode, do screen fade stuffies
@@ -51,16 +90,18 @@ class Map {
 				this.exitProgress = 0;
 				this.exiting = false;
 				loading_map = this.exitingTo;
-				//updating player position
-				[player.x, player.y] = loading_map.playerPos;
-			}
-			
-		}
-	}
 
-	convertConnections() {
-		for (var c=0;c<this.connections.length;c++) {
-			this.connections[c] = eval(this.connections[c]);
+				//save player position
+				this.playerPos = [player.x, player.y];
+				//updating player position
+				//move player to default pos if moving to a child map
+				if (this.exitingTo.parent == this) {
+					[player.x, player.y] = loading_map.playerPosDefault;
+				} else {
+					[player.x, player.y] = loading_map.playerPos;
+				}
+				
+			}
 		}
 	}
 }
@@ -92,11 +133,11 @@ class Player {
 				}
 			}
 
-			//if the tile is walkable, move to it
-			if (!problem) {
+			//if the tile is walkable, and the map isn't currently exiting, move to it
+			if (!problem && !loading_map.exiting) {
 				[this.x, this.y] = this.target;
-				this.target = [0, 0];
 			}
+			this.target = [0, 0];
 		}
 		//bringing drawing coords closer to true coordinates
 		this.drawX = ((this.drawX * (this.animDelay - 1)) + this.x) / this.animDelay;
@@ -131,6 +172,23 @@ class Player {
 	}
 }
 
+
+class Orb {
+	constructor(color, x, y) {
+		this.x = x;
+		this.y = y;
+		this.color = color;
+	}
+
+	tick() {
+
+	}
+
+	beDrawn() {
+		var drawCoords = spaceToScreen(this.x, this.y);
+		drawEllipse(this.color, drawCoords[0], drawCoords[1], player.r, player.r, 0, 0, Math.PI * 2);
+	}
+}
 
 class Text {
 	constructor(string, x, y) {
