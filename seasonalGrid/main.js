@@ -8,7 +8,7 @@ var ctx;
 
 
 var color_background = "#BDE8FF";
-var color_player = "#FF00FF";
+var color_player = "#FFAAFF";
 
 var color_stage = "#AAAAFF";
 var color_stage_shadow = "#7777D4";
@@ -16,6 +16,7 @@ var color_stage_shadow = "#7777D4";
 var color_error = "#FF00FF";
 var color_exit = "#AAAAAA";
 var color_exit_center = "#888888";
+var color_exit_complete = "#AAFFAA";
 var color_floor = "#008888";
 var color_mapFade = "#FFFFFF";
 var color_text = "#222266";
@@ -28,13 +29,16 @@ var display_vignetting = 0.6;
 var display_mapSwitchSpeed = 0.02;
 
 var editor_active = false;
-var editor_block = "A";
+var editor_block = " ";
+var editor_possibleBlocks = " Aa";
+var editor_blockNumber = 0;
 
 var font_large = "40px Courier";
 var font_medium = "30px Courier";
 var font_small = "20px Courier";
 
-
+var game_animation;
+var game_timer = 0;
 
 
 var loading_animation;
@@ -44,7 +48,7 @@ var centerX;
 var centerY;
 
 var tile_size = 30;
-var tile_walkables = "a0123456789";
+var tile_walkables = "ae0123456789";
 var tile_shadow_offset = 6;
 var tile_half = tile_size / 2;
 
@@ -69,8 +73,7 @@ function setup() {
 
 	centerX = canvas.width / 2;
 	centerY = canvas.height / 2;
-	loading_animation = window.requestAnimationFrame(main);
-
+	game_animation = window.requestAnimationFrame(main);
 }
 
 function keyPress(hn) {
@@ -97,9 +100,9 @@ function keyPress(hn) {
 			player.move("DR");
 			break;
 
-		//enter, for placing blocks in the editor
+		//enter
 		case 13:
-			//only works if editor is active
+			//editor active thing, placing blocks
 			if (editor_active) {
 				//gets the data for the row the player is on
 				var originData = loading_map.data[player.y];
@@ -117,7 +120,25 @@ function keyPress(hn) {
 					//replace the editor data with the modified data
 					loading_map.data[player.y] = modData;
 				}
+			} else {
+				//regular mode, for entering completed levels
+				//getting the tile the player is on
+				try {
+					//if the level is completed, make it not be
+					if (loading_map.connections[loading_map.data[player.y][player.x]].completed) {
+						loading_map.connections[loading_map.data[player.y][player.x]].completed = false;
+					}
+				} catch (ereerererererere) {}
+				
 			}
+			break;
+		//shift, for toggling which block is selected in the editor
+		case 16:
+			editor_blockNumber += 1;
+			if (editor_blockNumber > editor_possibleBlocks.length-1) {
+				editor_blockNumber = 0;
+			}
+			editor_block = editor_possibleBlocks[editor_blockNumber];
 			break;
 		//], for toggling edit mode
 		case 221:
@@ -145,12 +166,13 @@ function main() {
 	player.tick();
 	player.beDrawn();
 
-	//editor things if active
+	//editor text if active
 	if (editor_active) {
 		//drawing box around edge
 
 		//drawing coordinates
 		ctx.fillStyle = color_player;
+		ctx.fillText(`Block: ${editor_block}`, canvas.width * 0.5, canvas.height * 0.9);
 		ctx.fillText(`X: ${player.x} Y: ${player.y}`, canvas.width * 0.5, canvas.height * 0.95);
 	}
 
@@ -165,6 +187,10 @@ function main() {
 	ctx.fillRect(0, 0, canvas.width, canvas.height * 2);
 	ctx.setTransform(1, 0, 0, 1, 0, 0);
 	ctx.globalAlpha = 1;
+
+	//time based things
+	game_timer += 1;
+	tile_shadow_offset = 6 + (Math.sin(game_timer / 100) * 2);
 
 	//call self for next frame
 	game_animation = window.requestAnimationFrame(main);
@@ -285,4 +311,24 @@ function spaceToScreen(x, y) {
 	[newX, newY] = [newX - (camera.x * tile_size), newY - (camera.y * tile_size)];
 
 	return [newX, newY]
+}
+
+
+//interesting, doing the math 100,000,000 times is faster than loading the value variable 100,000,000 times
+//(on average, 10-20 ms faster)
+function performanceTest() {
+	var perfTime = [performance.now(), 0];
+	var value = Math.sin(Math.PI / 3);
+	for (var a=0;a<100000000;a++) {
+		var testApple = Math.sin(Math.PI / 3);
+		//var testApple = value;
+		testApple *= 2;
+		if (testApple > 0) {
+			testApple /= 2;
+		}
+	}
+	perfTime[1] = performance.now();
+        
+	var totalTime = perfTime[1] - perfTime[0];
+	console.log(`performance test took ${totalTime} ms`);
 }
