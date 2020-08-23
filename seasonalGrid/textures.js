@@ -1,5 +1,20 @@
 //draws each individual square
 
+/* 
+  - empty space
+A - wall
+a - bluish ground
+b - grass
+c -
+d - 
+e - exit block
+
+0/9 - enter blocks 
+*/
+
+
+
+
 //shadow blocks are solid colors, so the function is simpler
 function drawMapShadow(ex, why, tileType) {
 	ctx.globalAlpha = 0.5;
@@ -18,6 +33,9 @@ function drawMapShadow(ex, why, tileType) {
 					break;
 				case "a":
 					drawColor = color_floor;
+					break;
+				case "b":
+					drawColor = color_grass_shadow;
 					break;
 				default:
 					drawColor = color_error;
@@ -58,12 +76,23 @@ function drawMapSquare(ex, why, tileType) {
 		//all regular tiles
 		switch(tileType) {
 			case "A":
-				ctx.fillStyle = color_wall;
+				ctx.fillStyle = color_wall_secondary;
 				drawPoly(ex, why, Math.ceil(tile_half / Math.sin(Math.PI / 3)), 6, Math.PI / 6);
+				ctx.fillStyle = color_wall;
+				drawPoly(ex, why, tile_half * 0.9, 6, Math.PI / 6);
 				break;
 			case "a":
 				ctx.fillStyle = color_floor;
 				drawPoly(ex, why, Math.ceil(tile_half / Math.sin(Math.PI / 3)), 6, Math.PI / 6);
+				break;
+			case "b":
+				ctx.fillStyle = color_grass;
+				drawPoly(ex, why, Math.ceil(tile_half / Math.sin(Math.PI / 3)), 6, Math.PI / 6);
+				var value = screenToSpace(ex, why);
+				ctx.globalAlpha = ((Math.sin(value[0] / 2) + Math.cos(value[1] / 2)) / 4) + 0.5;
+				ctx.fillStyle = color_grass_highlight;
+				drawPoly(ex, why, Math.ceil(tile_half / Math.sin(Math.PI / 3)), 6, Math.PI / 6);
+				ctx.globalAlpha = 1;
 				break;
 			case "e":
 				ctx.fillStyle = color_exit_complete;
