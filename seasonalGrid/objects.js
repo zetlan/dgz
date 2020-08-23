@@ -93,6 +93,7 @@ class Map {
 
 				//save player position
 				this.playerPos = [player.x, player.y];
+				player.dir = [0, 0];
 				//updating player position
 				//move player to default pos if moving to a child map
 				if (this.exitingTo.parent == this) {
@@ -115,33 +116,25 @@ class Player {
 		this.r = tile_size / 3;
 		this.drawX = x;
 		this.drawY = y;
-		this.animDelay = 8;
 
-		this.target = [0, 0];
+		this.target = [this.x, this.y];
+		this.dir = [0, 0];
 	}
 
 	tick() {
 		//confirming target coords are valid
-		if (this.target[0] != 0 || this.target[1] != 0) {
-			var problem = true;
-			//run through all the walkable tiles and see if the target tile is on there
-			for (var k=0;k<tile_walkables.length;k++) {
-				//if the editor is active then the problem becomes false automatically
-				if (editor_active || loading_map.data[this.target[1]][this.target[0]] == tile_walkables[k]) {
-					problem = false;
-					k = tile_walkables.length;
-				}
-			}
-
-			//if the tile is walkable, and the map isn't currently exiting, move to it
-			if (!problem && !loading_map.exiting) {
+		if (this.dir[0] != 0 || this.dir[1] != 0) {
+			var mGood = validateMovement(this.target[0], this.target[1]);
+			if (mGood) {
 				[this.x, this.y] = this.target;
+			} else {
+				this.target = [this.x, this.y];
 			}
-			this.target = [0, 0];
 		}
+
 		//bringing drawing coords closer to true coordinates
-		this.drawX = ((this.drawX * (this.animDelay - 1)) + this.x) / this.animDelay;
-		this.drawY = ((this.drawY * (this.animDelay - 1)) + this.y) / this.animDelay;
+		this.drawX = ((this.drawX * (display_animDelay - 1)) + this.x) / display_animDelay;
+		this.drawY = ((this.drawY * (display_animDelay - 1)) + this.y) / display_animDelay;
 
 		//camera follow of player
 		camera.x = this.drawX - ((canvas.width / 2) / tile_size) + Math.abs(((0.5 * (this.drawY + 5)) % 1) - 0.5);
@@ -168,7 +161,7 @@ class Player {
 
 		//parsing move code
 		this.target = [this.x + move_codes[moveCode][0], this.y + move_codes[moveCode][1]];
-		
+		this.dir = move_codes[moveCode];
 	}
 }
 
@@ -177,15 +170,54 @@ class Orb {
 	constructor(color, x, y) {
 		this.x = x;
 		this.y = y;
+		this.drawX = x;
+		this.drawY = y;
 		this.color = color;
 	}
 
 	tick() {
+		//if the player is in the same square as self, try moving according to the vector
+		if (player.x == this.x && player.y == this.y) {
+			//have to adjust the x vector because of the hexagonal tile offset
+			var newXDir = player.dir[0];
+			//this code is stupid but it makes the movement work correctly
+			if (player.dir[1] != 0) {
+				var offset = Math.abs((((player.y+1) + 5) % 2) - 1);
+				if (offset == 0) {
+					offset = -1;
+				}
+				newXDir = player.dir[0] - offset;
+			}
 
+			//check for valid blocks
+			var valid = validateMovement(this.x + newXDir, this.y + player.dir[1]);
+
+			//check for valid entities
+			for (var h=0;h<loading_map.entities.length;h++) {
+				//if the target position and the entitiy position are the same, there's a problem
+				if (this.x + newXDir == loading_map.entities[h].x && this.y + player.dir[1] == loading_map.entities[h].y) {
+					valid = false;
+					h = loading_map.entities.length + 1;
+				}
+			}
+
+			//if the move is successful, cool. If the move is unsuccessful, move the player backwards to their original position
+			if (valid) {
+				[this.x, this.y] = [this.x + newXDir, this.y + player.dir[1]];
+			} else {
+				[player.x, player.y] = [player.x - player.dir[0], player.y - player.dir[1]];
+				player.dir = [0, 0];
+			}
+		}
+
+
+		//updating animation position
+		this.drawX = ((this.drawX * (display_animDelay - 1)) + this.x) / display_animDelay;
+		this.drawY = ((this.drawY * (display_animDelay - 1)) + this.y) / display_animDelay;
 	}
 
 	beDrawn() {
-		var drawCoords = spaceToScreen(this.x, this.y);
+		var drawCoords = spaceToScreen(this.drawX, this.drawY);
 		drawEllipse(this.color, drawCoords[0], drawCoords[1], player.r, player.r, 0, 0, Math.PI * 2);
 	}
 }
