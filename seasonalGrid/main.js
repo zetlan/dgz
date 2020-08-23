@@ -10,17 +10,20 @@ var ctx;
 var color_background = "#BDE8FF";
 var color_player = "#FFAAFF";
 
-var color_stage = "#AAAAFF";
-var color_stage_shadow = "#7777D4";
-
 var color_error = "#FF00FF";
 var color_exit = "#AAAAAA";
 var color_exit_center = "#888888";
 var color_exit_complete = "#AAFFAA";
 var color_floor = "#008888";
+
+var color_grass = "#30DB44";
+var color_grass_highlight = "#4BEB5E";
+var color_grass_shadow = "#33BD78";
+
 var color_mapFade = "#FFFFFF";
 var color_text = "#222266";
 var color_wall = "#004444";
+var color_wall_secondary = "#002244";
 
 var color_select1 = "#FF8800";
 var color_select2 = "#FF8888";
@@ -32,7 +35,7 @@ var display_mapSwitchSpeed = 0.02;
 
 var editor_active = false;
 var editor_block = " ";
-var editor_possibleBlocks = " Aa";
+var editor_possibleBlocks = " Aabe";
 var editor_blockNumber = 0;
 
 var font_large = "40px Courier";
@@ -50,7 +53,7 @@ var centerX;
 var centerY;
 
 var tile_size = 30;
-var tile_walkables = "ae0123456789";
+var tile_walkables = "abe0123456789";
 var tile_shadow_offset = 6;
 var tile_half = tile_size / 2;
 
@@ -315,23 +318,52 @@ function spaceToScreen(x, y) {
 	return [newX, newY]
 }
 
+function screenToSpace(x, y) {
+	//adding camera coords
+	[x, y] = [x + (camera.x * tile_size), y + (camera.y * tile_size)];
+
+	//converting to world coordinates from pixel
+	[x, y] = [x / tile_size, y / tile_size];
+
+	//convert to square coords
+	y /= Math.sin(Math.PI / 3);
+	x -= Math.abs(((0.5 * (y + 5)) % 1) - 0.5);
+
+	return [x, y];
+}
+
 function validateMovement(x, y) {
+	//if the map is exiting, automatically return false
+	if (loading_map.exiting) {
+		return false;
+	}
+
+	//if the editor is active excuse all other errors
+	if (editor_active) {
+		return true;
+	}
+	
+	//if neither of the special conditions apply..
 	var problem = true;
+	var value;
+	//determine what the target tile is
+	try {
+		value = loading_map.data[y][x];
+	} catch (errerer) {
+		return false;
+	}
+
 	//run through all the walkable tiles and see if the target tile is on there
 	for (var k=0;k<tile_walkables.length;k++) {
-		//if the editor is active then the problem becomes false automatically
-		if (editor_active || loading_map.data[y][x] == tile_walkables[k]) {
+		if (value == tile_walkables[k]) {
 			problem = false;
 			k = tile_walkables.length;
+			return true;
 		}
 	}
 
-	//if the tile is walkable, and the map isn't currently exiting, say ok
-	if (!problem && !loading_map.exiting) {
-		return true;
-	} else {
-		return false;
-	}
+	//if this point is reached, the tile isn't valid
+	return false;
 }
 
 
