@@ -25,6 +25,8 @@ var color_wall = "#004444";
 var color_select1 = "#FF8800";
 var color_select2 = "#FF8888";
 
+
+var display_animDelay = 6;
 var display_vignetting = 0.6;
 var display_mapSwitchSpeed = 0.02;
 
@@ -311,6 +313,25 @@ function spaceToScreen(x, y) {
 	[newX, newY] = [newX - (camera.x * tile_size), newY - (camera.y * tile_size)];
 
 	return [newX, newY]
+}
+
+function validateMovement(x, y) {
+	var problem = true;
+	//run through all the walkable tiles and see if the target tile is on there
+	for (var k=0;k<tile_walkables.length;k++) {
+		//if the editor is active then the problem becomes false automatically
+		if (editor_active || loading_map.data[y][x] == tile_walkables[k]) {
+			problem = false;
+			k = tile_walkables.length;
+		}
+	}
+
+	//if the tile is walkable, and the map isn't currently exiting, say ok
+	if (!problem && !loading_map.exiting) {
+		return true;
+	} else {
+		return false;
+	}
 }
 
 
