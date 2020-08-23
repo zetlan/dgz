@@ -37,35 +37,35 @@
 let map_def = new Map("#22FF88", map_def_data, [1, 1], map_def_entities, ["map_wd1"])
 
 	var map_wd1_data = ['        AAAAAAAAA',
-						'       AaaaaaaaaA   A',
-						'       AaaaaaaaaaA          A',
-						'      AaaaaaaaaaaAA   A  A',
-						'      Aaaaaaaaaaaaaaa',
-						'     AaaaaaaaaaaaaaAaa         A',
-						'     Aaaaaaaaaaaaaa0Aaaa  A',
-						'     AaaaaaaaaaaaaaAaa',
-						'      Aaaaaaaaaaaaaaa A  A A',
-						'      AaaaaaaaaaaAA  ',
-						'       AaaaaaaaaaA A ',
-						'       AaaaaaaaaA   AA     A',
-						'        AaaaAAAAA    ',
-						'       AaaaA          A A',
-						'        AaaA            A',
-						'       AaaA',
-						' AAAAAAAaaaAAAAAAA   ',
-						'AaaaaaaaaaaaAaaaaaaa ',
-						' AAAAAAAAAAaAaAAAAAaa ',
-						'         AaaAaA    aa ',
-						'          AaAaA    a a ',
-						'  AAAAAAAAaaAaA   aaaa ',
-						'  AaaaaaaaaaaAaA  a aaa ',
-						' AaAaaaaaaaaAaA   aaaa ',
-						'  AaAaaaaaaaaAaA  aaa a ',
-						'  A1AaaaaaaaAaA   aaaa ',
-						'   AaAaaaaaaaAaA  a aaa ',
-						'   A2AAAAAAAAaA   aaaa ',
-						'    Aa3a4a5a6aA    aaa ',
-						'    AAAAAAAAAA     aa ',
+						'       AbbbbbbbbA   A',
+						'       AbbbbbbbbbA          A',
+						'      AbbbbbbbbbbAA   A  A',
+						'      Abbbbbbbbbbbbbb',
+						'     AbbbbbbbbbbbbbAbb         A',
+						'     Abbbbbbbbbbbbb0Abbb  A',
+						'     AbbbbbbbbbbbbbAbb',
+						'      Abbbbbbbbbbbbbb A  A A',
+						'      AbbbbbbbbbbAA  ',
+						'       AbbbbbbbbbA A ',
+						'       AbbbbbbbbA   AA     A',
+						'        AbbbAAAAA    ',
+						'       AbbbA          A A',
+						'        AbbA            A',
+						'       AbbA',
+						' AAAAAAAbbbAAAAAAA   ',
+						'AbbbbbbbbbbbAbbbbbbb ',
+						' AAAAAAAAAAbAbAAAAAbb ',
+						'         AbbAbA    bb ',
+						'          AbAbA    b b ',
+						'  AAAAAAAAbbAbA   bbbb ',
+						'  AbbbbbbbbbbAbA  b bbb ',
+						' AbAbbbbbbbbAbA   bbbb ',
+						'  AbAbbbbbbbbAbA  bbb b ',
+						'  A1AbbbbbbbAbA   bbbb ',
+						'   AbAbbbbbbbAbA  b bbb ',
+						'   A2AAAAAAAAbA   bbbb ',
+						'    Ab3b4b5b6bA    bbb ',
+						'    AAAAAAAAAA     bb ',
 						'                   AeA',
 						'                   AA'];
 
@@ -111,4 +111,14 @@ let map_wd1 = new Map("#22FF88", map_wd1_data, [1, 17], map_wd1_entities, ["map_
 	var map_1_0_entities = [new Orb("#AAAAFF", 28, 17), new Orb("#FFFFFF", 29, 15), new Orb("#FFAAFF", 30, 14), new Orb("#AAAAFF", 30, 13)];
 							
 let map_1_0 = new Map("#22FF88", map_1_0_data, [18, 6], map_1_0_entities, [], true);
+
+
+	var map_1_1_data = ['',
+						'         bb',
+						'  bbbbbbbbbbbbbbe',
+						'         bb'];
+	
+	var map_1_1_entities = [new Orb("#888", 10, 2)];
+
+let map_1_1 = new Map("#", map_1_1_data, [2, 2], map_1_1_entities, [])
 
