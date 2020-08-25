@@ -5,7 +5,8 @@
 A - wall
 a - bluish ground
 b - grass
-c -
+C - ice
+c - snow
 d - 
 e - exit block
 
@@ -86,13 +87,25 @@ function drawMapSquare(ex, why, tileType) {
 				drawPoly(ex, why, Math.ceil(tile_half / Math.sin(Math.PI / 3)), 6, Math.PI / 6);
 				break;
 			case "b":
+				//block
 				ctx.fillStyle = color_grass;
 				drawPoly(ex, why, Math.ceil(tile_half / Math.sin(Math.PI / 3)), 6, Math.PI / 6);
+				//coloring for ripple effect
 				var value = screenToSpace(ex, why);
 				ctx.globalAlpha = ((Math.sin(value[0] / 2) + Math.cos(value[1] / 2)) / 4) + 0.5;
 				ctx.fillStyle = color_grass_highlight;
 				drawPoly(ex, why, Math.ceil(tile_half / Math.sin(Math.PI / 3)), 6, Math.PI / 6);
 				ctx.globalAlpha = 1;
+				break;
+			case "C":
+				//block
+				ctx.fillStyle = color_ice;
+				drawPoly(ex, why, Math.ceil(tile_half / Math.sin(Math.PI / 3)), 6, Math.PI / 6);
+				//highlights
+				break;
+			case "c":
+				ctx.fillStyle = color_snow;
+				drawPoly(ex, why, Math.ceil(tile_half / Math.sin(Math.PI / 3)), 6, Math.PI / 6);
 				break;
 			case "e":
 				ctx.fillStyle = color_exit_complete;
