@@ -38,6 +38,13 @@ function drawMapShadow(ex, why, tileType) {
 				case "b":
 					drawColor = color_grass_shadow;
 					break;
+				case "C":
+					drawColor = color_ice;
+					break;
+				case "c":
+					ctx.fillStyle = color_snow;
+					drawPoly(ex, why, Math.ceil(tile_half / Math.sin(Math.PI / 3)), 6, Math.PI / 6);
+					break;
 				default:
 					drawColor = color_error;
 					break;
@@ -102,6 +109,16 @@ function drawMapSquare(ex, why, tileType) {
 				ctx.fillStyle = color_ice;
 				drawPoly(ex, why, Math.ceil(tile_half / Math.sin(Math.PI / 3)), 6, Math.PI / 6);
 				//highlights
+				ctx.strokeStyle = color_ice_highlight;
+				ctx.lineWidth = player.r;
+				for (var an=0;an<3;an++) {
+					var xOff = (tile_half * 1.02) * Math.sin(((Math.PI / 3) * an) + Math.PI / 6);
+					var yOff = (tile_half * 1.02) * Math.cos(((Math.PI / 3) * an) + Math.PI / 6);
+					ctx.beginPath();
+					ctx.moveTo(ex + xOff, why + yOff);
+					ctx.lineTo(ex - xOff, why - yOff);
+					ctx.stroke();
+				}
 				break;
 			case "c":
 				ctx.fillStyle = color_snow;
