@@ -72,14 +72,22 @@ let map_def = new Map("#22FF88", map_def_data, [1, 1], map_def_entities, ["map_w
 
 
 	var map_wd0_data = ['',
-						'         b ',
-						'  bbbbbbbbbbbbbbe',
-						'          b'];
-	
-	var map_wd0_entities = [new Text("Press R to reset", 10, -2,),
-							new Stone(10, 2)];
+						'   bcbbcccccc      CCCCCCCC',
+						'   cbbcbcccccc     CCCCCCCCC',
+						'  bbabbccccccc    CCCCCCCCCC',
+						'  bcbbbccccccc    CCCCCCCCCCC',
+						'  ccbcbccccccc   CCCCCCCCCCCCe',
+						'   bcccccccccc   CCCCCCCCCCCCC',
+						'   cccccccccc   CCCCCCCCCCCCCC    ',
+						'    CCCCCCCCC   c ',
+						'    CCCCCCCC   ccccccccc   ',
+						'     CCCCCCC   cc',
+						'      c       cc',
+						'       ccccccccc'];
 
-let map_wd0 = new Map(color_background_0, map_wd0_data, [2, 2], map_wd0_entities, []);
+	var map_wd0_entities = [];
+
+let map_wd0 = new Map(color_background_0, map_wd0_data, [4, 3], map_wd0_entities, []);
 
 
 
