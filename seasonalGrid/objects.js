@@ -107,11 +107,10 @@ class Map {
 
 				//save player position
 				this.playerPos = [player.x, player.y];
-				player.dir = [0, 0];
+				player.dir = "";
 				//updating player position
 				//reset map if moving to a child map
 				if (this.exitingTo.parent == this) {
-					//[player.x, player.y] = loading_map.playerPosDefault;
 					this.exitingTo.beReset();
 				} else {
 					[player.x, player.y] = loading_map.playerPos;
@@ -123,47 +122,71 @@ class Map {
 }
 
 
-
-class Player {
-	constructor(x, y) {
+//parent class for all movable objects
+class MovableTileEntity {
+	constructor(color, x, y) {
 		this.x = x;
 		this.y = y;
+		this.color = color;
 		this.r = tile_size / 3;
-		this.drawX = x;
-		this.drawY = y;
 
-		this.target = [this.x, this.y];
-		this.dir = [0, 0];
+		//all tile entities have a seperate drawing and actual coordinates, as real coordinates "snap" and the drawing is for animation
+		this.animX = x;
+		this.animY = y;
+		this.drawCoords = [];
+
+		this.trail = [[x, y]];
+		this.dir = "";
+		this.moveInpulse = false;
 	}
 
 	tick() {
-		//confirming target coords are valid
-		if (this.dir[0] != 0 || this.dir[1] != 0) {
-			var mGood = validateMovement(this.target[0], this.target[1]);
-			if (mGood) {
-				[this.x, this.y] = this.target;
-			} else {
-				this.target = [this.x, this.y];
-			}
-		}
+		this.move();
+		this.alignAnimCoords();
+	}
 
-		//bringing drawing coords closer to true coordinates
-		this.drawX = ((this.drawX * (display_animDelay - 1)) + this.x) / display_animDelay;
-		this.drawY = ((this.drawY * (display_animDelay - 1)) + this.y) / display_animDelay;
-
-		//camera follow of player
-		camera.x = this.drawX - ((canvas.width / 2) / tile_size) + Math.abs(((0.5 * (this.drawY + 5)) % 1) - 0.5);
-		camera.y = (this.drawY * Math.sin(Math.PI / 3)) - ((canvas.height / 2) / tile_size);
+	alignAnimCoords() {
+		//bring drawing coordinates closer to true coordinates
+		this.animX = ((this.animX * (display_animDelay - 1)) + this.x) / display_animDelay;
+		this.animY = ((this.animY * (display_animDelay - 1)) + this.y) / display_animDelay;
 	}
 
 	beDrawn() {
-		var drawCoord = spaceToScreen(this.drawX, this.drawY);
-		drawEllipse(color_player, drawCoord[0], drawCoord[1], this.r, this.r, 0, 0, Math.PI * 2);
+		//calculate true coordinates to draw at
+		var drawCoord = spaceToScreen(this.animX, this.animY);
+		drawEllipse(this.color, drawCoord[0], drawCoord[1], this.r, this.r, 0, 0, Math.PI * 2);
 	}
 
-	//movement functions
-	move(moveCode) {
-		//consists of two movement systems, one for odd-numbered rows and one for even
+	move() {
+		//if told to move, try moving
+		if (this.moveImpulse) {
+			this.moveImpulse = false;
+			var updatePos = this.dirToWorld(this.dir);
+			//if the square being moved to is valid, move there
+			if (validateMovement(this.x + updatePos[0], this.y + updatePos[1])) {
+				[this.x, this.y] = [this.x + updatePos[0], this.y + updatePos[1]];
+				//if now on an ice block, continue movement
+				if (loading_map.data[this.y][this.x] == "C") {
+					this.moveImpulse = true;
+				}
+				return true;
+			} else {
+				return false;
+			}
+		}
+	}
+
+	handleMoveInput(direction) {
+		//sends a move input if the last one has been handled
+		if (!this.moveImpulse) {
+			this.dir = direction;
+			this.moveImpulse = true;
+		}
+	}
+
+	//converts the direction string to a world coordinate
+	dirToWorld(dirString) {
+		//offset accounts for difference in odd/even grid rows
 		var offset = Math.abs(((this.y + 5) % 2) - 1);
 		var move_codes = {
 			"UL": [-1 + offset, -1],
@@ -174,70 +197,88 @@ class Player {
 			"DR": [0 + offset, 1]
 		};
 
-		//parsing move code
-		this.target = [this.x + move_codes[moveCode][0], this.y + move_codes[moveCode][1]];
-		this.dir = move_codes[moveCode];
+		return move_codes[dirString];
 	}
 }
 
 
-class Orb {
-	constructor(color, x, y) {
-		this.x = x;
-		this.y = y;
-		this.drawX = x;
-		this.drawY = y;
-		this.homeX = x;
-		this.homeY = y;
 
-		this.color = color;
+class Player extends MovableTileEntity {
+	constructor(x, y) {
+		super(color_player, x, y);
 	}
 
 	tick() {
-		//if the player is in the same square as self, try moving according to the vector
-		if (player.x == this.x && player.y == this.y) {
-			//have to adjust the x vector because of the hexagonal tile offset
-			var newXDir = player.dir[0];
-			//this code is stupid but it makes the movement work correctly
-			if (player.dir[1] != 0) {
-				var offset = Math.abs((((player.y+1) + 5) % 2) - 1);
-				if (offset == 0) {
-					offset = -1;
-				}
-				newXDir = player.dir[0] - offset;
-			}
+		super.tick();
 
-			//check for valid blocks
-			var valid = validateMovement(this.x + newXDir, this.y + player.dir[1]);
-
-			//check for valid entities
-			for (var h=0;h<loading_map.entities.length;h++) {
-				//if the target position and the entitiy position are the same, there's a problem
-				//also make sure entity is not a switch
-				if (this.x + newXDir == loading_map.entities[h].x && this.y + player.dir[1] == loading_map.entities[h].y && loading_map.entities[h].constructor.name != "Switch") {
-					valid = false;
-					h = loading_map.entities.length + 1;
-				}
-			}
-
-			//if the move is successful, cool. If the move is unsuccessful, move the player backwards to their original position
-			if (valid) {
-				[this.x, this.y] = [this.x + newXDir, this.y + player.dir[1]];
-			} else {
-				[player.x, player.y] = [player.x - player.dir[0], player.y - player.dir[1]];
-				player.dir = [0, 0];
-			}
-		}
-
-
-		//updating animation position
-		this.drawX = ((this.drawX * (display_animDelay - 1)) + this.x) / display_animDelay;
-		this.drawY = ((this.drawY * (display_animDelay - 1)) + this.y) / display_animDelay;
+		//making camera follow player
+		camera.x = this.animX - ((canvas.width / 2) / tile_size) + Math.abs(((0.5 * (this.animY + 5)) % 1) - 0.5);
+		camera.y = (this.animY * Math.sin(Math.PI / 3)) - ((canvas.height / 2) / tile_size);
 	}
 
-	beDrawn() {
-		var drawCoords = spaceToScreen(this.drawX, this.drawY);
-		drawEllipse(this.color, drawCoords[0], drawCoords[1], player.r, player.r, 0, 0, Math.PI * 2);
+	move() {
+		var returnCode = super.move();
+		//make sure ice does not affect self when in edit mode
+		if (editor_active) {
+			this.moveImpulse = false;
+		}
+		return returnCode;
+	}
+}
+
+
+class Orb extends MovableTileEntity {
+	constructor(color, x, y) {
+		super(color, x, y);
+		this.homeX = x;
+		this.homeY = y;
+	}
+
+	tick() {
+		this.alignAnimCoords();
+		//if the player is in the same square as the self, be pushed by them
+		if (player.x == this.x && player.y == this.y) {
+			this.dir = player.dir;
+			this.moveImpulse = true;
+
+			//move
+			var suc = this.move();
+
+			//if the move was unsuccessful, push the player back
+			if (!suc) {
+				var moveCodesOpposite = {
+					"L": "R",
+					"UL": "DR",
+					"UR": "DL",
+					"R": "L",
+					"DR": "UL",
+					"DL": "UR"
+				}
+				player.handleMoveInput(moveCodesOpposite[this.dir]);
+			}
+		}
+	}
+
+	move() {
+		if (this.moveImpulse) {
+			this.moveImpulse = false;
+			var updatePos = this.dirToWorld(this.dir);
+			//if the square being moved to isn't valid, cancel out of the function
+			if (!validateMovement(this.x + updatePos[0], this.y + updatePos[1])) {
+				return false;
+			} else {
+				//if there's an entity in the way, cancel out
+				for (var a=0;a<loading_map.entities.length;a++) {
+					if (loading_map.entities[a].x == this.x + updatePos[0] && loading_map.entities[a].y == this.y + updatePos[1] && loading_map.entities[a].constructor.name != "Switch") {
+						return false;
+					}
+				}
+
+				//if this point is reached, then move and return true
+				[this.x, this.y] = [this.x + updatePos[0], this.y + updatePos[1]];
+				return true;
+			}
+		}
 	}
 
 	beReset() {
@@ -252,7 +293,7 @@ class Stone extends Orb {
 	}
 
 	beDrawn() {
-		var drawCoords = spaceToScreen(this.drawX, this.drawY);
+		var drawCoords = spaceToScreen(this.animX, this.animY);
 		ctx.fillStyle = this.color;
 		//shadow
 		ctx.globalAlpha = 0.5;
