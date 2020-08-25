@@ -17,8 +17,8 @@ var color_floor = "#088";
 var color_grass = "#30DB44";
 var color_grass_highlight = "#5E6";
 var color_grass_shadow = "#3B7";
-var color_ice = "#CCF";
-var color_ice_highlight = "#DDF";
+var color_ice = "#DDF";
+var color_ice_highlight = "#EEF";
 var color_mapFade = "#FFF";
 var color_snow = "#EFF";
 var color_switch = "#566";
@@ -41,7 +41,7 @@ var display_mapSwitchSpeed = 0.02;
 
 var editor_active = false;
 var editor_block = " ";
-var editor_possibleBlocks = " Aabe";
+var editor_possibleBlocks = " ACabce";
 var editor_blockNumber = 0;
 
 var font_large = "40px Courier";
@@ -59,7 +59,7 @@ var centerX;
 var centerY;
 
 var tile_size = 30;
-var tile_walkables = "abe0123456789";
+var tile_walkables = "aCcbe0123456789";
 var tile_half = tile_size / 2;
 
 var camera =	{  
@@ -105,24 +105,24 @@ function keyPress(hn) {
 	switch (hn.keyCode) {
 		//we ad zx in that order
 		case 87:
-			player.move("UL");
+			player.handleMoveInput("UL");
 			break;
 		case 69:
-			player.move("UR");
+			player.handleMoveInput("UR");
 			break;
 
 		case 65:
-			player.move("L");
+			player.handleMoveInput("L");
 			break;
 		case 68:
-			player.move("R");
+			player.handleMoveInput("R");
 			break;
 
 		case 90:
-			player.move("DL");
+			player.handleMoveInput("DL");
 			break;
 		case 88:
-			player.move("DR");
+			player.handleMoveInput("DR");
 			break;
 
 		//r, for resetting things
@@ -289,6 +289,8 @@ function drawMap() {
 
 			//draw grid if editor is active
 			if (editor_active && tileStartY + yM > 0 && tileStartX + xM > 0) {
+				ctx.lineWidth = 1;
+				ctx.strokeStyle = color_text;
 				var prevPos1 = spaceToScreen(tileStartX + xM - 1, tileStartY + yM);
 				var prevPos2 = spaceToScreen(tileStartX + xM, tileStartY + yM - 1);
 				ctx.beginPath();
