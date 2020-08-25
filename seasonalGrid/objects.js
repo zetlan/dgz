@@ -40,7 +40,20 @@ class Map {
 		}
 
 		//handle exits
-		this.handleExit();
+		if (!editor_active) {
+			this.handleExit();
+		}
+	}
+
+	beReset() {
+		//reset all entities
+		for (var f=0;f<this.entities.length;f++) {
+			this.entities[f].beReset();
+		}
+
+		//reset player position
+		[player.x, player.y] = this.playerPosDefault;
+		player.target = this.playerPosDefault;
 	}
 
 	convertConnections() {
@@ -90,14 +103,16 @@ class Map {
 				this.exitProgress = 0;
 				this.exiting = false;
 				loading_map = this.exitingTo;
+				
 
 				//save player position
 				this.playerPos = [player.x, player.y];
 				player.dir = [0, 0];
 				//updating player position
-				//move player to default pos if moving to a child map
+				//reset map if moving to a child map
 				if (this.exitingTo.parent == this) {
-					[player.x, player.y] = loading_map.playerPosDefault;
+					//[player.x, player.y] = loading_map.playerPosDefault;
+					this.exitingTo.beReset();
 				} else {
 					[player.x, player.y] = loading_map.playerPos;
 				}
@@ -172,6 +187,9 @@ class Orb {
 		this.y = y;
 		this.drawX = x;
 		this.drawY = y;
+		this.homeX = x;
+		this.homeY = y;
+
 		this.color = color;
 	}
 
@@ -195,7 +213,8 @@ class Orb {
 			//check for valid entities
 			for (var h=0;h<loading_map.entities.length;h++) {
 				//if the target position and the entitiy position are the same, there's a problem
-				if (this.x + newXDir == loading_map.entities[h].x && this.y + player.dir[1] == loading_map.entities[h].y) {
+				//also make sure entity is not a switch
+				if (this.x + newXDir == loading_map.entities[h].x && this.y + player.dir[1] == loading_map.entities[h].y && loading_map.entities[h].constructor.name != "Switch") {
 					valid = false;
 					h = loading_map.entities.length + 1;
 				}
@@ -220,6 +239,29 @@ class Orb {
 		var drawCoords = spaceToScreen(this.drawX, this.drawY);
 		drawEllipse(this.color, drawCoords[0], drawCoords[1], player.r, player.r, 0, 0, Math.PI * 2);
 	}
+
+	beReset() {
+		[this.x, this.y] = [this.homeX, this.homeY];
+	}
+}
+
+
+class Stone extends Orb {
+	constructor(x, y) {
+		super("#888", x, y);
+	}
+
+	beDrawn() {
+		var drawCoords = spaceToScreen(this.drawX, this.drawY);
+		ctx.fillStyle = this.color;
+		//shadow
+		ctx.globalAlpha = 0.5;
+		drawPoly(drawCoords[0] + display_entityShadowOffset, drawCoords[1] + display_entityShadowOffset, tile_half * 0.6, 6, Math.PI / 6);
+		//full block
+		ctx.globalAlpha = 1;
+		drawPoly(drawCoords[0], drawCoords[1], tile_half * 0.6, 6, Math.PI / 6);
+		
+	}
 }
 
 class Text {
@@ -236,4 +278,86 @@ class Text {
 		ctx.fillStyle = color_text;
 		ctx.fillText(this.text, drawCoords[0], drawCoords[1] + (tile_size * 0.25));
 	}
+
+	beReset() {
+
+	}
+}
+
+
+
+
+class Switch {
+	constructor(switchXY, blockXY, offState, onState) {
+		this.x = switchXY[0];
+		this.y = switchXY[1];
+
+		[this.targetX, this.targetY] = blockXY;
+		this.offID = offState;
+		this.onID = onState;
+		this.pressTime = 0;
+	}
+
+	tick() {
+		//check whether there is an entity or player with this location
+		this.pressed = false;
+		//checking player
+		if (player.x == this.x && player.y == this.y) {
+			this.pressed = true;
+		} else {
+			//checking entities
+			for (var g=0;g<loading_map.entities.length;g++) {
+				if (loading_map.entities[g].x == this.x && loading_map.entities[g].y == this.y && loading_map.entities[g] != this) {
+					this.pressed = true;
+					g = loading_map.entities.length + 1;
+				}
+			}
+		}
+		
+
+		//on state / off state
+		if (this.pressed) {
+			loading_map.data[this.targetY] = replaceString(loading_map.data[this.targetY], this.onID, this.targetX);
+			this.pressTime += 1;
+		} else {
+			loading_map.data[this.targetY] = replaceString(loading_map.data[this.targetY], this.offID, this.targetX);
+			this.pressTime *= 0.85;
+		}
+	}
+
+	beDrawn() {
+		var drawCoords = spaceToScreen(this.x, this.y);
+		//drawing self
+		ctx.fillStyle = color_switch;
+		drawPoly(drawCoords[0], drawCoords[1], tile_half, 6, Math.PI / 6);
+		ctx.fillStyle = color_switch_highlight;
+		drawPoly(drawCoords[0], drawCoords[1], tile_half * 0.8, 6, Math.PI / 6);
+
+		//drawing ring around target block
+		drawCoords = spaceToScreen(this.targetX, this.targetY);
+		//ring part 1
+		ctx.strokeStyle = color_switch_ring;
+		ctx.lineWidth = 2;
+		ctx.beginPath();
+		for (var an=0;an<7;an++) {
+			var trueAngle = ((an / 6) * (Math.PI * 2)) + (Math.PI / 6) + (Math.PI / 6);
+			var spice = (0.8 + (Math.abs(((((this.pressTime) / 30) + 5) % 2) - 1) / 4));
+			var xAdd = (tile_half / 0.8) * Math.sin(trueAngle) * spice;
+			var yAdd = (tile_half / 0.8) * Math.cos(trueAngle) * spice;
+			ctx.lineTo(drawCoords[0] + xAdd, drawCoords[1] + yAdd);
+		}
+		ctx.stroke();
+
+
+		//glowy part
+		if (this.pressed) {
+		}
+		ctx.lineWidth = 1;
+
+	}
+
+	beReset() {
+		//other entities being reset will reset this automatically
+	}
+
 }
