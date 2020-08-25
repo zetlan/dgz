@@ -1,37 +1,43 @@
 window.addEventListener("keydown", keyPress, false);
-window.onload = setup;
+window.onload = preSetup;
 			
 //I store all my global variables at the start of my code so I know where to find them
 var canvas;
 var ctx;
 
 
-
-var color_background = "#BDE8FF";
-var color_player = "#FFAAFF";
-
-var color_error = "#FF00FF";
-var color_exit = "#AAAAAA";
-var color_exit_center = "#888888";
-var color_exit_complete = "#AAFFAA";
-var color_floor = "#008888";
-
+var color_background_0 = "#B8F";
+var color_background_1 = "#BEF";
+var color_player = "#FAF";
+var color_error = "#F0F";
+var color_exit = "#AAA";
+var color_exit_center = "#888";
+var color_exit_complete = "#AFA";
+var color_floor = "#088";
 var color_grass = "#30DB44";
-var color_grass_highlight = "#4BEB5E";
-var color_grass_shadow = "#33BD78";
-
-var color_mapFade = "#FFFFFF";
-var color_text = "#222266";
-var color_wall = "#004444";
-var color_wall_secondary = "#002244";
-
-var color_select1 = "#FF8800";
-var color_select2 = "#FF8888";
+var color_grass_highlight = "#5E6";
+var color_grass_shadow = "#3B7";
+var color_ice = "#CCF";
+var color_ice_highlight = "#DDF";
+var color_mapFade = "#FFF";
+var color_snow = "#EFF";
+var color_switch = "#566";
+var color_switch_highlight = "#68A";
+var color_switch_ring = "#05F";
+var color_switch_ring_highlight = "#0AF";
+var color_text = "#226";
+var color_wall = "#044";
+var color_wall_secondary = "#024";
+var color_select1 = "#F80";
+var color_select2 = "#F88";
 
 
 var display_animDelay = 6;
+var display_entityShadowOffset = 3;
+var display_tileShadowOffset = 6;
 var display_vignetting = 0.6;
 var display_mapSwitchSpeed = 0.02;
+
 
 var editor_active = false;
 var editor_block = " ";
@@ -47,14 +53,13 @@ var game_timer = 0;
 
 
 var loading_animation;
-var loading_map = map_def;
+var loading_map;
 
 var centerX;
 var centerY;
 
 var tile_size = 30;
 var tile_walkables = "abe0123456789";
-var tile_shadow_offset = 6;
 var tile_half = tile_size / 2;
 
 var camera =	{  
@@ -63,18 +68,33 @@ var camera =	{
 					scale: 1
 				};
 
-var player = new Player(1, 1);
+var player = new Player(4, 3);
 
 
 
 
 //the initializing function.
+function preSetup() {
+	//function for delaying the setup until all maps are good
+	game_animation = window.requestAnimationFrame(setup);
+}
+
 function setup() {
 	canvas = document.getElementById("canvas");
 	ctx = canvas.getContext("2d");
 	ctx.lineJoin = "round";
 	ctx.font = font_medium;
 	ctx.textAlign = "center";
+
+	loading_map = map_out;
+
+	//setting up entities in the map_out zone
+	for (var a=0;a<18;a++) {
+		map_out.entities.push(new Orb("#AAF", 52 + a, 0));
+	}
+	for (var a=0;a<18;a++) {
+		map_out.entities.push(new Orb("#FAF", 52 + a, 6));
+	}
 
 	centerX = canvas.width / 2;
 	centerY = canvas.height / 2;
@@ -103,6 +123,11 @@ function keyPress(hn) {
 			break;
 		case 88:
 			player.move("DR");
+			break;
+
+		//r, for resetting things
+		case 82:
+			loading_map.beReset();
 			break;
 
 		//enter
@@ -157,7 +182,7 @@ function keyPress(hn) {
 /*this function is the main function that repeats every time the timer goes off. It clears the screen and then draws everything.  */
 function main() {
 	//clearing / drawing background
-	ctx.fillStyle = color_background;
+	ctx.fillStyle = loading_map.bg;
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -195,7 +220,7 @@ function main() {
 
 	//time based things
 	game_timer += 1;
-	tile_shadow_offset = 6 + (Math.sin(game_timer / 100) * 2);
+	display_tileShadowOffset = 6 + (Math.sin(game_timer / 100) * 2);
 
 	//call self for next frame
 	game_animation = window.requestAnimationFrame(main);
@@ -258,7 +283,7 @@ function drawMap() {
 			var [squareX, squareY] = squarePos;
 
 			//shadow
-			drawMapShadow(squareX + tile_shadow_offset, squareY + tile_shadow_offset, value);
+			drawMapShadow(squareX + display_tileShadowOffset, squareY + display_tileShadowOffset, value);
 			//real square
 			drawMapSquare(squareX, squareY, value);
 
@@ -342,7 +367,7 @@ function validateMovement(x, y) {
 	if (editor_active) {
 		return true;
 	}
-	
+
 	//if neither of the special conditions apply..
 	var problem = true;
 	var value;
