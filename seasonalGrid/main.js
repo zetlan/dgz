@@ -313,6 +313,9 @@ function drawMap() {
 
 
 //other utility functions
+function linterp(a, b, percentage) {
+	return (a + ((b - a) * percentage));
+}
 function mapOutput() {
 	//outputs the current map's data as text
 	var outputString = `[`;
