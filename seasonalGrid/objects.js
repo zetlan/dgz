@@ -53,7 +53,7 @@ class Map {
 
 		//reset player position
 		[player.x, player.y] = this.playerPosDefault;
-		player.target = this.playerPosDefault;
+		player.queue.push([player.x, player.y]);
 	}
 
 	convertConnections() {
@@ -114,6 +114,7 @@ class Map {
 					this.exitingTo.beReset();
 				} else {
 					[player.x, player.y] = loading_map.playerPos;
+					player.queue.push([player.x, player.y]);
 				}
 				
 			}
@@ -133,9 +134,13 @@ class MovableTileEntity {
 		//all tile entities have a seperate drawing and actual coordinates, as real coordinates "snap" and the drawing is for animation
 		this.animX = x;
 		this.animY = y;
+		this.animProgress = 0;
+		this.animTolerance = 0.01;
+
 		this.drawCoords = [];
 
-		this.trail = [[x, y]];
+		this.queue = [[x, y], [x, y]];
+		
 		this.dir = "";
 		this.moveInpulse = false;
 	}
@@ -146,9 +151,26 @@ class MovableTileEntity {
 	}
 
 	alignAnimCoords() {
-		//bring drawing coordinates closer to true coordinates
-		this.animX = ((this.animX * (display_animDelay - 1)) + this.x) / display_animDelay;
-		this.animY = ((this.animY * (display_animDelay - 1)) + this.y) / display_animDelay;
+		//use weighted average to move progress along
+		this.animProgress = ((this.animProgress * (display_animDelay - 1)) + (this.queue.length - 1)) / display_animDelay;
+
+		//if progress is greater than 1, delete the first element of the queue and remove 1 from progress
+		if (this.animProgress > 1 && this.queue.length > 2) {
+			this.queue.splice(0, 1);
+			this.animProgress -= 1;
+		}
+
+
+		//turn progress into xy coordinates for display
+		var percentage = this.animProgress % 1;
+		var base = Math.floor(this.animProgress);
+		//special case to avoid problems when the animation progress is exactly 1
+		if (this.animProgress == 1) {
+			base -= 1;
+		}
+
+		this.animX = linterp(this.queue[base][0], this.queue[base+1][0], percentage);
+		this.animY = linterp(this.queue[base][1], this.queue[base+1][1], percentage);
 	}
 
 	beDrawn() {
@@ -166,9 +188,12 @@ class MovableTileEntity {
 			if (validateMovement(this.x + updatePos[0], this.y + updatePos[1])) {
 				[this.x, this.y] = [this.x + updatePos[0], this.y + updatePos[1]];
 				//if now on an ice block, continue movement
-				if (loading_map.data[this.y][this.x] == "C") {
-					this.moveImpulse = true;
-				}
+				this.queue.push([this.x, this.y]);
+				try {
+					if (loading_map.data[this.y][this.x] == "C") {
+						this.moveImpulse = true;
+					}
+				} catch (er) {}
 				return true;
 			} else {
 				return false;
@@ -236,11 +261,13 @@ class Orb extends MovableTileEntity {
 
 	tick() {
 		this.alignAnimCoords();
+		//just move
+		this.move();
 		//if the player is in the same square as the self, be pushed by them
 		if (player.x == this.x && player.y == this.y) {
 			this.dir = player.dir;
 			this.moveImpulse = true;
-
+			
 			//move
 			var suc = this.move();
 
@@ -254,11 +281,22 @@ class Orb extends MovableTileEntity {
 					"DR": "UL",
 					"DL": "UR"
 				}
-				player.handleMoveInput(moveCodesOpposite[this.dir]);
+				//this line may look confusing.
+				//It reverses the direction this entity was pushed in, applies it to the player, and then stores that in playerMoveVector.
+				var playerMoveVector = player.dirToWorld(moveCodesOpposite[this.dir]);
+
+				//after moving the player, make sure the player doesn't want to move again.
+				player.x += playerMoveVector[0];
+				player.y += playerMoveVector[1];
+				//also change player's queue so that they move visually
+				player.queue[player.queue.length-1] = [player.x, player.y];
+				player.moveImpulse = false;
 			}
 		}
 	}
 
+	//changes the position based on the dir property and moveImpulse. 
+	//returns whether the move was successful or not
 	move() {
 		if (this.moveImpulse) {
 			this.moveImpulse = false;
@@ -274,8 +312,13 @@ class Orb extends MovableTileEntity {
 					}
 				}
 
-				//if this point is reached, then move and return true
+				//if this point is reached, then move
 				[this.x, this.y] = [this.x + updatePos[0], this.y + updatePos[1]];
+				this.queue.push([this.x, this.y]);
+				//if on an ice block, propogate future movements
+				if (loading_map.data[this.y][this.x] == "C") {
+					this.moveImpulse = true;
+				}
 				return true;
 			}
 		}
@@ -283,6 +326,7 @@ class Orb extends MovableTileEntity {
 
 	beReset() {
 		[this.x, this.y] = [this.homeX, this.homeY];
+		this.queue.push([this.x, this.y]);
 	}
 }
 
