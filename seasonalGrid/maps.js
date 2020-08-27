@@ -73,21 +73,154 @@ let map_def = new Map("#22FF88", map_def_data, [1, 1], map_def_entities, ["map_w
 
 	var map_wd0_data = ['',
 						'   bcbbcccccc      CCCCCCCC',
-						'   cbbcbcccccc     CCCCCCCCC',
-						'  bbabbccccccc    CCCCCCCCCC',
-						'  bcbbbccccccc    CCCCCCCCCCC',
-						'  ccbcbccccccc   CCCCCCCCCCCCe',
-						'   bcccccccccc   CCCCCCCCCCCCC',
-						'   cccccccccc   CCCCCCCCCCCCCC    ',
-						'    CCCCCCCCC   c ',
-						'    CCCCCCCC   ccccccccc   ',
-						'     CCCCCCC   cc',
-						'      c       cc',
-						'       ccccccccc'];
+						'   cbbcbcCcccc     CCCC5CCCC    ',
+						'  bbabbccccccC    CCCCCCCCCC  C',
+						'  bcbbbccccccc    CCC3CCCCCCC C',
+						'  ccbcbcccCccc   CC6CCCCCCCCCCCCe',
+						'   bcccccccccc   CCCCCCCCC4CCC   ',
+						'   cccccccccc   CCCCCCCCCCCCCC  ',
+						'    ccccccCcc   2                 ',
+						'    cCccCccc   ccccccccc       ',
+						'     ccccccc   cc               ',
+						'      c       cc                ',
+						'       cc0c1cccc'];
 
-	var map_wd0_entities = [];
+	var map_wd0_entities = [new Text("W", 12, 9), new Text("E", 13, 9), new Text("D", 14, 10), new Text("X", 13, 11), new Text("Z", 12, 11), new Text("A", 12, 10),];
 
-let map_wd0 = new Map(color_background_0, map_wd0_data, [4, 3], map_wd0_entities, []);
+let map_wd0 = new Map(color_background_0, map_wd0_data, [4, 3], map_wd0_entities, ["map_0_0", "map_0_1", "map_0_2", "map_0_3", "map_0_4", "map_0_5", "map_0_6"]);
+
+
+
+	var map_0_0_data = ['cccccccccccc',
+						'          cc',
+						'   cccccccc c',
+						'  c       c c',
+						'  c cccccc c c',
+						' c c    c  c c',
+						' c c cccc c c c',
+						'c ccc   c c ccc',
+						' c c c ec c c c',
+						' c   c   c   c',
+						'  c c cccc c c',
+						'  c c    cc c',
+						'   c cccccc c',
+						'   cc      c',
+						'    cccccccc'];
+
+	var map_0_0_entities = [];
+
+let map_0_0 = new Map(color_background_0, map_0_0_data, [0, 0], map_0_0_entities, []);
+
+
+
+	var map_0_1_data = ['     ccc  ccc',
+						'    cc      c ',
+						'    c ccccc  c ',
+						'   c ccccccc c ',
+						'   c cc   ccc c',
+						'  c cc ccc cc c  ',
+						'  c cc c  c cc c',
+						' eccccc ccc c  e ',
+						'  c cc c  c cc c',
+						'  c cc ccc cc c   ',
+						'     cc   ccc  ',
+						'     ccccccc      ',
+						'    c  ccccc c',
+						'    c      cc',
+						'     cccccccc'];
+
+	var map_0_1_entities = [];
+
+let map_0_1 = new Map(color_background_0, map_0_1_data, [8, 7], map_0_1_entities, []);
+
+
+
+
+	var map_0_2_data = [' cccc cccccc cc',
+						'  c   c  c    c',
+						' cccccccccc ccc ',
+						'       c  c  ',
+						' cccc cc c cccc   ',
+						'c   C   c  c  ',
+						' cccCCccccc ccc   ',
+						' c   C    e c ',
+						' cc cCCcc c ccc    ',
+						'  c   c      c ',
+						'   cc ccccccccc    '];
+
+	var map_0_2_entities = [];
+
+let map_0_2 = new Map(color_background_0, map_0_2_data, [4, 0], map_0_2_entities, []);
+
+
+
+	var map_0_3_data = ['',
+						'cccccCCCCC  ',
+						'  C CCCCCCCCCe',
+						' C C C    C  ',
+						' CCCCCCCCCCC  '];
+
+	var map_0_3_entities = [];
+
+let map_0_3 = new Map(color_background_0, map_0_3_data, [0, 1], map_0_3_entities, []);
+
+
+
+	var map_0_4_data = ['',
+						'cccCCCCCCCCC',
+						'    CcCCCCcCC',
+						'    CCCCCCCCC',
+						'     CCCCCcCCC',
+						'     CCCCCCCCC',
+						'        C',
+						'        C',
+						'         e'];
+
+	var map_0_4_entities = [];
+
+let map_0_4 = new Map(color_background_0, map_0_4_data, [0, 1], map_0_4_entities, []);
+
+
+
+	var map_0_5_data = ['',
+						'cccCCCCCC CC',
+						'    CCCCCCCCC',
+						'    CCCC CCC ',
+						'     CCCCCCCCC',
+						'     CCCCCCCCC',
+						'        C',
+						'        C',
+						'         e'];
+
+	var map_0_5_entities = [];
+
+let map_0_5 = new Map(color_background_0, map_0_5_data, [0, 1], map_0_5_entities, []);
+
+
+
+	var map_0_6_data = ['              e',
+						'           C C',
+						'            CC',
+						'  ccc       C',
+						'  c  CCCCCCCCCCCC',
+						' c  CCCCCCCCCC C',
+						' c  CCCCCCCCCCCC   ',
+						'   CCCCCCCCCCCCccc',
+						'    CCCCCCCCCCC   c',
+						'    CCCCCCCCCC  Cc',
+						'     CCCCCCCCC CCc',
+						'  C  CCCCCCCC   Cc C',
+						'  CCC CCCCCCC    CCC ',
+						' C C      CC    C  C',
+						'   CCCC C  CC  CC',
+						'  C C CC  CCC   C',
+						'    C cC  C Cc',
+						'      c     c',
+						'       cccccc'];
+
+	var map_0_6_entities = [];
+
+let map_0_6 = new Map(color_background_0, map_0_6_data, [1, 6], map_0_6_entities, []);
 
 
 
