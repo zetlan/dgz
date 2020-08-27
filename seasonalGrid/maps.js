@@ -1,10 +1,10 @@
-var map_out_data = ['   AAAA                                             aaaaaaaaaaaaaaaaaaa  e',
-					'  AaaaAAAAAAAAAAAAAAAAAAAA A AAAA AA AA A                               a',
-					'  Aaaaaaaaaaaaaaaa   aa  aaa  aaa  aaaaaaaaaaa aaaaaaaaaaaaaaaaaaaaaaaaaa',
-					' Aaa0aaaaaaaaaaaaa  a aaa  aaa  a       a   a     aaaaaaaaaaaaaaaaaaaaaa  a',
-					'  Aaaaaaaaaaaaaaaaaaa   aaaa  a  aaaaaaaaa  aaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-					'  AaaaAAAAAAAAAAAAAAA AAA AA A A AA A  A                                a',
-					'   AAAA                                             aaaaaaaaaaaaaaaaaaa  e',
+var map_out_data = ['   AAAA                                             aaaaaaaaaaaaaaaaaaaa e',
+					'  AaaaAAAAAAAAAAAAAAAAAAAA A AAAA AA AA A                            a aa',
+					'  Aaaaaaaaaaaaaaaa   aa  aaa  aaa  aaaaaaaaaaa aaaaaaaaaaaaaaaaaaaaaaa   ',
+					' Aaa0aaaaaaaaaaaaa  a aaa  aaa  a       a   a     aaaaaaaaaaaaaaaaaa aaaa1aa',
+					'  Aaaaaaaaaaaaaaaaaaa   aaaa  a  aaaaaaaaa  aaaaaaaaaaaaaaaaaaaaaaaaaa   ',
+					'  AaaaAAAAAAAAAAAAAAA AAA AA A A AA A  A                             a a ',
+					'   AAAA                                             aaaaaaaaaaaaaaaaaaaa e',
 					'',
 					'',
 					'',
@@ -17,7 +17,9 @@ var map_out_data = ['   AAAA                                             aaaaaaa
 					'    aaaaaaaaaaaaaaa',
 					'    aaaaaaaaaaaaaa'];
 	
-	var map_out_entities = [new Orb("#FFF", 74, 3), new Text("Something went wrong ):", 11, 16)];
+	var map_out_entities = [new Switch([75, 3], [72, 5], " ", "a"),
+							new Switch([69, 0], [72, 1], " ", "a"),
+							new Orb("#FFF", 74, 3), new Text("Something went wrong ):", 11, 16)];
 
 let map_out = new Map("#000000", map_out_data, [4, 3], map_out_entities, ["map_def"]);
 
@@ -232,9 +234,9 @@ let map_0_6 = new Map(color_background_0, map_0_6_data, [1, 6], map_0_6_entities
 						'       AbbbbbbbbbA          A',
 						'      AbbbbbbbbbbAA   A  A',
 						'      Abbbbbbbbbbbbbb',
-						'     Abbbbbbbbbbbb Abb         A',
-						'     Abbbbbbbbbbbb 0Abbb  A',
-						'     Abbbbbbbbbbbb Abb',
+						'     AAbbbbbbbbbbb Abb         A',
+						'     AbAbbbbbbbbbb 0Abbb  A',
+						'     AAbbbbbbbbbbb Abb',
 						'      Abbbbbbbbbbbbbb A  A A',
 						'      AbbbbbbbbbbAA  ',
 						'       AbbbbbbbbbA A ',
