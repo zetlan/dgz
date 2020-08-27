@@ -50,6 +50,7 @@ var font_small = "20px Courier";
 
 var game_animation;
 var game_timer = 0;
+var game_avgFrameTime = [];
 
 
 var loading_animation;
@@ -58,7 +59,7 @@ var loading_map;
 var centerX;
 var centerY;
 
-var tile_size = 30;
+var tile_size = 35;
 var tile_walkables = "aCcbe0123456789";
 var tile_half = tile_size / 2;
 
@@ -257,17 +258,11 @@ function drawMap() {
 
 	//drawSquares x / y say how many hexagons to draw in each dimension
 	var drawSquaresX = Math.floor(canvas.width / tile_size) + 2;
-	var drawSquaresY = Math.floor((canvas.height / tile_size) * 1.5);
-
-
-	//other helpful vars
-	var heightPercentage = Math.sin(Math.PI / 3);
-
+	var drawSquaresY = Math.floor((canvas.height / tile_size) * 1.4);
 
 	//main for loop
 	for (var yM=0;yM<drawSquaresY;yM++) {
 		for (var xM=0;xM<drawSquaresX;xM++) {
-
 			//getting data
 			var value = " ";
 
@@ -277,15 +272,23 @@ function drawMap() {
 
 			//catching those pesky undefineds
 			if (value == undefined) {
+				//if the value is undefined, check to see if the rest of the row search should be skipped
 				value = " ";
+				if (tileStartX + xM > 0) {
+					xM = drawSquaresX + 1;
+				}
+				
 			}
 			var squarePos = spaceToScreen(tileStartX + xM, tileStartY + yM);
 			var [squareX, squareY] = squarePos;
 
-			//shadow
-			drawMapShadow(squareX + display_tileShadowOffset, squareY + display_tileShadowOffset, value);
-			//real square
-			drawMapSquare(squareX, squareY, value);
+			//only call the function if not an empty space
+			if (value != " ") {
+				//shadow
+				drawMapShadow(squareX + display_tileShadowOffset, squareY + display_tileShadowOffset, value);
+				//real square
+				drawMapSquare(squareX, squareY, value);
+			}	
 
 			//draw grid if editor is active
 			if (editor_active && tileStartY + yM > 0 && tileStartX + xM > 0) {
@@ -316,6 +319,7 @@ function drawMap() {
 function linterp(a, b, percentage) {
 	return (a + ((b - a) * percentage));
 }
+
 function mapOutput() {
 	//outputs the current map's data as text
 	var outputString = `[`;
