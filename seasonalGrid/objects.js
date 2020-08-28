@@ -392,7 +392,7 @@ class Switch {
 		} else {
 			//checking entities
 			for (var g=0;g<loading_map.entities.length;g++) {
-				if (loading_map.entities[g].x == this.x && loading_map.entities[g].y == this.y && loading_map.entities[g] != this) {
+				if (loading_map.entities[g].x == this.x && loading_map.entities[g].y == this.y && loading_map.entities[g].constructor.name != "Switch") {
 					this.pressed = true;
 					g = loading_map.entities.length + 1;
 				}
