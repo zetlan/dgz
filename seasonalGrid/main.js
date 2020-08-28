@@ -7,8 +7,12 @@ var ctx;
 
 
 var color_background_0 = "#B8F";
-var color_background_1 = "#BEF";
+var color_background_1 = "#BFF";
+var color_background_2 = "#F88";
 var color_player = "#FAF";
+var color_desert = "#FD7";
+var color_desert_highlight = "#FEC";
+var color_desert_shadow = "#DA9";
 var color_error = "#F0F";
 var color_exit = "#AAA";
 var color_exit_center = "#888";
@@ -41,7 +45,7 @@ var display_mapSwitchSpeed = 0.02;
 
 var editor_active = false;
 var editor_block = " ";
-var editor_possibleBlocks = " ACabce";
+var editor_possibleBlocks = " ACabcde";
 var editor_blockNumber = 0;
 
 var font_large = "40px Courier";
@@ -60,7 +64,7 @@ var centerX;
 var centerY;
 
 var tile_size = 35;
-var tile_walkables = "aCcbe0123456789";
+var tile_walkables = "aCcbde0123456789";
 var tile_half = tile_size / 2;
 
 var camera =	{  
@@ -182,6 +186,9 @@ function keyPress(hn) {
 
 /*this function is the main function that repeats every time the timer goes off. It clears the screen and then draws everything.  */
 function main() {
+	//starting performance test
+	//var times = [performance.now(), 0];
+
 	//clearing / drawing background
 	ctx.fillStyle = loading_map.bg;
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -223,6 +230,23 @@ function main() {
 	game_timer += 1;
 	display_tileShadowOffset = 6 + (Math.sin(game_timer / 100) * 2);
 
+
+	//performance testing
+	/*
+	times[1] = performance.now();
+	var totalTime = times[1] - times[0];
+	game_avgFrameTime.push(totalTime);
+	if (game_avgFrameTime.length > 100) {
+		var avg = 0;
+		for (var v=0;v<game_avgFrameTime.length;v++) {
+			avg += game_avgFrameTime[v];
+		}
+		avg /= game_avgFrameTime.length;
+
+		console.log("average time for past 100 frames is " + avg + "ms");
+		game_avgFrameTime = [];
+	} */
+
 	//call self for next frame
 	game_animation = window.requestAnimationFrame(main);
 }
@@ -246,6 +270,19 @@ function drawPoly(x, y, r, sides, offsetAngle) {
 		var yAdd = r * Math.cos(trueAngle);
 		ctx.lineTo(x + xAdd, y + yAdd);
 	}
+	ctx.fill();
+}
+
+//this code is a mess but it's slightly faster than the drawPoly function
+function drawHexagonTile(x, y) {
+	ctx.beginPath();
+	ctx.moveTo(x + tile_half + 0.5, y + (tile_half * 0.58));
+	ctx.lineTo(x + tile_half + 0.5, y - (tile_half * 0.58));
+	ctx.lineTo(x, y - (tile_size * 0.58));
+	ctx.lineTo(x - tile_half - 0.5, y - (tile_half * 0.58));
+	ctx.lineTo(x - tile_half - 0.5, y + (tile_half * 0.58));
+	ctx.lineTo(x, y + (tile_size * 0.58));
+	ctx.lineTo(x + tile_half + 0.5, y + (tile_half * 0.58));
 	ctx.fill();
 }
 
