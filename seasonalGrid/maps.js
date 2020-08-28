@@ -234,9 +234,9 @@ let map_0_6 = new Map(color_background_0, map_0_6_data, [1, 6], map_0_6_entities
 						'       AbbbbbbbbbA          A',
 						'      AbbbbbbbbbbAA   A  A',
 						'      Abbbbbbbbbbbbbb',
-						'     AAbbbbbbbbbbb Abb         A',
-						'     AbAbbbbbbbbbb 0Abbb  A',
-						'     AAbbbbbbbbbbb Abb',
+						'     Abbbbbbbbbbbb Abb         A',
+						'     Abbbbbbbbbbbb 0Abbb  A',
+						'     Abbbbbbbbbbbb Abb',
 						'      Abbbbbbbbbbbbbb A  A A',
 						'      AbbbbbbbbbbAA  ',
 						'       AbbbbbbbbbA A ',
@@ -254,9 +254,9 @@ let map_0_6 = new Map(color_background_0, map_0_6_data, [1, 6], map_0_6_entities
 						'  AbbbbbbbbbbAbA  b bbb ',
 						' AbAbbbbbbbbAbA   bbbb ',
 						'  AbAbbbbbbbbAbA  bbb b ',
-						'  A1AbbbbbbbAbA   bbbb ',
+						'  A1AbbbbbbbA8A   bbbb ',
 						'   AbAbbbbbbbAbA  b bbb ',
-						'   A2AAAAAAAAbA   bbbb ',
+						'   A2AAAAAAAA7A   bbbb ',
 						'    Ab3b4b5b6bA    bbb ',
 						'    AAAAAAAAAA     bb ',
 						'                   AeA',
@@ -265,7 +265,7 @@ let map_0_6 = new Map(color_background_0, map_0_6_data, [1, 6], map_0_6_entities
 	var map_wd1_entities = [new Switch([6, 6], [18, 6], " ", "b"),
 							new Orb("#AAAAFF", 19, 4), new Orb("#FFFFFF", 31, 5), new Orb("#FFAAFF", 24, 13), new Orb("#AAAAFF", 25, 3)];
 
-	var map_wd1_connections = ["map_1_0", "map_1_1", "map_1_2", "map_1_3", "map_1_4", "map_1_5"];
+	var map_wd1_connections = ["map_1_0", "map_1_1", "map_1_2", "map_1_3", "map_1_4", "map_1_5", "map_1_6", "map_1_7", "map_1_8"];
 
 let map_wd1 = new Map(color_background_1, map_wd1_data, [1, 17], map_wd1_entities, map_wd1_connections);
 
@@ -385,4 +385,57 @@ let map_1_4 = new Map(color_background_1, map_1_4_data, [1, 1], map_1_4_entities
 							new Stone(6, 4), new Stone(6, 3)];
 
 let map_1_5 = new Map(color_background_1, map_1_5_data, [8, 3], map_1_5_entities, []);
+
+
+
+	var map_1_6_data = ['       bccc         ',
+						'      bcccCCCCC     ',
+						'      bccccCCCCCCCC  ',
+						'     bbcccCCCCC C',
+						'      bccccc    CC',
+						'      bbccc    e C',
+						'       bbcc'];
+	
+	var map_1_6_entities = [new Stone(6, 3)];
+
+let map_1_6 = new Map(color_background_1, map_1_6_data, [8, 3], map_1_6_entities, []);
+
+
+
+	var map_1_7_data = ['       bccc     C   ',
+						'      CcccC    C    ',
+						'  bb  bCcccCCCCC     ',
+						' b bbbbCccCC C   ',
+						'  b   bcCcccC e   ',
+						' bbb  bbCcc C     ',
+						' bbbb  bbCc C',
+						'bbbbb    C',
+						' bbbb     C  ',
+						' bbb     cCcc',
+						'   b     ccccc',
+						'   bbbbbcccccc'];
+	
+	var map_1_7_entities = [new Stone(12, 10)];
+
+let map_1_7 = new Map(color_background_1, map_1_7_data, [8, 3], map_1_7_entities, []);
+
+
+
+	var map_1_8_data = ['       bccc     C   ',
+						'      CcccC    C    ',
+						'  bb  bCcccCCCCC     ',
+						' b bbbbCccCC C   ',
+						'  b   bcCcccC e   ',
+						' bbb  bbCcc C     ',
+						' bbbb  bbCc C',
+						'bbbbb    C',
+						' bbbb     C  ',
+						' bbb     cCcc',
+						'         ccccc',
+						'        cccccc'];
+	
+	var map_1_8_entities = [new Switch([3, 7], [8, 4], "C", "c"), new Switch([3, 7], [8, 5], "C", "c"),
+							new Stone(12, 10), new Stone(1, 7)];
+
+let map_1_8 = new Map(color_background_1, map_1_8_data, [8, 3], map_1_8_entities, []);
 
