@@ -176,6 +176,12 @@ class MovableTileEntity {
 	beDrawn() {
 		//calculate true coordinates to draw at
 		var drawCoord = spaceToScreen(this.animX, this.animY);
+		//modify y position if on a desert block
+		try {
+			if (loading_map.data[this.y][this.x] == "d") {
+				drawCoord[1] += ((Math.sin((game_timer / 25) + (this.animX / 2) + (this.animY / 2))) * 6);
+			}
+		} catch (e) {}
 		drawEllipse(this.color, drawCoord[0], drawCoord[1], this.r, this.r, 0, 0, Math.PI * 2);
 	}
 
@@ -316,9 +322,11 @@ class Orb extends MovableTileEntity {
 				[this.x, this.y] = [this.x + updatePos[0], this.y + updatePos[1]];
 				this.queue.push([this.x, this.y]);
 				//if on an ice block, propogate future movements
-				if (loading_map.data[this.y][this.x] == "C") {
-					this.moveImpulse = true;
-				}
+				try {
+					if (loading_map.data[this.y][this.x] == "C") {
+						this.moveImpulse = true;
+					}
+				} catch (e) {}
 				return true;
 			}
 		}
