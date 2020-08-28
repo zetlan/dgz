@@ -42,8 +42,10 @@ function drawMapShadow(ex, why, tileType) {
 					drawColor = color_ice;
 					break;
 				case "c":
-					ctx.fillStyle = color_snow;
-					drawPoly(ex, why, Math.ceil(tile_half / Math.sin(Math.PI / 3)), 6, Math.PI / 6);
+					drawColor = color_snow;
+					break;
+				case "d":
+					drawColor = color_desert_shadow;
 					break;
 				default:
 					drawColor = color_error;
@@ -51,7 +53,8 @@ function drawMapShadow(ex, why, tileType) {
 			}
 		}
 		ctx.fillStyle = drawColor;
-		drawPoly(ex, why, Math.ceil(tile_half / 0.89), 6, Math.PI / 6);
+		//drawPoly(ex, why, Math.ceil(tile_half / 0.89), 6, Math.PI / 6);
+		drawHexagonTile(ex, why);
 	}
 	ctx.globalAlpha = 1;
 }
@@ -72,9 +75,9 @@ function drawMapSquare(ex, why, tileType) {
 		} else {
 			ctx.fillStyle = color_exit;
 		}
-		drawPoly(ex, why, Math.ceil(tile_half / Math.sin(Math.PI / 3)), 6, Math.PI / 6);
+		drawHexagonTile(ex, why);
 		ctx.fillStyle = color_exit_center;
-		drawPoly(ex, why, Math.ceil((tile_half * 0.6) / Math.sin(Math.PI / 3)), 6, Math.PI / 6);
+		drawPoly(ex, why, Math.ceil((tile_half * 0.6) / 0.866), 6, Math.PI / 6);
 
 		//number
 		ctx.fillStyle = color_text;
@@ -85,29 +88,29 @@ function drawMapSquare(ex, why, tileType) {
 		switch(tileType) {
 			case "A":
 				ctx.fillStyle = color_wall_secondary;
-				drawPoly(ex, why, Math.ceil(tile_half / Math.sin(Math.PI / 3)), 6, Math.PI / 6);
+				drawHexagonTile(ex, why);
 				ctx.fillStyle = color_wall;
 				drawPoly(ex, why, tile_half * 0.9, 6, Math.PI / 6);
 				break;
 			case "a":
 				ctx.fillStyle = color_floor;
-				drawPoly(ex, why, Math.ceil(tile_half / Math.sin(Math.PI / 3)), 6, Math.PI / 6);
+				drawHexagonTile(ex, why);
 				break;
 			case "b":
 				//block
 				ctx.fillStyle = color_grass;
-				drawPoly(ex, why, Math.ceil(tile_half / Math.sin(Math.PI / 3)), 6, Math.PI / 6);
+				drawHexagonTile(ex, why);
 				//coloring for ripple effect
 				var value = screenToSpace(ex, why);
 				ctx.globalAlpha = ((Math.sin(value[0] / 2) + Math.cos(value[1] / 2)) / 4) + 0.5;
 				ctx.fillStyle = color_grass_highlight;
-				drawPoly(ex, why, Math.ceil(tile_half / Math.sin(Math.PI / 3)), 6, Math.PI / 6);
+				drawHexagonTile(ex, why);
 				ctx.globalAlpha = 1;
 				break;
 			case "C":
 				//block
 				ctx.fillStyle = color_ice;
-				drawPoly(ex, why, Math.ceil(tile_half / Math.sin(Math.PI / 3)), 6, Math.PI / 6);
+				drawHexagonTile(ex, why);
 				//highlights
 				ctx.strokeStyle = color_ice_highlight;
 				ctx.lineWidth = player.r;
@@ -122,17 +125,25 @@ function drawMapSquare(ex, why, tileType) {
 				break;
 			case "c":
 				ctx.fillStyle = color_snow;
-				drawPoly(ex, why, Math.ceil(tile_half / Math.sin(Math.PI / 3)), 6, Math.PI / 6);
+				drawHexagonTile(ex, why);
+				break;
+			case "d":
+				ctx.fillStyle = color_desert;
+				drawHexagonTile(ex, why);
+				//smaller hexagon for wavy effect
+				var value = screenToSpace(ex, why);
+				ctx.fillStyle = color_desert_highlight;
+				drawPoly(ex, why + ((Math.sin((game_timer / 25) + (value[0] / 2) + (value[1] / 2))) * 6), tile_half * 0.6, 6, Math.PI / 6);
 				break;
 			case "e":
 				ctx.fillStyle = color_exit_complete;
-				drawPoly(ex, why, Math.ceil(tile_half / Math.sin(Math.PI / 3)), 6, Math.PI / 6);
+				drawHexagonTile(ex, why);
 				ctx.fillStyle = color_player;
-				drawPoly(ex, why, Math.ceil((tile_half * 0.6) / Math.sin(Math.PI / 3)), 6, Math.PI / 6);
+				drawPoly(ex, why, Math.ceil((tile_half * 0.6) / 0.866), 6, Math.PI / 6);
 				break;
 			default:
 				ctx.fillStyle = color_error;
-				drawPoly(ex, why, Math.ceil(tile_half / Math.sin(Math.PI / 3)), 6, Math.PI / 6);
+				drawHexagonTile(ex, why);
 				break;
 		}
 		
