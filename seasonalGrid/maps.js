@@ -29,33 +29,34 @@ let map_out = new Map("#000000", map_out_data, [4, 3], map_out_entities, ["map_d
 
 
 
-	var map_def_data = [' AAAAAAAAAAAAAA      AAAAAAAA             AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-						'AaaaaaaaaaaaaaA     AaaaaaaaA         AAAAaaaaa0aaaaaaaaaaaaaaaaaaaaaaaaaA',
-						' AAAAAAAAAAAAaA      AaAAAAAaA AAAAAAAAaaAaaAAAAAAAAAAAAAAAAAAAAA1AAAAAAAA',
-						'           AaAAAAAAAAAaA  AaaAAaaaaaaaaAaAaaA                    a',
-						'       AAAAAaAaaaaaaaaaaA AaAaAAaAAAAAAAaAaaA                     a',
-						'      AaaaaaAaAAAAAAAAAA AaAAaAAaA   AaaAAAaA                    a',
-						'      AaAAAAAaA          AAAAAaAAaA  AaAAaaaA        aaaaaaa     a',
-						'     AaaaaaaaA          AaaaaaaAAaA  AaaaAAA        a     a     a',
-						'      AAAAAAAA      AA  AaAAAAAAAaA   AAAA          a     a     a',
-						'                   AaA AaA     AaA                 a  aaaa      a',
-						'                    AaAAaAA    AaA                 a  a  a  aa  aa',
-						'                    AaaaaaA   AaA                    a   a a a a a',
-						'                     AaAAAaAAAAaA                    a   aaa  aa  a',
-						'                    AaA AaaaaAaA                    a   a a   a',
-						'                    AaA AaAAaAaA                     a  a     a',
-						'                   AaA AaAAaAaA                      a',
-						'                    AA AaAAaAaA                       a',
-						'                      AaAaaAaA                        a   aaaaa',
-						'                      AaAAAAaA                      aaaa  a',
-						'                     AaaaaaaA                      a   a aaaaaaa',
-						'                      AAAAAAA                      a   aaa',
-						'                                                  a   a a',
-						'                                                  a   a  a',
-						'                                                     a  a',
-						'                                                        a',
-						'                                                       a',
-						'                                                       a'];
+	var map_def_data = [' AAAAAAAAAAAAAA      AAAAAAAA             AAAAAAAAAAAAAAAAAAAAAAAA AA  AAAAAAAAAA',
+						'AaaaaaaaaaaaaaA     AaaaaaaaA         AAAAaaaaa0aaaaaaaaaaaaaa1aaaaaa a 2aaaaaaaa',
+						' AAAAAAAAAAAAaA      AaAAAAAaA AAAAAAAAaaAaaAAAAAAAAAAAAAAAAAAAAAaAA AA aAAAAAAAA',
+						'           AaAAAAAAAAAaA  AaaAAaaaaaaaaAaAaaA                    a     a',
+						'       AAAAAaAaaaaaaaaaaA AaAaAAaAAAAAAAaAaaA                     a A  aaaaa',
+						'      AaaaaaAaAAAAAAAAAA AaAAaAAaA   AaaAAAaA                    a    a   a',
+						'      AaAAAAAaA          AAAAAaAAaA  AaAAaaaA        aaaaaaa     a    a   a',
+						'     AaaaaaaaA          AaaaaaaAAaA  AaaaAAA        a     a     a    a  a a',
+						'      AAAAAAAA      AA  AaAAAAAAAaA   AAAA          a     a     a    a  a a',
+						'                   AaA AaA     AaA                 a  aaaa      a    a a  a',
+						'                    AaAAaAA    AaA                 a  a  a  aa  aa   a a  a',
+						'                    AaaaaaA   AaA                    a   a a a a a  a a   a',
+						'                     AaAAAaAAAAaA                    a   aaa  aa  a a a   a',
+						'                    AaA AaaaaAaA                 aaaa   a a a a    a a    a',
+						'                    AaA AaAAaAaA                 a   a  a   a        a    a',
+						'                   AaA AaAAaAaA                 a  a a  a  aaaaaaaaaaaa   a',
+						'                    AA AaAAaAaA                 aaaa  a  a a              a',
+						'                      AaAaaAaA                 a  a   a  a aaaa  a   a   a',
+						'                      AaAAAAaA                 a  a  aaa  a      a   aaaaa ',
+						'                     AaaaaaaA                 a  a  a  a aaaaaaaa   a',
+						'                      AAAAAAA                 a  a  a  aaa a    a   a',
+						'                                                a  a  a a  a   a   a',
+						'                                                a  a  a      a     a',
+						'                                                  a  a  a   a     a',
+						'                                                  a     aaaaa     a',
+						'                                                 aaaaaaa   a     a',
+						'                                                       a   aaaaaaa',
+						'                                                          a'];
 
 	var map_def_entities = [new Text("Use A / D to move", 5, -3),
 							new Text("E / Z", 17, 1),
@@ -64,7 +65,7 @@ let map_out = new Map("#000000", map_out_data, [4, 3], map_out_entities, ["map_d
 							new Text("Press Enter to revisit areas", 62, -2.5),
 							new Text("that are already completed", 62, -1.5)
 							];
-let map_def = new Map("#22FF88", map_def_data, [1, 1], map_def_entities, ["map_wd0", "map_wd1"])
+let map_def = new Map("#22FF88", map_def_data, [1, 1], map_def_entities, ["map_wd0", "map_wd1", "map_wd2"])
 
 
 
@@ -438,4 +439,38 @@ let map_1_7 = new Map(color_background_1, map_1_7_data, [8, 3], map_1_7_entities
 							new Stone(12, 10), new Stone(1, 7)];
 
 let map_1_8 = new Map(color_background_1, map_1_8_data, [8, 3], map_1_8_entities, []);
+
+
+
+
+
+
+
+
+	var map_wd2_data = ['       dddd',
+						'    dddddddd',
+						'   dddddddddddd  ',
+						' ddddddddddddddd',
+						' ddddddddddddddddd',
+						'ddddddddddddddddddd       ddd',
+						' ddddddddddddddddddd     dddddd',
+						'ddddddddddddddddddddddddddddddd',
+						' ddddddddddddddddddd     ddddddd',
+						'dddddddddddddddddddd     dddddd          dd',
+						' ddddddddddddddddddd       ddd d       ddddd',
+						' dddddddddddddddddd            d      d  dd',
+						' ddddddddddddddddddd            ddddd d',
+						' dddddddddddddddddd              ddddd',
+						'  ddddddddddddddddd       FFF     ddddd',
+						'  ddddddddddddddd         DDD    ddddd',
+						'  dddddddddddddd          www    dddddd',
+						'  dddddddddddd                   ddddd',
+						'    ddddddddd                     ddd',
+						'      dddd'];
+
+	var map_wd2_entities = [];
+
+	var map_wd2_connections = [];
+
+let map_wd2 = new Map(color_background_2, map_wd2_data, [42, 10], map_wd2_entities, map_wd2_connections);
 
