@@ -3,12 +3,16 @@
 /* 
   - empty space
 A - wall
+B -
+C - ice
+D - stony desert land
+
 a - bluish ground
 b - grass
-C - ice
 c - snow
-d - 
+d - desert tile, wobbly middle
 e - exit block
+f - desert tile, no wobble
 
 0/9 - enter blocks 
 */
@@ -45,7 +49,17 @@ function drawMapShadow(ex, why, tileType) {
 					drawColor = color_snow;
 					break;
 				case "d":
+				case "D":
+				case "f":
 					drawColor = color_desert_shadow;
+					break;
+				case "g":
+					drawColor = color_temple_shadow;
+				case "i":
+					drawColor = loading_map.bg;
+					break;
+				case "w":
+					drawColor = color_water;
 					break;
 				default:
 					drawColor = color_error;
@@ -128,18 +142,68 @@ function drawMapSquare(ex, why, tileType) {
 				drawHexagonTile(ex, why);
 				break;
 			case "d":
-				ctx.fillStyle = color_desert;
-				drawHexagonTile(ex, why);
+				drawMapSquare(ex, why, "f");
 				//smaller hexagon for wavy effect
 				var value = screenToSpace(ex, why);
 				ctx.fillStyle = color_desert_highlight;
 				drawPoly(ex, why + ((Math.sin((game_timer / 25) + (value[0] / 2) + (value[1] / 2))) * 6), tile_half * 0.6, 6, Math.PI / 6);
+				break;
+			case "D":
+				drawMapSquare(ex, why, "f");
+				//rock 1
+				ctx.fillStyle = color_rock;
+				ctx.beginPath();
+				ctx.moveTo(ex - (tile_half * 0.7), why);
+				ctx.lineTo(ex - (tile_half * 0.4), why - (tile_half * 0.4));
+				ctx.lineTo(ex + (tile_half * 0.1), why);
+				ctx.lineTo(ex - (tile_half * 0.4), why + (tile_half * 0.1));
+				ctx.lineTo(ex - (tile_half * 0.7), why);
+				ctx.fill();
+
+				//rock 2
+				ctx.moveTo(ex, why + (tile_half * 0.25));
+				ctx.lineTo(ex + (tile_half * 0.3), why + (tile_half * 0.1));
+				ctx.lineTo(ex + (tile_half * 0.6), why + (tile_half * 0.25));
+				ctx.lineTo(ex + (tile_half * 0.2), why + (tile_half * 0.3));
+				ctx.lineTo(ex, why + (tile_half * 0.25));
+				ctx.fill();
 				break;
 			case "e":
 				ctx.fillStyle = color_exit_complete;
 				drawHexagonTile(ex, why);
 				ctx.fillStyle = color_player;
 				drawPoly(ex, why, Math.ceil((tile_half * 0.6) / 0.866), 6, Math.PI / 6);
+				break;
+			case "f":
+				ctx.fillStyle = color_desert;
+				drawHexagonTile(ex, why);
+				break;
+			case "g":
+				ctx.fillStyle = color_temple;
+				drawHexagonTile(ex, why);
+
+				//linies
+				ctx.strokeStyle = color_temple_shadow;
+				ctx.lineWidth = 2;
+				ctx.beginPath();
+				//horizontal
+				ctx.moveTo(ex - tile_half, why - (tile_half * 0.386));
+				ctx.lineTo(ex + tile_half, why - (tile_half * 0.386));
+				ctx.moveTo(ex - tile_half, why + (tile_half * 0.45));
+				ctx.lineTo(ex + tile_half, why + (tile_half * 0.45));
+
+				//vertical
+				ctx.moveTo(ex, why - (tile_size * 0.58));
+				ctx.lineTo(ex, why - (tile_half * 0.386));
+				ctx.moveTo(ex - (tile_half * 0.5), why + (tile_half * 0.386));
+				ctx.lineTo(ex - (tile_half * 0.5), why - (tile_half * 0.386));
+				ctx.stroke();
+				break;
+			case "w":
+				ctx.fillStyle = color_water;
+				drawHexagonTile(ex, why);
+				break;
+			case "i":
 				break;
 			default:
 				ctx.fillStyle = color_error;
