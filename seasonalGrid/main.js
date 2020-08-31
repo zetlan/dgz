@@ -8,7 +8,9 @@ var ctx;
 
 var color_background_0 = "#B8F";
 var color_background_1 = "#BFF";
-var color_background_2 = "#F88";
+var color_background_2 = "#FA2";
+var color_background_3 = "#F88";
+var color_background_out = "#000";
 var color_player = "#FAF";
 var color_desert = "#FD7";
 var color_desert_highlight = "#FEC";
@@ -24,16 +26,18 @@ var color_grass_shadow = "#3B7";
 var color_ice = "#DDF";
 var color_ice_highlight = "#EEF";
 var color_mapFade = "#FFF";
+var color_rock = "#888";
 var color_snow = "#EFF";
 var color_switch = "#566";
 var color_switch_highlight = "#68A";
 var color_switch_ring = "#05F";
 var color_switch_ring_highlight = "#0AF";
+var color_temple = "#FA0";
+var color_temple_shadow = "#DA5";
 var color_text = "#226";
 var color_wall = "#044";
 var color_wall_secondary = "#024";
-var color_select1 = "#F80";
-var color_select2 = "#F88";
+var color_water = "#08F";
 
 
 var display_animDelay = 6;
@@ -45,7 +49,7 @@ var display_mapSwitchSpeed = 0.02;
 
 var editor_active = false;
 var editor_block = " ";
-var editor_possibleBlocks = " ACabcde";
+var editor_possibleBlocks = " ACDabcdefgiw";
 var editor_blockNumber = 0;
 
 var font_large = "40px Courier";
@@ -64,7 +68,7 @@ var centerX;
 var centerY;
 
 var tile_size = 35;
-var tile_walkables = "aCcbde0123456789";
+var tile_walkables = "Cabcbdefgi0123456789";
 var tile_half = tile_size / 2;
 
 var camera =	{  
@@ -94,12 +98,19 @@ function setup() {
 	loading_map = map_out;
 
 	//setting up entities in the map_out zone
-	for (var a=0;a<18;a++) {
+	for (var a=0;a<16;a++) {
 		map_out.entities.push(new Orb("#AAF", 52 + a, 0));
 	}
-	for (var a=0;a<18;a++) {
+	for (var a=0;a<16;a++) {
 		map_out.entities.push(new Orb("#FAF", 52 + a, 6));
 	}
+
+	//setting up the rn map relations
+	map_rn1.parent = map_rn2;
+	map_rn2.parent = map_rn3;
+	map_rn3.parent = map_rn4;
+	map_rn4.parent = map_rn5;
+	map_rn5.parent = map_rn6;
 
 	centerX = canvas.width / 2;
 	centerY = canvas.height / 2;
@@ -353,6 +364,13 @@ function drawMap() {
 
 
 //other utility functions
+function determineEnding() {
+	if (player.y < 3) {
+		loading_map.parent = map_rn1;
+	} else {
+		loading_map.parent = map_free;
+	}
+}
 function linterp(a, b, percentage) {
 	return (a + ((b - a) * percentage));
 }
