@@ -372,8 +372,78 @@ class Text {
 		ctx.fillText(this.text, drawCoords[0], drawCoords[1] + (tile_size * 0.25));
 	}
 
-	beReset() {
+	beReset() {}
+}
 
+
+
+class SpecialOrb extends Orb {
+	constructor(color, x, y, command) {
+		super(color, x, y);
+		this.command = command;
+	}
+
+	tick() {
+		super.tick();
+		eval(this.command);
+	}
+}
+
+
+
+
+class Sandstorm {
+	constructor(framesUntilFade, framesForFade) {
+		this.defaults = {"cd": framesUntilFade, "fd": framesForFade};
+		this.countdown = framesUntilFade;
+		this.fade = framesForFade;
+	}
+
+	tick() {
+		//getting player block value
+		var value = " ";
+		try {
+			value = loading_map.data[player.y][player.x];
+		} catch (e) {}
+
+		if (value == undefined) {
+			value = " ";
+		}
+
+		//if the player is on a sand block, increment the countdown
+		if (value == "d") {
+
+			if (this.countdown > 0) {
+				this.countdown -= 1;
+			} else if (this.fade > 0) {
+					this.fade -= 1;
+			}
+
+		} else if (value == "b") {
+
+			//if they're on a grass block, decrement the countdown
+			if (this.fade < this.defaults["fd"]) {
+				this.fade += 1;
+			} else if (this.countdown < this.defaults["cd"]){
+				this.countdown += 1;
+			}
+
+		}
+	}
+
+	beDrawn() {
+		//drawing filter over the screen
+		if (this.countdown == 0 && !editor_active) {
+			ctx.globalAlpha = 1 - (this.fade / this.defaults["fd"]);
+			ctx.fillStyle = loading_map.bg;
+			ctx.fillRect(0, 0, canvas.width, canvas.height);
+			ctx.globalAlpha = 1;
+		}
+	}
+
+	beReset() {
+		this.countdown = this.defaults["cd"];
+		this.fade = this.defaults["fd"];
 	}
 }
 
