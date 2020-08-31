@@ -1,46 +1,58 @@
-var map_out_data = ['   AAAA                                             aaaaaaaaaaaaaaaaaaaa e',
-					'  AaaaAAAAAAAAAAAAAAAAAAAA A AAAA AA AA A                            a aa',
-					'  Aaaaaaaaaaaaaaaa   aa  aaa  aaa  aaaaaaaaaaa aaaaaaaaaaaaaaaaaaaaaaa   ',
-					' Aaa0aaaaaaaaaaaaa  a aaa  aaa  a       a   a     aaaaaaaaaaaaaaaaaa aaaa1aa',
-					'  Aaaaaaaaaaaaaaaaaaa   aaaa  a  aaaaaaaaa  aaaaaaaaaaaaaaaaaaaaaaaaaa   ',
-					'  AaaaAAAAAAAAAAAAAAA AAA AA A A AA A  A                             a a ',
-					'   AAAA                                             aaaaaaaaaaaaaaaaaaaa e',
-					'',
-					'',
-					'',
-					'',
-					'',
-					'',
-					'',
-					'',
-					'    aaaaaaaaaaaaaa',
-					'    aaaaaaaaaaaaaaa',
-					'    aaaaaaaaaaaaaa'];
+	var map_out_data = ['   AAAA                                             aaaaaaaaaaaaaaaaaa   e',
+						'  AaaaAAAAAAAAAAAAAAAAAAAA A AAAA AA AA A                            aaaa',
+						'  Aaaaaaaaaaaaaaaa   aa  aaa  aaa  aaaaaaaaaaa aaaaaaaaaaaaaaaaaaaaaaa   ',
+						' Aaa0aaaaaaaaaaaaa  a aaa  aaa  a       a   a     aaaaaaaaaaaaaaaaaa aaaa1aa',
+						'  Aaaaaaaaaaaaaaaaaaa   aaaa  a  aaaaaaaaa  aaaaaaaaaaaaaaaaaaaaaaaaaa   ',
+						'  AaaaAAAAAAAAAAAAAAA AAA AA A A AA A  A                             aaa ',
+						'   AAAA                                             aaaaaaaaaaaaaaaaaa   e',
+						'',
+						'',
+						'',
+						'',
+						'',
+						'',
+						'',
+						'',
+						'    aaaaaaaaaaaaaa',
+						'    aaaaaaaaaaaaaaa',
+						'    aaaaaaaaaaaaaa'];
 	
 	var map_out_entities = [new Switch([75, 3], [72, 5], " ", "a"),
 							new Switch([69, 0], [72, 1], " ", "a"),
-							new Orb("#FFF", 74, 3), new Text("Something went wrong ):", 11, 16)];
+							new Stone(74, 3), 
+							new SpecialOrb("#AAF", 68, 0, `if (player.x > 66 && this.x == 68) {this.dir = "R"; this.moveImpulse = true;}`),
+							new SpecialOrb("#FAF", 68, 6, `determineEnding();`),
+							new Text("Something went wrong ):", 11, 16)];
 
-let map_out = new Map("#000000", map_out_data, [4, 3], map_out_entities, ["map_def"]);
-
-
-
-
-
+let map_out = new Map(color_background_out, map_out_data, [4, 3], map_out_entities, ["map_def", "map_tem"]);
 
 
-	var map_def_data = [' AAAAAAAAAAAAAA      AAAAAAAA             AAAAAAAAAAAAAAAAAAAAAAAA AA  AAAAAAAAAA',
-						'AaaaaaaaaaaaaaA     AaaaaaaaA         AAAAaaaaa0aaaaaaaaaaaaaa1aaaaaa a 2aaaaaaaa',
-						' AAAAAAAAAAAAaA      AaAAAAAaA AAAAAAAAaaAaaAAAAAAAAAAAAAAAAAAAAAaAA AA aAAAAAAAA',
-						'           AaAAAAAAAAAaA  AaaAAaaaaaaaaAaAaaA                    a     a',
-						'       AAAAAaAaaaaaaaaaaA AaAaAAaAAAAAAAaAaaA                     a A  aaaaa',
-						'      AaaaaaAaAAAAAAAAAA AaAAaAAaA   AaaAAAaA                    a    a   a',
-						'      AaAAAAAaA          AAAAAaAAaA  AaAAaaaA        aaaaaaa     a    a   a',
-						'     AaaaaaaaA          AaaaaaaAAaA  AaaaAAA        a     a     a    a  a a',
-						'      AAAAAAAA      AA  AaAAAAAAAaA   AAAA          a     a     a    a  a a',
-						'                   AaA AaA     AaA                 a  aaaa      a    a a  a',
-						'                    AaAAaAA    AaA                 a  a  a  aa  aa   a a  a',
-						'                    AaaaaaA   AaA                    a   a a a a a  a a   a',
+		var map_dbg_data = ['ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+							'',
+							'abcdefghijklmnopqrstuvwxyz'];
+
+	var map_dbg_entities = [];
+
+let map_dbg = new Map("#888", map_dbg_data, [0, 1], map_dbg_entities, []);	
+
+
+
+
+
+
+
+	var map_def_data = [' AAAAAAAAAAAAAA      AAAAAAAA             AAAAAAAAAAAAAAAAAAAAAAAA AA  AAAAAAAAAAA',
+						'AaaaaaaaaaaaaaA     AaaaaaaaA         AAAAaaaaa0aaaaaaaaaaaaaa1aaaaaa a 2aaaaaaaaaa        i     i    ',
+						' AAAAAAAAAAAAaA      AaAAAAAaA AAAAAAAAaaAaaAAAAAAAAAAAAAAAAAAAAAaAA AA aAAAAAAA   a   aa              a    a    a    a',
+						'           AaAAAAAAAAAaA  AaaAAaaaaaaaaAaAaaA                    a     a           a          i       ',
+						'       AAAAAaAaaaaaaaaaaA AaAaAAaAAAAAAAaAaaA                     a A  aaaaa        a       i      aaaaaaaaaiaaaaiaaaaaaa a',
+						'      AaaaaaAaAAAAAAAAAA AaAAaAAaA   AaaAAAaA                    a    a   a         a    a        a a    a    a    a',
+						'      AaAAAAAaA          AAAAAaAAaA  AaAAaaaA        aaaaaaa     a    a   a      aa  aaaa aaaaaaaaa aa   aa   aa   aa        iiii',
+						'     AaaaaaaaA          AaaaaaaAAaA  AaaaAAA        a     a     a    a  a a              a        a a    a    a    a       iiiiei',
+						'      AAAAAAAA      AA  AaAAAAAAAaA   AAAA          a     a     a    a  a a                 i      aaaaiaaaaaaaaaaaaaaiaaiiaiiiii',
+						'                   AaA AaA     AaA                 a  aaaa      a    a a  a                    i      ',
+						'                    AaAAaAA    AaA                 a  a  a  aa  aa   a a  a            aa         i    a    a    a    a',
+						'                    AaaaaaA   AaA                    a   a a a a a  a a   a                             ',
 						'                     AaAAAaAAAAaA                    a   aaa  aa  a a a   a',
 						'                    AaA AaaaaAaA                 aaaa   a a a a    a a    a',
 						'                    AaA AaAAaAaA                 a   a  a   a        a    a',
@@ -63,8 +75,13 @@ let map_out = new Map("#000000", map_out_data, [4, 3], map_out_entities, ["map_d
 							new Text("W / X", 28, -3),
 							new Text("W", 27, 9), new Text("E", 28, 9), new Text("D", 29, 10), new Text("X", 28, 11), new Text("Z", 27, 11), new Text("A", 27, 10),
 							new Text("Press Enter to revisit areas", 62, -2.5),
-							new Text("that are already completed", 62, -1.5)
-							];
+							new Text("that are already completed", 62, -1.5),
+
+							new Switch([88, 2], [88, 5], " ", "a"), new Switch([88, 10], [88, 7], " ", "a"), new Switch([82, 6], [89, 6], " ", "a"),
+							new SpecialOrb("#FFF", 81, 6, `if (player.x == 88 && player.y == 6) {this.dir = "R"; this.moveImpulse = true;}`),
+
+							new Orb("#AAF", 87, 10), new Orb("#AAF", 103, 2), new Orb("#AAF", 108, 10), new Orb("#AAF", 113, 10), new Orb("#AAF", 118, 2), 
+							new Orb("#FAF", 87, 2), new Orb("#FAF", 103, 10), new Orb("#FAF", 108, 2), new Orb("#FAF", 113, 2), new Orb("#FAF", 118, 10)];
 let map_def = new Map("#22FF88", map_def_data, [1, 1], map_def_entities, ["map_wd0", "map_wd1", "map_wd2"])
 
 
@@ -453,24 +470,393 @@ let map_1_8 = new Map(color_background_1, map_1_8_data, [8, 3], map_1_8_entities
 						' ddddddddddddddd',
 						' ddddddddddddddddd',
 						'ddddddddddddddddddd       ddd',
-						' ddddddddddddddddddd     dddddd',
-						'ddddddddddddddddddddddddddddddd',
-						' ddddddddddddddddddd     ddddddd',
-						'dddddddddddddddddddd     dddddd          dd',
-						' ddddddddddddddddddd       ddd d       ddddd',
-						' dddddddddddddddddd            d      d  dd',
-						' ddddddddddddddddddd            ddddd d',
-						' dddddddddddddddddd              ddddd',
-						'  ddddddddddddddddd       FFF     ddddd',
-						'  ddddddddddddddd         DDD    ddddd',
-						'  dddddddddddddd          www    dddddd',
-						'  dddddddddddd                   ddddd',
-						'    ddddddddd                     ddd',
-						'      dddd'];
+						' dddddddddddddddddbb     dddddd',
+						'dddddddddddddddddbw0bbbdddddddd',
+						' dddddddddddddddddbb     ddddddd',
+						'dddddddddddddddddddd     dddddd          bbb',
+						' dddddddddddddddddddd      ddd d       ddbbwb',
+						' ddddddddddddddddddd           d      d  bbb',
+						' dddddddddddddddddddd           ddddd d',
+						' dddddddddddddddddddd            ddddd',
+						'  dddddddddddddddddddd            ddddd',
+						'  ddddddddddddddddddd            dbbdd',
+						'  dddddddddddddddddddd           dbwbdd',
+						'  dddddddddddddddbddd            dbbdd',
+						'    ddddddddddddddbddd            ddd',
+						'      dddddddddddbbddd',
+						'        ddddddddbbbdddd',
+						'        ddddddddbw1ddd',
+						'         dddddddbbbbddd',
+						'        dddddddddbdbddd',
+						'        dddddddddddddddd',
+						'        ddddddddddddddddd',
+						'        dddddddddddddddddd',
+						'       ddddddddddddddddddddd',
+						'        bbdddddddddddddddddddddddddd',
+						'       bw2ddddddddddddddddddddddddddddd',
+						'        bbdddddddddddddddddddddddddddddddd',
+						'       dddddddddddddddddddddddbbbbddddddddd',
+						'        ddddddddddddddddddddddbwwbbbbdddddddd',
+						'        ddddddddddddddddddddddbbwwwbbbddddddd',
+						'        ddddddddddddddddddddddddbb5wwbbdddddddd',
+						'        ddddddddddbbbdddddddddddbbwwwbbdddddddd',
+						'        ddddddddddbwwbbbdddddddddbbwwbbbdddddddd',
+						'        ddddddddd3wwwww4dddddddddbbbbbbddddddddb',
+						'         ddddddddbbwwwwbddddddddddbbbbbddddddddbw',
+						'          dddddddbbbwbbddddddddddddbbbdddddddddbw',
+						'           ddddddddbbbdddddddddddddddddddddddddbw',
+						'            ddddddddddddddddddddddddddddddddddbbe',
+						'             ddddddddddddddddddddddddddddddddddbw',
+						'              ddddddddddddddddddddddddddddddddbbw',
+						'               ddddddddddddddddddddddddddddddddbw',
+						'                dddddddddddddddddddddddddddddddb',
+						'                  dddddddddddddddddddddddddddddd',
+						'                    dddddddddddddddddddddddddd',
+						'                        dddddddddddddddddddd',
+						'                         ddddddddddd',
+						'                            ddddddd',
+						'                             ddddd    ',
+						'                               dddd       ',
+						'                               dddd',
+						'                                 dddd',
+						'                                 ddd6'];
 
-	var map_wd2_entities = [];
+	var map_wd2_entities = [new Sandstorm(100, 100)];
 
-	var map_wd2_connections = [];
+	var map_wd2_connections = ["map_2_0", "map_2_1", "map_2_2", "map_2_3", "map_2_4", "map_2_5", "map_2_6"];
 
 let map_wd2 = new Map(color_background_2, map_wd2_data, [42, 10], map_wd2_entities, map_wd2_connections);
+
+
+
+
+	var map_2_0_data = ['   wbdd ddddd ddd',
+						'     d  d  d  b ',
+						'     ddddd dddbbw',
+						'           d  b ',
+						'     dddddddd ddd',
+						'     d         ',
+						'     ddddddddddddde'];
+	
+	var map_2_0_entities = [new Sandstorm(80, 20)];
+
+let map_2_0 = new Map(color_background_2, map_2_0_data, [4, 0], map_2_0_entities, []);
+
+
+
+
+	var map_2_1_data = ['                 ',
+						'C CCCbb    ddd  ',
+						' CCCwwbb   dddd  ',
+						' CCCwbbdddddddddde',
+						' CCCwwbb   dddd  ',
+						'C CCCbb    ddd ',
+						'                   ',
+						'',
+						'       bbb',
+						'      bbbb',
+						'      bbbbbbe ',
+						'      bbbb',
+						'       bbb'];
+
+var map_2_1_entities = [new Switch([8, 10], [11, 10], " ", "b"),
+						new Switch([12, 3], [15, 3], " ", "d"),
+						new Orb("#AAF", 6, 10), new Orb("#AAF", 8, 10),
+						new Orb("#AAF", 6, 9),
+						new Orb("#AAF", 7, 8), new Orb("#AAF", 8, 8), new Orb("#AAF", 9, 8), 
+						new Stone(12, 2),
+						new Sandstorm(0, 50)];
+
+let map_2_1 = new Map(color_background_2, map_2_1_data, [1, 3], map_2_1_entities, []);
+
+
+
+	var map_2_2_data = ['   bdddffffd',
+						'  wbdddfdfff',
+						'   bddddffff  f',
+						'      ffffd  f',
+						'      ffdff  f',
+						'      ffffffff',
+						'       ffdf   f',
+						'      f   f   f',
+						'    eff    ff'];
+	
+	var map_2_2_entities = [new Sandstorm(0, 40)];
+
+let map_2_2 = new Map(color_background_2, map_2_2_data, [3, 1], map_2_2_entities, []);
+
+
+
+	var map_2_3_data = ['  wbffdfffdf',
+						' bbffdfffdff',
+						' ffffddddffff        e',
+						'ffffdffffdfff       f',
+						' fdddfffffdff fffffff',
+						' ffffffffdfd f',
+						' fffddddddfdf f ffff',
+						'ddfdffffffdff ff   f',
+						' fffdffddddff    ff f',
+						' ddfdfdfffdf    f ff',
+						'  ffdfdfffff    f',
+						' fffdfffffff    f',
+						'  ffdfdddddd    f',
+						'  fdffffffffffff'];
+	
+	var map_2_3_entities = [new Sandstorm(0, 5)];
+
+let map_2_3 = new Map(color_background_2, map_2_3_data, [2, 1], map_2_3_entities, []);	
+
+
+
+	var map_2_4_data = [' fffffffffffffffff ff fffffff  ',
+						' d  d  d  d  d  d  d     d  d  ',
+						'  d        d  d  d  d  d  d  d ',
+						'  ffffffff fffffff fffff ff fffe',
+						'  d  d     d  d  d  d  d  d  d ',
+						' d     d  d  d  d  d  d  d  d  ',
+						' ff ffffffffbffffffff ff ffff  ',
+						' d  d  d  d        d  d  d     ',
+						'  d  d  d     d  dd d  d  d  d ',
+						'  f fff ffffffffff fffff fffff ',
+						'  d  d     d  d  d  d  d     d ',
+						' d  d  d     d  d  d  d  d  d  ',
+						' bffffffffffff dfff fffffffff  ',
+						'            d d',
+						'             dd'];
+	
+	var map_2_4_entities = [new Switch([17, 12], [30, 3], "D", "f"), 
+							new Stone(5, 10),
+							new Sandstorm(0, 200)];
+
+let map_2_4 = new Map(color_background_2, map_2_4_data, [1, 0], map_2_4_entities, []);	
+
+
+	var map_2_5_data = ['         dddd      ',
+						'        d   d      ',
+						'  bbddddd   d dd   ',
+						' bwbddddd   dd     ',
+						'  bbddddd          ',
+						'        d    dd  ddde',
+						'         d   d d d ',
+						'     bb  dddd  d d',
+						'     bwbd      d d',
+						'     bb ddd ddd d',
+						'       d   dd   d',
+						'       d     ddd',
+						'        dddddd'];
+	
+	var map_2_5_entities = [new Sandstorm(0, 200)];
+
+let map_2_5 = new Map(color_background_2, map_2_5_data, [1, 3], map_2_5_entities, []);
+
+
+
+	var map_2_6_data = ['     ccc                      bb ',
+						'    c  c                     bwb',
+						'  CCCCCc                     bwwbbbbbbbbbbbbbbb',
+						'    C                       bwwwwwbbbbbbbbbbbbe',
+						'     C     f  f  f  f  f    dbbbbbbbbbbbbbbbbbb',
+						'     C                     dee',
+						'      C dddddddedddddeddeddded',
+						'      ddddddedddeeddddedededd',
+						'        ddddddeddddeddedddded'];
+	
+	var map_2_6_entities = [new Orb("#AAF", 11, 4), new Orb("#AAF", 14, 4), new Orb("#AAF", 17, 4), new Orb("#AAF", 20, 4),new Orb("#AAF", 23, 4),
+							new Sandstorm(0, 350)];
+
+let map_2_6 = new Map(color_background_2, map_2_6_data, [2, 2], map_2_6_entities, []);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	var map_tem_data = ['                       C    C',
+						'                       C e C',
+						'                        C66C',
+						'                        C C',
+						'                       45CC54 ',
+						'                      3  C  3',
+						'                      2 gggg 2',
+						'                     1 ggggg 1',
+						'                  gg  0gggggg0  gg',
+						'                   ggggggggggggg  ',
+						'                  gg  gggggggg  gg',
+						'                     ggggggggg',
+						'     DfDDfD           ggfgggfg',
+						'    fDDfDDffD         ggfgggf',
+						'   fDDffDfDDfff        fgffgf',
+						'  DfffffffffDff        fffff',
+						'  DfDfffffDffDDfD   ff ffDfff',
+						'  fDfffDffffDfDfD  ffDfffffDf',
+						'  fDfffffDDDDffffDf DDDffffff',
+						'  fDffffDfDffDDfDffffDfffDf',
+						'   fDDffDffffDfDDfDffDffDf',
+						'  fDffDDDfffDDfffDffffff',
+						'  ffDDfDfDDDDfffDfffDfff',
+						'  fffDDfDfDffDffffffff',
+						'  fDfDfDfDDfffffDfff',
+						' ffDfDDffDff  fff',
+						' ffDfffDfff',
+						' ffDDffDff',
+						' ffffDDfff',
+						' fffffDf',
+						'  ffffff',
+						'   ff'];
+
+	var map_tem_entities = [];
+
+let map_tem = new Map(color_background_3, map_tem_data, [11, 18], map_tem_entities, []);
+
+
+
+	var map_tm0_data = ['   wbdd ddddd ddd',
+						'     d  d  d  b ',
+						'     ddddd dddbbw',
+						'           d  b ',
+						'     dddddddd ddd',
+						'     d         ',
+						'     ddddddddddddde'];
+	
+	var map_tm0_entities = [];
+
+let map_tm0 = new Map(color_background_3, map_tm0_data, [4, 0], map_tm0_entities, []);
+
+
+
+
+
+
+	var map_free_data = ['         bbb',
+						'       bbb b',
+						'       bbbb  bbb',
+						'      bbbbb  bbbbbb',
+						'      bbbbb  bbbbbbbb',
+						'      bbbbb    bbbbbb',
+						'       bbbbbb    bbbbbbbb',
+						'      bbbbbbb    bbbbbbbbbbb',
+						'       bbbbbbb     bbbbbbbbbbb',
+						'      bbbbbbbb     bbbbbbbbbbbb',
+						'      bbbbbbbbb     bbbbbbbbbbbbbb',
+						'     bbbbbbbbbbb     bbbbbbbbbbbbb',
+						'      bbbbbbbbbbb     bbbbbbbbbbbbbb',
+						'     bbbbbbbbbbbb     bbbbbbbbbbbbbb',
+						'      bbbbbbbbbbbb      bbbbbbbbbbbbb',
+						'     bbbbbbbbbbbbbb      bbbbbbccccc',
+						'      bbbbbbbfbbfbbbbbb     bbbccCCCccc',
+						'     fbbfbbfffbbfbbbbbb       cCCCCCCcc',
+						'      fffbfbffffbbfbbbbbbb          Ccccc',
+						'      ffffffffffbbbbbbbbbbb         Ccccc',
+						'       ffbfffffffffbbbbbbbbb         Cccc',
+						'      ffbbbbffDfffbffbbbbbbbc       Ccccc',
+						'       ffb bbfffDfffbbbbbbbbcCC      Ccccc',
+						'       ffb  bfffffffffbbbbbbccC     Ccccc',
+						'       DffbbbffffDfffffffbbbbccCC   CCcccc',
+						'       fffffffDffffffffbbbbbccccCCCCCcccc',
+						'        ffffffffffffffbffbbbbccccccCCcccc',
+						'         DfffDfffDfDfffbfbbbbccccccCcccc',
+						'            fDfffffffffffbbbbcccccccccc',
+						'             fffDffffffffbbbbccccccccc',
+						'               Dfffffffbfbbbbbccccccccc',
+						'                 Dffffffbbbbbccccccccc',
+						'                      ffbbbb  ccccccc',
+						'                                ccc'];
+	
+	var map_free_entities = [];
+
+let map_free = new Map(color_water, map_free_data, [8, 4], map_free_entities, []);
+
+
+
+
+
+
+
+	var map_rn1_data = ['     AAAAAA',
+						'    AaaaaaA',
+						'    AaaaaaaA',
+						'   AaaaaaaaA',
+						'   AaaaaaaaaA',
+						'  AaaaaeaaaaA',
+						'   AaaaaaaaaA',
+						'   AaaaaaaaA',
+						'    AaaaaaaA',
+						'    AaaaaaA',
+						'     AAAAAA'];
+
+let map_rn1 = new Map(color_background_out, map_rn1_data, [7, 5], [], []);
+
+
+
+	var map_rn2_data = ['     AA AAA',
+						'    Aaaaa A',
+						'     aa aa A',
+						'   Aaaaaaaa ',
+						'   A aaaaaaaA',
+						'  A aaaeaa aA',
+						'   Aaaaaaaa  ',
+						'    aa aaaaA',
+						'    Aaaaa  A',
+						'     a aa A',
+						'     AAA A '];
+
+let map_rn2 = new Map(color_background_out, map_rn2_data, [7, 5], [], []);
+
+
+
+	var map_rn3_data = ['        A  ',
+						'      aa   ',
+						'         a A',
+						'   Aa  aa a ',
+						'   A a aa aaA',
+						'  A a aea  aA',
+						'   Aa aaa    ',
+						'    a  a  aA',
+						'    Aaa    A',
+						'     a  a A',
+						'     AA  A '];
+
+let map_rn3 = new Map(color_background_out, map_rn3_data, [7, 5], [], []);
+
+
+
+	var map_rn4_data = ['           ',
+						'      a    ',
+						'         a A',
+						'   Aa     a ',
+						'   A a  a a A',
+						'      aea  aA',
+						'      aaa    ',
+						'       a  aA',
+						'     aa    A',
+						'     a  a  ',
+						'     AA    '];
+
+let map_rn4 = new Map(color_background_out, map_rn4_data, [7, 5], [], []);
+
+
+
+	var map_rn5_data = ['           ',
+						'           ',
+						'         a  ',
+						'            ',
+						'     a  a a  ',
+						'      ae     ',
+						'        a    ',
+						'       a   A',
+						'      a     ',
+						'           ',
+						'           '];
+
+let map_rn5 = new Map(color_background_out, map_rn5_data, [7, 5], [], []);
+
+let map_rn6 = new Map(color_background_out, [''], [7, 5], [new SpecialOrb("#000", 0, 0, `player.r *= 0.95;`)], []);
 
