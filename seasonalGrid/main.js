@@ -25,6 +25,7 @@ var color_grass_highlight = "#5E6";
 var color_grass_shadow = "#3B7";
 var color_ice = "#DDF";
 var color_ice_highlight = "#EEF";
+var color_laser = "#F44";
 var color_mapFade = "#FFF";
 var color_rock = "#888";
 var color_snow = "#EFF";
@@ -72,8 +73,8 @@ var tile_walkables = "Cabcbdefgi0123456789";
 var tile_half = tile_size / 2;
 
 var camera =	{  
-					x: 0,
-					y: 0,
+					x: 1.357,
+					y: 6.133,
 					scale: 1
 				};
 
