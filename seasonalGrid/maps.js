@@ -1,5 +1,5 @@
 	var map_out_data = ['   AAAA                                             aaaaaaaaaaaaaaaaaa   e',
-						'  AaaaAAAAAAAAAAAAAAAAAAAA A AAAA AA AA A                            aaaa',
+						'  AaaaAAAAAAAAAAAAAAAAAAAA A AAAA AA AA A                            aaa ',
 						'  Aaaaaaaaaaaaaaaa   aa  aaa  aaa  aaaaaaaaaaa aaaaaaaaaaaaaaaaaaaaaaa   ',
 						' Aaa0aaaaaaaaaaaaa  a aaa  aaa  a       a   a     aaaaaaaaaaaaaaaaaa aaaa1aa',
 						'  Aaaaaaaaaaaaaaaaaaa   aaaa  a  aaaaaaaaa  aaaaaaaaaaaaaaaaaaaaaaaaaa   ',
@@ -12,17 +12,16 @@
 						'',
 						'',
 						'',
-						'',
-						'    aaaaaaaaaaaaaa',
-						'    aaaaaaaaaaaaaaa',
-						'    aaaaaaaaaaaaaa'];
+						'     aaaaaaaaaaaa',
+						'    aaaaaaaaaaaaa',
+						'     aaaaaaaaaaaa'];
 	
 	var map_out_entities = [new Switch([75, 3], [72, 5], " ", "a"),
 							new Switch([69, 0], [72, 1], " ", "a"),
 							new Stone(74, 3), 
 							new SpecialOrb("#AAF", 68, 0, `if (player.x > 66 && this.x == 68) {this.dir = "R"; this.moveImpulse = true;}`),
 							new SpecialOrb("#FAF", 68, 6, `determineEnding();`),
-							new Text("Something went wrong ):", 11, 16)];
+							new Text("Something went wrong ):", 10, 15)];
 
 let map_out = new Map(color_background_out, map_out_data, [4, 3], map_out_entities, ["map_def", "map_tem"]);
 
@@ -325,7 +324,7 @@ let map_wd1 = new Map(color_background_1, map_wd1_data, [1, 17], map_wd1_entitie
 						'                   AA  b b   b b bbbbbbbbbbbbbbbbbbbbbbbbb'];
 
 	var map_1_0_entities = [new Switch([6, 6], [74, 21], " ", "b"),
-							new Orb("#AAAAFF", 28, 17), new Orb("#FFFFFF", 29, 15), new Orb("#FFAAFF", 30, 14), new Orb("#AAAAFF", 30, 13), new Text("Am I?", 10, 30)];
+							new Orb("#AAAAFF", 28, 17), new Orb("#FFFFFF", 29, 15), new Orb("#FFAAFF", 30, 14), new Orb("#AAAAFF", 30, 13)];
 							
 let map_1_0 = new Map(color_background_1, map_1_0_data, [18, 6], map_1_0_entities, [], true);
 
@@ -718,17 +717,17 @@ let map_tem = new Map(color_background_3, map_tem_data, [11, 18], map_tem_entiti
 
 
 
-	var map_tm0_data = ['   wbdd ddddd ddd',
-						'     d  d  d  b ',
-						'     ddddd dddbbw',
-						'           d  b ',
-						'     dddddddd ddd',
-						'     d         ',
-						'     ddddddddddddde'];
+	var map_tm0_data = ['       AAAAAAA',
+						'      AffffffA',
+						'       AA   AA',
+						'',
+						'        ggggg',
+						' ggggggggggggggge',
+						'        ggggg '];
 	
-	var map_tm0_entities = [];
+	var map_tm0_entities = [new Walker(7, 1, ["R", "L"])];
 
-let map_tm0 = new Map(color_background_3, map_tm0_data, [4, 0], map_tm0_entities, []);
+let map_tm0 = new Map(color_background_3, map_tm0_data, [1, 5], map_tm0_entities, []);
 
 
 
