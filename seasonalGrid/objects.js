@@ -123,6 +123,9 @@ class Map {
 }
 
 
+
+
+
 //parent class for all movable objects
 class MovableTileEntity {
 	constructor(color, x, y) {
@@ -135,7 +138,6 @@ class MovableTileEntity {
 		this.animX = x;
 		this.animY = y;
 		this.animProgress = 0;
-		this.animTolerance = 0.01;
 
 		this.drawCoords = [];
 
@@ -151,6 +153,13 @@ class MovableTileEntity {
 	}
 
 	alignAnimCoords() {
+		var [base, percentage] = this.alignAnimQueue();
+
+		this.animX = linterp(this.queue[base][0], this.queue[base+1][0], percentage);
+		this.animY = linterp(this.queue[base][1], this.queue[base+1][1], percentage);
+	}
+
+	alignAnimQueue() {
 		//use weighted average to move progress along
 		this.animProgress = ((this.animProgress * (display_animDelay - 1)) + (this.queue.length - 1)) / display_animDelay;
 
@@ -169,8 +178,7 @@ class MovableTileEntity {
 			base -= 1;
 		}
 
-		this.animX = linterp(this.queue[base][0], this.queue[base+1][0], percentage);
-		this.animY = linterp(this.queue[base][1], this.queue[base+1][1], percentage);
+		return [base, percentage];
 	}
 
 	beDrawn() {
@@ -234,6 +242,7 @@ class MovableTileEntity {
 
 
 
+
 class Player extends MovableTileEntity {
 	constructor(x, y) {
 		super(color_player, x, y);
@@ -256,6 +265,9 @@ class Player extends MovableTileEntity {
 		return returnCode;
 	}
 }
+
+
+
 
 
 class Orb extends MovableTileEntity {
@@ -339,6 +351,9 @@ class Orb extends MovableTileEntity {
 }
 
 
+
+
+
 class Stone extends Orb {
 	constructor(x, y) {
 		super("#888", x, y);
@@ -357,6 +372,9 @@ class Stone extends Orb {
 	}
 }
 
+
+
+
 class Text {
 	constructor(string, x, y) {
 		this.x = x;
@@ -374,6 +392,7 @@ class Text {
 
 	beReset() {}
 }
+
 
 
 
@@ -523,4 +542,171 @@ class Switch {
 		//other entities being reset will reset this automatically
 	}
 
+}
+
+
+
+
+class Walker extends MovableTileEntity {
+	constructor(x, y, movementDirections) {
+		super("#F40", x, y);
+		this.homeX = x;
+		this.homeY = y;
+
+		this.mD = movementDirections;
+		this.mDPos = 0;
+		this.limit = 20;
+		this.pRP = [player.x, player.y];
+		this.stopSurfaces = "A";
+		this.animLasers = [0, 0, 0, 0, 0, 0];
+
+		this.delay = 4;
+	}
+
+	tick() {
+		super.tick();
+
+		//if the player has moved, move as well
+		if (this.pRP[0] != player.x || this.pRP[1] != player.y) {
+			if (this.delay == 0) {
+				this.delay = 4;
+				this.pRP = [player.x, player.y];
+
+				//logging self position
+				var selfPos = [this.x, this.y];
+
+				//moving
+				this.handleMoveInput(this.mD[this.mDPos]);
+				this.move();
+
+				//if self position is the same, increment direction
+				if (this.x == selfPos[0] && this.y == selfPos[1]) {
+					this.mDPos += 1;
+					if (this.mDPos > this.mD.length-1) {
+						this.mDPos = 0;
+					}
+
+					this.handleMoveInput(this.mD[this.mDPos]);
+					this.move();
+				}
+			}
+			this.delay -= 1;
+		}
+	}
+
+	alignAnimCoords() {
+		var [base, percentage] = this.alignAnimQueue();
+
+		this.animX = linterp(this.queue[base][0], this.queue[base+1][0], percentage);
+		this.animY = linterp(this.queue[base][1], this.queue[base+1][1], percentage);
+		this.animLasers = [	linterp(this.queue[base][2], this.queue[base+1][2], percentage),
+							linterp(this.queue[base][3], this.queue[base+1][3], percentage),
+							linterp(this.queue[base][4], this.queue[base+1][4], percentage),
+							linterp(this.queue[base][5], this.queue[base+1][5], percentage),
+							linterp(this.queue[base][6], this.queue[base+1][6], percentage),
+							linterp(this.queue[base][7], this.queue[base+1][7], percentage)];
+	}
+
+	beDrawn() {
+		super.beDrawn();
+
+		//drawing danger lines out from self
+		var drawCoords = spaceToScreen(this.animX, this.animY);
+
+		ctx.strokeStyle = color_laser;
+		ctx.lineWidth = tile_half;
+		ctx.globalAlpha = 0.7;
+		for (var g=0;g<this.animLasers.length;g++) {
+			var angle = ((g / 6) * (Math.PI * 2)) + (Math.PI / 6);
+			var xAdd = (this.animLasers[g] + 0.5) * tile_size * Math.sin(angle);
+			var yAdd = (this.animLasers[g] + 0.5) * tile_size * Math.cos(angle);
+
+			ctx.beginPath();
+			ctx.moveTo(drawCoords[0], drawCoords[1]);
+			ctx.lineTo(drawCoords[0] + xAdd, drawCoords[1] + yAdd);
+			ctx.stroke();
+
+		}
+		ctx.lineWidth = 1;
+		ctx.globalAlpha = 1;
+	}
+
+	//for the laser, searches forwards and returns the number where it needs to stop
+	expand(x, y, direction, number) {
+		//if the limit has been reached, cease
+		if (number > this.limit) {
+			return number;
+		} else {
+			//check the current square, if it's available recurse. If not, return the number.
+			var available = true;
+			var c = 0;
+			var value;
+			try {
+				value = loading_map.data[y][x];
+			} catch (e) {
+				//empty space is registered as a space
+				value = " ";
+			}
+
+			for (c;c<this.stopSurfaces.length;c++) {
+				if (value == this.stopSurfaces[c]) {
+					available = false;
+					c = this.stopSurfaces.length + 1;
+				}
+			}
+
+			//recursing if available
+			if (available) {
+				//modifier lookup chart
+				var move_codes = {
+					"UL": [-1 + Math.abs(((y + 5) % 2) - 1), -1],
+					"UR": [0 + Math.abs(((y + 5) % 2) - 1), -1],
+					"L": [-1, 0],
+					"R": [1, 0],
+					"DL": [-1 + Math.abs(((y + 5) % 2) - 1), 1],
+					"DR": [0 + Math.abs(((y + 5) % 2) - 1), 1]
+				};
+
+				number = this.expand(x + move_codes[direction][0], y + move_codes[direction][1], direction, number + 1);
+
+				//colliding with player
+				if (player.x == x && player.y == y && !editor_active) {
+					loading_map.beReset();
+				}
+			}
+			return number;
+		}
+	}
+
+	truePositionReset() {
+		[this.x, this.y] = [this.homeX, this.homeY]; 
+		this.pRP = [player.x, player.y];
+		//queue stuffies
+		this.queue.push([this.x, this.y]);
+
+		var laserDirs = ["DR", "R", "UR", "UL", "L", "DL"];
+		
+		for (var j=0;j<laserDirs.length;j++) {
+			this.queue[this.queue.length-1][j+2] = this.expand(this.x, this.y, laserDirs[j], -1);
+		}
+	}
+
+	move() {
+		var succ = super.move();
+		
+		var laserDirs = ["DR", "R", "UR", "UL", "L", "DL"];
+		
+		for (var j=0;j<laserDirs.length;j++) {
+			this.queue[this.queue.length-1][j+2] = this.expand(this.x, this.y, laserDirs[j], -1);
+		}
+		
+	}
+
+	beReset() {
+		[this.x, this.y] = [this.homeX, this.homeY];
+		this.mdPos = 0;
+
+		var self = this;
+		window.setTimeout(function() {self.truePositionReset();}, 10);
+	}
 }
