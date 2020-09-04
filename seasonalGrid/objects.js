@@ -579,8 +579,9 @@ class Walker extends MovableTileEntity {
 				this.handleMoveInput(this.mD[this.mDPos]);
 				this.move();
 
-				//if self position is the same, increment direction
-				if (this.x == selfPos[0] && this.y == selfPos[1]) {
+				//if self position is the same, increment direction and try moving
+				var tolerance = this.mD.length;
+				while (this.x == selfPos[0] && this.y == selfPos[1] && tolerance > 0) {
 					this.mDPos += 1;
 					if (this.mDPos > this.mD.length-1) {
 						this.mDPos = 0;
@@ -588,6 +589,7 @@ class Walker extends MovableTileEntity {
 
 					this.handleMoveInput(this.mD[this.mDPos]);
 					this.move();
+					tolerance -= 1;
 				}
 			}
 			this.delay -= 1;
@@ -648,10 +650,18 @@ class Walker extends MovableTileEntity {
 				value = " ";
 			}
 
+			//colliding with blocks
 			for (c;c<this.stopSurfaces.length;c++) {
 				if (value == this.stopSurfaces[c]) {
 					available = false;
 					c = this.stopSurfaces.length + 1;
+				}
+			}
+
+			//colliding with tile entities
+			for (var w=0;w<loading_map.entities.length;w++) {
+				if (loading_map.entities[w] != this && loading_map.entities[w] instanceof MovableTileEntity && loading_map.entities[w].x == x && loading_map.entities[w].y == y) {
+					available = false;
 				}
 			}
 
@@ -681,6 +691,8 @@ class Walker extends MovableTileEntity {
 	truePositionReset() {
 		[this.x, this.y] = [this.homeX, this.homeY]; 
 		this.pRP = [player.x, player.y];
+		this.mDPos = 0;
+		this.dir = this.mD[this.mDPos];
 		//queue stuffies
 		this.queue.push([this.x, this.y]);
 
@@ -699,14 +711,23 @@ class Walker extends MovableTileEntity {
 		for (var j=0;j<laserDirs.length;j++) {
 			this.queue[this.queue.length-1][j+2] = this.expand(this.x, this.y, laserDirs[j], -1);
 		}
-		
 	}
 
 	beReset() {
 		[this.x, this.y] = [this.homeX, this.homeY];
-		this.mdPos = 0;
 
 		var self = this;
-		window.setTimeout(function() {self.truePositionReset();}, 10);
+		window.setTimeout(function() {self.truePositionReset();}, 20);
+	}
+}
+
+
+
+
+
+class LongWalker extends Walker {
+	constructor(x, y, movementDirections) {
+		super(x, y, movementDirections);
+		this.limit = 50;
 	}
 }
