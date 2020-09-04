@@ -23,7 +23,7 @@
 							new SpecialOrb("#FAF", 68, 6, `determineEnding();`),
 							new Text("Something went wrong ):", 10, 15)];
 
-let map_out = new Map(color_background_out, map_out_data, [4, 3], map_out_entities, ["map_def", "map_tem"]);
+let map_out = new Map(color_background_out, map_out_data, [4, 3], map_out_entities, ["map_def"]);
 
 
 		var map_dbg_data = ['ABCDEFGHIJKLMNOPQRSTUVWXYZ',
@@ -40,27 +40,27 @@ let map_dbg = new Map("#888", map_dbg_data, [0, 1], map_dbg_entities, []);
 
 
 
-	var map_def_data = [' AAAAAAAAAAAAAA      AAAAAAAA             AAAAAAAAAAAAAAAAAAAAAAAA AA  AAAAAAAAAAA',
-						'AaaaaaaaaaaaaaA     AaaaaaaaA         AAAAaaaaa0aaaaaaaaaaaaaa1aaaaaa a 2aaaaaaaaaa        i     i    ',
-						' AAAAAAAAAAAAaA      AaAAAAAaA AAAAAAAAaaAaaAAAAAAAAAAAAAAAAAAAAAaAA AA aAAAAAAA   a   aa              a    a    a    a',
-						'           AaAAAAAAAAAaA  AaaAAaaaaaaaaAaAaaA                    a     a           a          i       ',
-						'       AAAAAaAaaaaaaaaaaA AaAaAAaAAAAAAAaAaaA                     a A  aaaaa        a       i      aaaaaaaaaiaaaaiaaaaaaa a',
-						'      AaaaaaAaAAAAAAAAAA AaAAaAAaA   AaaAAAaA                    a    a   a         a    a        a a    a    a    a',
-						'      AaAAAAAaA          AAAAAaAAaA  AaAAaaaA        aaaaaaa     a    a   a      aa  aaaa aaaaaaaaa aa   aa   aa   aa        iiii',
-						'     AaaaaaaaA          AaaaaaaAAaA  AaaaAAA        a     a     a    a  a a              a        a a    a    a    a       iiiiei',
-						'      AAAAAAAA      AA  AaAAAAAAAaA   AAAA          a     a     a    a  a a                 i      aaaaiaaaaaaaaaaaaaaiaaiiaiiiii',
-						'                   AaA AaA     AaA                 a  aaaa      a    a a  a                    i      ',
+	var map_def_data = ['  AAAAAAAAAAAAAA     AAAAAAAA             AAAAAAAAAAAAAAAAAAAAAAAA AA  AAAAAAAAAAA',
+						' AaaaaaaaaaaaaaA    AaaaaaaaA         AAAAaaaaa0aaaaaaaaaaaaaa1aaaaaa a 3aaaaaaaaaa        i     i',
+						'  AAAAAAAAAAAAaA     AaAAAAAaA AAAAAAAAaaAaaAAAAAAAAAAAAAAAAAAAAAaAA AA aAAAAAAA   a   aa              a    a    a    a',
+						'            AaAAAAAAAAaA  AaaAAaaaaaaaaAaAaaA                    a     a           a          i',
+						'        AAAAAaAaaaaaaaaaA AaAaAAaAAAAAAAaAaaA                     a A  aaaaa        a       i      aaaaaaaaaiaaaaiaaaaaaa a',
+						'       AaaaaaAaAAAAAAAAA AaAAaAAaA   AaaAAAaA                    a    a   a         a    a        a a    a    a    a',
+						'       AaAAAAAaA         AAAAAaAAaA  AaAAaaaA        aaaaaaa     a    a   a      aa  aaaa aaaaaaaaa aa   aa   aa   aa        iiii',
+						'      AaaaaaaaA         AaaaaaaAAaA  AaaaAAA        a     a     a    a  a a              a        a a    a    a    a       iiiiei',
+						'       AAAAAAAA     AA  AaAAAAAAAaA   AAAA          a     a     a    a  a a                 i      aaaaiaaaaaaaaaaaaaaiaaiiaiiiii',
+						'                   AaA AaA     AaA                 a  aaaa      a    a a  a                    i',
 						'                    AaAAaAA    AaA                 a  a  a  aa  aa   a a  a            aa         i    a    a    a    a',
-						'                    AaaaaaA   AaA                    a   a a a a a  a a   a                             ',
+						'                    AaaaaaA   AaA                    a   a a a a a  a a   a',
 						'                     AaAAAaAAAAaA                    a   aaa  aa  a a a   a',
 						'                    AaA AaaaaAaA                 aaaa   a a a a    a a    a',
-						'                    AaA AaAAaAaA                 a   a  a   a        a    a',
-						'                   AaA AaAAaAaA                 a  a a  a  aaaaaaaaaaaa   a',
-						'                    AA AaAAaAaA                 aaaa  a  a a              a',
-						'                      AaAaaAaA                 a  a   a  a aaaa  a   a   a',
-						'                      AaAAAAaA                 a  a  aaa  a      a   aaaaa ',
-						'                     AaaaaaaA                 a  a  a  a aaaaaaaa   a',
-						'                      AAAAAAA                 a  a  a  aaa a    a   a',
+						'                    AaA AaAAaAaA                 a   a  a   a        a    2',
+						'                   AaA AaAaaAaA                 a  a a  a  aaaaaaaaaaaa   a',
+						'                    AA AaAAAAaA                 aaaa  a  a a              a',
+						'                      AaaaaaaA                 a  a   a  a aaaa  a   a   a',
+						'                      AAAAAAAA                 a  a  aaa  a      a   aaaaa ',
+						'                                              a  a  a  a aaaaaaaa   a',
+						'                                              a  a  a  aaa a    a   a',
 						'                                                a  a  a a  a   a   a',
 						'                                                a  a  a      a     a',
 						'                                                  a  a  a   a     a',
@@ -69,8 +69,8 @@ let map_dbg = new Map("#888", map_dbg_data, [0, 1], map_dbg_entities, []);
 						'                                                       a   aaaaaaa',
 						'                                                          a'];
 
-	var map_def_entities = [new Text("Use A / D to move", 5, -3),
-							new Text("E / Z", 17, 1),
+	var map_def_entities = [new Text("Use A / D to move", 4, -3),
+							new Text("E / Z", 17.5, 1),
 							new Text("W / X", 28, -3),
 							new Text("W", 27, 9), new Text("E", 28, 9), new Text("D", 29, 10), new Text("X", 28, 11), new Text("Z", 27, 11), new Text("A", 27, 10),
 							new Text("Press Enter to revisit areas", 62, -2.5),
@@ -81,7 +81,7 @@ let map_dbg = new Map("#888", map_dbg_data, [0, 1], map_dbg_entities, []);
 
 							new Orb("#AAF", 87, 10), new Orb("#AAF", 103, 2), new Orb("#AAF", 108, 10), new Orb("#AAF", 113, 10), new Orb("#AAF", 118, 2), 
 							new Orb("#FAF", 87, 2), new Orb("#FAF", 103, 10), new Orb("#FAF", 108, 2), new Orb("#FAF", 113, 2), new Orb("#FAF", 118, 10)];
-let map_def = new Map("#22FF88", map_def_data, [1, 1], map_def_entities, ["map_wd0", "map_wd1", "map_wd2"])
+let map_def = new Map("#22FF88", map_def_data, [2, 1], map_def_entities, ["map_wd0", "map_wd1", "map_wd2", "map_tm"])
 
 
 
@@ -324,7 +324,7 @@ let map_wd1 = new Map(color_background_1, map_wd1_data, [1, 17], map_wd1_entitie
 						'                   AA  b b   b b bbbbbbbbbbbbbbbbbbbbbbbbb'];
 
 	var map_1_0_entities = [new Switch([6, 6], [74, 21], " ", "b"),
-							new Orb("#AAAAFF", 28, 17), new Orb("#FFFFFF", 29, 15), new Orb("#FFAAFF", 30, 14), new Orb("#AAAAFF", 30, 13)];
+							new Orb("#AAF", 29, 20), new Orb("#FFF", 28, 15), new Orb("#FAF", 28, 11), new Orb("#AAF", 30, 13)];
 							
 let map_1_0 = new Map(color_background_1, map_1_0_data, [18, 6], map_1_0_entities, [], true);
 
@@ -677,17 +677,17 @@ let map_2_6 = new Map(color_background_2, map_2_6_data, [2, 2], map_2_6_entities
 
 
 
-
+/*
 	var map_tem_data = ['                       C    C',
 						'                       C e C',
-						'                        C66C',
+						'                        CggC',
 						'                        C C',
 						'                       45CC54 ',
 						'                      3  C  3',
 						'                      2 gggg 2',
 						'                     1 ggggg 1',
 						'                  gg  0gggggg0  gg',
-						'                   ggggggggggggg  ',
+						'                 g ggggggggggggg g',
 						'                  gg  gggggggg  gg',
 						'                     ggggggggg',
 						'     DfDDfD           ggfgggfg',
@@ -697,24 +697,132 @@ let map_2_6 = new Map(color_background_2, map_2_6_data, [2, 2], map_2_6_entities
 						'  DfDfffffDffDDfD   ff ffDfff',
 						'  fDfffDffffDfDfD  ffDfffffDf',
 						'  fDfffffDDDDffffDf DDDffffff',
-						'  fDffffDfDffDDfDffffDfffDf',
-						'   fDDffDffffDfDDfDffDffDf',
-						'  fDffDDDfffDDfffDffffff',
-						'  ffDDfDfDDDDfffDfffDfff',
-						'  fffDDfDfDffDffffffff',
-						'  fDfDfDfDDfffffDfff',
-						' ffDfDDffDff  fff',
-						' ffDfffDfff',
-						' ffDDffDff',
-						' ffffDDfff',
-						' fffffDf',
-						'  ffffff',
-						'   ff'];
+						'  fDffffDfDffDDfDffDfDfffDf',
+						'   fDDffDffffDfDDfDDfDffDf',
+						'  fDffDDDfffDDfffDffffDD',
+						'  ffDDfDfDDDDfffDfDfDDDf',
+						'  fffDDfDfDDfDDffDffff',
+						'  fDfDfDfDDffffDDDffDf',
+						' ffDfDDffDfffDffDfDfff',
+						' ffDfffDffffDffDDffDDff',
+						' ffDDffDffffffDDfDffDf',
+						' ffffDDfffffffffDfffDff',
+						' fffffDf  fDDfDDffffDD',
+						'  ffffff  DfffDffffDff',
+						'   ff     ffDDffDfff',
+						'            ffffDfff',
+						'              fffD'];
 
-	var map_tem_entities = [];
+						
+	var map_tem_entities = [new Orb("#FAF", 18, 9), 
+							new SpecialOrb("#FAF", 32, 9, 
+														`//if the 5th map is completed, and the player left this map through map 0, make sure they are teleported
+														//there's probably a better way to make this happen, but I didn't feel like it, so the hacky solution is used instead (:
 
-let map_tem = new Map(color_background_3, map_tem_data, [11, 18], map_tem_entities, []);
+														if (loading_map.connections[5].completed && player.y == 8 && (player.x == 22 || player.x == 29)) {
+															if (player.x == 22) {
+																[player.x, player.y] = [24, 4];
+																player.queue.push([24, 4]);
+															} else {
+																[player.x, player.y] = [27, 4];
+																player.queue.push([27, 4]);
+															}
+														}`)];
 
+let map_tem = new Map(color_background_3, map_tem_data, [11, 20], map_tem_entities, ["map_tm0", "map_tm1", "map_tm2", "map_tm3", "map_tm4", "map_tm5"]);
+*/
+
+
+	var map_tm_data = ['       ',
+						'       ',
+						'                                        fDf',
+						'         Dfff                         fffffff',
+						'       fffffff                        fDffffff',
+						'     fffffffDff   Df                  ffffffDff',
+						'     DffAAAAAfff ffDf                  fffDfffff',
+						'    fffAggggAff ffDffff                 ffffffff    ffff',
+						'    fffAgggggAfDfffffffff                ffffDff   fffDfff',
+						'    fDAggggggAffffffffDff               ffffffDf  fDffDffff',
+						'    ffAgggggggAAAAAAAAAff                ffDffffffDfffDfffff',
+						'    ffAgggggggggggggggAff               fffffDfffffffffffff',
+						'    fDfAgggggggggggggggAfD               ffffDffDfffffffDffff',
+						'    fffAgggggggggggggggAf              ffDffDffffffffffffffff',
+						'     DfDAAAAAAAAAgggggggAf            fffffDfffffffffDfffffff',
+						'    ffffffffDfffAggggggAf        ffDfffDffffffAAAffffDfDffDff',
+						'     DffDffDffffDAgggggAf      ffDfffffffffffDAggAffffffffffff',
+						'      fffffDfffffAggggAfD    DfffffAAADfffDffAgggAfffffffffff',
+						'        fDfffffDffAgggAff    fAAAAAAAgAffffffAgggAfDffffffffff',
+						'        fff  Dff AggggADf   fAggggAgggAAAAAAAAggAAAffffffffff  ',
+						'        fff      A0ggggAff fDAgdddgggggggggggggggggAfffDffDff ',
+						'        ff      AggggggAffffAgd  dgAAAAggggggggAgggAfffffDf   ',
+						'        fff     AgggggggAfDfAgd g dgAfAgggggAggAAggAffffff    ',
+						'       fff      AggggggAffffAgd  dgAffAAAgAAAAAfAAAffffff    ',
+						'       fff       AgggggAfffffAgdddgAffffA4gAffffffDffDffD    ',
+						'     fffff       AggggA fDf  AggggA fffAgggAffDffffffffff    ',
+						'     ffffff   AAAAAAAAAAAAAAAAAAAAAAAAAfAggAffffffDfffffD    ',
+						'    fffffff  AggggggggggggggggggggggggAfAAAffffffffffDff    ',
+						'    fffffffffAgggggggggggggggggggggggggAffffffffffffffff    ',
+						'    ffffffffAggggggggggggggggggggggggggAffffDfffDfffff   Df',
+						'    ffffffffAgggggggggggggggggggggggggggA ffffffffffDf   fDf',
+						'    ffffffffAggggggggggggggggggggggggggAA  fffDfffff   Dffff',
+						'     ffffffffAgggggggggggggggggggggggggAgA  ffffffD    ffDfD',
+						'    fffffffffAgggg1gggggggggggggggggggAggA   fffff     ffff',
+						'     fffffffffAAAAAAAAAAAAAAAAAAAAAAAAAgggA    D        fD',
+						'     ffffffffffff    AggggA   ffffAgggggggA        Dff   ',
+						'     fffffffffffff   AgggggA fffDffAgggggggA     ffffffD  ',
+						'     ffffffffffffff AggggggADffffffAgggggggA    Dffffffff',
+						'        ffffffffffffAgggggggAAAAA ffAgggggggA   ffffDfffff',
+						'         ffffffffff AggggggAg3ggAfD AgggggggA  fffffffDfDf',
+						'          fffffffffffAgggggAgggggAff AgggggggA  fDfffffffff',
+						'           ffffffffffAg2ggAggggggAf  AgggggggA ffffDfDfDff',
+						'            ffffffffffAAAAAgggggggAf  AgggggggA fffffffffDf',
+						'             ffffffffffDffAggggggAfff AgggggggAfDffffffffff',
+						'             fffffffffffffDAgggggAffff AgggggggAffffDffDfff',
+						'             ffffffffffffffAggggAf  fffAgggggggAfffffffffD',
+						'             fffffffffffffffAAAAAff    fAgggggggAfDfffDffDf',
+						'             fffffffffffffffffffff     fAggggggAAAfffffffff',
+						'              ff ffffffffffff  fff      fAggggggggAffDfffffff',
+						'                   ffffffff            ffAggggAgggAAAfffAAAff',
+						'                     fffff              ffAAAAAAgggggAfDAddAf',
+						'                     fff               ffDffffDAAAgggAfAdedAff',
+						'                                        fffDffffDfAggAf AddAfff',
+						'                                         ffffDffffAAAAAAAAAfff',
+						'                                            fffDffAggggggggAfff',
+						'                                            fffffAgggggggggAfff',
+						'                                            ffffffAggggggggAAff',
+						'                                            f  fffAAAAAAAAggAff',
+						'                                             ff ffffAggA AgggAf   f f',
+						'                                              fffAAAgggA AgggAf f f',
+						'                                               ffAgggggA fAgggAf     f',
+						'                                               fAgggAAAfffAgggAf ff   f',
+						'                                                fAggAffffffA5ggAff f ff f',
+						'                                               f AAA   f  fAgggAf f f f',
+						'                                                fffff f f f AggA f f f f  f',
+						'                                                    f fff ffAAAf ffff ffff',
+						'                                                     ff fff f f fff f  f  f f',
+						'                                                   f f ff f f fff f ff f f',
+						'                                                     f f  f fff  ffff ff f f',
+						'                                                     fff ffff ff  f  f ff',
+						'                                                    f   ff  fff fff ff f    f',
+						'                                                     f f fff      ff   f f',
+						'                                                            f  ff f  f f',
+						'                                                      f  f   f f  f   f f',
+						'                                                           f    f   f',
+						'                                                               f f',
+						'                                                                  f f',
+						'                                                               f     f',
+						'                                                                 f f',
+						'                                                                 f'];
+
+						
+	var map_tm_entities = [	new Switch([17, 22], [20, 26], "A", "g"), new Switch([20, 33], [24, 34], "A", "g"), new Switch([25, 41], [27, 40], "A", "g"), new Switch([31, 39], [38, 34], "A", "g"), new Switch([31, 39], [32, 26], "A", "g"),
+							new Switch([42, 26], [51, 53], "A", "g"), new Switch([61, 64], [57, 53], "A", "g"), new Switch([61, 64], [49, 16], "A", "f"),
+							new Stone(17, 21), new Stone(19, 33), new Stone(24, 41), new Stone(30, 39), new Stone(41, 25), new Stone(60, 63),
+							new Sandstorm(0, 50),
+							new Orb("#AAF", 32, 22)];
+
+
+let map_tm = new Map(color_background_3, map_tm_data, [10, 10], map_tm_entities, ["map_tm0", "map_tm1", "map_tm2", "map_tm3", "map_tm4", "map_tm5"]);
 
 
 	var map_tm0_data = ['       AAAAAAA',
@@ -728,6 +836,147 @@ let map_tem = new Map(color_background_3, map_tem_data, [11, 18], map_tem_entiti
 	var map_tm0_entities = [new Walker(7, 1, ["R", "L"])];
 
 let map_tm0 = new Map(color_background_3, map_tm0_data, [1, 5], map_tm0_entities, []);
+
+
+
+	var map_tm1_data = ['',
+						'                     fDf',
+						'             AAAAAAAAAAAff',
+						'          fDAggggggggggADf',
+						'        fDffAgggggggggAgAf',
+						'    AAAAAAAAffffffffffAgAf',
+						'    AggggggggggggggggfgggA',
+						'   AggggggAgggggggggfggggA',
+						'   AggggggggggggggggfgggggAA',
+						'  AggggggggggggggggfggggggeA',
+						'   AggggggggggggAggfgAAAAAAA',
+						'   AggggggggggggggfgA',
+						'    AgggggggggggggfgA',
+						'    AAAAAAAAAggggfgAf',
+						'     ffffDfDfAgggfgAf',
+						'     fDfffffDAggfgAD',
+						'        ffDfffAgAgAff',
+						'         fffDfAggADf',
+						'           ffDfAAAfff',
+						'            ffffDfff',
+						'             ffDfffD',
+						'               fD'];
+	
+	var map_tm1_entities = [new Walker(12, 5, ["R", "DL", "UR", "L"])];
+
+let map_tm1 = new Map(color_background_3, map_tm1_data, [6, 9], map_tm1_entities, []);
+
+
+
+	var map_tm2_data = ['    g',
+						'   gg       g            AA',
+						' ggggg ggggggg ggggg      fA',
+						'                  gg ggeAfA',
+						'                        AfA',
+						'AAAAAAAAAAAAAAAAAAAAAAAAfA',
+						'Affffffffffff fffffffffffA',
+						'AAAAAAAAAAAf fAAAAAAAAAAA',
+						'          Af fA',
+						'         AfffA',
+						'         AAAAA'];
+	
+	var map_tm2_entities = [new Switch([6, 6], [6, 2], " ", "g"), new Switch([13, 7], [14, 2], " ", "g"), new Switch([20, 6], [20, 3], " ", "g"),
+							new LongWalker(1, 6, ["R", "DL", "R", "UR", "R", "UR"])];
+
+let map_tm2 = new Map(color_background_3, map_tm2_data, [1, 2], map_tm2_entities, []);
+
+
+
+	var map_tm3_data = ['                C',
+						'     AAAAAAAAAACAAAA',
+						'     AfA    gggC   A',
+						'    AfA       C   A',
+						'    ACA gggggg C  A ',
+						'   AC  ggggggg C A      ',
+						'   AC  gggggggg CA  ',
+						'  AC  ggggggggg C',
+						'  AC  ggggggggg AC',
+						' AC  ggggggggg A C',
+						' AC  gggAggggg A  e',
+						'AfA           A',
+						'AfA       ggggA',
+						'AAAAAAAAAAAAAA'];
+	
+	var map_tm3_entities = [new Switch([1, 12], [9, 11], " ", "g"), new Switch([6, 2], [11, 3], " ", "g"), new Switch([13, 12], [12, 2], " ", "g"),
+							new Walker(1, 12, ["UR", "DL"]), 
+							new Stone(9, 7), new Stone(12, 12)];
+
+let map_tm3 = new Map(color_background_3, map_tm3_data, [10, 7], map_tm3_entities, []);
+
+
+
+	var map_tm4_data = ['    fffffffffffff',
+						'   ff          ff',
+						'   f fffffffffff f',
+						'  f fAAAAAAAAAAf f',
+						'  f fAgggggggggAf f',
+						' f fAggggggggggAf f',
+						' f fAgggggggggggAf f',
+						'fffAggggggggggggAfff',
+						' f fAgggggggggggAf f',
+						' f fAggggggggggAf f',
+						'  f fAgggggggggAf f',
+						'  f fAAAAAAAAAAf f',
+						'   f fffffffffff f',
+						'   ff          ff',
+						'    fffffffffffff'];
+	
+	var map_tm4_entities = [new Switch([12, 6], [16, 1], "f", " "), new Switch([12, 8], [5, 0], "f", " "), new Switch([8, 8], [1, 7], "f", " "), new Switch([8, 6], [10, 12], "f", " "),
+							new Switch([16, 9], [15, 7], "g", "e"),
+							new Walker(4, 0, ["R", "DR", "DL", "L", "UL", "UR"])];
+
+let map_tm4 = new Map(color_background_3, map_tm4_data, [6, 7], map_tm4_entities, []);
+
+
+
+var map_tm5_data = ['    fffffffffffff      fff',
+					'   ffffffffffffffff fffffffff       fff',
+					'   fffffffffffff fffffffffffff    ffffff    ff',
+					' ffffAAAAAfffAAAAAfffAAAAAfffff  ffff fff ffffff',
+					' ffffAggggAf AggggAffAggggAfffffffff    ffffffffff',
+					' fffAgggggA AgggggA AgggggAAAAAAAAAAA2AAAA2AAAffff',
+					' fffAggggggAAggggggAAggggggA1g036g1g4g315gg1056ffff',
+					' ffAgggggggAgggggggAgggggggA3gg23g25605g33041gAfff',
+					' ff Aggggggggggggggggggggggg4gg1g463g2g6gg2g6g0Afff',
+					' ff AgggggggggggggggggggggggAggggg0g5g3036g2012ffff',
+					' ff  Agggggggggggggggggggggggg2gg4gggg1g5g0315Afffff',
+					' ff  AgggAAAAAgggggggAAAAAAAAAAAAAAA3AAAAAAAAAfffff',
+					'  ff AggggAfffAggggggA ffAggggAff           ffffffff',
+					'  ffAgggggAff AgggggA  fAgggggAf           ffffffff',
+					'  ffAggggggAf  AggggA  fAggggggA            fffffff',
+					'  fAgggggggAAAAAgggA  fAgggegggA            fffffff',
+					'  ffAgggggggggggggggA ffAggggggA             ffffff',
+					'  ffAgggggggggggggggAfffAgggggA                ff',
+					'   ffAgggggggggggggggAfffAggggA',
+					'    fAAAAAAAAAgggggggAfffAAAAA',
+					'     fffffffffAggggggAffffffff',
+					'       fff  ffAgggggAfffffffff',
+					'             ffAggggAffffff ff',
+					'             ffAAAAAfff ff',
+					'              ffffffffff',
+					'             fffffffffff',
+					'              ffffffffffff',
+					'              fffffffffffff',
+					'               fffffffffffff',
+					'              ffffffffffffff',
+					'               ffffffffffffff',
+					'               fffffffffffff',
+					'                fffffffffffff',
+					'                ffffffffffff',
+					'                  fffffffff',
+					'                    ffff   f'];
+	
+	var map_tm5_entities = [new Switch([17, 4], [27, 11], "A", "g"), 
+							new Stone(15, 4),
+							new Orb("#FAF", 27, 35),
+							new LongWalker(7, 7, ["DR", "UR", "L", "UR"])];
+
+let map_tm5 = new Map(color_background_3, map_tm5_data, [7, 15], map_tm5_entities, ["map_tm0", "map_tm1", "map_tm2", "map_tm3", "map_tm4", "map_tm5"]);
 
 
 
