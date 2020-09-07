@@ -1,3 +1,82 @@
+class Firefly {
+	constructor(x, y) {
+		this.x = x;
+		this.y = y;
+		this.animX = x;
+		this.animY = y;
+		this.updateX = x;
+		this.updateY = y;
+
+		this.r = 0.3;
+	}
+
+	tick() {
+		//if the player is in the same square as self, push them out
+		if (player.x == this.x && player.y == this.y) {
+			//better explanation of this code found in the Orb class
+			var moveCodesOpposite = {
+				"L": "R",
+				"UL": "DR",
+				"UR": "DL",
+				"R": "L",
+				"DR": "UL",
+				"DL": "UR"
+			}
+			var playerMoveVector = player.dirToWorld(moveCodesOpposite[player.dir]);
+			player.x += playerMoveVector[0];
+			player.y += playerMoveVector[1];
+			player.queue[player.queue.length-1] = [player.x, player.y];
+			player.moveImpulse = false;
+		}
+
+
+		//visual movement
+		this.updateX += (Math.random() - 0.5) * 0.125;
+
+		if (Math.abs(this.updateX - this.x) > this.r) {
+			if (this.updateX > this.x) {
+				this.updateX = this.x + this.r;
+			} else {
+				this.updateX = this.x - this.r;
+			}
+		}
+
+
+		this.updateY += (Math.random() - 0.5) * 0.125;
+
+		if (Math.abs(this.updateY - this.y) > this.r) {
+			if (this.updateY > this.y) {
+				this.updateY = this.y + this.r;
+			} else {
+				this.updateY = this.y - this.r;
+			}
+		}
+
+		this.animX = ((this.animX * (display_animDelay - 1)) + this.updateX) / display_animDelay;
+		this.animY = ((this.animY * (display_animDelay - 1)) + this.updateY) / display_animDelay;;
+	}
+
+	beDrawn() {
+		var drawCoords = spaceToScreen(this.animX, this.animY);
+
+		drawEllipse(color_firefly, drawCoords[0], drawCoords[1], tile_half * 0.3, tile_half * 0.5, 0, 0, Math.PI * 2);
+	}
+
+	beReset() {
+		this.animX = this.x;
+		this.animY = this.y;
+	}
+}
+
+
+
+
+
+
+
+
+
+
 class Map {
 	constructor(bgColor, worldData, playerDefaultPos, entityData, exitData, completedOPTIONAL) {
 		this.bg = bgColor;
@@ -182,15 +261,18 @@ class MovableTileEntity {
 	}
 
 	beDrawn() {
-		//calculate true coordinates to draw at
-		var drawCoord = spaceToScreen(this.animX, this.animY);
-		//modify y position if on a desert block
-		try {
-			if (loading_map.data[this.y][this.x] == "d") {
-				drawCoord[1] += ((Math.sin((game_timer / 25) + (this.animX / 2) + (this.animY / 2))) * 6);
-			}
-		} catch (e) {}
-		drawEllipse(this.color, drawCoord[0], drawCoord[1], this.r, this.r, 0, 0, Math.PI * 2);
+		//only draw self if on the screen
+		if (Math.abs(this.animX - player.animX) < canvas.width / (tile_size * 1.5) && Math.abs(this.animY - player.animY) < canvas.height / (tile_size * 1.5)) {
+			//calculate true coordinates to draw at
+			var drawCoord = spaceToScreen(this.animX, this.animY);
+			//modify y position if on a desert block
+			try {
+				if (loading_map.data[this.y][this.x] == "d") {
+					drawCoord[1] += ((Math.sin((game_timer / 25) + (this.animX / 2) + (this.animY / 2))) * 6);
+				}
+			} catch (e) {}
+			drawEllipse(this.color, drawCoord[0], drawCoord[1], this.r, this.r, 0, 0, Math.PI * 2);
+		}
 	}
 
 	move() {
@@ -325,7 +407,7 @@ class Orb extends MovableTileEntity {
 			} else {
 				//if there's an entity in the way, cancel out
 				for (var a=0;a<loading_map.entities.length;a++) {
-					if (loading_map.entities[a].x == this.x + updatePos[0] && loading_map.entities[a].y == this.y + updatePos[1] && loading_map.entities[a].constructor.name != "Switch") {
+					if (loading_map.entities[a].x == this.x + updatePos[0] && loading_map.entities[a].y == this.y + updatePos[1] && !(loading_map.entities[a] instanceof Switch)) {
 						return false;
 					}
 				}
@@ -360,15 +442,17 @@ class Stone extends Orb {
 	}
 
 	beDrawn() {
-		var drawCoords = spaceToScreen(this.animX, this.animY);
-		ctx.fillStyle = this.color;
-		//shadow
-		ctx.globalAlpha = 0.5;
-		drawPoly(drawCoords[0] + display_entityShadowOffset, drawCoords[1] + display_entityShadowOffset, tile_half * 0.6, 6, Math.PI / 6);
-		//full block
-		ctx.globalAlpha = 1;
-		drawPoly(drawCoords[0], drawCoords[1], tile_half * 0.6, 6, Math.PI / 6);
-		
+		//only draw self if on screen
+		if (Math.abs(this.animX - player.animX) < canvas.width / (tile_size * 1.5) && Math.abs(this.animY - player.animY) < canvas.height / (tile_size * 1.5)) {
+			var drawCoords = spaceToScreen(this.animX, this.animY);
+			ctx.fillStyle = this.color;
+			//shadow
+			ctx.globalAlpha = 0.5;
+			drawPoly(drawCoords[0] + display_entityShadowOffset, drawCoords[1] + display_entityShadowOffset, tile_half * 0.6, 6, Math.PI / 6);
+			//full block
+			ctx.globalAlpha = 1;
+			drawPoly(drawCoords[0], drawCoords[1], tile_half * 0.6, 6, Math.PI / 6);
+		}	
 	}
 }
 
@@ -469,33 +553,71 @@ class Sandstorm {
 
 
 
+
+
+class ShadowStorm {
+	constructor() {
+		this.rad = display_entityLightRadius;
+		this.dispRad = display_entityLightRadius;
+	}
+
+	tick() {
+		this.dispRad = this.rad + (Math.sin(game_timer / 20) / 4);
+	}
+
+	beDrawn() {
+		//only draw self if in regular mode
+		if (!editor_active) {
+			ctx.fillStyle = loading_map.bg;
+			ctx.beginPath();
+			ctx.rect(0,0,canvas.width,canvas.height);
+			//loop through all entities and create light bubbles around them
+			for (var a=0;a<loading_map.entities.length;a++) {
+				if (loading_map.entities[a] != this) {
+
+					var size = this.dispRad;
+					if (!(loading_map.entities[a] instanceof Firefly)) {
+						size /= 3;
+					}
+					var baseCoords = spaceToScreen(loading_map.entities[a].animX, loading_map.entities[a].animY);
+					ctx.moveTo(baseCoords[0], baseCoords[1]);
+					for (var an=0;an<7;an++) {
+						var trueAngle = ((an / 6) * (Math.PI * 2)) + (Math.PI / 6) + (Math.PI / 6);
+						var xAdd = size * tile_size * Math.sin(trueAngle);
+						var yAdd = size * tile_size * Math.cos(trueAngle);
+						ctx.lineTo(baseCoords[0] + xAdd, baseCoords[1] + yAdd);
+					}
+				}
+			}
+			ctx.closePath();
+			ctx.fill();
+		}
+	}
+
+	beReset() {
+
+	}
+}
+
+
+
+
 class Switch {
 	constructor(switchXY, blockXY, offState, onState) {
 		this.x = switchXY[0];
 		this.y = switchXY[1];
 
+		[this.animX, this.animY] = [this.x, this.y];
+
 		[this.targetX, this.targetY] = blockXY;
 		this.offID = offState;
 		this.onID = onState;
 		this.pressTime = 0;
+		this.pressed = false;
 	}
 
 	tick() {
-		//check whether there is an entity or player with this location
-		this.pressed = false;
-		//checking player
-		if (player.x == this.x && player.y == this.y) {
-			this.pressed = true;
-		} else {
-			//checking entities
-			for (var g=0;g<loading_map.entities.length;g++) {
-				if (loading_map.entities[g].x == this.x && loading_map.entities[g].y == this.y && loading_map.entities[g].constructor.name != "Switch") {
-					this.pressed = true;
-					g = loading_map.entities.length + 1;
-				}
-			}
-		}
-		
+		this.checkPressStatus();
 
 		//on state / off state
 		if (this.pressed) {
@@ -506,42 +628,99 @@ class Switch {
 			this.pressTime *= 0.85;
 		}
 	}
+	//checks whether there is an entity or player with this location
+	checkPressStatus() {
+		this.pressed = false;
+
+		//checking player
+		if (player.x == this.x && player.y == this.y) {
+			this.pressed = true;
+		} else {
+			//checking entities
+			for (var g=0;g<loading_map.entities.length;g++) {
+				if (loading_map.entities[g].x == this.x && loading_map.entities[g].y == this.y && !(loading_map.entities[g] instanceof Switch)) {
+					this.pressed = true;
+					g = loading_map.entities.length + 1;
+					
+				}
+			}
+		}
+	}
 
 	beDrawn() {
-		var drawCoords = spaceToScreen(this.x, this.y);
-		//drawing self
-		ctx.fillStyle = color_switch;
-		drawPoly(drawCoords[0], drawCoords[1], tile_half, 6, Math.PI / 6);
-		ctx.fillStyle = color_switch_highlight;
-		drawPoly(drawCoords[0], drawCoords[1], tile_half * 0.8, 6, Math.PI / 6);
+		//split into two parts, the switch and the ring
+		this.drawSelf();
+		this.drawTarget();
+	}
 
+	drawSelf() {
+		//only draw self if on screen
+		if (Math.abs(this.x - player.animX) < canvas.width / (tile_size * 1.5) && Math.abs(this.y - player.animY) < canvas.height / (tile_size * 1.5)) {
+			var drawCoords = spaceToScreen(this.x, this.y);
+			//drawing self
+			ctx.fillStyle = color_switch;
+			drawPoly(drawCoords[0], drawCoords[1], tile_half, 6, Math.PI / 6);
+			ctx.fillStyle = color_switch_highlight;
+			drawPoly(drawCoords[0], drawCoords[1], tile_half * 0.8, 6, Math.PI / 6);
+		}
+	}
+
+	drawTarget() {
 		//drawing ring around target block
-		drawCoords = spaceToScreen(this.targetX, this.targetY);
-		//ring part 1
-		ctx.strokeStyle = color_switch_ring;
-		ctx.lineWidth = 2;
-		ctx.beginPath();
-		for (var an=0;an<7;an++) {
-			var trueAngle = ((an / 6) * (Math.PI * 2)) + (Math.PI / 6) + (Math.PI / 6);
-			var spice = (0.8 + (Math.abs(((((this.pressTime) / 30) + 5) % 2) - 1) / 4));
-			var xAdd = (tile_half / 0.8) * Math.sin(trueAngle) * spice;
-			var yAdd = (tile_half / 0.8) * Math.cos(trueAngle) * spice;
-			ctx.lineTo(drawCoords[0] + xAdd, drawCoords[1] + yAdd);
+		if (Math.abs(this.targetX - player.animX) < canvas.width / (tile_size * 1.5) && Math.abs(this.targetY - player.animY) < canvas.height / (tile_size * 1.5)) {
+			var drawCoords = spaceToScreen(this.targetX, this.targetY);
+			//ring part 1
+			ctx.strokeStyle = color_switch_ring;
+			ctx.lineWidth = 2;
+			ctx.beginPath();
+			for (var an=0;an<7;an++) {
+				var trueAngle = ((an / 6) * (Math.PI * 2)) + (Math.PI / 6) + (Math.PI / 6);
+				var spice = (0.8 + (Math.abs(((((this.pressTime) / 30) + 5) % 2) - 1) / 4));
+				var xAdd = (tile_half / 0.8) * Math.sin(trueAngle) * spice;
+				var yAdd = (tile_half / 0.8) * Math.cos(trueAngle) * spice;
+				ctx.lineTo(drawCoords[0] + xAdd, drawCoords[1] + yAdd);
+			}
+			ctx.stroke();
+			ctx.lineWidth = 1;
 		}
-		ctx.stroke();
-
-
-		//glowy part
-		if (this.pressed) {
-		}
-		ctx.lineWidth = 1;
-
 	}
 
 	beReset() {
 		//other entities being reset will reset this automatically
 	}
 
+}
+
+
+
+
+
+class LightSwitch extends Switch {
+	constructor(switchXY, lightXY) {
+		super(switchXY, lightXY, "", "");
+		this.lamp = new Firefly(lightXY[0], lightXY[1]);
+		this.populated = false;
+	}
+
+	tick() {
+		this.checkPressStatus();
+
+		if (this.pressed && !this.populated) {
+			//if pressed but not added to the entities array, do that
+			loading_map.entities.push(this.lamp);
+			this.populated = true;
+
+		} else if (!this.pressed && this.populated) {
+			//if unpressed and still in the entities array, remove self's lamp
+			for (var a=0;a<loading_map.entities.length;a++) {
+				if (loading_map.entities[a] == this.lamp) {
+					loading_map.entities.splice(a, 1);
+					a = loading_map.entities.length + 1;
+					this.populated = false;
+				}
+			}
+		}
+	}
 }
 
 

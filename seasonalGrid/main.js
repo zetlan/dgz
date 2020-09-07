@@ -10,7 +10,7 @@ var color_background_0 = "#B8F";
 var color_background_1 = "#BFF";
 var color_background_2 = "#FA2";
 var color_background_3 = "#F88";
-var color_background_out = "#000";
+var color_background_out = "#002";
 var color_player = "#FAF";
 var color_desert = "#FD7";
 var color_desert_highlight = "#FEC";
@@ -19,6 +19,7 @@ var color_error = "#F0F";
 var color_exit = "#AAA";
 var color_exit_center = "#888";
 var color_exit_complete = "#AFA";
+var color_firefly = "#FF8";
 var color_floor = "#088";
 var color_grass = "#30DB44";
 var color_grass_highlight = "#5E6";
@@ -43,6 +44,7 @@ var color_water = "#08F";
 
 var display_animDelay = 6;
 var display_entityShadowOffset = 3;
+var display_entityLightRadius = 6;
 var display_tileShadowOffset = 6;
 var display_vignetting = 0.6;
 var display_mapSwitchSpeed = 0.02;
@@ -303,7 +305,7 @@ function drawMap() {
 	//tileStartX and tileStartY tell the function which square from the loading map data array to read from
 	//I'm dividing by 0.866 instead of sin(pi / 3) because it's faster and I don't think the extra precision is worth it
 	var tileStartX = Math.floor(camera.x);
-	var tileStartY = Math.floor(camera.y / 0.866);
+	var tileStartY = Math.floor(camera.y / 0.866) - 1;
 
 	//drawSquares x / y say how many hexagons to draw in each dimension
 	var drawSquaresX = Math.floor(canvas.width / tile_size) + 2;
@@ -474,4 +476,26 @@ function performanceTest() {
         
 	var totalTime = perfTime[1] - perfTime[0];
 	console.log(`performance test took ${totalTime} ms`);
+}
+
+
+function shadowTest() {
+	ctx.fillStyle = "#000";
+	ctx.beginPath();
+	ctx.rect(0,0,canvas.width,canvas.height);
+	
+	ctx.moveTo(50, 50);
+	ctx.lineTo(50, 250);
+	ctx.lineTo(250,250);
+	ctx.lineTo(250, 50);
+
+	
+	ctx.moveTo(300, 300);
+	ctx.lineTo(300, 450);
+	ctx.lineTo(450, 450);
+	ctx.lineTo(450, 300);
+	
+	ctx.closePath();
+	//ctx.clip();
+	ctx.fill();
 }
