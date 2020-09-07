@@ -1,0 +1,57 @@
+<html>
+    <head>
+        <title>Particles!</title>
+        <style>
+            body {
+                background-color: slateblue;
+            }
+
+            #cavalier {
+                margin: auto;
+                text-align: center;
+                display: block;
+            }
+
+            #centerModule {
+                text-align: center;
+                margin: auto;
+            }
+        </style>
+        <script>
+            window.onload = setup;
+
+            //global variables
+            var canvas;
+            var ctx;
+            var centerX;
+            var centerY;
+            let timer;
+
+            //setup function
+            function setup() {
+                canvas = document.getElementById("cavalier");
+                ctx = canvas.getContext("2d");
+
+                centerX = canvas.width * 0.5;
+                centerY = canvas.height * 0.5;
+
+                timer = setInterval(iterate, 20);
+            }
+
+            function iterate() {
+                //drawing background
+                ctx.fillStyle = "#CCF";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+        </script>
+    </head>
+    <body>
+        <div id="centerModule">
+        <canvas id="cavalier" width="640" height="480"></canvas><br>
+        <p id="explanText">
+            A page where you can generate polygons, merge them together, and generally mess around!
+        </p>
+        </div>
+    </body>
+</html>
