@@ -29,8 +29,19 @@
             var xCenter = 0;
             var yCenter = 0;
             var cornerCoords = [];
+            var computationLine = 0;
             var maxIterations = 255;
             var minIterations = 20;
+
+            //page_animation is the animation handler, page_parity is what set of lines is currently being drawn, and parities is number of line sets
+            var page_animation;
+            var page_parity = 0;
+            var parities = 7;
+
+            var performance_log = [];
+
+            var highestI = 0;
+            var secondHighestI = 0;
 
             var canvas;
             var ctx;
@@ -49,52 +60,76 @@
             //drawing function
             function draw() {
                 //logging highest i value
-                var highestI = 0;
-                var secondHighestI = 0;
-                //two nested for loops to get a two-dimensional draw
-                for (var x=0;x<canvas.width/pixelSize;x++) {
-                    for (var y=0;y<canvas.height/pixelSize;y++) {
-                        /*initializing variables. i is number of iterations, 
-                        cx/cy are starting coordinates (stay the same), 
-                        and zx/zy are iterating coordiantes (change with every iteration) */
-                        var i = 0;
-                        var cx = ((x * pixelSize) / scale) + cornerCoords[0];
-                        var cy = ((y * pixelSize) / scale) + cornerCoords[1];
-                        zx = 0;
-                        zy = 0;
-                        //main processing loop
-                        while(i<maxIterations && (zx*zx+zy*zy)<4) {
-                            i += 1;
-                            //these are kind of cheaty, I can get away with not using complex numbers with this formula
-                            //xt = z
-                            xt = zx * zy;
-                            //z = z^2 + c
-                            zx = zx * zx - zy * zy + cx;
-                            zy = 2 * xt + cy;
-                        }
-                        //drawing colors based on i (iterations before escape)
+                highestI = 0;
+                secondHighestI = 0;
+                performance_log = [performance.now(), 0];
+                page_animation = drawingHandle();
+            }
 
-                        var color;
-                        if (i != maxIterations) {
-                            color = "hsl(" + (i*4) + ", 75%, 50%)";
-
-                            //if i is not max iterations and is larger than almost all the other i, log it
-                            if (i > secondHighestI) {
-                                if (i > highestI) {
-                                    secondHighestI = highestI;
-                                    highestI = i;
-                                } else {
-                                    secondHighestI = i;
-                                }
-                            }
-                        } else {
-                            color = "hsl(0, 0%, 0%)";
-                        }
-                        ctx.beginPath();
-                        ctx.fillStyle = color;
-                        ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
-                    }
+            //handles which lines to draw when
+            function drawingHandle() {
+                for (var y=page_parity; y<canvas.height/pixelSize; y+=parities) {
+                    drawRow(y);
                 }
+
+                page_parity += 1;
+                
+                //call self if not done with computation
+                if (page_parity < parities) {
+                    page_animation = window.requestAnimationFrame(drawingHandle);
+                } else {
+                    //if done, call final stuffies
+                    page_parity = 0;
+                    finalizeCycle();
+                }
+            }
+
+            function drawRow(y) {
+                for (var x=0;x<canvas.width/pixelSize;x++) {
+                    /*initializing variables. i is number of iterations, 
+                    cx/cy are starting coordinates (stay the same), 
+                    and zx/zy are iterating coordiantes (change with every iteration) */
+                    var i = 0;
+                    var cx = ((x * pixelSize) / scale) + cornerCoords[0];
+                    var cy = ((y * pixelSize) / scale) + cornerCoords[1];
+                    zx = 0;
+                    zy = 0;
+                    //main processing loop
+                    while(i<maxIterations && (zx*zx+zy*zy)<4) {
+                        i += 1;
+                        //these are kind of cheaty, I can get away with not using complex numbers with this formula
+                        //xt = z
+                        xt = zx * zy;
+                        //z = z^2 + c
+                        zx = zx * zx - zy * zy + cx;
+                        zy = 2 * xt + cy;
+                    }
+                    //drawing colors based on i (iterations before escape)
+
+                    var color;
+                    if (i != maxIterations) {
+                        color = "hsl(" + (i*4) + ", 75%, 50%)";
+
+                        //if i is not max iterations and is larger than almost all the other i, log it
+                        if (i > secondHighestI) {
+                            if (i > highestI) {
+                                secondHighestI = highestI;
+                                highestI = i;
+                            } else {
+                                secondHighestI = i;
+                            }
+                        }
+                    } else {
+                        color = "hsl(0, 0%, 0%)";
+                    }
+                    ctx.beginPath();
+                    ctx.fillStyle = color;
+                    ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
+                }
+                computationLine += 1;
+            }
+
+            function finalizeCycle() {
                 //update position text at the end
                 var text = "(" + xCenter;
                 text += ", " + yCenter;
@@ -114,17 +149,35 @@
                     if (secondHighestI >= maxIterations - 5) {
                         maxIterations = highestI + 20;
                     } else if (maxIterations >= secondHighestI) {
-                        //if maxIterations is more than 100 above the highest pixel, then reduce maxIterations by 100
+                        //if maxIterations is more than 100 above the highest pixel, then reduce maxIterations by 20
                         maxIterations -= 20;
-                        console.log("computation unneeded");
 
                         //keep a minimum number of iterations
                         if (maxIterations < minIterations) {
                             maxIterations = minIterations;
                         }
                     }
-                    console.log(maxIterations, highestI, secondHighestI);
                 }
+
+                //checking performance
+                performance_log[1] = performance.now();
+                var totalTime = performance_log[1] - performance_log[0];
+                
+                console.log(`rendering took ${totalTime} expected ${20 * parities}`);
+                //change expected number of frames for animation
+                parities = Math.floor(totalTime / 22);
+                //keep a maximum number of parities
+                if (parities > canvas.height / pixelSize) {
+                    parities = Math.floor(canvas.height / pixelSize);
+                }
+                
+                //keep a minimum number of parities
+                if (parities < 2) {
+                    parities = 2;
+                }
+                
+
+                updateDownloadImage();
             }
 
             function handlePress(v) {
@@ -166,17 +219,41 @@
                 //redraw after a set amount of time
                 setTimeout(draw, 200);
             }
+
+            function updateDownloadImage() {
+                var url = canvas.toDataURL();
+                pictureLink.href = url;
+            }
+
+            function updateCanvasSize() {
+                try {
+                    canvas.width = document.getElementById("xSizeValue").value;
+                } catch (e) {}
+
+                try {
+                    canvas.height = document.getElementById("ySizeValue").value;
+                } catch (e) {}
+
+                draw();
+            }
         </script>
     </head>
     <body>
         <div id="centerModule">
-        <canvas id="cavo" width="640" height="480"></canvas><br>
-        <p>Click to zoom in, and adjust sliders to control draw factors</p>
-        <input type="range" min="1" max="5" value="1" class="slider" id="resolutionRange"><br>
-        <p>Current pixel size: <span id="resolutionOutput">1</span></p>
-        <input type="range" min="0.5" max="3" value="1.5" step="0.1" class="slider" id="zoomRange"><br>
-        <p>Current zoom scale multiplier: <span id="zoomOutput">1.5</span></p>
-        <p>Current position in (x, y, zoom): <span id="totalPos">1</span></p>
+            <canvas id="cavo" width="640" height="480"></canvas><br>
+            <p>Click to zoom in, and use the elements below to control draw factors</p>
+            <input type="range" min="1" max="5" value="1" class="slider" id="resolutionRange"><br>
+            <p>Current pixel size: <span id="resolutionOutput">1</span></p>
+            <input type="range" min="0.5" max="3" value="1.5" step="0.1" class="slider" id="zoomRange"><br>
+            <p>Current zoom scale multiplier: <span id="zoomOutput">1.5</span></p>
+            <p>Current position in (x, y, zoom): <span id="totalPos">1</span></p>
+
+            <p> 
+                <input type="number" id="xSizeValue" value="640"> x 
+                <input type="number" id="ySizeValue" value="480"> 
+                <button onclick="updateCanvasSize()">Update Canvas Size</button>
+            </p>
+            <a id="pictureLink" download="mandelImage.png">download current drawing as a PNG</button>
         </div>
     </body>
 </html>
