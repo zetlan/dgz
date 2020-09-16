@@ -1,6 +1,7 @@
 <html>
     <head>
-        <title>Particles!</title>
+        <title>Polygons~!</title>
+        <meta charset="utf-8">
         <style>
             body {
                 background-color: slateblue;
@@ -17,6 +18,9 @@
                 margin: auto;
             }
         </style>
+
+        <!-- borrows 2d collision from rotate-->
+        <script src="rotate/2d-collision.js"></script>
         <script>
             window.onload = setup;
 
@@ -26,14 +30,45 @@
             var centerX;
             var centerY;
             let timer;
+            //all the polygon objects go here
+            let polygonArray = [];
+            //the merged polygon points go here
+            let pointsArray = [];
+
+
+            //polygon class
+
+            class Polygon {
+                constructor(x, y, sides, radius, offsetAngle) {
+                    this.x = x;
+                    this.y = y;
+                    this.r = radius;
+                    this.points = this.generatePoints(x, y, sides, radius, offsetAngle);
+                }
+
+                generatePoints(x, y, sides, r, offsetAngle) {
+                    var output = [];
+                    for (var an=0;an<sides+1;an++) {
+                        var trueAngle = ((an / sides) * (Math.PI * 2)) + (Math.PI / sides) + offsetAngle;
+                        var xAdd = r * Math.sin(trueAngle);
+                        var yAdd = r * Math.cos(trueAngle);
+                        output.push([x + xAdd, y + yAdd]);
+                    }
+                    return output;
+                }
+            }
 
             //setup function
             function setup() {
-                canvas = document.getElementById("cavalier");
+                canvas = document.getElementById("caviar");
                 ctx = canvas.getContext("2d");
 
                 centerX = canvas.width * 0.5;
                 centerY = canvas.height * 0.5;
+
+                polygonArray.push(new Polygon(centerX, centerY, 6, 100, 0));
+                polygonArray.push(new Polygon(centerX - 200, centerY, 5, 50, 0));
+                polygonArray.push(new Polygon(centerX + 1230, centerY, 6, 50, 0));
 
                 timer = setInterval(iterate, 20);
             }
@@ -42,13 +77,41 @@
                 //drawing background
                 ctx.fillStyle = "#CCF";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                //creating final shape
+                for (var a=0;a<polygonArray.length;a++) {
+                    pointsArray = dissolve(pointsArray, polygonArray[a].points);
+                }
+
+                //drawing all polygons
+                drawPoly(pointsArray);
+            }
+
+            function drawPoly(XYPointsArr) {
+                //special case for empty array
+                if (XYPointsArr.length > 0) {
+                    ctx.beginPath();
+                    ctx.moveTo(XYPointsArr[0][0], XYPointsArr[0][1]);
+                    for (var g=1;g<XYPointsArr.length;g++) {
+                        ctx.lineTo(XYPointsArr[g % (XYPointsArr.length-1)][0], XYPointsArr[g % (XYPointsArr.length-1)][1]);
+                    }
+                    ctx.stroke();
+                }
+            }
+
+
+            //this function takes in two arrays of xy points and dissolves them together, returning 1 polygon with just the outline
+            function dissolve(poly1, poly2) {
+                //loop through all the lines in polygon 1
+                //loop through all the lines in polygon 2
+                return poly1;
             }
 
         </script>
     </head>
     <body>
         <div id="centerModule">
-        <canvas id="cavalier" width="640" height="480"></canvas><br>
+        <canvas id="caviar" width="640" height="480"></canvas><br>
         <p id="explanText">
             A page where you can generate polygons, merge them together, and generally mess around!
         </p>
