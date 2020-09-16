@@ -7,33 +7,44 @@ var ctx;
 
 
 var color_background_0 = "#B8F";
-var color_background_1 = "#BEF";
+var color_background_1 = "#BFF";
+var color_background_2 = "#FA2";
+var color_background_3 = "#F88";
+var color_background_out = "#002";
 var color_player = "#FAF";
+var color_desert = "#FD7";
+var color_desert_highlight = "#FEC";
+var color_desert_shadow = "#DA9";
 var color_error = "#F0F";
 var color_exit = "#AAA";
 var color_exit_center = "#888";
 var color_exit_complete = "#AFA";
+var color_firefly = "#FF8";
 var color_floor = "#088";
 var color_grass = "#30DB44";
 var color_grass_highlight = "#5E6";
 var color_grass_shadow = "#3B7";
 var color_ice = "#DDF";
 var color_ice_highlight = "#EEF";
+var color_laser = "#F44";
 var color_mapFade = "#FFF";
+var color_rock = "#888";
 var color_snow = "#EFF";
 var color_switch = "#566";
 var color_switch_highlight = "#68A";
 var color_switch_ring = "#05F";
 var color_switch_ring_highlight = "#0AF";
+var color_temple = "#FA0";
+var color_temple_shadow = "#DA5";
 var color_text = "#226";
 var color_wall = "#044";
 var color_wall_secondary = "#024";
-var color_select1 = "#F80";
-var color_select2 = "#F88";
+var color_water = "#08F";
 
 
 var display_animDelay = 6;
 var display_entityShadowOffset = 3;
+var display_entityLightRadius = 6;
 var display_tileShadowOffset = 6;
 var display_vignetting = 0.6;
 var display_mapSwitchSpeed = 0.02;
@@ -41,7 +52,7 @@ var display_mapSwitchSpeed = 0.02;
 
 var editor_active = false;
 var editor_block = " ";
-var editor_possibleBlocks = " ACabce";
+var editor_possibleBlocks = " ACDabcdefgiw";
 var editor_blockNumber = 0;
 
 var font_large = "40px Courier";
@@ -60,12 +71,12 @@ var centerX;
 var centerY;
 
 var tile_size = 35;
-var tile_walkables = "aCcbe0123456789";
+var tile_walkables = "Cabcbdefgi0123456789";
 var tile_half = tile_size / 2;
 
 var camera =	{  
-					x: 0,
-					y: 0,
+					x: 1.357,
+					y: 6.133,
 					scale: 1
 				};
 
@@ -90,12 +101,19 @@ function setup() {
 	loading_map = map_out;
 
 	//setting up entities in the map_out zone
-	for (var a=0;a<18;a++) {
+	for (var a=0;a<16;a++) {
 		map_out.entities.push(new Orb("#AAF", 52 + a, 0));
 	}
-	for (var a=0;a<18;a++) {
+	for (var a=0;a<16;a++) {
 		map_out.entities.push(new Orb("#FAF", 52 + a, 6));
 	}
+
+	//setting up the rn map relations
+	map_rn1.parent = map_rn2;
+	map_rn2.parent = map_rn3;
+	map_rn3.parent = map_rn4;
+	map_rn4.parent = map_rn5;
+	map_rn5.parent = map_rn6;
 
 	centerX = canvas.width / 2;
 	centerY = canvas.height / 2;
@@ -182,6 +200,9 @@ function keyPress(hn) {
 
 /*this function is the main function that repeats every time the timer goes off. It clears the screen and then draws everything.  */
 function main() {
+	//starting performance test
+	//var times = [performance.now(), 0];
+
 	//clearing / drawing background
 	ctx.fillStyle = loading_map.bg;
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -223,6 +244,23 @@ function main() {
 	game_timer += 1;
 	display_tileShadowOffset = 6 + (Math.sin(game_timer / 100) * 2);
 
+
+	//performance testing
+	/*
+	times[1] = performance.now();
+	var totalTime = times[1] - times[0];
+	game_avgFrameTime.push(totalTime);
+	if (game_avgFrameTime.length > 100) {
+		var avg = 0;
+		for (var v=0;v<game_avgFrameTime.length;v++) {
+			avg += game_avgFrameTime[v];
+		}
+		avg /= game_avgFrameTime.length;
+
+		console.log("average time for past 100 frames is " + avg + "ms");
+		game_avgFrameTime = [];
+	} */
+
 	//call self for next frame
 	game_animation = window.requestAnimationFrame(main);
 }
@@ -249,12 +287,25 @@ function drawPoly(x, y, r, sides, offsetAngle) {
 	ctx.fill();
 }
 
+//this code is a mess but it's slightly faster than the drawPoly function
+function drawHexagonTile(x, y) {
+	ctx.beginPath();
+	ctx.moveTo(x + tile_half + 0.5, y + (tile_half * 0.58));
+	ctx.lineTo(x + tile_half + 0.5, y - (tile_half * 0.58));
+	ctx.lineTo(x, y - (tile_size * 0.58));
+	ctx.lineTo(x - tile_half - 0.5, y - (tile_half * 0.58));
+	ctx.lineTo(x - tile_half - 0.5, y + (tile_half * 0.58));
+	ctx.lineTo(x, y + (tile_size * 0.58));
+	ctx.lineTo(x + tile_half + 0.5, y + (tile_half * 0.58));
+	ctx.fill();
+}
+
 function drawMap() {
 	//first determining where to start
 	//tileStartX and tileStartY tell the function which square from the loading map data array to read from
 	//I'm dividing by 0.866 instead of sin(pi / 3) because it's faster and I don't think the extra precision is worth it
 	var tileStartX = Math.floor(camera.x);
-	var tileStartY = Math.floor(camera.y / 0.866);
+	var tileStartY = Math.floor(camera.y / 0.866) - 1;
 
 	//drawSquares x / y say how many hexagons to draw in each dimension
 	var drawSquaresX = Math.floor(canvas.width / tile_size) + 2;
@@ -316,6 +367,13 @@ function drawMap() {
 
 
 //other utility functions
+function determineEnding() {
+	if (player.y < 3) {
+		loading_map.parent = map_rn1;
+	} else {
+		loading_map.parent = map_free;
+	}
+}
 function linterp(a, b, percentage) {
 	return (a + ((b - a) * percentage));
 }
@@ -418,4 +476,26 @@ function performanceTest() {
         
 	var totalTime = perfTime[1] - perfTime[0];
 	console.log(`performance test took ${totalTime} ms`);
+}
+
+
+function shadowTest() {
+	ctx.fillStyle = "#000";
+	ctx.beginPath();
+	ctx.rect(0,0,canvas.width,canvas.height);
+	
+	ctx.moveTo(50, 50);
+	ctx.lineTo(50, 250);
+	ctx.lineTo(250,250);
+	ctx.lineTo(250, 50);
+
+	
+	ctx.moveTo(300, 300);
+	ctx.lineTo(300, 450);
+	ctx.lineTo(450, 450);
+	ctx.lineTo(450, 300);
+	
+	ctx.closePath();
+	//ctx.clip();
+	ctx.fill();
 }
