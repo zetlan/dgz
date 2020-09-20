@@ -1,0 +1,184 @@
+<html>
+	<head>
+		<title>Desert at 01:54 on September 19th, 1995</title>
+		<meta charset="utf-8">
+		<style>
+			body {
+				background-color: slateblue;
+			}
+
+			#cavalier {
+				margin: auto;
+				text-align: center;
+				display: block;
+			}
+
+			#centerModule {
+				text-align: center;
+				margin: auto;
+			}
+		</style>
+		<script>
+			window.onload = setup;
+
+			//global variables
+			var canvas;
+			var ctx;
+			var centerX;
+			var centerY;
+
+			let page_animation;
+			let player;
+
+			var world_bg = "#002";
+			let world_objects = [];
+			
+
+			
+			
+
+			//classes
+
+			class Player {
+				constructor(x, y, x, xRot, yRot) {
+					this.x = x;
+					this.y = y;
+					this.z = z;
+
+					this.dx = 0;
+					this.dy = 0;
+					this.dz = 0;
+
+					this.ax = 0;
+					this.ay = 0;
+					this.az = 0;
+
+
+					this.theta = yRot;
+					this.phi = xRot;
+
+					this.dt = 0;
+					this.dp = 0;
+				}
+
+				tick() {
+
+				}
+			}
+
+			class Platform {
+				constructor(x, y, z, l, w, color) {
+					this.x = x;
+					this.y = y;
+					this.z = z;
+					this.len = l;
+					this.wdt = w;
+					this.collisionHeight = 20;
+					
+					this.color = color;
+
+					this.points = [	[this.x + this.len, this.y, this.z - this.wdt],
+									[this.x + this.len, this.y, this.z + this.wdt],
+									[this.x - this.len, this.y, this.z + this.wdt],
+									[this.x - this.len, this.y, this.z - this.wdt]];
+				}
+
+				tick() {
+					//collide correctly with player
+				}
+
+				beDrawn() {
+					//determine where to be drawn and draw self there
+					drawQuad(spaceToScreen(this.points[0]), spaceToScreen(this.points[1]), spaceToScreen(this.points[2]), spaceToScreen(this.points[3]));
+				}
+			}
+
+			//setup function
+			function setup() {
+				canvas = document.getElementById("cornh");
+				ctx = canvas.getContext("2d");
+
+				centerX = canvas.width * 0.5;
+				centerY = canvas.height * 0.5;
+
+				player = new Player(0, 0, 0, 0, 0);
+
+				//setting up world
+				world_objects = [new Platform(0, 0, 0, 1000, 1000, 20)];
+
+				page_animation = window.requestAnimationFrame(main);
+			}
+
+			function main() {
+				//drawing background
+				ctx.fillStyle = world_bg;
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+				//call self
+				page_animation = window.requestAnimationFrame(main);
+			}
+
+
+
+			//drawing functions
+
+			function drawQuad(p1, p2, p3, p4) {
+
+			}
+
+
+
+
+
+
+
+
+
+
+
+			//utility functions
+			function spaceToScreen(pointArr) {
+				//takes in an xyz list and outputs an xy list
+				var tX = pointArr[0];
+				var tY = pointArr[1];
+				var tZ = pointArr[2];
+
+				//step 0: rotate coordinates around 0, 0, 0
+				//only check angle after time has passed
+				if (pTime > 0) {
+					var a = loadingMap.angle;
+					if (a > 0 || a < 0) {
+						[tX, tZ] = rotate(tX, tZ, a);
+					}
+				}
+				
+				//step 1: make coordinates relative to camera
+				tX -= camera.x;
+				tY -= camera.y;
+				tZ -= camera.z;
+
+				//step 2: divide by axis perpendicular to camera
+				tX /= tZ;
+				tY /= tZ;
+				
+
+				//step 2.5: account for camera scale
+				tX *= camera.scale;
+
+				//flipping image
+				tY *= -1 * camera.scale;
+
+				//step 3: account for screen coordinates
+				tX += canvas.width / 2;
+				tY += canvas.height / 2;
+
+				return [tX, tY];
+			}
+		</script>
+	</head>
+	<body>
+		<div id="centerModule">
+		<canvas id="cornh" width="640" height="480"></canvas><br>
+		</div>
+	</body>
+</html>
