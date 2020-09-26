@@ -4,7 +4,7 @@ function generateStarSphere() {
 	//random stars
 	for (var e=0;e<100;e++) {
 		var pos = polToCart(randomCustom(0, Math.PI * 2), randomCustom(0.1, (Math.PI * 0.48)), randomCustom(world_starDistance, world_starDistance * 2));
-		world_objects.splice(0, 0, new Star(pos[0], pos[1], pos[2]));
+		world_stars.push(new Star(pos[0], pos[1], pos[2]));
 	}
 }
 
@@ -13,7 +13,7 @@ function generateStaircase() {
 		var x = 40 * Math.sin((Math.PI / 6) * y);
 		var z = 40 * Math.cos((Math.PI / 6) * y);
 
-		world_objects.push(new Platform(x, y*2, z, 10, 10, "#F0F"));
+		world_objects.push(new Floor(x, y*2, z, 10, 10, "#F0F"));
 	}
 }
 
@@ -51,11 +51,70 @@ function linterp(a, b, percentage) {
 	return a + ((b - a) * percentage);
 }
 
+//takes in all the unordered objects in the map, and returns an ordered list of them by distance to the player
+function orderObjects() {
+	//addings all world objects to first array
+	let unsorted_objects = [];
+	let ordered = [];
+	let buckets = [[], [], [], [], [], [], [], [], [], []];
+	for (var e=0;e<world_objects.length;e++) {
+		unsorted_objects.push(world_objects[e]);
+	}
+
+	//take out all the stars and put them at the start of the list
+	for (var w=0;w<unsorted_objects.length;w++) {
+		if (unsorted_objects[w] instanceof Star) {
+			ordered.push(unsorted_objects[w]);
+			unsorted_objects.splice(w, 1);
+			w -= 1;
+		}
+	}
+	//after stars are the world floor
+	ordered.push(world_floor);
+	if (world_floor == unsorted_objects[0]) {
+		unsorted_objects.splice(0, 1);
+	}
+
+	//running a radix sort
+	//4 places
+	for (var pos=1;pos<5;pos++) {
+		//push objects to buckets
+		while (unsorted_objects.length > 0) {
+			//formula determines which bucket to push into
+			buckets[Math.floor(((unsorted_objects[0].pDist) % Math.pow(10, pos) / Math.pow(10, pos-1)))].push(unsorted_objects[0]);
+			unsorted_objects.splice(0, 1);
+		}
+
+		//empty buckets
+		for (var k=0;k<buckets.length;k++) {
+			while (buckets[k].length > 0) {
+				unsorted_objects.push(buckets[k][0]);
+				buckets[k].splice(0, 1);
+			}
+		}
+	}
+	/*
+	if (!editor_active) {
+		for (var u=0;u<unsorted_objects.length;u++) {
+			console.log(unsorted_objects[u].pDist);
+		}
+		editor_active = true;
+	} */
+
+	//push now ordered list to final array
+	while (unsorted_objects.length > 0) {
+		ordered.push(unsorted_objects[unsorted_objects.length-1]);
+		unsorted_objects.splice(unsorted_objects.length-1, 1);
+	}
+	
+	return ordered;
+}
+
 function polToCart(theta, phi, radius) {
 	//theta here is horizontal angle, while phi is vertical inclination
-	var x = radius * Math.cos(theta) * Math.sin(phi);
-	var y = radius * Math.cos(phi);
-	var z = radius * Math.sin(theta) * Math.sin(phi);
+	var x = radius * Math.sin(theta) * Math.cos(phi);
+	var y = radius * Math.sin(phi);
+	var z = radius * Math.cos(theta) * Math.cos(phi);
 	return [x, y, z];
 }
 
@@ -111,4 +170,63 @@ function randomCustom(min, max) {
 function rotate(x, z, radians) {
 	[x, z] = [(x * Math.cos(radians)) - (z * Math.sin(radians)), (z * Math.cos(radians)) + (x * Math.sin(radians))];
 	return [x, z];
+}
+
+function runCrash() {
+	ctx.fillStyle = "#F0F";
+	ctx.fillRect(0, 0, canvas.width / 2, canvas.height / 2);
+	ctx.fillRect(canvas.width / 2, canvas.height / 2, canvas.width / 2, canvas.height / 2);
+
+	ctx.fillStyle = "#000";
+	ctx.fillRect(canvas.width / 2, 0, canvas.width / 2, canvas.height / 2);
+	ctx.fillRect(0, canvas.height / 2, canvas.width / 2, canvas.height / 2);
+
+	window.cancelAnimationFrame(game_animation);
+}
+
+
+
+
+
+//drawing functions
+
+function drawQuad(color, p1, p2, p3, p4) {
+	//console.log(color, p1, p2, p3, p4);
+	ctx.fillStyle = color;
+	ctx.strokeStyle = color;
+	ctx.beginPath();
+	ctx.moveTo(p1[0], p1[1]);
+	ctx.lineTo(p2[0], p2[1]);
+	ctx.lineTo(p3[0], p3[1]);
+	ctx.lineTo(p4[0], p4[1]);
+	ctx.lineTo(p1[0], p1[1]);
+	ctx.stroke();
+	ctx.fill();
+}
+
+function drawPoly(color, xyPointsArr) {
+	ctx.fillStyle = color;
+	if (!editor_active) {
+		ctx.strokeStyle = color;
+	}
+	
+	var xypa = xyPointsArr;
+	ctx.beginPath();
+	ctx.moveTo(xypa[0][0], xypa[0][1]);
+	for (var i=1;i<xypa.length;i++) {
+		ctx.lineTo(xypa[i][0], xypa[i][1]);
+	}
+	//back to start
+	ctx.lineTo(xypa[0][0], xypa[0][1]);
+	ctx.stroke();
+	ctx.fill();
+}
+
+function drawCircle(color, x, y, radius) {
+	ctx.beginPath();
+	ctx.fillStyle = color;
+	ctx.strokeStyle = color;
+	ctx.ellipse(x, y, radius, radius, 0, 0, Math.PI * 2);
+	ctx.stroke();
+	ctx.fill();
 }

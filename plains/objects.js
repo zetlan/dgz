@@ -66,13 +66,22 @@ class Player {
 		}
 
 		//handling position
-		this.x += this.dz * Math.sin(this.theta);
-		this.z += this.dz * Math.cos(this.theta);
+		if (!editor_active) {
+			this.x += this.dz * Math.sin(this.theta);
+			this.z += this.dz * Math.cos(this.theta);
 
-		this.x += this.dx * Math.sin(this.theta + (Math.PI/2));
-		this.z += this.dx * Math.cos(this.theta + (Math.PI/2));
-		
-		this.y += this.dy;
+			this.x += this.dx * Math.sin(this.theta + (Math.PI/2));
+			this.z += this.dx * Math.cos(this.theta + (Math.PI/2));
+			
+			this.y += this.dy;
+		} else {
+			if (this.dz > 0.1) {
+				var moveCoords = polToCart(this.theta, this.phi, this.speed * 100);
+				this.x += moveCoords[0];
+				this.y += moveCoords[1];
+				this.z += moveCoords[2];
+			}
+		}
 
 
 		//camera velocity
@@ -87,149 +96,63 @@ class Player {
 	}
 }
 
-class Platform {
-	constructor(x, y, z, l, w, color) {
-		this.x = x;
-		this.y = y;
-		this.z = z;
-		this.len = l;
-		this.wdt = w;
-		this.collisionHeight = 20;
-		
-		this.color = color;
-
-		this.points = [	[this.x + this.len, this.y, this.z - this.wdt],
-						[this.x + this.len, this.y, this.z + this.wdt],
-						[this.x - this.len, this.y, this.z + this.wdt],
-						[this.x - this.len, this.y, this.z - this.wdt]];
-
-		this.drawCoords = [];
+class TreeNode {
+	constructor(contains) {
+		this.contains = contains;
+		this.inObj = undefined;
+		this.outObj = undefined;
 	}
 
-	tick() {
-		//collide correctly with player
-		//if the player is in the same xz spot as self, move player above self
-		if (player.x > this.x - this.len && player.x < this.x + this.len && player.z > this.z - this.wdt && player.z < this.z + this.wdt) {
-			if (player.y < this.y + player.height && player.y > this.y) {
-				player.y = this.y + player.height;
-				if (player.dy < 0) {
-					player.dy = 0;
-					player.onGround = true;
-				}
-			}
+	//passes object to a spot below the self
+	accept(object) {
+		var ref = this.contains;
+		var outputs = object.clipAtPlane([ref.x, ref.y, ref.z], [ref.normal[0], ref.normal[1]]);
+
+		//if the object in the below bucket is not defined, push output to below bucket
+		if (this.inObj == undefined) {
+			this.inObj = new TreeNode(outputs[0]);
+		} else if (outputs[0] != undefined) {
+			//if there is something in the below bucket, make sure that the output is valid before making it the below bucket's problem
+			this.inObj.accept(outputs[0]);
+		}
+
+		if (this.outObj == undefined) {
+			this.outObj = new TreeNode(outputs[1]);
+		} else if (outputs[1] != undefined) {
+			this.outObj.accept(outputs[1]);
 		}
 	}
 
-	beDrawn() {
-		//first get camera coordinate points
-		var tempPoints = [this.spaceToCamera(this.points[0]), this.spaceToCamera(this.points[1]), this.spaceToCamera(this.points[2]), this.spaceToCamera(this.points[3])];
-
-		//loop through all points
-		for (var y=0;y<tempPoints.length;y++) {
-			//if the selected point will be clipped, run the algorithm
-			if (tempPoints[y][2] < render_clipDistance) {
-				//freefriends is the number of adjacent non-clipped points
-				var freeFriends = (tempPoints[(y+(tempPoints.length-1))%tempPoints.length][2] >= render_clipDistance) + (tempPoints[(y+1)%tempPoints.length][2] >= render_clipDistance);
-
-				if (freeFriends == 0) {
-					//if there are no free friends, there's no point in attempting, so just move on
-					tempPoints.splice(y, 1);
-					y -= 1;
-				} else {
-					//move towards friends
-					var friendCoords = tempPoints[(y+(tempPoints.length-1))%tempPoints.length];
-					var moveAmount = getPercentage(friendCoords[2], tempPoints[y][2], render_clipDistance)
-					var newPointCoords = [linterp(friendCoords[0], tempPoints[y][0], moveAmount), linterp(friendCoords[1], tempPoints[y][1], moveAmount), render_clipDistance + 0.05];
-
-					tempPoints.splice(y, 0, newPointCoords);
-
-					y += 1;
-
-					friendCoords = tempPoints[(y+1)%tempPoints.length];
-					moveAmount = getPercentage(friendCoords[2], tempPoints[y][2], render_clipDistance)
-					newPointCoords = [linterp(friendCoords[0], tempPoints[y][0], moveAmount), linterp(friendCoords[1], tempPoints[y][1], moveAmount), render_clipDistance + 0.05];
-					tempPoints.splice(y, 1);
-					tempPoints.splice(y, 0, newPointCoords);
-				}
-			}
-		}
-		
-		//turn points into screen coordinates
-		var screenPoints = [];
-		for (var a=0;a<tempPoints.length;a++) {
-			screenPoints.push(this.cameraToScreen(tempPoints[a]));
+	//sorry, I probably could have made these one function but I'm lazy oh well
+	traverse() {
+		//left
+		if (this.inObj != undefined) {
+			this.inObj.traverse();
 		}
 
-		if (screenPoints.length == 0) {
-			screenPoints = [[0, 0], [0, 0]];
+		//center
+		this.contains.tick();
+		this.contains.beDrawn();
+
+		//right
+		if (this.outObj != undefined) {
+			this.outObj.traverse();
+		}
+	}
+
+	traverseBackwards() {
+		//right
+		if (this.outObj != undefined) {
+			this.outObj.traverse();
 		}
 
+		//center
+		this.contains.tick();
+		this.contains.beDrawn();
 
-		//finally draw self
-		drawPoly(this.color, screenPoints);
-	}
-
-	//these two functions do the same thing as spaceToScreen, but split so the clipping plane can be implemented
-
-	//turns world coordinates into 3d camera coordinates, for clipping
-	spaceToCamera(point) {
-		var [tX, tY, tZ] = point;
-
-		tX -= player.x;
-		tY -= player.y;
-		tZ -= player.z;
-
-		[tX, tZ] = rotate(tX, tZ, player.theta);
-		[tY, tZ] = rotate(tY, tZ, player.phi);
-
-		return [tX, tY, tZ];
-	}
-
-	//turns camera coordinates into 2d screen coordinates
-	cameraToScreen(point) {
-		//divide by axis perpendicular to player
-		var [tX, tY, tZ] = point;
-		tX /= tZ;
-		tY /= tZ;
-
-		//accounting for camera scale
-		tX *= player.scale;
-
-		//flipping image
-		tY *= -1 * player.scale;
-
-		//accounting for screen coordinates
-		tX += canvas.width / 2;
-		tY += canvas.height / 2;
-
-		return [tX, tY];
-	}
-}
-
-class Star {
-	constructor(x, y, z) {
-		this.color = "#AAF";
-		this.r = 10000;
-		this.drawR;
-
-		this.x = x;
-		this.y = y;
-		this.z = z;
-	}
-
-	tick() {
-		//getting distance to player
-		var dTP = [this.x - player.x, this.y - player.y, this.z - player.z];
-		var pyXYDist = Math.sqrt((dTP[0] * dTP[0]) + (dTP[1] * dTP[1]));
-		var pyDist = Math.sqrt((pyXYDist * pyXYDist) + (dTP[2] * dTP[2]));
-
-		this.drawR = this.r / pyDist;
-	}
-
-	beDrawn() {
-		if (!isClipped([this.x, this.y, this.z])) {
-			var drawCoords = spaceToScreen([this.x, this.y, this.z]);
-			drawCircle(this.color, drawCoords[0], drawCoords[1], this.drawR);
+		//left
+		if (this.inObj != undefined) {
+			this.inObj.traverse();
 		}
 	}
 }
