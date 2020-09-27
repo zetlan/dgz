@@ -75,12 +75,19 @@ class Player {
 			
 			this.y += this.dy;
 		} else {
-			if (this.dz > 0.1) {
-				var moveCoords = polToCart(this.theta, this.phi, this.speed * 100);
-				this.x += moveCoords[0];
-				this.y += moveCoords[1];
-				this.z += moveCoords[2];
+			var moveCoords = [0, 0, 0];
+			if (Math.abs(this.dz) > 0.1) {
+				var toAdd = polToCart(this.theta, this.phi, this.speed * 500 * this.dz);
+				moveCoords = [moveCoords[0] + toAdd[0], moveCoords[1] + toAdd[1], moveCoords[2] + toAdd[2]];
+				
 			}
+			if (Math.abs(this.dx) > 0.1) {
+				var toAdd = polToCart(this.theta + (Math.PI / 2), 0, this.speed * 500 * this.dx);
+				moveCoords = [moveCoords[0] + toAdd[0], moveCoords[1] + toAdd[1], moveCoords[2] + toAdd[2]];
+			}
+			this.x += moveCoords[0];
+			this.y += moveCoords[1];
+			this.z += moveCoords[2];
 		}
 
 
@@ -109,50 +116,61 @@ class TreeNode {
 		var outputs = object.clipAtPlane([ref.x, ref.y, ref.z], [ref.normal[0], ref.normal[1]]);
 
 		//if the object in the below bucket is not defined, push output to below bucket
-		if (this.inObj == undefined) {
-			this.inObj = new TreeNode(outputs[0]);
-		} else if (outputs[0] != undefined) {
-			//if there is something in the below bucket, make sure that the output is valid before making it the below bucket's problem
-			this.inObj.accept(outputs[0]);
+		if (outputs[0] != undefined) {
+			if (this.inObj == undefined) {
+				this.inObj = new TreeNode(outputs[0]);
+			} else {
+				//if there is something in the below bucket, make sure that the output is valid before making it the below bucket's problem
+				this.inObj.accept(outputs[0]);
+			}
 		}
 
-		if (this.outObj == undefined) {
-			this.outObj = new TreeNode(outputs[1]);
-		} else if (outputs[1] != undefined) {
-			this.outObj.accept(outputs[1]);
-		}
-	}
-
-	//sorry, I probably could have made these one function but I'm lazy oh well
-	traverse() {
-		//left
-		if (this.inObj != undefined) {
-			this.inObj.traverse();
-		}
-
-		//center
-		this.contains.tick();
-		this.contains.beDrawn();
-
-		//right
-		if (this.outObj != undefined) {
-			this.outObj.traverse();
+		if (outputs[1] != undefined) {
+			if (this.outObj == undefined) {
+				this.outObj = new TreeNode(outputs[1]);
+			} else {
+				this.outObj.accept(outputs[1]);
+			}
 		}
 	}
 
-	traverseBackwards() {
-		//right
-		if (this.outObj != undefined) {
-			this.outObj.traverse();
-		}
+	traverse(tick) {
+		//getting the dot product of angles between self normal and player normal
+		var v1 = polToCart(this.contains.normal[0], this.contains.normal[1], 1);
+		var v2 = [player.x - this.contains.x, player.y - this.contains.y, player.z - this.contains.z];
 
-		//center
-		this.contains.tick();
-		this.contains.beDrawn();
+		var dot = (v1[0] * v2[0]) + (v1[1] * v2[1]) + (v1[2] * v2[2]);
 
-		//left
-		if (this.inObj != undefined) {
-			this.inObj.traverse();
+		//traverse in reverse order if the dot product is negative
+		if (dot > 0) {
+			//right
+			if (this.outObj != undefined) {
+				this.outObj.traverse(tick);
+			}
+
+			//center
+			if (tick) {
+				this.contains.tick();
+			} else {
+				this.contains.beDrawn();
+			}
+
+			//left
+			if (this.inObj != undefined) {
+				this.inObj.traverse(tick);
+			}
+		} else {
+			if (this.inObj != undefined) {
+				this.inObj.traverse(tick);
+			}
+			if (tick) {
+				this.contains.tick();
+			} else {
+				this.contains.beDrawn();
+			}
+			if (this.outObj != undefined) {
+				this.outObj.traverse(tick);
+			}
 		}
 	}
 }

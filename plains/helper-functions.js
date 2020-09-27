@@ -1,5 +1,17 @@
 //houses functions of various utility, from 3d rendering to 2d drawing to misc. object manipulation
+
+
+
 //generation functions
+function generateBinTree() {
+	world_binTree = new TreeNode(world_objects[0]);
+	console.log(world_binTree.contains == world_objects[0]);
+
+	for (var r=1;r<world_objects.length;r++) {
+		world_binTree.accept(world_objects[r]);
+	}
+	console.log(world_binTree.contains == world_objects[0]);
+}
 function generateStarSphere() {
 	//random stars
 	for (var e=0;e<100;e++) {
@@ -23,6 +35,19 @@ function generateStaircase() {
 
 
 //utility functions
+
+//the opposite of polToCart, takes in an xyz point and outputs a vector in the form of [theta, phi, radius]
+function cartToPol(x, y, z) {
+	var rad = Math.sqrt((x * x) + (y * y) + (z * z));
+	var phi = Math.asin(y / rad);
+	var theta = Math.asin((x / rad) / Math.cos(phi));
+	return [theta, phi, rad];
+}
+//keeps a number between certain bounds
+//these operators are stupid and I hope to never use them again
+function clamp(num, min, max) {
+	return num <= min ? min : num >= max ? max : num;
+}
 
 //returns the percentage from val1 to val2 that the checkVal is in
 //example: 0, 10, 5, returns 0.5)
@@ -93,13 +118,6 @@ function orderObjects() {
 			}
 		}
 	}
-	/*
-	if (!editor_active) {
-		for (var u=0;u<unsorted_objects.length;u++) {
-			console.log(unsorted_objects[u].pDist);
-		}
-		editor_active = true;
-	} */
 
 	//push now ordered list to final array
 	while (unsorted_objects.length > 0) {

@@ -26,39 +26,16 @@ class Floor {
 	}
 
 	beDrawn() {
+		//this.calculatePointsAndNormal();
 		//first get camera coordinate points
 		var camAng = [player.theta, player.phi];
-		var tempPoints = [this.spaceToRelative(this.points[0], camAng), this.spaceToRelative(this.points[1], camAng), this.spaceToRelative(this.points[2], camAng), this.spaceToRelative(this.points[3], camAng)];
-
-		//loop through all points
-		for (var y=0;y<tempPoints.length;y++) {
-			//if the selected point will be clipped, run the algorithm
-			if (tempPoints[y][2] < render_clipDistance) {
-				//freefriends is the number of adjacent non-clipped points
-				var freeFriends = (tempPoints[(y+(tempPoints.length-1))%tempPoints.length][2] >= render_clipDistance) + (tempPoints[(y+1)%tempPoints.length][2] >= render_clipDistance);
-
-				if (freeFriends == 0) {
-					//if there are no free friends, there's no point in attempting, so just move on
-					tempPoints.splice(y, 1);
-					y -= 1;
-				} else {
-					//move towards friends
-					var friendCoords = tempPoints[(y+(tempPoints.length-1))%tempPoints.length];
-					var moveAmount = getPercentage(friendCoords[2], tempPoints[y][2], render_clipDistance)
-					var newPointCoords = [linterp(friendCoords[0], tempPoints[y][0], moveAmount), linterp(friendCoords[1], tempPoints[y][1], moveAmount), render_clipDistance + 0.05];
-
-					tempPoints.splice(y, 0, newPointCoords);
-
-					y += 1;
-
-					friendCoords = tempPoints[(y+1)%tempPoints.length];
-					moveAmount = getPercentage(friendCoords[2], tempPoints[y][2], render_clipDistance)
-					newPointCoords = [linterp(friendCoords[0], tempPoints[y][0], moveAmount), linterp(friendCoords[1], tempPoints[y][1], moveAmount), render_clipDistance + 0.05];
-					tempPoints.splice(y, 1);
-					tempPoints.splice(y, 0, newPointCoords);
-				}
-			}
+		var pt = [player.x, player.y, player.z];
+		var tempPoints = [];
+		for (var p=0;p<this.points.length;p++) {
+			tempPoints.push(this.spaceToRelative(this.points[p], pt, camAng));
 		}
+
+		tempPoints = this.clipToZ0(tempPoints, render_clipDistance, false);
 		
 		//turn points into screen coordinates
 		var screenPoints = [];
@@ -106,7 +83,7 @@ class Floor {
 		var outPart = undefined;
 
 		//getting points aligned to the plane
-		var tempPoints;
+		var tempPoints = [];
 		for (var j=0;j<this.points.length;j++) {
 			//aligning to point
 			var [tX, tY, tZ] = [this.points[j][0] - planePoint[0], this.points[j][1] - planePoint[1], this.points[j][2] - planePoint[2]];
@@ -135,68 +112,23 @@ class Floor {
 			for (var a=0;a<tempPoints.length;a++) {
 				outPoints[a] = tempPoints[a];
 			}
-			//loop through all points
-			for (var y=0;y<tempPoints.length;y++) {
-				//if the selected point will be clipped, run the algorithm
-				if (tempPoints[y][2] <= 0) {
-					//freefriends is the number of adjacent non-clipped points
-					var freeFriends = (tempPoints[(y+(tempPoints.length-1))%tempPoints.length][2] >= 0.05) + (tempPoints[(y+1)%tempPoints.length][2] >= 0.05);
 
-					if (freeFriends == 0) {
-						//if there are no free friends, there's no point in attempting, so just move on
-						tempPoints.splice(y, 1);
-						y -= 1;
-					} else {
-						//move towards friends
-						var friendCoords = tempPoints[(y+(tempPoints.length-1))%tempPoints.length];
-						var moveAmount = getPercentage(friendCoords[2], tempPoints[y][2], 0.05);
-						var newPointCoords = [linterp(friendCoords[0], tempPoints[y][0], moveAmount), linterp(friendCoords[1], tempPoints[y][1], moveAmount), 0.05];
+			//clip
+			tempPoints = this.clipToZ0(tempPoints, 0, false);
 
-						tempPoints.splice(y, 0, newPointCoords);
-
-						y += 1;
-
-						friendCoords = tempPoints[(y+1)%tempPoints.length];
-						moveAmount = getPercentage(friendCoords[2], tempPoints[y][2], 0.05);
-						newPointCoords = [linterp(friendCoords[0], tempPoints[y][0], moveAmount), linterp(friendCoords[1], tempPoints[y][1], moveAmount), 0.05];
-						tempPoints.splice(y, 1);
-						tempPoints.splice(y, 0, newPointCoords);
-					}
-				}
+			//transforming points to world coordinates
+			for (var q=0;q<tempPoints.length;q++) {
+				tempPoints[q] = this.relativeToSpace(tempPoints[q], planePoint, planeNormal);
 			}
 
-			//clip part 2
-			for (var y=0;y<outPoints.length;y++) {
-				//if the selected point will be clipped, run the algorithm
-				if (outPoints[y][2] <= 0) {
-					//freefriends is the number of adjacent non-clipped points
-					var freeFriends = (outPoints[(y+(outPoints.length-1))%outPoints.length][2] >= 0.05) + (outPoints[(y+1)%outPoints.length][2] >= 0.05);
-
-					if (freeFriends == 0) {
-						//if there are no free friends, there's no point in attempting, so just move on
-						outPoints.splice(y, 1);
-						y -= 1;
-					} else {
-						//move towards friends
-						var friendCoords = outPoints[(y+(outPoints.length-1))%outPoints.length];
-						var moveAmount = getPercentage(friendCoords[2], outPoints[y][2], 0.05);
-						var newPointCoords = [linterp(friendCoords[0], outPoints[y][0], moveAmount), linterp(friendCoords[1], outPoints[y][1], moveAmount), 0.05];
-
-						outPoints.splice(y, 0, newPointCoords);
-
-						y += 1;
-
-						friendCoords = outPoints[(y+1)%outPoints.length];
-						moveAmount = getPercentage(friendCoords[2], outPoints[y][2], 0.05);
-						newPointCoords = [linterp(friendCoords[0], outPoints[y][0], moveAmount), linterp(friendCoords[1], outPoints[y][1], moveAmount), 0.05];
-						outPoints.splice(y, 1);
-						outPoints.splice(y, 0, newPointCoords);
-					}
-				}
+			outPoints = this.clipToZ0(outPoints, 0, true);
+			for (var q=0;q<outPoints.length;q++) {
+				outPoints[q] = this.relativeToSpace(outPoints[q], planePoint, planeNormal);
 			}
 
 			//turning point array into objects that can be put into nodes
-			var outBit = new FreePoly(points, this.normal);
+			outPart = new FreePoly(tempPoints, this.normal, this.color);
+			inPart = new FreePoly(outPoints, this.normal, this.color);
 		} else {
 			//if clipping is not necessary, then just return self
 			if (tempPoints[0][2] > 0) {
@@ -208,6 +140,67 @@ class Floor {
 		
 
 		return [inPart, outPart];
+	}
+
+	clipToZ0(polyPoints, tolerance, invertClipDirection) {
+		//to save time, inverting the clip direction just means inverting all the points, then inverting back
+		if (invertClipDirection) {
+			for (var a=0;a<polyPoints.length;a++) {
+				polyPoints[a][2] *= -1;
+			}
+		}
+		for (var y=0;y<polyPoints.length;y++) {
+			//if the selected point will be clipped, run the algorithm
+			if (polyPoints[y][2] < tolerance) {
+				//freefriends is the number of adjacent non-clipped points
+				var freeFriends;
+				var freeFriends = (polyPoints[(y+(polyPoints.length-1))%polyPoints.length][2] >= tolerance) + (polyPoints[(y+1)%polyPoints.length][2] >= tolerance);
+				switch (freeFriends) {
+					case 0:
+						//if there are no free friends, there's no point in attempting, so just move on
+						polyPoints.splice(y, 1);
+						y -= 1;
+						break;
+					case 1:
+						//determine which one is free, then move towards it
+						var friendCoords;
+						var moveAmount;
+						var newPointCoords;
+						//lesser friend
+						if (polyPoints[(y+(polyPoints.length-1))%polyPoints.length][2] >= tolerance) {
+							friendCoords = polyPoints[(y+(polyPoints.length-1))%polyPoints.length];
+							moveAmount = getPercentage(friendCoords[2], polyPoints[y][2], tolerance);
+							newPointCoords = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance];		
+						} else {
+							//greater friend
+							friendCoords = polyPoints[(y+1)%polyPoints.length];
+							moveAmount = getPercentage(friendCoords[2], polyPoints[y][2], tolerance);
+							newPointCoords = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance + 0.05];
+						}
+						polyPoints[y] = newPointCoords;
+						break;
+					case 2:
+						//move towards both friends
+						var friendCoords = polyPoints[(y+(polyPoints.length-1))%polyPoints.length];
+						var moveAmount = getPercentage(friendCoords[2], polyPoints[y][2], tolerance);
+						var newPointCoords = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance + 0.05];
+	
+						friendCoords = polyPoints[(y+1)%polyPoints.length];
+						moveAmount = getPercentage(friendCoords[2], polyPoints[y][2], tolerance);
+						var newerPointCoords = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance + 0.05];
+
+						polyPoints[y] = newerPointCoords;
+						polyPoints.splice(y, 0, newPointCoords);
+						break;
+				}
+			}
+		}
+		if (invertClipDirection) {
+			for (var a=0;a<polyPoints.length;a++) {
+				polyPoints[a][2] *= -1;
+			}
+		}
+		return polyPoints;
 	}
 
 	collideWithPlayer() {
@@ -237,15 +230,15 @@ class Floor {
 	//these two functions do the same thing as spaceToScreen, but split so the clipping plane can be implemented
 
 	//turns world coordinates into 3d camera coordinates, for clipping
-	spaceToRelative(point, thetaPhiAngle) {
-		var [tX, tY, tZ] = point;
+	spaceToRelative(pointToChange, point, normal) {
+		var [tX, tY, tZ] = pointToChange;
 
-		tX -= player.x;
-		tY -= player.y;
-		tZ -= player.z;
+		tX -= point[0];
+		tY -= point[1];
+		tZ -= point[2];
 
-		[tX, tZ] = rotate(tX, tZ, thetaPhiAngle[0]);
-		[tY, tZ] = rotate(tY, tZ, thetaPhiAngle[1]);
+		[tX, tZ] = rotate(tX, tZ, normal[0]);
+		[tY, tZ] = rotate(tY, tZ, normal[1]);
 
 		return [tX, tY, tZ];
 	}
@@ -271,8 +264,15 @@ class Floor {
 	}
 
 	//converts from coordinates relative to an angle into world coordinates
-	relativeToSpace(point) {
+	relativeToSpace(pointToTransform, point, normal) {
+		var [tX, tY, tZ] = pointToTransform;
+		var invNorm = [normal[0] + Math.PI, normal[1] + Math.PI];
 
+		[tY, tZ] = rotate(tY, tZ, invNorm[1]);
+		[tX, tZ] = rotate(tX, tZ, invNorm[0]);
+		[tX, tY, tZ] = [tX + point[0], tY + point[1], tZ + point[2]];
+
+		return [tX, tY, tZ];
 	}
 
 	getPDist() {
@@ -290,6 +290,8 @@ class Floor {
 class FreePoly extends Floor {
 	constructor(points, normal, color) {
 		super(points[0][0], points[0][1], points[0][2], 1, 1, color);
+		this.points = points;
+		this.normal = normal;
 	}
 
 	calculatePointsAndNormal() {
@@ -336,10 +338,10 @@ class WallX extends Floor {
 	}
 
 	calculatePointsAndNormal() {
-		this.points = [	[this.x, this.y + this.wdt, this.z - this.len],
-						[this.x, this.y + this.wdt, this.z + this.len],
-						[this.x, this.y - this.wdt, this.z + this.len],
-						[this.x, this.y - this.wdt, this.z - this.len]];
+		this.points = [	[this.x, this.y + this.wdt, this.z - (this.len * 0.999)],
+						[this.x, this.y + this.wdt, this.z + (this.len * 0.999)],
+						[this.x, this.y - this.wdt, this.z + (this.len * 0.999)],
+						[this.x, this.y - this.wdt, this.z - (this.len * 0.999)]];
 		if (player.x < this.x) {
 			this.normal = [Math.PI / 2, 0];
 		} else {
@@ -368,10 +370,10 @@ class WallZ extends Floor {
 	}
 
 	calculatePointsAndNormal() {
-		this.points = [	[this.x - this.len, this.y + this.wdt, this.z],
-						[this.x + this.len, this.y + this.wdt, this.z],
-						[this.x + this.len, this.y - this.wdt, this.z],
-						[this.x - this.len, this.y - this.wdt, this.z]];
+		this.points = [	[this.x - (this.len * 0.999), this.y + this.wdt, this.z],
+						[this.x + (this.len * 0.999), this.y + this.wdt, this.z],
+						[this.x + (this.len * 0.999), this.y - this.wdt, this.z],
+						[this.x - (this.len * 0.999), this.y - this.wdt, this.z]];
 		
 		if (player.z < this.z) {
 			this.normal = [Math.PI, 0];

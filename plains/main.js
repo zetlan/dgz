@@ -24,6 +24,7 @@ var world_bg = "#002";
 var world_starDistance = 10000;
 let world_floor;
 let world_objects = [];
+let world_binTree;
 
 
 var render_clipDistance = 0.1;
@@ -51,7 +52,10 @@ function setup() {
 
 	//setting up world
 	world_floor = new Floor(0, 0, 0, 1000, 1000, "#868");
+	
 	world_objects = [//box
+					new Floor(0, -0.01, 0, 1000, 1000, "#868"),
+				
 					new WallX(100, 10, 0, 10, 10, "#088"), new WallX(120, 10, 0, 10, 10, "#088"),
 					new WallZ(110, 10, -10, 10, 10, "#068"), new WallZ(110, 10, 10, 10, 10, "#068"),
 					
@@ -69,11 +73,12 @@ function setup() {
 					new Floor(10, 6, -140, 1, 10, "#A60"), new Floor(12, 7, -140, 1, 10, "#A60"), new Floor(14, 8, -140, 1, 10, "#A60"), new Floor(16, 9, -140, 1, 10, "#A60"), new Floor(18, 10, -140, 1, 10, "#A60"),
 					new Floor(20, 11, -140, 1, 10, "#A60"), new Floor(22, 12, -140, 1, 10, "#A60"), new Floor(24, 13, -140, 1, 10, "#A60"), new Floor(26, 14, -140, 1, 10, "#A60"), new Floor(28, 15, -140, 1, 10, "#A60"),
 					new Floor(30, 16, -140, 1, 10, "#A60"), new Floor(32, 17, -140, 1, 10, "#A60"), new Floor(34, 18, -140, 1, 10, "#A60"), new Floor(36, 19, -140, 1, 10, "#A60"), new Floor(38, 20, -140, 1, 10, "#A60"),
-					];
+					]; 
 	world_stars = [];
 
 	generateStarSphere();
 	generateStaircase();
+	generateBinTree();
 
 	page_animation = window.requestAnimationFrame(main);
 }
@@ -88,8 +93,9 @@ function main() {
 	//handling entities
 	player.tick();
 
+
 	//ordering objects based on distance to player
-	world_objects = orderObjects();
+	//var orderedObjects = orderObjects();
 
 	//handling stars
 	for (var c=0;c<world_stars.length;c++) {
@@ -97,12 +103,15 @@ function main() {
 		world_stars[c].beDrawn();
 	}
 
-	for (var a=0;a<world_objects.length;a++) {
-		world_objects[a].tick();
+	/*
+	for (var a=0;a<orderedObjects.length;a++) {
+		orderedObjects[a].tick();
 	}
-	for (var b=0;b<world_objects.length;b++) {
-		world_objects[b].beDrawn();
-	}
+	for (var b=0;b<orderedObjects.length;b++) {
+		orderedObjects[b].beDrawn();
+	} */
+	world_binTree.traverse(false);
+	world_binTree.traverse(true);
 
 	//crosshair
 	if (editor_active) {
