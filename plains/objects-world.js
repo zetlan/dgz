@@ -26,7 +26,6 @@ class Floor {
 	}
 
 	beDrawn() {
-		//this.calculatePointsAndNormal();
 		//first get camera coordinate points
 		var camAng = [player.theta, player.phi];
 		var pt = [player.x, player.y, player.z];
@@ -76,8 +75,6 @@ class Floor {
 	//clips self and returns an array with two polygons, clipped at the input plane.
 	//always returns [polygon inside plane, polgyon outside plane]
 	//if self polygon does not intersect the plane, then one of the two return values will be undefined.
-
-	//TODO: clean up code, actual clip code is just duplicated and could be abstracted out to a different function
 	clipAtPlane(planePoint, planeNormal) {
 		var inPart = undefined;
 		var outPart = undefined;
@@ -85,15 +82,7 @@ class Floor {
 		//getting points aligned to the plane
 		var tempPoints = [];
 		for (var j=0;j<this.points.length;j++) {
-			//aligning to point
-			var [tX, tY, tZ] = [this.points[j][0] - planePoint[0], this.points[j][1] - planePoint[1], this.points[j][2] - planePoint[2]];
-
-			//aligning to normal
-			[tX, tZ] = rotate(tX, tZ, planeNormal[0]);
-			[tY, tZ] = rotate(tY, tZ, planeNormal[1]);
-
-			//pushing to tempPoints array
-			tempPoints.push([tX, tY, tZ]);
+			tempPoints.push(this.spaceToRelative(this.points[j], planePoint, planeNormal));
 		}
 
 		//checking to see if clipping is necessary
@@ -127,8 +116,8 @@ class Floor {
 			}
 
 			//turning point array into objects that can be put into nodes
-			outPart = new FreePoly(tempPoints, this.normal, this.color);
-			inPart = new FreePoly(outPoints, this.normal, this.color);
+			inPart = new FreePoly(tempPoints, this.normal, this.color);
+			outPart = new FreePoly(outPoints, this.normal, this.color);
 		} else {
 			//if clipping is not necessary, then just return self
 			if (tempPoints[0][2] > 0) {
@@ -170,7 +159,7 @@ class Floor {
 						if (polyPoints[(y+(polyPoints.length-1))%polyPoints.length][2] >= tolerance) {
 							friendCoords = polyPoints[(y+(polyPoints.length-1))%polyPoints.length];
 							moveAmount = getPercentage(friendCoords[2], polyPoints[y][2], tolerance);
-							newPointCoords = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance];		
+							newPointCoords = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance];
 						} else {
 							//greater friend
 							friendCoords = polyPoints[(y+1)%polyPoints.length];
@@ -266,7 +255,7 @@ class Floor {
 	//converts from coordinates relative to an angle into world coordinates
 	relativeToSpace(pointToTransform, point, normal) {
 		var [tX, tY, tZ] = pointToTransform;
-		var invNorm = [normal[0] + Math.PI, normal[1] + Math.PI];
+		var invNorm = [(Math.PI * 2) - normal[0], normal[1] * -1];
 
 		[tY, tZ] = rotate(tY, tZ, invNorm[1]);
 		[tX, tZ] = rotate(tX, tZ, invNorm[0]);
@@ -279,9 +268,6 @@ class Floor {
 		
 		var dTP = [this.x - player.x, this.y - player.y, this.z - player.z];
 		this.pDist = Math.sqrt((dTP[0] * dTP[0]) + (dTP[1] * dTP[1]) + (dTP[2] * dTP[2]));
-		/*
-		this.pDist = this.spaceToCamera([this.x, this.y, this.z]);
-		this.pDist = Math.abs(this.pDist[2]);  */
 	}
 }
 
@@ -338,10 +324,10 @@ class WallX extends Floor {
 	}
 
 	calculatePointsAndNormal() {
-		this.points = [	[this.x, this.y + this.wdt, this.z - (this.len * 0.999)],
-						[this.x, this.y + this.wdt, this.z + (this.len * 0.999)],
-						[this.x, this.y - this.wdt, this.z + (this.len * 0.999)],
-						[this.x, this.y - this.wdt, this.z - (this.len * 0.999)]];
+		this.points = [	[this.x, this.y + this.wdt, this.z - this.len],
+						[this.x, this.y + this.wdt, this.z + this.len],
+						[this.x, this.y - this.wdt, this.z + this.len],
+						[this.x, this.y - this.wdt, this.z - this.len]];
 		if (player.x < this.x) {
 			this.normal = [Math.PI / 2, 0];
 		} else {
@@ -370,10 +356,10 @@ class WallZ extends Floor {
 	}
 
 	calculatePointsAndNormal() {
-		this.points = [	[this.x - (this.len * 0.999), this.y + this.wdt, this.z],
-						[this.x + (this.len * 0.999), this.y + this.wdt, this.z],
-						[this.x + (this.len * 0.999), this.y - this.wdt, this.z],
-						[this.x - (this.len * 0.999), this.y - this.wdt, this.z]];
+		this.points = [	[this.x - this.len, this.y + this.wdt, this.z],
+						[this.x + this.len, this.y + this.wdt, this.z],
+						[this.x + this.len, this.y - this.wdt, this.z],
+						[this.x - this.len, this.y - this.wdt, this.z]];
 		
 		if (player.z < this.z) {
 			this.normal = [Math.PI, 0];
