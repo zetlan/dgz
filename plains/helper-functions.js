@@ -25,7 +25,7 @@ function generateStaircase() {
 		var x = 40 * Math.sin((Math.PI / 6) * y);
 		var z = 40 * Math.cos((Math.PI / 6) * y);
 
-		world_objects.push(new Floor(x, y*2, z, 10, 10, "#F0F"));
+		world_objects.push(new Floor(x, y*2, z, 10, 10, "#FF0"));
 	}
 }
 
@@ -74,58 +74,6 @@ function isClipped(pointArr) {
 //performs a linear interpolation between 2 values
 function linterp(a, b, percentage) {
 	return a + ((b - a) * percentage);
-}
-
-//takes in all the unordered objects in the map, and returns an ordered list of them by distance to the player
-function orderObjects() {
-	//addings all world objects to first array
-	let unsorted_objects = [];
-	let ordered = [];
-	let buckets = [[], [], [], [], [], [], [], [], [], []];
-	for (var e=0;e<world_objects.length;e++) {
-		unsorted_objects.push(world_objects[e]);
-	}
-
-	//take out all the stars and put them at the start of the list
-	for (var w=0;w<unsorted_objects.length;w++) {
-		if (unsorted_objects[w] instanceof Star) {
-			ordered.push(unsorted_objects[w]);
-			unsorted_objects.splice(w, 1);
-			w -= 1;
-		}
-	}
-	//after stars are the world floor
-	ordered.push(world_floor);
-	if (world_floor == unsorted_objects[0]) {
-		unsorted_objects.splice(0, 1);
-	}
-
-	//running a radix sort
-	//4 places
-	for (var pos=1;pos<5;pos++) {
-		//push objects to buckets
-		while (unsorted_objects.length > 0) {
-			//formula determines which bucket to push into
-			buckets[Math.floor(((unsorted_objects[0].pDist) % Math.pow(10, pos) / Math.pow(10, pos-1)))].push(unsorted_objects[0]);
-			unsorted_objects.splice(0, 1);
-		}
-
-		//empty buckets
-		for (var k=0;k<buckets.length;k++) {
-			while (buckets[k].length > 0) {
-				unsorted_objects.push(buckets[k][0]);
-				buckets[k].splice(0, 1);
-			}
-		}
-	}
-
-	//push now ordered list to final array
-	while (unsorted_objects.length > 0) {
-		ordered.push(unsorted_objects[unsorted_objects.length-1]);
-		unsorted_objects.splice(unsorted_objects.length-1, 1);
-	}
-	
-	return ordered;
 }
 
 function polToCart(theta, phi, radius) {
