@@ -1,21 +1,47 @@
 //houses functions of various utility, from 3d rendering to 2d drawing to misc. object manipulation
 
+/* 
+generation functions:
+	generateBinTree();
+	generateStarSphere();
+	generateStaircase();
+
+utility:
+	cartToPol();
+	clamp();
+	getPercentage();
+	isClipped();
+	linterp();
+	polToCart();
+	spaceToScreen();
+	randomCustom();
+	randomSeeded();
+	rotate();
+	runCrash();
+
+2d collision:
+
+
+drawing:
+	drawQuad();
+	drawPoly();
+	drawCircle();
+*/
+
 
 
 //generation functions
 function generateBinTree() {
 	world_binTree = new TreeNode(world_objects[0]);
-	console.log(world_binTree.contains == world_objects[0]);
 
 	for (var r=1;r<world_objects.length;r++) {
 		world_binTree.accept(world_objects[r]);
 	}
-	console.log(world_binTree.contains == world_objects[0]);
 }
 function generateStarSphere() {
 	//random stars
 	for (var e=0;e<100;e++) {
-		var pos = polToCart(randomCustom(0, Math.PI * 2), randomCustom(0.1, (Math.PI * 0.48)), randomCustom(world_starDistance, world_starDistance * 2));
+		var pos = polToCart(randomSeeded(0, Math.PI * 2), randomSeeded(0.1, (Math.PI * 0.48)), randomSeeded(world_starDistance, world_starDistance * 2));
 		world_stars.push(new Star(pos[0], pos[1], pos[2]));
 	}
 }
@@ -129,8 +155,19 @@ function spaceToScreen(pointArr) {
 	return [tX, tY];
 }
 
+//returns a random value between the min value and max values, using the default javascript randomizer
 function randomCustom(min, max) {
 	return (Math.random() * (max - min)) + min;
+}
+
+//returns a pseudo-random value between the min value and max values
+function randomSeeded(min, max) {
+	world_pRandValue = Math.pow(world_pRandValue, 1.6414756);
+	//keep value in bounds
+	while (world_pRandValue > 100) {
+		world_pRandValue -= 98;
+	}
+	return ((world_pRandValue % 1) * (max - min)) + min;
 }
 
 function rotate(x, z, radians) {
@@ -149,6 +186,56 @@ function runCrash() {
 
 	window.cancelAnimationFrame(game_animation);
 }
+
+
+
+
+
+//2d collision functions, I've written these enough times that they don't need explanations. If you want an explanation, check rotate/2d-collision.js
+function getOrientation(p1, p2, p3) {
+	var value = (p2[1] - p1[1]) * (p3[0] - p2[0]) - (p2[0] - p1[0]) * (p3[1] - p2[1]); 
+	if (value > 0) {
+		return 2;
+	} 
+	if (value < 0) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
+function lineIntersect(lin1p1, lin1p2, lin2p1, lin2p2) {
+	var a = getOrientation(lin1p1, lin1p2, lin2p1);
+	var b = getOrientation(lin1p1, lin1p2, lin2p2);
+	var c = getOrientation(lin2p1, lin2p2, lin1p1);
+	var d = getOrientation(lin2p1, lin2p2, lin1p2);
+	if (a != b && c != d) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
+
+function inPoly(xyPoint, polyPoints) {
+	var linP1 = xyPoint;
+	var linP2 = [canvas.width, xyPoint[1]];
+	var intersectNum = 0;
+	for (var r=0;r<polyPoints.length;r++) {
+		var p1 = polyPoints[r % polyPoints.length];
+		var p2 = polyPoints[(r+1) % polyPoints.length];
+
+		if (lineIntersect(p1, p2, linP1, linP2)) {
+			intersectNum += 1;
+		}
+	}
+	if (intersectNum % 2 == 1) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
 
 
 
