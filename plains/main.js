@@ -21,13 +21,14 @@ let page_animation;
 let player;
 
 var world_bg = "#002";
+var world_pRandValue = 1.241;
 var world_starDistance = 10000;
-let world_floor;
 let world_objects = [];
 let world_binTree;
 
 
 var render_clipDistance = 0.1;
+var render_identicalPointTolerance = 0.00001;
 
 
 
@@ -52,11 +53,10 @@ function setup() {
 
 	//setting up world
 	
-	world_objects = [//box
-					new Floor(0, -0.01, 0, 1000, 1000, "#868"),
-				
+	world_objects = [new Floor(0, -0.01, 0, 1000, 1000, "#868"),
+					//box
 					new WallX(100, 10, 0, 10, 10, "#088"), new WallX(120, 10, 0, 10, 10, "#088"),
-					new WallZ(110, 10, -30, 9.9, 10, "#068"), new WallZ(110, 10, 10, 15, 10, "#068"),
+					new WallZ(110, 10, -10, 10, 10, "#068"), new WallZ(110, 10, 10, 15, 10, "#068"),
 					
 					//house
 					//house outside walls
