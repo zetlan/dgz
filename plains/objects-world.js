@@ -3,12 +3,12 @@ class Floor {
 		this.x = x;
 		this.y = y;
 		this.z = z;
-		this.len = l;
-		this.wdt = w;
+		this.len = l * (1 - render_identicalPointTolerance);
+		this.wdt = w * (1 - render_identicalPointTolerance);
 		this.collisionHeight = 20;
+		this.tolerance = player.dMax * 2;
 		
 		this.color = color;
-		this.pDist = 10;
 
 		this.points;
 		this.normal;
@@ -20,9 +20,6 @@ class Floor {
 	tick() {
 		//collide correctly with player
 		this.collideWithPlayer();
-
-		//get distance to player
-		this.getPDist();
 	}
 
 	beDrawn() {
@@ -263,12 +260,6 @@ class Floor {
 
 		return [tX, tY, tZ];
 	}
-
-	getPDist() {
-		
-		var dTP = [this.x - player.x, this.y - player.y, this.z - player.z];
-		this.pDist = Math.sqrt((dTP[0] * dTP[0]) + (dTP[1] * dTP[1]) + (dTP[2] * dTP[2]));
-	}
 }
 
 
@@ -278,10 +269,66 @@ class FreePoly extends Floor {
 		super(points[0][0], points[0][1], points[0][2], 1, 1, color);
 		this.points = points;
 		this.normal = normal;
+		this.trimPoints();
+
+		this.collisionPoints;
+		this.calculateCollision();
+		this.minPlayerDist = this.calculateMaxPointDist();
 	}
 
 	calculatePointsAndNormal() {
 
+	}
+
+	trimPoints() {
+		//trimming identicalish points
+		var lastPoint = [undefined, undefined, undefined];
+		for (var j=0;j<this.points.length;j++) {
+			//if the two points are the same, remove the latter one
+			if (Math.abs(lastPoint[0] - this.points[j][0]) < render_identicalPointTolerance && Math.abs(lastPoint[1] - this.points[j][1]) < render_identicalPointTolerance && Math.abs(lastPoint[2] - this.points[j][2]) < render_identicalPointTolerance) {
+				this.points.splice(j, 1);
+				j -= 1;
+			}
+			lastPoint = this.points[j];
+		}
+	}
+
+	calculateCollision() {
+		this.collisionPoints = [];
+		//looping through all points
+		for (var u=0;u<this.points.length;u++) {
+			//transform point to self's normal
+			var transformed = this.spaceToRelative(this.points[u], this.points[0], this.normal);
+
+			//zs are going to be zero, so they can be ignored
+			this.collisionPoints.push([transformed[0], transformed[1]]);
+		}
+	}
+
+	calculateMaxPointDist() {
+
+	}
+
+	collideWithPlayer() {
+		//transform player to self's coordinates
+		var playerCoords = this.spaceToRelative([player.x, player.y, player.z], this.points[0], this.normal);
+
+		//if the player is too close, take them seriously
+		if (Math.abs(playerCoords[2]) < this.tolerance) {
+			if (inPoly([playerCoords[0], playerCoords[1]], this.collisionPoints)) {
+				//different behavior depending on side
+				if (playerCoords[2] < 0) {
+					playerCoords[2] = -1 * this.tolerance;
+				} else {
+					playerCoords[2] = this.tolerance;
+				}
+
+				//transforming back to regular coordinates
+				playerCoords = this.relativeToSpace(playerCoords, this.points[0], this.normal);
+
+				[player.x, player.y, player.z] = playerCoords;
+			}
+		}
 	}
 }
 
@@ -320,7 +367,6 @@ class Star {
 class WallX extends Floor {
 	constructor(x, y, z, l, h, color) {
 		super(x, y, z, l, h, color);
-		this.tolerance = player.dMax * 2;
 	}
 
 	calculatePointsAndNormal() {
@@ -352,7 +398,6 @@ class WallX extends Floor {
 class WallZ extends Floor {
 	constructor(x, y, z, l, h, color) {
 		super(x, y, z, l, h, color);
-		this.tolerance = player.dMax * 2;
 	}
 
 	calculatePointsAndNormal() {
