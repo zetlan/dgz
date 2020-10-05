@@ -49,11 +49,11 @@ function setup() {
 	centerX = canvas.width * 0.5;
 	centerY = canvas.height * 0.5;
 
-	player = new Player(0, 5, 0, 0, 0);
+	player = new Player(0, 6, 0, 0, 0);
 
 	//setting up world
 	
-	world_objects = [new Floor(0, -0.01, 0, 1000, 1000, "#868"),
+	/*world_objects = [new Floor(0, -0.01, 0, 1000, 1000, "#868"),
 					//box
 					new WallX(100, 10, 0, 10, 10, "#088"), new WallX(120, 10, 0, 10, 10, "#088"),
 					new WallZ(110, 10, -10, 10, 10, "#068"), new WallZ(110, 10, 10, 15, 10, "#068"),
@@ -72,11 +72,16 @@ function setup() {
 					new Floor(10, 6, -140, 1, 10, "#A60"), new Floor(12, 7, -140, 1, 10, "#A60"), new Floor(14, 8, -140, 1, 10, "#A60"), new Floor(16, 9, -140, 1, 10, "#A60"), new Floor(18, 10, -140, 1, 10, "#A60"),
 					new Floor(20, 11, -140, 1, 10, "#A60"), new Floor(22, 12, -140, 1, 10, "#A60"), new Floor(24, 13, -140, 1, 10, "#A60"), new Floor(26, 14, -140, 1, 10, "#A60"), new Floor(28, 15, -140, 1, 10, "#A60"),
 					new Floor(30, 16, -140, 1, 10, "#A60"), new Floor(32, 17, -140, 1, 10, "#A60"), new Floor(34, 18, -140, 1, 10, "#A60"), new Floor(36, 19, -140, 1, 10, "#A60"), new Floor(38, 20, -140, 1, 10, "#A60"),
-					];
+
+					new FreePoly([[-103, 12, 9], [-81, 12, -33], [-116, 12, -37]], [0, Math.PI / 2], "#FFF"),
+					]; */
+
+	world_objects = [new FreePoly([[100, -11, 100], [100, -11, -100], [-100, -11, 0]], "#868"),
+			new FreePoly([[-53, -10, 9], [-31, -10, 9], [-31, 10, 9], [-53, 10, 9]], "#FFF")];
 	world_stars = [];
 
 	generateStarSphere();
-	generateStaircase();
+	//generateStaircase();
 	generateBinTree();
 
 	page_animation = window.requestAnimationFrame(main);

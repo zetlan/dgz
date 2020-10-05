@@ -21,7 +21,7 @@ class Player {
 		this.dy = 0;
 		this.dz = 0;
 		this.dMax = 1;
-		this.fallMax = 10;
+		this.fallMax = this.dMax * 1.99;
 
 		this.ax = 0;
 		this.ay = 0;

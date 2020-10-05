@@ -1,74 +1,110 @@
-class Floor {
-	constructor(x, y, z, l, w, color) {
-		this.x = x;
-		this.y = y;
-		this.z = z;
-		this.len = l * (1 - render_identicalPointTolerance);
-		this.wdt = w * (1 - render_identicalPointTolerance);
-		this.collisionHeight = 20;
-		this.tolerance = player.dMax * 2;
-		
+class FreePoly {
+	constructor(points, color) {
+		this.x;
+		this.y;
+		this.z;
+		this.points = points;
+		this.normal;
 		this.color = color;
 
-		this.points;
-		this.normal;
-		this.calculatePointsAndNormal();
+		//collision tolerance
+		this.tolerance = player.dMax * 2;
+		//trimming identical points from the list
+		this.trimPoints();
+		this.calculateNormal();
 
-		this.drawCoords = [];
+		this.collisionPoints = this.calculateCollision();
+		this.minPlayerDist = this.calculateMaxPointDist();
 	}
 
-	tick() {
-		//collide correctly with player
-		this.collideWithPlayer();
-	}
-
-	beDrawn() {
-		//first get camera coordinate points
-		var camAng = [player.theta, player.phi];
-		var pt = [player.x, player.y, player.z];
-		var tempPoints = [];
-		for (var p=0;p<this.points.length;p++) {
-			tempPoints.push(this.spaceToRelative(this.points[p], pt, camAng));
+	trimPoints() {
+		//trimming identicalish points
+		var lastPoint = [undefined, undefined, undefined];
+		for (var j=0;j<this.points.length;j++) {
+			//if the two points are the same, remove the latter one
+			if (Math.abs(lastPoint[0] - this.points[j][0]) < render_identicalPointTolerance && Math.abs(lastPoint[1] - this.points[j][1]) < render_identicalPointTolerance && Math.abs(lastPoint[2] - this.points[j][2]) < render_identicalPointTolerance) {
+				this.points.splice(j, 1);
+				j -= 1;
+			}
+			lastPoint = this.points[j];
 		}
+	}
 
-		tempPoints = this.clipToZ0(tempPoints, render_clipDistance, false);
+	calculateCollision() {
+		var temp = [];
+		//looping through all points
+		for (var u=0;u<this.points.length;u++) {
+			//transform point to self's normal
+			var transformed = spaceToRelative(this.points[u], [this.x, this.y, this.z], this.normal);
+
+			//zs are going to be zero, so they can be ignored
+			temp.push([transformed[0], transformed[1]]);
+		}
+		return temp;
+	}
+
+	calculateMaxPointDist() {
+
+	}
+
+	calculateNormal() {
+		//first get average point, that's self's xyz
+		[this.x, this.y, this.z] = avgArray(this.points);
+
+		//get cross product of first two points, that's the normal
+		var v1 = [this.points[0][0] - this.x, this.points[0][1] - this.y, this.points[0][2] - this.z];
+		var v2 = [this.points[1][0] - this.x, this.points[1][1] - this.y, this.points[1][2] - this.z];
+
 		
-		//turn points into screen coordinates
-		var screenPoints = [];
-		for (var a=0;a<tempPoints.length;a++) {
-			screenPoints.push(this.cameraToScreen(tempPoints[a]));
-		}
+		var cross = [(v1[1] * v2[2]) - (v1[2] * v2[1]), (v1[2] * v2[0]) - (v1[1] * v2[2]), (v1[0] * v2[1]) - (v1[1] * v2[0])];
+		console.log(this.color, cross);
+		cross = cartToPol(cross[0], cross[1], cross[2]);
 
-		if (screenPoints.length > 0) {
-			//finally draw self
-			drawPoly(this.color, screenPoints);
-			
-			if (editor_active) {
-				//draw self's normal as well
-				ctx.strokeStyle = "#FFF";
-				ctx.beginPath();
+		console.log(this.color, cross);
+
+		//checking for alignment with camera
+		if (spaceToRelative([player.x, player.y, player.z], [this.x, this.y, this.z], [cross[0], cross[1]])[2] < 0) {
+			cross[0] = (Math.PI * 2) - cross[0];
+			cross[1] *= -1;
+		}
+		this.normal = [cross[0], cross[1]];
+	}
+
+	collideWithPlayer() {
+		//transform player to self's coordinates
+		var playerCoords = spaceToRelative([player.x, player.y - player.height, player.z], [this.x, this.y, this.z], this.normal);
+
+
+		//if the player is too close, take them seriously
+		if (Math.abs(playerCoords[2]) < this.tolerance) {
+			if (inPoly([playerCoords[0], playerCoords[1]], this.collisionPoints)) {
 				
-				var dXY = spaceToScreen([this.x, this.y, this.z]);
-				var cXYZ = polToCart(this.normal[0], this.normal[1], 5);
-				var eXY = spaceToScreen([this.x + cXYZ[0], this.y + cXYZ[1], this.z + cXYZ[2]]);
-				ctx.moveTo(dXY[0], dXY[1]);
-				ctx.lineTo(eXY[0], eXY[1]);
+				//different behavior depending on side
+				if (playerCoords[2] < 0) {
+					playerCoords[2] = -1 * this.tolerance;
+				} else {
+					playerCoords[2] = this.tolerance;
+
+				}
+
+				//transforming back to regular coordinates
+				playerCoords = relativeToSpace(playerCoords, [this.x, this.y, this.z], this.normal);
+				playerCoords[1] += player.height;
+				[player.x, player.y, player.z] = playerCoords;
+
+				//if self counts as a floor / ceiling tile, work on player's y velocity
+				if (Math.abs(this.normal[1]) > Math.PI / 4) {
+					
+					//reduce player's y acceleration 
+					if (player.dy < 0) {
+						player.dy = -0.01;
+						player.onGround = true;
+					}
+				}
 			}
 		}
 	}
 
-	calculatePointsAndNormal() {
-		this.points = [	[this.x + this.len, this.y, this.z - this.wdt],
-						[this.x + this.len, this.y, this.z + this.wdt],
-						[this.x - this.len, this.y, this.z + this.wdt],
-						[this.x - this.len, this.y, this.z - this.wdt]];
-		if (player.y > this.y) {
-			this.normal = [0, Math.PI / 2];
-		} else {
-			this.normal = [0, Math.PI / -2];
-		}
-		
-	}
 	//clips self and returns an array with two polygons, clipped at the input plane.
 	//always returns [polygon inside plane, polgyon outside plane]
 	//if self polygon does not intersect the plane, then one of the two return values will be undefined.
@@ -79,7 +115,7 @@ class Floor {
 		//getting points aligned to the plane
 		var tempPoints = [];
 		for (var j=0;j<this.points.length;j++) {
-			tempPoints.push(this.spaceToRelative(this.points[j], planePoint, planeNormal));
+			tempPoints.push(spaceToRelative(this.points[j], planePoint, planeNormal));
 		}
 
 		//checking to see if clipping is necessary
@@ -104,17 +140,18 @@ class Floor {
 
 			//transforming points to world coordinates
 			for (var q=0;q<tempPoints.length;q++) {
-				tempPoints[q] = this.relativeToSpace(tempPoints[q], planePoint, planeNormal);
+				tempPoints[q] = relativeToSpace(tempPoints[q], planePoint, planeNormal);
 			}
 
 			outPoints = this.clipToZ0(outPoints, 0, true);
 			for (var q=0;q<outPoints.length;q++) {
-				outPoints[q] = this.relativeToSpace(outPoints[q], planePoint, planeNormal);
+				outPoints[q] = relativeToSpace(outPoints[q], planePoint, planeNormal);
 			}
 
 			//turning point array into objects that can be put into nodes
-			inPart = new FreePoly(tempPoints, this.normal, this.color);
-			outPart = new FreePoly(outPoints, this.normal, this.color);
+			inPart = new FreePoly(tempPoints, this.color);
+			console.log(inPart.normal);
+			outPart = new FreePoly(outPoints, this.color);
 		} else {
 			//if clipping is not necessary, then just return self
 			if (tempPoints[0][2] > 0) {
@@ -189,144 +226,41 @@ class Floor {
 		return polyPoints;
 	}
 
-	collideWithPlayer() {
-		this.tolerance = Math.abs(player.dy) + 3;
-		//if the player is in the same xz spot as self
-		if (player.x > this.x - this.len && player.x < this.x + this.len && player.z > this.z - this.wdt && player.z < this.z + this.wdt) {
-			//if player is in the y zone
-			if (player.y - player.height > this.y - this.tolerance && player.y - player.height < this.y + this.tolerance) {
-				//if player collision point is lower than self
-				if (player.y - player.height <= this.y) {
-					//if player camera is above self
-					if (player.y > this.y) {
-						if (player.dy < 0) {
-							player.y = this.y + player.height;
-							player.dy = -0.01;
-							player.onGround = true;
-						}
-					} else {
-						player.dy = -0.5;
-						player.y = this.y - this.tolerance;
-					}
-				}
-			}
+	tick() {
+		//collide correctly with player
+		this.collideWithPlayer();
+	}
+
+	beDrawn() {
+		//first get camera coordinate points
+		var camAng = [player.theta, player.phi];
+		var pt = [player.x, player.y, player.z];
+		var tempPoints = [];
+		for (var p=0;p<this.points.length;p++) {
+			tempPoints.push(spaceToRelative(this.points[p], pt, camAng));
 		}
-	}
 
-	//these two functions do the same thing as spaceToScreen, but split so the clipping plane can be implemented
-
-	//turns world coordinates into 3d camera coordinates, for clipping
-	spaceToRelative(pointToChange, point, normal) {
-		var [tX, tY, tZ] = pointToChange;
-
-		tX -= point[0];
-		tY -= point[1];
-		tZ -= point[2];
-
-		[tX, tZ] = rotate(tX, tZ, normal[0]);
-		[tY, tZ] = rotate(tY, tZ, normal[1]);
-
-		return [tX, tY, tZ];
-	}
-
-	//turns camera coordinates into 2d screen coordinates
-	cameraToScreen(point) {
-		//divide by axis perpendicular to player
-		var [tX, tY, tZ] = point;
-		tX /= tZ;
-		tY /= tZ;
-
-		//accounting for camera scale
-		tX *= player.scale;
-
-		//flipping image
-		tY *= -1 * player.scale;
-
-		//accounting for screen coordinates
-		tX += canvas.width / 2;
-		tY += canvas.height / 2;
-
-		return [tX, tY];
-	}
-
-	//converts from coordinates relative to an angle into world coordinates
-	relativeToSpace(pointToTransform, point, normal) {
-		var [tX, tY, tZ] = pointToTransform;
-		var invNorm = [(Math.PI * 2) - normal[0], normal[1] * -1];
-
-		[tY, tZ] = rotate(tY, tZ, invNorm[1]);
-		[tX, tZ] = rotate(tX, tZ, invNorm[0]);
-		[tX, tY, tZ] = [tX + point[0], tY + point[1], tZ + point[2]];
-
-		return [tX, tY, tZ];
-	}
-}
-
-
-
-class FreePoly extends Floor {
-	constructor(points, normal, color) {
-		super(points[0][0], points[0][1], points[0][2], 1, 1, color);
-		this.points = points;
-		this.normal = normal;
-		this.trimPoints();
-
-		this.collisionPoints;
-		this.calculateCollision();
-		this.minPlayerDist = this.calculateMaxPointDist();
-	}
-
-	calculatePointsAndNormal() {
-
-	}
-
-	trimPoints() {
-		//trimming identicalish points
-		var lastPoint = [undefined, undefined, undefined];
-		for (var j=0;j<this.points.length;j++) {
-			//if the two points are the same, remove the latter one
-			if (Math.abs(lastPoint[0] - this.points[j][0]) < render_identicalPointTolerance && Math.abs(lastPoint[1] - this.points[j][1]) < render_identicalPointTolerance && Math.abs(lastPoint[2] - this.points[j][2]) < render_identicalPointTolerance) {
-				this.points.splice(j, 1);
-				j -= 1;
-			}
-			lastPoint = this.points[j];
+		tempPoints = this.clipToZ0(tempPoints, render_clipDistance, false);
+		
+		//turn points into screen coordinates
+		var screenPoints = [];
+		for (var a=0;a<tempPoints.length;a++) {
+			screenPoints.push(cameraToScreen(tempPoints[a]));
 		}
-	}
 
-	calculateCollision() {
-		this.collisionPoints = [];
-		//looping through all points
-		for (var u=0;u<this.points.length;u++) {
-			//transform point to self's normal
-			var transformed = this.spaceToRelative(this.points[u], this.points[0], this.normal);
-
-			//zs are going to be zero, so they can be ignored
-			this.collisionPoints.push([transformed[0], transformed[1]]);
-		}
-	}
-
-	calculateMaxPointDist() {
-
-	}
-
-	collideWithPlayer() {
-		//transform player to self's coordinates
-		var playerCoords = this.spaceToRelative([player.x, player.y, player.z], this.points[0], this.normal);
-
-		//if the player is too close, take them seriously
-		if (Math.abs(playerCoords[2]) < this.tolerance) {
-			if (inPoly([playerCoords[0], playerCoords[1]], this.collisionPoints)) {
-				//different behavior depending on side
-				if (playerCoords[2] < 0) {
-					playerCoords[2] = -1 * this.tolerance;
-				} else {
-					playerCoords[2] = this.tolerance;
-				}
-
-				//transforming back to regular coordinates
-				playerCoords = this.relativeToSpace(playerCoords, this.points[0], this.normal);
-
-				[player.x, player.y, player.z] = playerCoords;
+		if (screenPoints.length > 0) {
+			//finally draw self
+			drawPoly(this.color, screenPoints);
+			
+			if (editor_active && !isClipped([[this.x, this.y, this.z]])) {
+				//draw self's normal as well
+				var dXY = spaceToScreen([this.x, this.y, this.z]);
+				var cXYZ = polToCart(this.normal[0], this.normal[1], 5);
+				var eXY = spaceToScreen([this.x + cXYZ[0], this.y + cXYZ[1], this.z + cXYZ[2]]);
+				ctx.beginPath();
+				ctx.strokeStyle = "#FFF";
+				ctx.moveTo(dXY[0], dXY[1]);
+				ctx.lineTo(eXY[0], eXY[1]);
 			}
 		}
 	}
@@ -362,71 +296,4 @@ class Star {
 			drawCircle(this.color, drawCoords[0], drawCoords[1], this.drawR);
 		}
 	}
-}
-
-class WallX extends Floor {
-	constructor(x, y, z, l, h, color) {
-		super(x, y, z, l, h, color);
-	}
-
-	calculatePointsAndNormal() {
-		this.points = [	[this.x, this.y + this.wdt, this.z - this.len],
-						[this.x, this.y + this.wdt, this.z + this.len],
-						[this.x, this.y - this.wdt, this.z + this.len],
-						[this.x, this.y - this.wdt, this.z - this.len]];
-		if (player.x < this.x) {
-			this.normal = [Math.PI / 2, 0];
-		} else {
-			this.normal = [Math.PI * 1.5, 0];
-		}
-	}
-
-	collideWithPlayer() {
-		//if they're in the same xyz spot, change their x
-		if (player.z > this.z - this.len && player.z < this.z + this.len && player.y > this.y - this.wdt && player.y < this.y + this.wdt) {
-			if (player.x > this.x - this.tolerance && player.x < this.x + this.tolerance) {
-				if (player.x < this.x) {
-					player.x = this.x - this.tolerance;
-				} else {
-					player.x = this.x + this.tolerance;
-				}
-			}
-		}
-	}
-}
-
-class WallZ extends Floor {
-	constructor(x, y, z, l, h, color) {
-		super(x, y, z, l, h, color);
-	}
-
-	calculatePointsAndNormal() {
-		this.points = [	[this.x - this.len, this.y + this.wdt, this.z],
-						[this.x + this.len, this.y + this.wdt, this.z],
-						[this.x + this.len, this.y - this.wdt, this.z],
-						[this.x - this.len, this.y - this.wdt, this.z]];
-		
-		if (player.z < this.z) {
-			this.normal = [Math.PI, 0];
-		} else {
-			this.normal = [0, 0];
-		}
-	}
-
-	collideWithPlayer() {
-		//if they're in the same xyz spot, change their z
-		if (player.x > this.x - this.len && player.x < this.x + this.len && player.y > this.y - this.wdt && player.y < this.y + this.wdt) {
-			if (player.z > this.z - this.tolerance && player.z < this.z + this.tolerance) {
-				if (player.z < this.z) {
-					player.z = this.z - this.tolerance;
-				} else {
-					player.z = this.z + this.tolerance;
-				}
-			}
-		}
-	}
-}
-
-class WallRotable extends Floor{
-
 }
