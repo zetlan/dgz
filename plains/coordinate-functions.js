@@ -1,4 +1,12 @@
 //here are all the functions that tranform 3d coordinates
+/*overview:
+	cameraToScreen();
+	cartToPol();
+	polToCart();
+	relativeToSpace();
+	spaceToRelative();
+	spaceToScreen();
+*/
 
 //turns camera coordinates into 2d screen coordinates
 function cameraToScreen(point) {
@@ -18,6 +26,14 @@ function cameraToScreen(point) {
 	tY += canvas.height / 2;
 
 	return [tX, tY];
+}
+
+//the opposite of polToCart, takes in an xyz point and outputs a vector in the form of [theta, phi, radius]
+function cartToPol(x, y, z) {
+	var rad = Math.sqrt((x * x) + (y * y) + (z * z));
+	var phi = Math.asin(y / rad);
+	var theta = Math.atan2(y, x);
+	return [theta, phi, rad];
 }
 
 function polToCart(theta, phi, radius) {
