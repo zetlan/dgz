@@ -7,13 +7,11 @@ generation functions:
 	generateStaircase();
 
 utility:
-	cartToPol();
+	avgArray();
 	clamp();
 	getPercentage();
 	isClipped();
 	linterp();
-	polToCart();
-	spaceToScreen();
 	randomCustom();
 	randomSeeded();
 	rotate();
@@ -62,13 +60,30 @@ function generateStaircase() {
 
 //utility functions
 
-//the opposite of polToCart, takes in an xyz point and outputs a vector in the form of [theta, phi, radius]
-function cartToPol(x, y, z) {
-	var rad = Math.sqrt((x * x) + (y * y) + (z * z));
-	var phi = Math.asin(y / rad);
-	var theta = Math.asin((x / rad) / Math.cos(phi));
-	return [theta, phi, rad];
+//takes in a multi-dimensional array and averages the elements to output a 1d array
+function avgArray(array) {
+	var finArr = [];
+	var arr = array;
+
+	//get the length of the first 1d array
+	for (var y=0;y<arr[0].length;y++) {
+		//average all the 0s, the 1s, the 2s, etc until whole is done
+		finArr.push(0);
+		for (var z=0;z<arr.length;z++) {
+			finArr[y] += arr[z][y];
+		}
+	}
+
+	//divide numbers by the amount of 1d arrays
+	for (var d=0;d<finArr.length;d++) {
+		finArr[d] /= arr.length;
+	}
+	
+
+	return finArr;
 }
+
+
 //keeps a number between certain bounds
 //these operators are stupid and I hope to never use them again
 function clamp(num, min, max) {
@@ -94,65 +109,12 @@ function isClipped(pointArr) {
 	[tX, tZ] = rotate(tX, tZ, player.theta);
 	[tY, tZ] = rotate(tY, tZ, player.phi);
 
-	return (tZ < 0.1);
+	return (tZ < render_clipDistance);
 }
 
 //performs a linear interpolation between 2 values
 function linterp(a, b, percentage) {
 	return a + ((b - a) * percentage);
-}
-
-function polToCart(theta, phi, radius) {
-	//theta here is horizontal angle, while phi is vertical inclination
-	var x = radius * Math.sin(theta) * Math.cos(phi);
-	var y = radius * Math.sin(phi);
-	var z = radius * Math.cos(theta) * Math.cos(phi);
-	return [x, y, z];
-}
-
-function spaceToScreen(pointArr) {
-	//takes in an xyz list and outputs an xy list
-	var tX = pointArr[0];
-	var tY = pointArr[1];
-	var tZ = pointArr[2];
-
-	//step 1: make coordinates relative to player
-	tX -= player.x;
-	tY -= player.y;
-	tZ -= player.z;
-
-	//step 2: rotate coordinates
-
-	//rotating around y axis
-	[tX, tZ] = rotate(tX, tZ, player.theta);
-
-	//rotating around x axis
-	[tY, tZ] = rotate(tY, tZ, player.phi);
-
-	//step 2.5: clipping if behind the player
-	if (tZ < 0.1) {
-		tX = (tX * -1) / tZ;
-		tY = (tY * -1) / tZ;
-	} else {
-		//step 3: divide by axis perpendicular to player
-		tX /= tZ;
-		tY /= tZ;
-	}
-
-	
-	
-
-	//step 4: account for camera scale
-	tX *= player.scale;
-
-	//flipping image
-	tY *= -1 * player.scale;
-
-	//accounting for screen coordinates
-	tX += canvas.width / 2;
-	tY += canvas.height / 2;
-
-	return [tX, tY];
 }
 
 //returns a random value between the min value and max values, using the default javascript randomizer
