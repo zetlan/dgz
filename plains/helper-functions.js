@@ -181,7 +181,7 @@ function lineIntersect(lin1p1, lin1p2, lin2p1, lin2p2) {
 
 function inPoly(xyPoint, polyPoints) {
 	var linP1 = xyPoint;
-	var linP2 = [canvas.width, xyPoint[1]];
+	var linP2 = [1000000, xyPoint[1]];
 	var intersectNum = 0;
 	for (var r=0;r<polyPoints.length;r++) {
 		var p1 = polyPoints[r % polyPoints.length];
