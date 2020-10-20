@@ -31,8 +31,9 @@ function cameraToScreen(point) {
 //the opposite of polToCart, takes in an xyz point and outputs a vector in the form of [theta, phi, radius]
 function cartToPol(x, y, z) {
 	var rad = Math.sqrt((x * x) + (y * y) + (z * z));
-	var phi = Math.asin(y / rad);
-	var theta = Math.atan2(y, x);
+	var theta = Math.atan2(x, z);
+	var phi = -1 * Math.atan(y / Math.sqrt((z * z) + (x * x)));
+	
 	return [theta, phi, rad];
 }
 
