@@ -14,7 +14,6 @@ class FreePoly {
 		this.calculateNormal();
 
 		this.collisionPoints = this.calculateCollision();
-		this.minPlayerDist = this.calculateMaxPointDist();
 	}
 
 	trimPoints() {
@@ -43,29 +42,24 @@ class FreePoly {
 		return temp;
 	}
 
-	calculateMaxPointDist() {
-
-	}
-
 	calculateNormal() {
 		//first get average point, that's self's xyz
 		[this.x, this.y, this.z] = avgArray(this.points);
 
 		//get cross product of first two points, that's the normal
-		var v1 = [this.points[0][0] - this.x, this.points[0][1] - this.y, this.points[0][2] - this.z];
-		var v2 = [this.points[1][0] - this.x, this.points[1][1] - this.y, this.points[1][2] - this.z];
-
+		//every shape has to have at least 3 points, so 
+		//comparing points 2 and 3 to point 1 for normal getting
+		var v1 = [this.points[1][0] - this.points[0][0], this.points[1][1] - this.points[0][1], this.points[1][2] - this.points[0][2]];
+		var v2 = [this.points[2][0] - this.points[0][0], this.points[2][1] - this.points[0][1], this.points[2][2] - this.points[0][2]];
+		//console.log(this.color, v1, v2);
+		var cross = [(v1[1] * v2[2]) - (v1[2] * v2[1]), (v1[2] * v2[0]) - (v1[0] * v2[2]), (v1[0] * v2[1]) - (v1[1] * v2[0])];
 		
-		var cross = [(v1[1] * v2[2]) - (v1[2] * v2[1]), (v1[2] * v2[0]) - (v1[1] * v2[2]), (v1[0] * v2[1]) - (v1[1] * v2[0])];
-		console.log(this.color, cross);
 		cross = cartToPol(cross[0], cross[1], cross[2]);
-
-		console.log(this.color, cross);
-
+		//console.log(this.color, cross);
+		
 		//checking for alignment with camera
 		if (spaceToRelative([player.x, player.y, player.z], [this.x, this.y, this.z], [cross[0], cross[1]])[2] < 0) {
-			cross[0] = (Math.PI * 2) - cross[0];
-			cross[1] *= -1;
+			cross[0] = (cross[0] + Math.PI) % (Math.PI * 2);
 		}
 		this.normal = [cross[0], cross[1]];
 	}
@@ -78,7 +72,6 @@ class FreePoly {
 		//if the player is too close, take them seriously
 		if (Math.abs(playerCoords[2]) < this.tolerance) {
 			if (inPoly([playerCoords[0], playerCoords[1]], this.collisionPoints)) {
-				
 				//different behavior depending on side
 				if (playerCoords[2] < 0) {
 					playerCoords[2] = -1 * this.tolerance;
@@ -150,7 +143,6 @@ class FreePoly {
 
 			//turning point array into objects that can be put into nodes
 			inPart = new FreePoly(tempPoints, this.color);
-			console.log(inPart.normal);
 			outPart = new FreePoly(outPoints, this.color);
 		} else {
 			//if clipping is not necessary, then just return self
@@ -172,12 +164,17 @@ class FreePoly {
 				polyPoints[a][2] *= -1;
 			}
 		}
+		//make all the polypoints have a boolean that says whether they're clipped or not, this is used for number of neighbors
+		for (var x=0;x<polyPoints.length;x++) {
+			//this flag answers the question "will this be clipped?"
+			polyPoints[x][3] = polyPoints[x][2] < tolerance;
+		}
 		for (var y=0;y<polyPoints.length;y++) {
 			//if the selected point will be clipped, run the algorithm
-			if (polyPoints[y][2] < tolerance) {
+			if (polyPoints[y][3]) {
 				//freefriends is the number of adjacent non-clipped points
 				var freeFriends;
-				var freeFriends = (polyPoints[(y+(polyPoints.length-1))%polyPoints.length][2] >= tolerance) + (polyPoints[(y+1)%polyPoints.length][2] >= tolerance);
+				var freeFriends = !polyPoints[(y+(polyPoints.length-1))%polyPoints.length][3] + !polyPoints[(y+1)%polyPoints.length][3];
 				switch (freeFriends) {
 					case 0:
 						//if there are no free friends, there's no point in attempting, so just move on
@@ -190,15 +187,15 @@ class FreePoly {
 						var moveAmount;
 						var newPointCoords;
 						//lesser friend
-						if (polyPoints[(y+(polyPoints.length-1))%polyPoints.length][2] >= tolerance) {
+						if (!polyPoints[(y+(polyPoints.length-1))%polyPoints.length][3]) {
 							friendCoords = polyPoints[(y+(polyPoints.length-1))%polyPoints.length];
 							moveAmount = getPercentage(friendCoords[2], polyPoints[y][2], tolerance);
-							newPointCoords = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance];
+							newPointCoords = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance, true];
 						} else {
 							//greater friend
 							friendCoords = polyPoints[(y+1)%polyPoints.length];
 							moveAmount = getPercentage(friendCoords[2], polyPoints[y][2], tolerance);
-							newPointCoords = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance + 0.05];
+							newPointCoords = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance + 0.05, true];
 						}
 						polyPoints[y] = newPointCoords;
 						break;
@@ -206,11 +203,11 @@ class FreePoly {
 						//move towards both friends
 						var friendCoords = polyPoints[(y+(polyPoints.length-1))%polyPoints.length];
 						var moveAmount = getPercentage(friendCoords[2], polyPoints[y][2], tolerance);
-						var newPointCoords = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance + 0.05];
+						var newPointCoords = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance + 0.05, true];
 	
 						friendCoords = polyPoints[(y+1)%polyPoints.length];
 						moveAmount = getPercentage(friendCoords[2], polyPoints[y][2], tolerance);
-						var newerPointCoords = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance + 0.05];
+						var newerPointCoords = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance + 0.05, true];
 
 						polyPoints[y] = newerPointCoords;
 						polyPoints.splice(y, 0, newPointCoords);
@@ -258,9 +255,10 @@ class FreePoly {
 				var cXYZ = polToCart(this.normal[0], this.normal[1], 5);
 				var eXY = spaceToScreen([this.x + cXYZ[0], this.y + cXYZ[1], this.z + cXYZ[2]]);
 				ctx.beginPath();
-				ctx.strokeStyle = "#FFF";
+				ctx.strokeStyle = "#AFF";
 				ctx.moveTo(dXY[0], dXY[1]);
 				ctx.lineTo(eXY[0], eXY[1]);
+				ctx.stroke();
 			}
 		}
 	}
@@ -295,5 +293,38 @@ class Star {
 			var drawCoords = spaceToScreen([this.x, this.y, this.z]);
 			drawCircle(this.color, drawCoords[0], drawCoords[1], this.drawR);
 		}
+	}
+}
+
+
+
+
+
+//prefabs here
+class Floor extends FreePoly {
+	constructor(x, y, z, length, width, color) {
+		super([	[x + length, y, z + width],
+				[x + length, y, z - width],
+				[x - length, y, z - width],
+				[x - length, y, z + width]], color);
+	}
+}
+
+
+class WallX extends FreePoly {
+	constructor(x, y, z, width, height, color) {
+		super([	[x, y + height, z + width],
+				[x, y + height, z - width],
+				[x, y - height, z - width],
+				[x, y - height, z + width]], color);
+	}
+}
+
+class WallZ extends FreePoly {
+	constructor(x, y, z, width, height, color) {
+		super([	[x + width, y + height, z],
+				[x - width, y + height, z],
+				[x - width, y - height, z],
+				[x + width, y - height, z]], color);
 	}
 }
