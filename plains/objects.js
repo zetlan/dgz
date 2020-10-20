@@ -66,7 +66,7 @@ class Player {
 		}
 
 		//handling position
-		if (!editor_active) {
+		if (!noclip_active) {
 			this.x += this.dz * Math.sin(this.theta);
 			this.z += this.dz * Math.cos(this.theta);
 
