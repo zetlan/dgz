@@ -1,5 +1,6 @@
 <html>
     <head>
+        <title>Mandelbrot set render!</title>
         <style>
             body {
                 background-color: slateblue;
@@ -92,8 +93,8 @@
                     var i = 0;
                     var cx = ((x * pixelSize) / scale) + cornerCoords[0];
                     var cy = ((y * pixelSize) / scale) + cornerCoords[1];
-                    zx = 0;
-                    zy = 0;
+                    var zx = 0;
+                    var zy = 0;
                     //main processing loop
                     while(i<maxIterations && (zx*zx+zy*zy)<4) {
                         i += 1;
@@ -131,9 +132,7 @@
 
             function finalizeCycle() {
                 //update position text at the end
-                var text = "(" + xCenter;
-                text += ", " + yCenter;
-                text += ", " + (scale / 100).toFixed(3) + ")";
+                var text = `(${xCenter}, ${yCenter}, ${(scale / 100).toFixed(3)})`;;
                 document.getElementById("totalPos").innerHTML = text;
 
                 //updating dynamic maxIterations so that computation and accuracy is preserved
