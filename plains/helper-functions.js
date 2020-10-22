@@ -46,10 +46,13 @@ function generateStarSphere() {
 
 function generateStaircase() {
 	for (var y=0;y<30;y++) {
-		var x = 40 * Math.sin((Math.PI / 6) * y);
-		var z = 40 * Math.cos((Math.PI / 6) * y);
+		var x = 40 * Math.sin((Math.PI / 8) * y);
+		var z = 40 * Math.cos((Math.PI / 8) * y);
 
-		world_objects.push(new Floor(x, y*2, z, 10, 10, "#FF0"));
+		var x2 = 40 * Math.sin((Math.PI / 8) * (y + 1));
+		var z2 = 40 * Math.cos((Math.PI / 8) * (y + 1));
+
+		world_objects.push(new FreePoly([[x, y, z], [x * 1.4, y, z * 1.4], [x2 * 1.4, y, z2 * 1.4], [x2, y, z2]], "#FF0"));
 	}
 }
 

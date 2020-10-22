@@ -16,6 +16,7 @@ var controls_cursorLock = false;
 var controls_sensitivity = 100;
 
 var editor_active = false;
+var noclip_active = false;
 
 let page_animation;
 let player;
@@ -26,7 +27,7 @@ var world_starDistance = 10000;
 let world_objects = [];
 let world_binTree;
 
-
+var render_crosshairSize = 10;
 var render_clipDistance = 0.1;
 var render_identicalPointTolerance = 0.00001;
 
@@ -49,39 +50,36 @@ function setup() {
 	centerX = canvas.width * 0.5;
 	centerY = canvas.height * 0.5;
 
-	player = new Player(0, 6, 0, 0, 0);
+	player = new Player(0, 8, 0, 0, 0);
 
 	//setting up world
 	
-	/*world_objects = [new Floor(0, -0.01, 0, 1000, 1000, "#868"),
+	world_objects = [new Floor(0, -0.01, 0, 5000, 5000, "#868"),
 					//box
+					new FreePoly([[0, 0, 10], [0, 0, -10], [10, 10, -10], [10, 10, 10]], "#FFF"),
 					new WallX(100, 10, 0, 10, 10, "#088"), new WallX(120, 10, 0, 10, 10, "#088"),
 					new WallZ(110, 10, -10, 10, 10, "#068"), new WallZ(110, 10, 10, 15, 10, "#068"),
 					
 					//house
 					//house outside walls
+					
 					new WallZ(0, 15, -130, 50, 15, "#FB6"),
-					new WallZ(0, 15, -220, 50, 15, "#FB6"),
+					new WallZ(0, 15, -220, 50, 15, "#FB6"), 
 					new WallX(50, 15, -175, 45, 15, "#EA8"),
 					new WallX(-50, 25, -175, 45, 5, "#EA8"),
 					new WallX(-50, 15, -200, 20, 15, "#EA8"),
 					new WallX(-50, 15, -150, 20, 15, "#EA8"),
 
+					
 					//house stairs
-					new Floor(0, 1, -140, 1, 10, "#A60"), new Floor(2, 2, -140, 1, 10, "#A60"), new Floor(4, 3, -140, 1, 10, "#A60"), new Floor(6, 4, -140, 1, 10, "#A60"), new Floor(8, 5, -140, 1, 10, "#A60"),
-					new Floor(10, 6, -140, 1, 10, "#A60"), new Floor(12, 7, -140, 1, 10, "#A60"), new Floor(14, 8, -140, 1, 10, "#A60"), new Floor(16, 9, -140, 1, 10, "#A60"), new Floor(18, 10, -140, 1, 10, "#A60"),
-					new Floor(20, 11, -140, 1, 10, "#A60"), new Floor(22, 12, -140, 1, 10, "#A60"), new Floor(24, 13, -140, 1, 10, "#A60"), new Floor(26, 14, -140, 1, 10, "#A60"), new Floor(28, 15, -140, 1, 10, "#A60"),
-					new Floor(30, 16, -140, 1, 10, "#A60"), new Floor(32, 17, -140, 1, 10, "#A60"), new Floor(34, 18, -140, 1, 10, "#A60"), new Floor(36, 19, -140, 1, 10, "#A60"), new Floor(38, 20, -140, 1, 10, "#A60"),
+					new FreePoly([[0, 0, -200], [0, 0, -219], [38, 20, -219], [38, 20, -200]], "#A60"),
 
-					new FreePoly([[-103, 12, 9], [-81, 12, -33], [-116, 12, -37]], [0, Math.PI / 2], "#FFF"),
-					]; */
-
-	world_objects = [new FreePoly([[100, -11, 100], [100, -11, -100], [-100, -11, 0]], "#868"),
-			new FreePoly([[-53, -10, 9], [-31, -10, 9], [-31, 10, 9], [-53, 10, 9]], "#FFF")];
+					new FreePoly([[-103, 12, 9], [-81, 12, -33], [-116, 12, -37]], "#000")
+					]; 
 	world_stars = [];
 
 	generateStarSphere();
-	//generateStaircase();
+	generateStaircase();
 	generateBinTree();
 
 	page_animation = window.requestAnimationFrame(main);
@@ -91,6 +89,19 @@ function main() {
 	//drawing background
 	ctx.fillStyle = world_bg;
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+	/*
+	var toPush = [];
+	for (var a=0;a<world_objects[1].points.length;a++) {
+		var temp = rotate(world_objects[1].points[a][0], world_objects[1].points[a][2], 0.01);
+		toPush.push([temp[0], world_objects[1].points[a][1], temp[1]]);
+	}
+
+	world_objects[1] = new FreePoly(toPush, "#FFF");
+
+	generateBinTree(); */
+
+	
 
 	
 
@@ -104,13 +115,38 @@ function main() {
 	}
 	world_binTree.traverse(true);
 	world_binTree.traverse(false);
+
 	
 
 	//crosshair
-	if (editor_active) {
+	if (noclip_active) {
 		ctx.strokeStyle = "#AFF";
-		ctx.rect(centerX - 5, centerY - 5, 10, 10);
+		ctx.rect(centerX - (render_crosshairSize / 2), centerY - (render_crosshairSize / 2), render_crosshairSize, render_crosshairSize);
 		ctx.stroke();
+	}
+
+	//crosshair 2
+	if (editor_active) {
+		ctx.strokeStyle = "#FFF";
+		//starting pos
+		var center = polToCart(player.theta, player.phi, 5);
+		center = [center[0] + player.x, center[1] + player.y, center[2] + player.z];
+
+		//jumping-off points
+		var xPlus = [center[0] + (render_crosshairSize / 20), center[1], center[2]];
+		var yPlus = [center[0], center[1] + (render_crosshairSize / 20), center[2]];
+		var zPlus = [center[0], center[1], center[2] + (render_crosshairSize / 20)];
+
+		//transforming lines to screen coordinates
+		[center, xPlus, yPlus, zPlus] = [spaceToScreen(center), spaceToScreen(xPlus), spaceToScreen(yPlus), spaceToScreen(zPlus)];
+
+		//drawing lines
+		ctx.strokeStyle = "#F00";
+		drawPoly("#F00", [center, xPlus]);
+		ctx.strokeStyle = "#0F0";
+		drawPoly("#0F0", [center, yPlus]);
+		ctx.strokeStyle = "#00F";
+		drawPoly("#00F", [center, zPlus]);
 	}
 	
 
@@ -160,9 +196,13 @@ function handleKeyPress(a) {
 			player.dp = -1 * player.sens;
 			break;
 
-		case 221:
-			editor_active = !editor_active;
+		case 219:
+			noclip_active = !noclip_active;
 			player.dy = 0;
+			break;
+		case 221:
+			ctx.lineWidth = 2;
+			editor_active = !editor_active;
 			break;
 	}
 }
