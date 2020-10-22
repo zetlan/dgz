@@ -1,0 +1,539 @@
+<html>
+	<head>
+		<title>Desert at 01:54 on September 19th, 1995</title>
+		<meta charset="utf-8">
+		<style>
+			body {
+				background-color: slateblue;
+			}
+
+			#cavalier {
+				margin: auto;
+				text-align: center;
+				display: block;
+			}
+
+			#centerModule {
+				text-align: center;
+				margin: auto;
+			}
+		</style>
+		<script>
+			window.onload = setup;
+			window.addEventListener("keydown", handleKeyPress, false);
+			window.addEventListener("keyup", handleKeyNegate, false);
+
+			//global variables
+			var canvas;
+			var ctx;
+			var centerX;
+			var centerY;
+
+			let page_animation;
+			let player;
+
+			var world_bg = "#002";
+			var world_starDistance = 5000;
+			let world_objects = [];
+			
+
+			var render_clipDistance = 0.1;
+			
+
+			
+			
+
+			//classes
+
+			class Player {
+				constructor(x, y, z, xRot, yRot) {
+					this.friction = 0.85;
+
+					this.height = 5;
+
+					this.scale = 100;
+					this.sens = 0.04;
+					this.speed = 0.05;
+
+
+					this.x = x;
+					this.y = y;
+					this.z = z;
+
+					this.dx = 0;
+					this.dy = 0;
+					this.dz = 0;
+					this.dMax = 1;
+
+					this.ax = 0;
+					this.ay = 0;
+					this.az = 0;
+
+
+					this.theta = yRot;
+					this.phi = xRot;
+
+					this.dt = 0;
+					this.dp = 0;
+				}
+
+				tick() {
+					//handling velocity
+
+					//adding
+					this.dx += this.ax;
+
+					//binding max
+					if (Math.abs(this.dx) > this.dMax) {
+						this.dx *= 0.95;
+					}
+
+					//friction
+					if (this.ax == 0) {
+						this.dx *= this.friction;
+					}
+
+					this.dz += this.az;
+					if (Math.abs(this.dz) > this.dMax) {
+						this.dz *= 0.95;
+					}
+					if (this.az == 0) {
+						this.dz *= this.friction;
+					}
+
+					//handling position
+					this.x += this.dz * Math.sin(this.theta);
+					this.z += this.dz * Math.cos(this.theta);
+
+					this.x += this.dx * Math.sin(this.theta + (Math.PI/2));
+					this.z += this.dx * Math.cos(this.theta + (Math.PI/2));
+
+
+					//camera velocity
+					this.theta += this.dt;
+					this.phi += this.dp;
+
+					//special case for vertical camera orientation
+					if (Math.abs(this.phi) >= Math.PI * 0.5) {
+						//if the camera angle is less than 0, set it to -1/2 pi. Otherwise, set it to 1/2 pi
+						this.phi = Math.PI * (-0.5 + (this.phi > 0));
+					}
+				}
+			}
+
+			class Platform {
+				constructor(x, y, z, l, w, color) {
+					this.x = x;
+					this.y = y;
+					this.z = z;
+					this.len = l;
+					this.wdt = w;
+					this.collisionHeight = 20;
+					
+					this.color = color;
+
+					this.points = [	[this.x + this.len, this.y, this.z - this.wdt],
+									[this.x + this.len, this.y, this.z + this.wdt],
+									[this.x - this.len, this.y, this.z + this.wdt],
+									[this.x - this.len, this.y, this.z - this.wdt]];
+
+					this.drawCoords = [];
+				}
+
+				tick() {
+					//collide correctly with player
+				}
+
+				beDrawn() {
+					//first get camera coordinate points
+					var tempPoints = [this.spaceToCamera(this.points[0]), this.spaceToCamera(this.points[1]), this.spaceToCamera(this.points[2]), this.spaceToCamera(this.points[3])];
+
+					//loop through all points
+					for (var y=0;y<tempPoints.length;y++) {
+						//if the selected point will be clipped, run the algorithm
+						if (tempPoints[y][2] < render_clipDistance) {
+							//freefriends is the number of adjacent non-clipped points
+							var freeFriends = (tempPoints[(y+(tempPoints.length-1))%tempPoints.length][2] >= render_clipDistance) + (tempPoints[(y+1)%tempPoints.length][2] >= render_clipDistance);
+
+							if (freeFriends == 0) {
+								//if there are no free friends, there's no point in attempting, so just move on
+								tempPoints.splice(y, 1);
+								y -= 1;
+							} else {
+								//move towards friends
+								var friendCoords = tempPoints[(y+(tempPoints.length-1))%tempPoints.length];
+								var moveAmount = getPercentage(friendCoords[2], tempPoints[y][2], render_clipDistance)
+								var newPointCoords = [linterp(friendCoords[0], tempPoints[y][0], moveAmount), linterp(friendCoords[1], tempPoints[y][1], moveAmount), render_clipDistance + 0.05];
+
+								tempPoints.splice(y, 0, newPointCoords);
+
+								y += 1;
+
+								friendCoords = tempPoints[(y+1)%tempPoints.length];
+								moveAmount = getPercentage(friendCoords[2], tempPoints[y][2], render_clipDistance)
+								newPointCoords = [linterp(friendCoords[0], tempPoints[y][0], moveAmount), linterp(friendCoords[1], tempPoints[y][1], moveAmount), render_clipDistance + 0.05];
+								tempPoints.splice(y, 1);
+								tempPoints.splice(y, 0, newPointCoords);
+							}
+						}
+					}
+					
+					//turn points into screen coordinates
+					var screenPoints = [];
+					for (var a=0;a<tempPoints.length;a++) {
+						screenPoints.push(this.cameraToScreen(tempPoints[a]));
+					}
+
+					if (screenPoints.length == 0) {
+						screenPoints = [[0, 0], [0, 0]];
+					}
+
+
+					//finally draw self
+					drawPoly(this.color, screenPoints);
+				}
+
+				//these two functions do the same thing as spaceToScreen, but split so the clipping plane can be implemented
+
+				//turns world coordinates into 3d camera coordinates, for clipping
+				spaceToCamera(point) {
+					var [tX, tY, tZ] = point;
+
+					tX -= player.x;
+					tY -= player.y;
+					tZ -= player.z;
+
+					[tX, tZ] = rotate(tX, tZ, player.theta);
+					[tY, tZ] = rotate(tY, tZ, player.phi);
+
+					return [tX, tY, tZ];
+				}
+
+				//turns camera coordinates into 2d screen coordinates
+				cameraToScreen(point) {
+					//divide by axis perpendicular to player
+					var [tX, tY, tZ] = point;
+					tX /= tZ;
+					tY /= tZ;
+
+					//accounting for camera scale
+					tX *= player.scale;
+
+					//flipping image
+					tY *= -1 * player.scale;
+
+					//accounting for screen coordinates
+					tX += canvas.width / 2;
+					tY += canvas.height / 2;
+
+					return [tX, tY];
+				}
+			}
+
+			class Star {
+				constructor(x, y, z) {
+					this.color = "#AAF";
+
+					this.x = x;
+					this.y = y;
+					this.z = z;
+				}
+
+				tick() {
+
+				}
+
+				beDrawn() {
+					if (!isClipped([this.x, this.y, this.z])) {
+						var drawCoords = spaceToScreen([this.x, this.y, this.z]);
+						drawCircle(this.color, drawCoords[0], drawCoords[1], 3);
+					}
+				}
+			}
+
+
+
+
+
+
+
+			//setup function
+			function setup() {
+				canvas = document.getElementById("cornh");
+				ctx = canvas.getContext("2d");
+
+				centerX = canvas.width * 0.5;
+				centerY = canvas.height * 0.5;
+
+				player = new Player(0, 5, 0, 0, 0);
+
+				//setting up world
+				world_objects = [new Platform(0, 0, 0, 1000, 1000, "#FFF"), new Platform(0, 1, 0, 10, 10, "#F0F")];
+
+				populateStarSphere();
+
+				page_animation = window.requestAnimationFrame(main);
+			}
+
+			function main() {
+				//drawing background
+				ctx.fillStyle = world_bg;
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+				//handling entities
+				player.tick();
+
+				for (var a=0;a<world_objects.length;a++) {
+					world_objects[a].tick();
+					world_objects[a].beDrawn();
+				}
+
+				//call self
+				//player.y += 0.1;
+				page_animation = window.requestAnimationFrame(main);
+			}
+
+			//input handling
+			function handleKeyPress(a) {
+				switch(a.keyCode) {
+					//player controls
+					// a/d
+					case 65:
+						player.ax = -1 * player.speed;
+						break;
+					case 68:
+						player.ax = player.speed;
+						break;
+					// w/s
+					case 87:
+						player.az = player.speed;
+						break;
+					case 83:
+						player.az = -1 * player.speed;
+						break;
+
+					//camera controls
+					case 37:
+						player.dt = -1 * player.sens;
+						break;
+					case 38:
+						player.dp = player.sens;
+						break;
+					case 39:
+						player.dt = player.sens;
+						break;
+					case 40:
+						player.dp = -1 * player.sens;
+						break;
+				}
+			}
+
+			function handleKeyNegate(a) {
+				switch(a.keyCode) {
+					//player controls
+					// a/d
+					case 65:
+						if (player.ax < 0) {
+							player.ax = 0;
+						}
+						break;
+					case 68:
+						if (player.ax > 0) {
+							player.ax = 0;
+						}
+						break;
+					// w/s
+					case 87:
+						if (player.az > 0) {
+							player.az = 0;
+						}
+						break;
+					case 83:
+						if (player.az < 0) {
+							player.az = 0;
+						}
+						break;
+
+
+					//camera controls
+					case 37:
+						if (player.dt < 0) {
+							player.dt = 0;
+						}
+						break;
+					case 38:
+						if (player.dp > 0) {
+							player.dp = 0;
+						}
+						break;
+					case 39:
+						if (player.dt > 0) {
+							player.dt = 0;
+						}
+						break;
+					case 40:
+						if (player.dp < 0) {
+							player.dp = 0;
+						}
+						break;
+				}
+			}
+
+
+
+			//drawing functions
+
+			function drawQuad(color, p1, p2, p3, p4) {
+				//console.log(color, p1, p2, p3, p4);
+				ctx.fillStyle = color;
+				ctx.strokeStyle = color;
+				ctx.beginPath();
+				ctx.moveTo(p1[0], p1[1]);
+				ctx.lineTo(p2[0], p2[1]);
+				ctx.lineTo(p3[0], p3[1]);
+				ctx.lineTo(p4[0], p4[1]);
+				ctx.lineTo(p1[0], p1[1]);
+				ctx.stroke();
+				ctx.fill();
+			}
+
+			function drawPoly(color, xyPointsArr) {
+				ctx.fillStyle = color;
+				ctx.strokeStyle = color;
+				var xypa = xyPointsArr;
+				ctx.beginPath();
+				ctx.moveTo(xypa[0][0], xypa[0][1]);
+				for (var i=1;i<xypa.length;i++) {
+					ctx.lineTo(xypa[i][0], xypa[i][1]);
+				}
+				//back to start
+				ctx.lineTo(xypa[0][0], xypa[0][1]);
+				ctx.stroke();
+				ctx.fill();
+			}
+
+			function drawCircle(color, x, y, radius) {
+				ctx.beginPath();
+				ctx.fillStyle = color;
+				ctx.strokeStyle = color;
+				ctx.ellipse(x, y, radius, radius, 0, 0, Math.PI * 2);
+				ctx.stroke();
+				ctx.fill();
+			}
+
+
+
+
+
+			//misc game functions
+			function populateStarSphere() {
+				//random stars
+				for (var e=0;e<100;e++) {
+					var pos = polToCart(randomCustom(0, Math.PI * 2), randomCustom(0.1, (Math.PI * 0.48)), randomCustom(world_starDistance, world_starDistance * 2));
+					world_objects.push(new Star(pos[0], pos[1], pos[2]));
+				}
+			}
+
+
+
+
+
+
+			//utility functions
+
+			//returns the percentage from val1 to val2 that the checkVal is in
+			//example: 0, 10, 5, returns 0.5)
+			function getPercentage(val1, val2, checkVal) {
+				val2 -= val1;
+				checkVal -= val1;
+				return checkVal / val2;
+			}
+
+			//determines if a point will be clipped due to being behind / too close to the player
+			function isClipped(pointArr) {
+				var tX = pointArr[0];
+				var tY = pointArr[1];
+				var tZ = pointArr[2];
+				tX -= player.x;
+				tY -= player.y;
+				tZ -= player.z;
+				[tX, tZ] = rotate(tX, tZ, player.theta);
+				[tY, tZ] = rotate(tY, tZ, player.phi);
+
+				return (tZ < 0.1);
+			}
+
+			//performs a linear interpolation between 2 values
+			function linterp(a, b, percentage) {
+				return a + ((b - a) * percentage);
+			}
+
+			function polToCart(theta, phi, radius) {
+				//theta here is horizontal angle, while phi is vertical inclination
+				var x = radius * Math.cos(theta) * Math.sin(phi);
+				var y = radius * Math.cos(phi);
+				var z = radius * Math.sin(theta) * Math.sin(phi);
+				return [x, y, z];
+			}
+
+			function spaceToScreen(pointArr) {
+				//takes in an xyz list and outputs an xy list
+				var tX = pointArr[0];
+				var tY = pointArr[1];
+				var tZ = pointArr[2];
+
+				//step 1: make coordinates relative to player
+				tX -= player.x;
+				tY -= player.y;
+				tZ -= player.z;
+
+				//step 2: rotate coordinates
+
+				//rotating around y axis
+				[tX, tZ] = rotate(tX, tZ, player.theta);
+
+				//rotating around x axis
+				[tY, tZ] = rotate(tY, tZ, player.phi);
+
+				//step 2.5: clipping if behind the player
+				if (tZ < 0.1) {
+					tX = (tX * -1) / tZ;
+					tY = (tY * -1) / tZ;
+				} else {
+					//step 3: divide by axis perpendicular to player
+					tX /= tZ;
+					tY /= tZ;
+				}
+
+				
+				
+
+				//step 4: account for camera scale
+				tX *= player.scale;
+
+				//flipping image
+				tY *= -1 * player.scale;
+
+				//accounting for screen coordinates
+				tX += canvas.width / 2;
+				tY += canvas.height / 2;
+
+				return [tX, tY];
+			}
+
+			function randomCustom(min, max) {
+				return (Math.random() * (max - min)) + min;
+			}
+
+			function rotate(x, z, radians) {
+				[x, z] = [(x * Math.cos(radians)) - (z * Math.sin(radians)), (z * Math.cos(radians)) + (x * Math.sin(radians))];
+				return [x, z];
+			}
+		</script>
+	</head>
+	<body>
+		<div id="centerModule">
+		<canvas id="cornh" width="640" height="480"></canvas><br>
+		</div>
+	</body>
+</html>
