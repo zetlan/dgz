@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width">
+		<title>Monopoly game distribution</title>
+		<style>
+
+		body {
+			background-color: slateblue;
+		}
+		#canvas {
+			border-style: double;
+			border-color: slateblue;
+		}
+		#mid {
+			text-align: center;
+			margin-right: 15%;
+		}
+		</style>
+	</head>
+	<body>
+		<script type="text/javascript">
+			
+			var timer;
+
+			var color_bg = "#CAF";
+			var color_bar = "#88A"
+			var color_box = "#888";
+			var color_piece = "#FF0";
+
+			var centerX;
+			var centerY;
+
+			var display_edgeMargin = 20;
+			var display_boxMargin = 5;
+			var display_boxStart = 300;
+			var display_boxHeight = 10;
+			var display_barHeight = 1600;
+
+
+			var moves_current = 0;
+			var moves_total = 50000;
+			var moves_beforeReset = 50;
+			var moves_perFrame = 100;
+			
+			var currentPosition = 0;
+
+			let boardMoveData = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+			//of course I would end up making a class here
+
+			class Property {
+				constructor(name, color, buyPrice, housePrice, rentArr) {
+					this.name = name;
+					this.color = color;
+					this.price = buyPrice;
+					this.housePrice = housePrice;
+					this.rent = rentArr;
+				}
+			} 
+			let boardPropertyData = [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}];
+
+			window.onload = setup;
+
+			function setup() {
+				canvas = document.getElementById("canvas");
+				ctx = canvas.getContext("2d");
+
+				centerX = canvas.width / 2;
+				centerY = canvas.height / 2;
+
+				timer = window.requestAnimationFrame(draw);
+			}
+			
+			function draw() {
+				//background
+				ctx.fillStyle = color_bg;
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+				currentPosition = 0;
+				for (var k=0;k<moves_perFrame;k++) {
+					move();
+				}
+
+				//board
+				ctx.fillStyle = color_box;
+				for (var a=0;a<boardMoveData.length;a++) {
+					//drawing the boxes
+					var boxPosition = display_edgeMargin + (((canvas.width - (display_edgeMargin * 2)) / boardMoveData.length) * a);
+					var boxWidth = ((canvas.width - (display_edgeMargin * 2)) / boardMoveData.length) - display_boxMargin;
+					ctx.fillStyle = color_box;
+					ctx.fillRect(boxPosition, display_boxStart, boxWidth, display_boxHeight);
+
+					//drawing bar of probability
+					ctx.fillStyle = color_bar;
+					ctx.fillRect(boxPosition, display_boxStart - display_boxMargin, boxWidth, -1 * (display_barHeight * (boardMoveData[a] / moves_current)));
+					
+
+					//drawing piece
+					if (a == currentPosition) {
+						ctx.fillStyle = color_piece;
+						ctx.fillRect(boxPosition + 2, display_boxStart + 20, boxWidth - 4, display_boxHeight - 4);
+						ctx.fillStyle = color_box;
+					}
+				}
+
+
+				//average line
+				var avgNum = 0;
+				for (var b=0;b<boardMoveData.length;b++) {
+					avgNum += boardMoveData[b];
+				}
+				avgNum /= boardMoveData.length;
+				ctx.fillStyle = "#000";
+				ctx.fillRect(display_edgeMargin + (((canvas.width - (display_edgeMargin * 2)) / boardMoveData.length) * 0), display_boxStart - display_boxMargin - (display_barHeight * (avgNum / moves_current)), canvas.width - (display_edgeMargin * 2), 2);
+
+				//call self
+				if (moves_current < moves_total) {
+					timer = window.requestAnimationFrame(draw);
+				}
+			}
+
+			function move() {
+				if (moves_current % moves_beforeReset == 0) {
+					currentPosition = 0;
+				}
+				moves_current += 1;
+				//roll 2 dice
+				currentPosition += Math.floor(randomCustom(1, 7)) + Math.floor(randomCustom(1, 7));
+				//loop around
+				currentPosition = currentPosition % boardMoveData.length;
+
+				
+
+				//put a mark where landed
+				boardMoveData[currentPosition] += 1;
+				//go to jail if necessary
+				if (currentPosition == 30) {
+					currentPosition = 10;
+				}
+
+			}
+
+			function drawCircle(color, x, y, radius) {
+				ctx.beginPath();
+				ctx.fillStyle = color;
+				ctx.strokeStyle = color;
+				ctx.ellipse(x, y, radius, radius, 0, 0, Math.PI * 2);
+				ctx.stroke();
+				ctx.fill();
+			}
+
+			function randomCustom(min, max) {
+				return (Math.random() * (max - min)) + min;
+			}
+		</script>
+		<div id="mid">
+			<canvas id="canvas" width="640" height="480"></canvas>
+		</div>
+		
+	</body>
+</html>
