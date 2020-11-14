@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width">
+		<title>Simon Says</title>
+		<style>
+
+		body {
+			background-color: slateblue;
+		}
+		#canvas {
+			border-style: double;
+			border-color: slateblue;
+		}
+		#mid {
+			text-align: center;
+		}
+		</style>
+	</head>
+	<body>
+		<script type="text/javascript">
+			window.onload = setup;
+			window.addEventListener("keydown", handleKeyPress, false);
+			document.addEventListener('pointerlockchange', handleCursorLockChange, false);
+			document.addEventListener('mozpointerlockchange', handleCursorLockChange, false);
+			
+			var timer;
+
+			var board_size = 0.9;
+			var board_numOfRows = 2;
+			var board_tileTol = 0.55;
+
+			var color_bg = "#CCF";
+			var color_cursor = "#FFF";
+			var color_board = "#741";
+			var color_select = "#800";
+			var color_text = "#004";
+
+			var cursor_x;
+			var cursor_y;
+			var cursor_sensitivity = 1;
+
+			function setup() {
+				canvas = document.getElementById("canvas");
+				ctx = canvas.getContext("2d");
+
+				board_size *= canvas.height;
+
+				//cursor setup
+				canvas.requestPointerLock = canvas.requestPointerLock || canvas.mozRequestPointerLock;
+				document.exitPointerLock = document.exitPointerLock || document.mozExitPointerLock;
+
+				cursor_x = canvas.width / 2;
+				cursor_y = canvas.height / 2;
+
+				canvas.onclick = function() {canvas.requestPointerLock();}
+
+				timer = window.requestAnimationFrame(update);
+			}
+
+			
+			
+			function update() {
+				//background
+				ctx.fillStyle = color_bg;
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+				//board
+				drawPiece(color_board, (canvas.width / 2), (canvas.height / 2), board_size / (board_numOfRows * 2));
+
+				//cursor
+				drawCircle(color_cursor, cursor_x, cursor_y, 5);
+
+				//call self
+				timer = window.requestAnimationFrame(update);
+			}
+
+
+			//drawing
+			function drawCircle(color, x, y, radius) {
+				ctx.beginPath();
+				ctx.fillStyle = color;
+				ctx.strokeStyle = color;
+				ctx.ellipse(x, y, radius, radius, 0, 0, Math.PI * 2);
+				ctx.stroke();
+				ctx.fill();
+			}
+
+			function drawPiece(color, x, y, radius) {
+				//ew
+				var tol = board_tileTol;
+				ctx.fillStyle = color;
+				ctx.beginPath();
+				ctx.moveTo(x - radius		, y + (radius * tol));
+				ctx.lineTo(x - radius		, y - (radius * tol));
+				ctx.lineTo(x - (radius * tol), y - radius);
+				ctx.lineTo(x + (radius * tol), y - radius);
+				ctx.lineTo(x + radius		, y - (radius * tol));
+				ctx.lineTo(x + radius		, y + (radius * tol));
+				ctx.lineTo(x + (radius * tol), y + radius);
+				ctx.lineTo(x - (radius * tol), y + radius);
+				ctx.fill();
+			}
+
+			function randomCustom(min, max) {
+				return (Math.random() * (max - min)) + min;
+			}
+
+
+			//input handling
+			function handleKeyPress(a) {
+				//handling space
+				if (a.keyCode == 32) {
+					console.log("space pressed");
+				}
+			}
+
+			function handleCursorLockChange() {
+				if (document.pointerLockElement === canvas || document.mozPointerLockElement === canvas) {
+					document.addEventListener("mousemove", handleMouseMove, false);
+				} else {
+					document.removeEventListener("mousemove", handleMouseMove, false);
+				}
+			}
+
+			function handleMouseMove(a) {
+				cursor_x += a.movementX / cursor_sensitivity;
+				cursor_y += a.movementY / cursor_sensitivity;
+			}
+		</script>
+
+		<div id="mid">
+			<canvas id="canvas" width="640" height="480"></canvas>
+			<p>Click on the game area to use the game cursor, and click space to start / reset a game.</p>
+		</div>
+		
+	</body>
+</html>
