@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width">
+		<title>Grid Copy</title>
+		<style>
+
+		body {
+			background-color: slateblue;
+		}
+		#canvas {
+			border-style: double;
+			border-color: slateblue;
+		}
+		#mid {
+			text-align: center;
+		}
+		</style>
+	</head>
+	<body>
+		<!--audio time-->
+		<audio id="audioPositive">
+			<source src="happy1.mp3" type="audio/mpeg">
+			Audio [positive] is not loading correctly right now :(
+		</audio>
+
+		<audio id="audioNeutral">
+			<source src="normal1.mp3" type="audio/mpeg">
+			Audio [normal] is not loading correctly right now :(
+		</audio>
+
+		<audio id="audioNegative">
+			<source src="sad1.mp3" type="audio/mpeg">
+			Audio [sad] is not loading correctly right now :(
+		</audio>
+
+		<script type="text/javascript">
+			window.onload = setup;
+			window.addEventListener("keydown", handleKeyPress, false);
+			document.addEventListener('pointerlockchange', handleCursorLockChange, false);
+			document.addEventListener('mozpointerlockchange', handleCursorLockChange, false);
+			
+			var timer;
+
+			var audio_happy = document.getElementById("audioPositive");
+			var audio_neutral = document.getElementById("audioNeutral");
+			var audio_negative = document.getElementById("audioNegative");
+
+			var board_size = 0.85;
+			var board_numOfRows = 2;
+			var board_tileTol = 0.55;
+			var board_limits = [2, 6];
+			var board_height = 0.45;
+
+			var color_arrows = "#88F";
+			var color_bg = "#CCF";
+			var color_cursor = "#FFF";
+			var color_cursor2 = "#F00";
+			var color_cursor3 = "#606";
+			var color_board = "#114";
+			var color_select = "#66A";
+			var color_selectRobot = "#00F";
+			var color_selectWrong = "#800";
+			var color_text = "#004";
+
+			var cursor_x;
+			var cursor_y;
+			var cursor_sensitivity = 1;
+
+			var game_active = false;
+			var game_forceLose = false;
+			var game_maxTurn = 10;
+			var game_displayTurn = 0;
+			var game_humanTurn = false;
+
+			var game_lightColor = color_selectRobot;
+			var game_lightTime = 0;
+			var game_lightTimeMax = 20;
+			var game_lightTile = [];
+			var game_move = 0;
+			var game_path = [];
+			
+			var game_scores = {	2: 0,
+								3: 0,
+								4: 0,
+								5: 0,
+								6: 0};
+
+			var game_text = "No game active, press space to start a 2x2 game";
+			
+
+			function setup() {
+				canvas = document.getElementById("canvas");
+				ctx = canvas.getContext("2d");
+				ctx.lineWidth = 4;
+				ctx.lineJoin = "round";
+				ctx.font = "20px Century Gothic";
+				ctx.textAlign = "center";
+
+				board_size *= canvas.height;
+
+				//cursor setup
+				canvas.requestPointerLock = canvas.requestPointerLock || canvas.mozRequestPointerLock;
+				document.exitPointerLock = document.exitPointerLock || document.mozExitPointerLock;
+
+				cursor_x = canvas.width / 2;
+				cursor_y = canvas.height / 2;
+
+				canvas.onclick = function() {canvas.requestPointerLock();}
+
+				timer = window.requestAnimationFrame(update);
+			}
+
+			
+			
+			function update() {
+				//background
+				ctx.fillStyle = color_bg;
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+				
+
+				//timing logic
+				if (game_active) {
+					//if a light is on, reduce the time left on it
+					if (game_lightTime > 0) {
+						game_lightTime -= 1;
+					} else {
+						//if out of time...
+
+						//robot case
+						if (!game_humanTurn) {
+							//switching which tile to display
+							game_displayTurn += 1;
+
+							//if out of turns
+							if (game_displayTurn > game_path.length - 1) {
+								startHumanTurn();
+							} else {
+								game_lightTime = game_lightTimeMax;
+								audio_neutral.play();
+							}
+
+							game_lightTile = game_path[game_displayTurn];
+						} else {
+							//human case
+							if (game_lightColor == color_selectWrong) {
+								stopGame();
+							} else if (game_move > game_path.length - 1) {
+								//if done with the game, end it
+								if (game_path.length >= game_maxTurn) {
+									stopGame();
+								} else {
+									startRobotTurn();
+								}
+							}
+						}
+					}
+				}
+				
+
+				drawBoard();
+				drawArrows();
+				drawCursor();
+
+				//text
+				ctx.fillStyle = color_text;
+				ctx.fillText(game_text, canvas.width * 0.5, canvas.height * 0.95);
+
+				//call self
+				timer = window.requestAnimationFrame(update);
+			}
+
+			function randomCustom(min, max) {
+				return (Math.random() * (max - min)) + min;
+			}
+
+			function getRandomPiece() {
+				//returns a random spot on the board
+				return [Math.floor(randomCustom(0, board_numOfRows)), Math.floor(randomCustom(0, board_numOfRows))];
+			}
+
+			function startGame() {
+				game_forceLose = false;
+				game_text = `...Game in progress...`;
+				game_active = true;
+				game_path = [];
+				startRobotTurn();
+			}
+
+			function stopGame() {
+				if (game_move >= game_maxTurn && !game_forceLose) {
+					game_text = `You win!`;
+				} else {
+					game_text = `Game over, you lost with a score of ${game_path.length}`;
+				}
+				game_active = false;
+			}
+
+			function startHumanTurn() {
+				game_displayTurn = 0;
+				game_humanTurn = true;
+			}
+
+			function startRobotTurn() {
+				game_move = 0;
+				game_humanTurn = false;
+
+				game_path.push(getRandomPiece());
+				game_lightColor = color_selectRobot;
+				game_lightTile = game_path[0];
+				game_lightTime = game_lightTimeMax;
+
+				audio_neutral.play();
+			}
+
+
+
+			//drawing
+			function drawArrows() {
+				//left
+				ctx.strokeStyle = color_arrows;
+				ctx.beginPath();
+				ctx.moveTo(canvas.width * 0.1, canvas.height * (board_height - 0.05));
+				ctx.lineTo(canvas.width * 0.05, canvas.height * board_height);
+				ctx.lineTo(canvas.width * 0.1, canvas.height * (board_height + 0.05));
+				ctx.stroke();
+
+				//right
+				ctx.strokeStyle = color_arrows;
+				ctx.beginPath();
+				ctx.moveTo(canvas.width * 0.9, canvas.height * (board_height - 0.05));
+				ctx.lineTo(canvas.width * 0.95, canvas.height * board_height);
+				ctx.lineTo(canvas.width * 0.9, canvas.height * (board_height + 0.05));
+				ctx.stroke();
+			}
+			function drawBoard() {
+				//board
+				var baseX = (canvas.width / 2) - (board_size / 2) + (board_size / (board_numOfRows * 2));
+				var baseY = (canvas.height * board_height) - (board_size / 2) + (board_size / (board_numOfRows * 2));
+				var spacing = board_size / board_numOfRows;
+				for (var a=0;a<board_numOfRows;a++) {
+					for (var b=0;b<board_numOfRows;b++) {
+						drawPiece(color_board, baseX + (spacing * a), baseY + (spacing * b), (board_size / (board_numOfRows * 2)) * 0.8);
+					}
+				}
+
+				//drawing lit up piece
+				if (game_lightTime > game_lightTimeMax / 2) {
+					drawPiece(game_lightColor, baseX + (spacing * game_lightTile[0]), baseY + (spacing * game_lightTile[1]), (board_size / (board_numOfRows * 2)) * 0.8);
+				}
+			}
+
+			function drawCircle(color, x, y, radius) {
+				ctx.beginPath();
+				ctx.fillStyle = color;
+				ctx.strokeStyle = color;
+				ctx.ellipse(x, y, radius, radius, 0, 0, Math.PI * 2);
+				ctx.stroke();
+				ctx.fill();
+			}
+
+			function drawCursor() {
+				//cursor
+				if (game_humanTurn) {
+					drawCircle(color_cursor3, cursor_x, cursor_y, 6);
+				} else {
+					drawCircle(color_cursor2, cursor_x, cursor_y, 6);
+				}
+				drawCircle(color_cursor, cursor_x, cursor_y, 4);
+			}
+
+			function drawPiece(color, x, y, radius) {
+				//ew
+				var tol = board_tileTol;
+				ctx.fillStyle = color;
+				ctx.beginPath();
+				ctx.moveTo(x - radius		, y + (radius * tol));
+				ctx.lineTo(x - radius		, y - (radius * tol));
+				ctx.lineTo(x - (radius * tol), y - radius);
+				ctx.lineTo(x + (radius * tol), y - radius);
+				ctx.lineTo(x + radius		, y - (radius * tol));
+				ctx.lineTo(x + radius		, y + (radius * tol));
+				ctx.lineTo(x + (radius * tol), y + radius);
+				ctx.lineTo(x - (radius * tol), y + radius);
+				ctx.fill();
+			}
+
+
+			//input handling
+			function handleKeyPress(a) {
+				//handling space
+				if (a.keyCode == 32) {
+					if (!game_active) {
+						startGame();
+					}
+					a.preventDefault();
+				}
+			}
+
+			function handleCursorLockChange() {
+				if (document.pointerLockElement === canvas || document.mozPointerLockElement === canvas) {
+					document.addEventListener("mousemove", handleMouseMove, false);
+					document.addEventListener("mousedown", handleMouseDown, false);
+				} else {
+					document.removeEventListener("mousemove", handleMouseMove, false);
+					document.removeEventListener("mousedown", handleMouseDown, false);
+				}
+			}
+
+			function handleMouseMove(a) {
+				cursor_x += a.movementX / cursor_sensitivity;
+				cursor_y += a.movementY / cursor_sensitivity;
+
+				//keeping cursor in bounds
+				if (cursor_x < 0) {
+					cursor_x = 0;
+				} else if (cursor_x > canvas.width) {
+					cursor_x = canvas.width;
+				}
+
+				if (cursor_y < 0) {
+					cursor_y = 0;
+				} else if (cursor_y > canvas.height) {
+					cursor_y = canvas.height;
+				}
+
+				//game_text = `${(cursor_x - ((canvas.width / 2) - (board_size / 2) + (board_size / (board_numOfRows * 2)))) / (board_size / board_numOfRows)}, ${(cursor_y - ((canvas.width * (board_height - 0.1)) - (board_size / 2) + (board_size / (board_numOfRows * 2)))) / (board_size / board_numOfRows)}`;
+			}
+
+			function handleMouseDown(a) {
+				//changing board size if necessary
+				if (cursor_x < canvas.width * 0.1 || cursor_x > canvas.width * 0.9) {
+					if (cursor_x < canvas.width * 0.1) {
+						//decrease board size
+						if (board_numOfRows > board_limits[0]) {
+							board_numOfRows -= 1;
+						}
+					} else {
+						//increase
+						if (board_numOfRows < board_limits[1]) {
+							board_numOfRows += 1;
+						}
+					}
+					stopGame();
+					game_text = `No game active, press space to start a ${board_numOfRows}x${board_numOfRows} game`;
+				}
+
+				//registering input in game
+				if (game_active && game_humanTurn && game_move < game_path.length) {
+					//making sure click is in board bounds
+					var inBoundsX = cursor_x > (canvas.width / 2) - (board_size / 2) && cursor_x < (canvas.width / 2) + (board_size / 2);
+					var inBoundsY = cursor_y > (canvas.height * board_height) - (board_size * 0.48) && cursor_y < (canvas.height * board_height) + (board_size * 0.48);
+
+					if (inBoundsX && inBoundsY) {
+						game_lightTime = game_lightTimeMax;
+						game_lightTile = [Math.round((cursor_x - ((canvas.width / 2) - (board_size / 2) + (board_size / (board_numOfRows * 2)))) / (board_size / board_numOfRows)), 
+										Math.round((cursor_y - ((canvas.width * (board_height - 0.1)) - (board_size / 2) + (board_size / (board_numOfRows * 2)))) / (board_size / board_numOfRows))];
+
+						//validating press is correct
+						if (game_lightTile[0] == game_path[game_move][0] && game_lightTile[1] == game_path[game_move][1]) {
+							game_lightColor = color_select;
+							
+							if (game_move > game_path.length - 2) {
+								audio_happy.play();
+							} else {
+								audio_neutral.play();
+							}
+						} else {
+							game_lightColor = color_selectWrong;
+							game_forceLose = true;
+							audio_negative.play();
+						}
+
+						game_move += 1;
+					}
+				}
+			}
+		</script>
+
+		<div id="mid">
+			<canvas id="canvas" width="640" height="480"></canvas>
+			<p>Click on the game area / use the mouse to interact, and click space to start / reset a game.</p>
+		</div>
+		
+	</body>
+</html>

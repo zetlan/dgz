@@ -90,23 +90,10 @@ function main() {
 	ctx.fillStyle = world_bg;
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-	/*
-	var toPush = [];
-	for (var a=0;a<world_objects[1].points.length;a++) {
-		var temp = rotate(world_objects[1].points[a][0], world_objects[1].points[a][2], 0.01);
-		toPush.push([temp[0], world_objects[1].points[a][1], temp[1]]);
-	}
-
-	world_objects[1] = new FreePoly(toPush, "#FFF");
-
-	generateBinTree(); */
-
-	
-
-	
-
 	//handling entities
 	player.tick();
+	//player buffer position
+	player.posBuffer = [];
 
 	//handling stars
 	for (var c=0;c<world_stars.length;c++) {
@@ -114,6 +101,14 @@ function main() {
 		world_stars[c].beDrawn();
 	}
 	world_binTree.traverse(true);
+
+	//updating player position based on forces
+	for (var a=0;a<player.posBuffer.length;a++) {
+		player.x += player.posBuffer[a][0];
+		player.y += player.posBuffer[a][1];
+		player.z += player.posBuffer[a][2];
+	}
+
 	world_binTree.traverse(false);
 
 	

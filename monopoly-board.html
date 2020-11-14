@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width">
+		<title>Monopoly game distribution</title>
+		<style>
+
+		body {
+			background-color: slateblue;
+		}
+		#canvas {
+			border-style: double;
+			border-color: slateblue;
+		}
+		#mid {
+			text-align: center;
+		}
+		</style>
+	</head>
+	<body>
+		<script type="text/javascript">
+			window.onload = setup;
+			window.addEventListener("keydown", handleKeyPress, false);
+			
+			var timer;
+
+			var color_bg = "#CAF";
+			var color_bar = "#88A"
+			var color_box = "#888";
+			var color_piece = "#F0F";
+			var color_select = "#800";
+			var color_text = "#004";
+
+			var centerX;
+			var centerY;
+
+			var display_edgeMargin = 20;
+			var display_boxMargin = 5;
+			var display_boxStart = 250;
+			var display_boxHeight = 10;
+			var display_barHeight = 200;
+			var display_barScale = 1;
+
+
+			var moves_current = 0;
+			var moves_total = 1000000;
+			var moves_beforeReset = 100;
+			var moves_perFrame = 500;
+			
+			//currentPosition is the position of the piece, while currentSelected is the position of the selection.
+			var currentPosition = 0;
+			var currentSelected = 0;
+
+			let boardMoveData = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+			//of course I would end up making a class here
+			class Property {
+				constructor(name, color, buyPrice, housePrice, rentArr) {
+					this.name = name;
+					this.color = color;
+					this.price = buyPrice;
+					this.housePrice = housePrice;
+					this.rent = rentArr;
+				}
+			} 
+
+			//properties!
+			let boardPropertyData = [new Property("Go", "#FFF"),
+									new Property("Mediterranean Avenue","#814", 60, 50, [2, 10, 30, 90, 160, 250]),
+									new Property("Community Chest", "#AAA"),
+									new Property("Baltic Avenue", 		"#814", 60, 50, [2, 10, 30, 90, 160, 250]),
+									new Property("Income tax", "#AAA"),
+									new Property("Reading Railroad", "#000", 200, 0, [25, 50, 100, 200]),
+									new Property("Oriental Avenue", 	"#9DE", 100, 50, [2, 10, 30, 90, 160, 250]),
+									new Property("Chance", "#AAA"),
+									new Property("Vermont Avenue", 		"#9DE", 100, 50, [2, 10, 30, 90, 160, 250]),
+									new Property("Connecticut Avenue", 	"#9DE", 120, 50, [2, 10, 30, 90, 160, 250]),
+
+									new Property("Jail", "#FFF"),
+									new Property("St. Charles Place", 	"#C17", 140, 50, [2, 10, 30, 90, 160, 250]),
+									new Property("Electric Company", "#AAA", 150),
+									new Property("States Avenue", 		"#C17", 140, 50, [2, 10, 30, 90, 160, 250]),
+									new Property("Virginia Avenue", 	"#C17", 160, 50, [2, 10, 30, 90, 160, 250]),
+									new Property("Pennsylvania Railroad", "#000", 200, 0, [25, 50, 100, 200]),
+									new Property("St. James Place", 	"#FA0", 000, 000, [000, 000, 000, 000, 000, 000]),
+									new Property("Community Chest", 	"#AAA"),
+									new Property("Tennessee Avenue", 	"#FA0", 000, 000, [000, 000, 000, 000, 000, 000]),
+									new Property("New York Avenue", 	"#FA0", 000, 000, [000, 000, 000, 000, 000, 000]),
+
+									new Property("Free Parking", "#FFF"),
+									new Property("Kentucky Avenue",	"#F00", 000, 000, [000, 000, 000, 000, 000, 000]),
+									new Property("Chance", 			"#AAA"),
+									new Property("Indiana Avenue",	"#F00", 000, 000, [000, 000, 000, 000, 000, 000]),
+									new Property("Illinois Avenue",	"#F00", 000, 000, [000, 000, 000, 000, 000, 000]),
+									new Property("B & O Railroad",	"#000", 200, 0, [25, 50, 100, 200]),
+									new Property("Atlantic Avenue",	"#FF0", 000, 000, [000, 000, 000, 000, 000, 000]),
+									new Property("Ventnor Avenue",	"#FF0", 000, 000, [000, 000, 000, 000, 000, 000]),
+									new Property("Water Works", "#AAA", 150),
+									new Property("Marvin Gardens",	"#FF0", 000, 000, [000, 000, 000, 000, 000, 000]),
+
+									new Property("cops lol", "#FFF"),
+									new Property("Pacific Avenue",			"#082", 000, 000, [000, 000, 000, 000, 000, 000]),
+									new Property("North Carolina Avenue",	"#082", 000, 000, [000, 000, 000, 000, 000, 000]),
+									new Property("Community Chest", 		"#AAA"),
+									new Property("Pennsylvania Avenue", 	"#082", 000, 000, [000, 000, 000, 000, 000, 000]),
+									new Property("Short Line", 				"#000", 200, 0, [25, 50, 100, 200]),
+									new Property("Chance", 					"#AAA"),
+									new Property("Park Place",				"#04A", 000, 000, [000, 000, 000, 000, 000, 000]),
+									new Property("Luxury Tax", 				"#AAA", 0, 0, [75]),
+									new Property("Boardwalk", 				"#04A", 000, 000, [000, 000, 000, 000, 000, 000])];
+
+			function setup() {
+				canvas = document.getElementById("canvas");
+				ctx = canvas.getContext("2d");
+
+				centerX = canvas.width / 2;
+				centerY = canvas.height / 2;
+
+				timer = window.requestAnimationFrame(update);
+			}
+
+			function handleKeyPress(a) {
+				switch(a.keyCode) {
+					//left / right
+					case 37:
+						currentSelected += boardMoveData.length - 2;
+					case 39:
+						currentSelected += 1;
+						currentSelected = currentSelected % boardMoveData.length;
+						break;
+				}
+			}
+			
+			function update() {
+				//background
+				ctx.fillStyle = color_bg;
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+				//moving
+				if (moves_current < moves_total) {
+					for (var k=0;k<moves_perFrame;k++) {
+						move();
+					}
+
+					//scaling bars
+					display_barScale = 200 / Math.max.apply(null, boardMoveData);
+				}
+
+				//drawing various things
+				drawAvg();
+				drawBoxes();
+				drawSelection();
+
+				//call self
+				timer = window.requestAnimationFrame(update);
+			}
+
+			function drawAvg() {
+				var avgNum = 0;
+				for (var b=0;b<boardMoveData.length;b++) {
+					avgNum += boardMoveData[b];
+				}
+
+				avgNum /= boardMoveData.length;
+				ctx.fillStyle = "#000";
+				ctx.fillRect(display_edgeMargin + (((canvas.width - (display_edgeMargin * 2)) / boardMoveData.length) * 0), display_boxStart - display_boxMargin - (avgNum * display_barScale), canvas.width - (display_edgeMargin * 2) - display_boxMargin, 2);
+			}
+
+			function drawBoxes() {
+				ctx.fillStyle = color_box;
+				for (var a=0;a<boardMoveData.length;a++) {
+					//drawing box
+					var boxPosition = display_edgeMargin + (((canvas.width - (display_edgeMargin * 2)) / boardMoveData.length) * a);
+					var boxWidth = ((canvas.width - (display_edgeMargin * 2)) / boardMoveData.length) - display_boxMargin;
+					ctx.fillStyle = boardPropertyData[a].color;
+					ctx.fillRect(boxPosition, display_boxStart, boxWidth, display_boxHeight);
+
+					//drawing bar of probability
+					ctx.fillStyle = color_bar;
+					ctx.fillRect(boxPosition, display_boxStart - display_boxMargin, boxWidth, -1 * ((boardMoveData[a] * display_barScale)));
+
+					//drawing piece
+					if (a == currentPosition) {
+						ctx.fillStyle = color_piece;
+						ctx.fillRect(boxPosition + 2, display_boxStart + 20, boxWidth - 4, display_boxHeight - 4);
+						ctx.fillStyle = color_box;
+					}
+				}
+			}
+
+			function drawSelection() {
+				//selection box
+				ctx.strokeStyle = color_select;
+				ctx.beginPath();
+				ctx.rect(display_edgeMargin + (((canvas.width - (display_edgeMargin * 2)) / boardMoveData.length) * currentSelected) - 2, display_boxStart - display_boxMargin - display_barHeight, 
+						((canvas.width - (display_edgeMargin * 2)) / boardMoveData.length) - display_boxMargin + 4, display_boxMargin + display_barHeight + display_boxHeight + 4);
+				ctx.stroke();
+
+				//info text
+				//variable for quick reference
+				var ref = boardPropertyData[currentSelected];
+				ctx.font = `20px Century Gothic`;
+				ctx.fillStyle = color_text;
+				
+				ctx.fillText(`Property Name: ${ref.name}`, canvas.width * 0.05, canvas.height * 0.7);
+				if (ref.price != undefined) {
+					ctx.fillText(`Buying Price: $${ref.price}`, canvas.width * 0.05, (canvas.height * 0.7) + (25 * 1));
+				}
+				if (ref.housePrice != undefined) {
+					ctx.fillText(`House Price: $${ref.housePrice}`, canvas.width * 0.05, (canvas.height * 0.7) + (25 * 2));
+				}
+			}
+
+
+			function move() {
+				if (moves_current % moves_beforeReset == 0) {
+					currentPosition = 0;
+				}
+				moves_current += 1;
+				//roll 2 dice
+				currentPosition += Math.floor(randomCustom(1, 7)) + Math.floor(randomCustom(1, 7));
+				//loop around
+				currentPosition = currentPosition % boardMoveData.length;
+
+				
+
+				//put a mark where landed
+				boardMoveData[currentPosition] += 1;
+				//go to jail if necessary
+				if (currentPosition == 30) {
+					currentPosition = 10;
+				}
+			}
+
+			function drawCircle(color, x, y, radius) {
+				ctx.beginPath();
+				ctx.fillStyle = color;
+				ctx.strokeStyle = color;
+				ctx.ellipse(x, y, radius, radius, 0, 0, Math.PI * 2);
+				ctx.stroke();
+				ctx.fill();
+			}
+
+			function randomCustom(min, max) {
+				return (Math.random() * (max - min)) + min;
+			}
+		</script>
+		<div id="mid">
+			<canvas id="canvas" width="640" height="480"></canvas>
+		</div>
+		
+	</body>
+</html>

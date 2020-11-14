@@ -83,7 +83,10 @@ class FreePoly {
 				//transforming back to regular coordinates
 				playerCoords = relativeToSpace(playerCoords, [this.x, this.y, this.z], this.normal);
 				playerCoords[1] += player.height;
-				[player.x, player.y, player.z] = playerCoords;
+
+				//getting difference between actual player coordinates and attempted coords for forces
+				playerCoords = [playerCoords[0] - player.x, playerCoords[1] - player.y, playerCoords[2] - player.z];
+				player.posBuffer.push(playerCoords);
 
 				//if self counts as a floor / ceiling tile, work on player's y velocity
 				if (Math.abs(this.normal[1]) > Math.PI / 4) {

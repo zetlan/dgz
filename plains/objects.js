@@ -7,6 +7,7 @@ class Player {
 
 		this.height = 4.9;
 		this.onGround = false;
+		this.posBuffer = [];
 
 		this.scale = 200;
 		this.sens = 0.04;
@@ -21,7 +22,7 @@ class Player {
 		this.dy = 0;
 		this.dz = 0;
 		this.dMax = 1;
-		this.fallMax = this.dMax * 1.99;
+		this.fallMax = this.dMax * 1.98;
 
 		this.ax = 0;
 		this.ay = 0;
