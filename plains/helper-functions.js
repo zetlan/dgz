@@ -46,13 +46,13 @@ function generateStarSphere() {
 
 function generateStaircase() {
 	for (var y=0;y<30;y++) {
-		var x = 40 * Math.sin((Math.PI / 8) * y);
-		var z = 40 * Math.cos((Math.PI / 8) * y);
+		var x = 20 * Math.sin((Math.PI / 8) * y);
+		var z = 20 * Math.cos((Math.PI / 8) * y);
 
-		var x2 = 40 * Math.sin((Math.PI / 8) * (y + 1));
-		var z2 = 40 * Math.cos((Math.PI / 8) * (y + 1));
+		var x2 = 20 * Math.sin((Math.PI / 8) * (y + 1));
+		var z2 = 20 * Math.cos((Math.PI / 8) * (y + 1));
 
-		world_objects.push(new FreePoly([[x, y, z], [x * 1.4, y, z * 1.4], [x2 * 1.4, y, z2 * 1.4], [x2, y, z2]], "#FF0"));
+		world_objects.push(new FreePoly([[x, y * 1.5, z], [x * 1.8, y * 1.5, z * 1.8], [x2 * 1.8, y * 1.5, z2 * 1.8], [x2, y * 1.5, z2]], "#FF0"));
 	}
 }
 
@@ -63,7 +63,7 @@ function generateStaircase() {
 
 //utility functions
 
-//takes in a multi-dimensional array and averages the elements to output a 1d array
+//takes in a 2-dimensional array and averages the elements to output a 1d array
 function avgArray(array) {
 	var finArr = [];
 	var arr = array;
