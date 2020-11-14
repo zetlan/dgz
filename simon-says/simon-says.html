@@ -20,10 +20,21 @@
 	</head>
 	<body>
 		<!--audio time-->
-		<audio id="myAudio">
-			<source src="horse.mp3" type="audio/mpeg">
+		<audio id="audioPositive">
+			<source src="happy1.mp3" type="audio/mpeg">
 			Audio [positive] is not loading correctly right now :(
 		</audio>
+
+		<audio id="audioNeutral">
+			<source src="normal1.mp3" type="audio/mpeg">
+			Audio [normal] is not loading correctly right now :(
+		</audio>
+
+		<audio id="audioNegative">
+			<source src="sad1.mp3" type="audio/mpeg">
+			Audio [sad] is not loading correctly right now :(
+		</audio>
+
 		<script type="text/javascript">
 			window.onload = setup;
 			window.addEventListener("keydown", handleKeyPress, false);
@@ -31,6 +42,10 @@
 			document.addEventListener('mozpointerlockchange', handleCursorLockChange, false);
 			
 			var timer;
+
+			var audio_happy = document.getElementById("audioPositive");
+			var audio_neutral = document.getElementById("audioNeutral");
+			var audio_negative = document.getElementById("audioNegative");
 
 			var board_size = 0.85;
 			var board_numOfRows = 2;
@@ -59,7 +74,7 @@
 
 			var game_lightColor = color_selectRobot;
 			var game_lightTime = 0;
-			var game_lightTimeMax = 40;
+			var game_lightTimeMax = 30;
 			var game_lightTile = [];
 			var game_move = 0;
 			var game_path = [];
@@ -122,6 +137,7 @@
 								startHumanTurn();
 							} else {
 								game_lightTime = game_lightTimeMax;
+								audio_neutral.play();
 							}
 
 							game_lightTile = game_path[game_displayTurn];
@@ -174,7 +190,7 @@
 				if (game_path.length >= game_maxTurn) {
 					game_text = `You win!`;
 				} else {
-					game_text += `Game over, you lost with a score of ${game_path.length}`;
+					game_text = `Game over, you lost with a score of ${game_path.length}`;
 				}
 				game_active = false;
 			}
@@ -192,6 +208,8 @@
 				game_lightColor = color_selectRobot;
 				game_lightTile = game_path[0];
 				game_lightTime = game_lightTimeMax;
+
+				audio_neutral.play();
 			}
 
 
@@ -338,8 +356,15 @@
 						//validating press is correct
 						if (game_lightTile[0] == game_path[game_move][0] && game_lightTile[1] == game_path[game_move][1]) {
 							game_lightColor = color_select;
+							
+							if (game_move > game_path.length - 2) {
+								audio_happy.play();
+							} else {
+								audio_neutral.play();
+							}
 						} else {
 							game_lightColor = color_selectWrong;
+							audio_negative.play();
 						}
 
 						game_move += 1;
