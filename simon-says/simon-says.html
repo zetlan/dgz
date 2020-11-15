@@ -3,7 +3,7 @@
 	<head>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width">
-		<title>Simon Says v1.1</title>
+		<title>Simon Says v1.11</title>
 		<style>
 
 		body {
@@ -484,6 +484,7 @@
 						} else {
 							light_color = color_selectWrong;
 							game_forceLose = true;
+							game_move = game_path.length - 1;
 							audio_negative.play();
 						}
 						game_move += 1;
