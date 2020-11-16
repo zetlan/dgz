@@ -3,7 +3,7 @@
 	<head>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width">
-		<title>Grid Copy</title>
+		<title>Simon Says v1.11</title>
 		<style>
 
 		body {
@@ -40,8 +40,7 @@
 			window.addEventListener("keydown", handleKeyPress, false);
 			document.addEventListener('pointerlockchange', handleCursorLockChange, false);
 			document.addEventListener('mozpointerlockchange', handleCursorLockChange, false);
-			
-			var timer;
+
 
 			var audio_happy = document.getElementById("audioPositive");
 			var audio_neutral = document.getElementById("audioNeutral");
@@ -53,8 +52,7 @@
 			var board_limits = [2, 6];
 			var board_height = 0.45;
 
-			var clock_pos = [0.95, 0.95];
-			var clock_radius = 15;
+			var clock_pos = 0.93;
 
 			var color_arrows = "#88F";
 			var color_bg = "#CCF";
@@ -75,12 +73,13 @@
 
 			var game_active = false;
 			var game_forceLose = false;
-			var game_maxTurn = 10;
 			var game_displayTurn = 0;
 			var game_humanTurn = false;
 			var game_move = 0;
 			var game_path = [];
 			var game_speeds = [40, 30, 20];
+			var game_rounds = [5, 10, Number.POSITIVE_INFINITY];
+			var game_text = "No game active, press space to start a 2x2 game";
 
 			var light_color = color_selectRobot;
 			var light_speed = 0;
@@ -88,10 +87,18 @@
 			var light_timeMax = game_speeds[light_speed];
 			var light_tile = [];
 
-			
+			var menubar_radius = 15;
+			var menubar_xPos = 0.95;
 
-			var game_text = "No game active, press space to start a 2x2 game";
-			
+			var rounds_index = 1;
+			var rounds_pos = 0.83;
+			var rounds_max = game_rounds[rounds_index];
+			var rounds_display = ["5", "10", "∞"];
+
+			var sound_on = true;
+			var sound_pos = 0.73;
+
+			var timer;
 
 			function setup() {
 				canvas = document.getElementById("canvas");
@@ -152,7 +159,7 @@
 								stopGame();
 							} else if (game_move > game_path.length - 1) {
 								//if done with the game, end it
-								if (game_path.length >= game_maxTurn) {
+								if (game_path.length >= rounds_max) {
 									stopGame();
 								} else {
 									startRobotTurn();
@@ -166,11 +173,14 @@
 				drawBoard();
 				drawArrows();
 				drawClock();
-				drawCursor();
+				drawRounds();
+				drawSound();
 
 				//text
 				ctx.fillStyle = color_text;
 				ctx.fillText(game_text, canvas.width * 0.5, canvas.height * 0.95);
+
+				drawCursor();
 
 				//call self
 				timer = window.requestAnimationFrame(update);
@@ -185,8 +195,13 @@
 				return [Math.floor(randomCustom(0, board_numOfRows)), Math.floor(randomCustom(0, board_numOfRows))];
 			}
 
+			function getDistance(p1, p2) {
+				//gets the distance between two points
+				p1 = [p1[0] - p2[0], p1[1] - p2[1]];
+				return Math.sqrt((p1[0] * p1[0]) + (p1[1] * p1[1]));
+			}
+
 			function startGame() {
-				light_timeMax = game_speeds[light_speed];
 				game_forceLose = false;
 				game_text = `...Game in progress...`;
 				game_active = true;
@@ -195,8 +210,10 @@
 			}
 
 			function stopGame() {
-				if (game_move >= game_maxTurn && !game_forceLose) {
+				if (game_move >= rounds_max && !game_forceLose) {
 					game_text = `You win!`;
+				} else if (rounds_max == Number.POSITIVE_INFINITY) {
+					game_text = `Game over, your score was ${game_path.length}`;
 				} else {
 					game_text = `Game over, you lost with a score of ${game_path.length}`;
 				}
@@ -224,21 +241,26 @@
 
 			//drawing
 			function drawArrows() {
+				ctx.lineWidth = 4;
 				//left
-				ctx.strokeStyle = color_arrows;
-				ctx.beginPath();
-				ctx.moveTo(canvas.width * 0.1, canvas.height * (board_height - 0.05));
-				ctx.lineTo(canvas.width * 0.05, canvas.height * board_height);
-				ctx.lineTo(canvas.width * 0.1, canvas.height * (board_height + 0.05));
-				ctx.stroke();
+				if (board_numOfRows > board_limits[0]) {
+					ctx.strokeStyle = color_arrows;
+					ctx.beginPath();
+					ctx.moveTo(canvas.width * 0.1, canvas.height * (board_height - 0.05));
+					ctx.lineTo(canvas.width * 0.05, canvas.height * board_height);
+					ctx.lineTo(canvas.width * 0.1, canvas.height * (board_height + 0.05));
+					ctx.stroke();
+				}
 
 				//right
-				ctx.strokeStyle = color_arrows;
-				ctx.beginPath();
-				ctx.moveTo(canvas.width * 0.9, canvas.height * (board_height - 0.05));
-				ctx.lineTo(canvas.width * 0.95, canvas.height * board_height);
-				ctx.lineTo(canvas.width * 0.9, canvas.height * (board_height + 0.05));
-				ctx.stroke();
+				if (board_numOfRows < board_limits[1]) {
+					ctx.strokeStyle = color_arrows;
+					ctx.beginPath();
+					ctx.moveTo(canvas.width * 0.9, canvas.height * (board_height - 0.05));
+					ctx.lineTo(canvas.width * 0.95, canvas.height * board_height);
+					ctx.lineTo(canvas.width * 0.9, canvas.height * (board_height + 0.05));
+					ctx.stroke();
+				}
 			}
 			function drawBoard() {
 				//board
@@ -268,17 +290,18 @@
 
 			function drawClock() {
 				//base
-				drawCircle(color_board, canvas.width * clock_pos[0], canvas.height * clock_pos[1], clock_radius);
-				//arm
+				drawCircle(color_board, canvas.width * menubar_xPos, canvas.height * clock_pos, menubar_radius);
 
+				//arm
 				var angle = (light_speed - 1) / 2;
-				var xOff = (clock_radius * 1.3) * Math.sin(angle);
-				var yOff = (clock_radius * 1.3) * Math.cos(angle);
+				var xOff = (menubar_radius * 1.3) * Math.sin(angle);
+				var yOff = (menubar_radius * 1.3) * Math.cos(angle);
 
 				ctx.strokeStyle = color_clockArm;
+				ctx.lineWidth = 4;
 				ctx.beginPath();
-				ctx.moveTo(canvas.width * clock_pos[0], canvas.height * clock_pos[1]);
-				ctx.lineTo((canvas.width * clock_pos[0]) + xOff, (canvas.height * clock_pos[1]) - yOff);
+				ctx.moveTo(canvas.width * menubar_xPos, canvas.height * clock_pos);
+				ctx.lineTo((canvas.width * menubar_xPos) + xOff, (canvas.height * clock_pos) - yOff);
 				ctx.stroke();
 			}
 
@@ -308,6 +331,49 @@
 				ctx.fill();
 			}
 
+			function drawRounds() {
+				//outer circle
+				ctx.strokeStyle = color_board;
+				ctx.lineWidth = 1.5;
+				ctx.beginPath();
+				ctx.ellipse(canvas.width * menubar_xPos, canvas.height * rounds_pos, menubar_radius, menubar_radius, 0, 0, Math.PI * 2);
+				ctx.stroke();
+
+				//select circle
+				drawCircle(color_selectRobot, (canvas.width * menubar_xPos) + (menubar_radius * 0.707), (canvas.height * rounds_pos) - (menubar_radius * 0.707), menubar_radius * 0.2);
+				//round text
+				ctx.fillStyle = color_board;
+				ctx.fillText(rounds_display[rounds_index], canvas.width * menubar_xPos, canvas.height * (rounds_pos + 0.015));
+			}
+
+			function drawSound() {
+				//outer circle, of course
+				ctx.strokeStyle = color_board;
+				ctx.lineWidth = 1.5;
+				ctx.beginPath();
+				ctx.ellipse(canvas.width * menubar_xPos, canvas.height * sound_pos, menubar_radius, menubar_radius, 0, 0, Math.PI * 2);
+				ctx.stroke();
+
+				//head
+				ctx.beginPath();
+				ctx.fillStyle = color_board;
+				ctx.moveTo((canvas.width * menubar_xPos) - (menubar_radius * 0.6), (canvas.height * sound_pos));
+				ctx.lineTo((canvas.width * menubar_xPos) - (menubar_radius * 0.1), (canvas.height * sound_pos) - (menubar_radius * 0.6));
+				ctx.lineTo((canvas.width * menubar_xPos) - (menubar_radius * 0.1), (canvas.height * sound_pos) + (menubar_radius * 0.6));
+				ctx.fill();
+
+				//waves if on
+				if (sound_on) {
+					ctx.beginPath();
+					ctx.strokeStyle = color_board;
+					ctx.arc((canvas.width * menubar_xPos) - (menubar_radius * 0.2), canvas.height * sound_pos, menubar_radius * 0.5, Math.PI / -3, Math.PI / 3);
+					ctx.stroke();
+					ctx.beginPath();
+					ctx.arc((canvas.width * menubar_xPos) - (menubar_radius * 0.2), canvas.height * sound_pos, menubar_radius * 0.8, Math.PI / -4, Math.PI / 4);
+					ctx.stroke();
+				}
+			}
+
 
 			//input handling
 			function handleKeyPress(a) {
@@ -317,6 +383,9 @@
 						startGame();
 					}
 					a.preventDefault();
+				} else if (a.keyCode == 90 || a.keyCode == 88) {
+					//z / x are equivelant to mouse presses
+					handleMouseDown("argument");
 				}
 			}
 
@@ -346,45 +415,58 @@
 				} else if (cursor_y > canvas.height) {
 					cursor_y = canvas.height;
 				}
-
-				//game_text = `${(cursor_x - ((canvas.width / 2) - (board_size / 2) + (board_size / (board_numOfRows * 2)))) / (board_size / board_numOfRows)}, ${(cursor_y - ((canvas.width * (board_height - 0.1)) - (board_size / 2) + (board_size / (board_numOfRows * 2)))) / (board_size / board_numOfRows)}`;
 			}
 
 			function handleMouseDown(a) {
-				//changing board speed
-				var temX = cursor_x - (canvas.width * clock_pos[0]);
-				var temY = cursor_y - (canvas.height * clock_pos[1]);
-				var clockDist = Math.sqrt((temX * temX) + (temY * temY));
-				if (!game_active && clockDist < clock_radius * 1.2) {
+				//menubar items
+				//board speed
+				if (getDistance([cursor_x, cursor_y], [canvas.width * menubar_xPos, canvas.height * clock_pos]) < menubar_radius * 1.2) {
 					light_speed += 1;
 					if (light_speed > game_speeds.length - 1) {
 						light_speed = 0;
 					}
+
+					light_timeMax = game_speeds[light_speed];
 				}
 
-				//changing board size
-				else if (cursor_x < canvas.width * 0.1 || cursor_x > canvas.width * 0.9) {
-					if (cursor_x < canvas.width * 0.1) {
-						//decrease board size
-						if (board_numOfRows > board_limits[0]) {
-							board_numOfRows -= 1;
-						}
-					} else {
-						//increase
-						if (board_numOfRows < board_limits[1]) {
-							board_numOfRows += 1;
-						}
+				//number of rounds (requires no game active)
+				else if (getDistance([cursor_x, cursor_y], [canvas.width * menubar_xPos, canvas.height * rounds_pos]) < menubar_radius * 1.2 && !game_active) {
+					rounds_index += 1;
+					if (rounds_index > game_rounds.length - 1) {
+						rounds_index = 0;
 					}
+					rounds_max = game_rounds[rounds_index];
+				}
+
+				//sound
+				else if (getDistance([cursor_x, cursor_y], [canvas.width * menubar_xPos, canvas.height * sound_pos]) < menubar_radius * 1.2) {
+					sound_on = !sound_on;
+					audio_happy.volume = sound_on;
+					audio_neutral.volume = sound_on;
+					audio_negative.volume = sound_on;
+				}
+
+				//board size
+				else if (cursor_x < canvas.width * 0.1 && board_numOfRows > board_limits[0]) {
+					//decrease board size
+					board_numOfRows -= 1;
+					stopGame();
+					game_text = `No game active, press space to start a ${board_numOfRows}x${board_numOfRows} game`;
+				} 
+				//increasing board size
+				else if (cursor_x > canvas.width * 0.9 && board_numOfRows < board_limits[1]) {
+					board_numOfRows += 1;
 					stopGame();
 					game_text = `No game active, press space to start a ${board_numOfRows}x${board_numOfRows} game`;
 				}
 
-				//registering input in game
+
+
+				//registering input in game if it's the person's turn
 				else if (game_active && game_humanTurn && game_move < game_path.length) {
 					//making sure click is in board bounds
 					var inBoundsX = cursor_x > (canvas.width / 2) - (board_size / 2) && cursor_x < (canvas.width / 2) + (board_size / 2);
 					var inBoundsY = cursor_y > (canvas.height * board_height) - (board_size * 0.48) && cursor_y < (canvas.height * board_height) + (board_size * 0.48);
-
 					if (inBoundsX && inBoundsY) {
 						light_time = light_timeMax;
 						light_tile = [Math.round((cursor_x - ((canvas.width / 2) - (board_size / 2) + (board_size / (board_numOfRows * 2)))) / (board_size / board_numOfRows)), 
@@ -402,9 +484,9 @@
 						} else {
 							light_color = color_selectWrong;
 							game_forceLose = true;
+							game_move = game_path.length - 1;
 							audio_negative.play();
 						}
-
 						game_move += 1;
 					}
 				}

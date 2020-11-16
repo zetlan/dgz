@@ -46,7 +46,7 @@
 			var moves_current = 0;
 			var moves_total = 1000000;
 			var moves_beforeReset = 100;
-			var moves_perFrame = 500;
+			var moves_perFrame = Math.floor(moves_total / 250);
 			
 			//currentPosition is the position of the piece, while currentSelected is the position of the selection.
 			var currentPosition = 0;
@@ -83,32 +83,32 @@
 									new Property("States Avenue", 		"#C17", 140, 50, [2, 10, 30, 90, 160, 250]),
 									new Property("Virginia Avenue", 	"#C17", 160, 50, [2, 10, 30, 90, 160, 250]),
 									new Property("Pennsylvania Railroad", "#000", 200, 0, [25, 50, 100, 200]),
-									new Property("St. James Place", 	"#FA0", 000, 000, [000, 000, 000, 000, 000, 000]),
+									new Property("St. James Place", 	"#FA0", 180, 100, [000, 000, 000, 000, 000, 000]),
 									new Property("Community Chest", 	"#AAA"),
-									new Property("Tennessee Avenue", 	"#FA0", 000, 000, [000, 000, 000, 000, 000, 000]),
-									new Property("New York Avenue", 	"#FA0", 000, 000, [000, 000, 000, 000, 000, 000]),
+									new Property("Tennessee Avenue", 	"#FA0", 180, 100, [000, 000, 000, 000, 000, 000]),
+									new Property("New York Avenue", 	"#FA0", 200, 100, [000, 000, 000, 000, 000, 000]),
 
 									new Property("Free Parking", "#FFF"),
-									new Property("Kentucky Avenue",	"#F00", 000, 000, [000, 000, 000, 000, 000, 000]),
+									new Property("Kentucky Avenue",	"#F00", 220, 150, [000, 000, 000, 000, 000, 000]),
 									new Property("Chance", 			"#AAA"),
-									new Property("Indiana Avenue",	"#F00", 000, 000, [000, 000, 000, 000, 000, 000]),
-									new Property("Illinois Avenue",	"#F00", 000, 000, [000, 000, 000, 000, 000, 000]),
+									new Property("Indiana Avenue",	"#F00", 220, 150, [000, 000, 000, 000, 000, 000]),
+									new Property("Illinois Avenue",	"#F00", 240, 150, [000, 000, 000, 000, 000, 000]),
 									new Property("B & O Railroad",	"#000", 200, 0, [25, 50, 100, 200]),
-									new Property("Atlantic Avenue",	"#FF0", 000, 000, [000, 000, 000, 000, 000, 000]),
-									new Property("Ventnor Avenue",	"#FF0", 000, 000, [000, 000, 000, 000, 000, 000]),
+									new Property("Atlantic Avenue",	"#FF0", 260, 150, [000, 000, 000, 000, 000, 000]),
+									new Property("Ventnor Avenue",	"#FF0", 260, 150, [000, 000, 000, 000, 000, 000]),
 									new Property("Water Works", "#AAA", 150),
-									new Property("Marvin Gardens",	"#FF0", 000, 000, [000, 000, 000, 000, 000, 000]),
+									new Property("Marvin Gardens",	"#FF0", 280, 150, [000, 000, 000, 000, 000, 000]),
 
 									new Property("cops lol", "#FFF"),
-									new Property("Pacific Avenue",			"#082", 000, 000, [000, 000, 000, 000, 000, 000]),
-									new Property("North Carolina Avenue",	"#082", 000, 000, [000, 000, 000, 000, 000, 000]),
+									new Property("Pacific Avenue",			"#082", 300, 200, [000, 000, 000, 000, 000, 000]),
+									new Property("North Carolina Avenue",	"#082", 300, 200, [000, 000, 000, 000, 000, 000]),
 									new Property("Community Chest", 		"#AAA"),
-									new Property("Pennsylvania Avenue", 	"#082", 000, 000, [000, 000, 000, 000, 000, 000]),
+									new Property("Pennsylvania Avenue", 	"#082", 320, 200, [000, 000, 000, 000, 000, 000]),
 									new Property("Short Line", 				"#000", 200, 0, [25, 50, 100, 200]),
 									new Property("Chance", 					"#AAA"),
-									new Property("Park Place",				"#04A", 000, 000, [000, 000, 000, 000, 000, 000]),
-									new Property("Luxury Tax", 				"#AAA", 0, 0, [75]),
-									new Property("Boardwalk", 				"#04A", 000, 000, [000, 000, 000, 000, 000, 000])];
+									new Property("Park Place",				"#04A", 350, 200, [000, 000, 000, 000, 000, 000]),
+									new Property("Luxury Tax", 				"#AAA"),
+									new Property("Boardwalk", 				"#04A", 400, 200, [000, 000, 000, 000, 000, 000])];
 
 			function setup() {
 				canvas = document.getElementById("canvas");
@@ -116,6 +116,10 @@
 
 				centerX = canvas.width / 2;
 				centerY = canvas.height / 2;
+
+				//setting values of text boxes
+				document.getElementById("input_totalMoves").value = moves_total;
+				document.getElementById("input_movesPerGame").value = moves_beforeReset;
 
 				timer = window.requestAnimationFrame(update);
 			}
@@ -204,11 +208,12 @@
 				ctx.fillStyle = color_text;
 				
 				ctx.fillText(`Property Name: ${ref.name}`, canvas.width * 0.05, canvas.height * 0.7);
+				ctx.fillText(`Probability of landing here: ${(100 * boardMoveData[currentSelected] / moves_current).toFixed(3)}%`, canvas.width * 0.05, (canvas.height * 0.7) + (25 * 1));
 				if (ref.price != undefined) {
-					ctx.fillText(`Buying Price: $${ref.price}`, canvas.width * 0.05, (canvas.height * 0.7) + (25 * 1));
+					ctx.fillText(`Buying Price: $${ref.price}`, canvas.width * 0.05, (canvas.height * 0.7) + (25 * 2));
 				}
 				if (ref.housePrice != undefined) {
-					ctx.fillText(`House Price: $${ref.housePrice}`, canvas.width * 0.05, (canvas.height * 0.7) + (25 * 2));
+					ctx.fillText(`House Price: $${ref.housePrice}`, canvas.width * 0.05, (canvas.height * 0.7) + (25 * 3));
 				}
 			}
 
@@ -233,6 +238,27 @@
 				}
 			}
 
+			function reset() {
+				moves_current = 0;
+				currentPosition = 0;
+
+				//resetting board
+				boardMoveData = [];
+				for (var a=0;a<boardPropertyData.length;a++) {
+					boardMoveData.push(0);
+				}
+
+				//user values
+				moves_beforeReset = document.getElementById('input_movesPerGame').value;
+				moves_total = document.getElementById('input_totalMoves').value;
+				moves_perFrame = Math.floor(moves_total / 250);
+				if (moves_perFrame < 1) {
+					moves_perFrame = 1;
+				}
+				
+
+			}
+
 			function drawCircle(color, x, y, radius) {
 				ctx.beginPath();
 				ctx.fillStyle = color;
@@ -248,6 +274,15 @@
 		</script>
 		<div id="mid">
 			<canvas id="canvas" width="640" height="480"></canvas>
+			<p>
+			This simulation tracks a piece's journey through the monopoly board and probability of landing on a particular square. <br>
+			(Higher bar = more likely to land on the square.) <br>
+			Game parameters can be changed through the text boxes below, and the arrow keys can be used to view the different properties. <br>
+			<br>
+			Total Number of Moves: <input id="input_totalMoves" value=1000000 type="number"><br>
+			Moves Per Game: <input id="input_movesPerGame" value=100 type="number">
+			</p>
+    		<button id="simRun" onClick="reset()">Run New Simulation</button>
 		</div>
 		
 	</body>
