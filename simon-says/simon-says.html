@@ -3,7 +3,7 @@
 	<head>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width">
-		<title>Simon Says v1.11</title>
+		<title>Simon Says v1.2</title>
 		<style>
 
 		body {
@@ -66,6 +66,7 @@
 			var color_selectRobot = "#00F";
 			var color_selectWrong = "#800";
 			var color_text = "#004";
+			var color_timerArmActive = "#7F0";
 
 			var cursor_x;
 			var cursor_y;
@@ -77,7 +78,7 @@
 			var game_humanTurn = false;
 			var game_move = 0;
 			var game_path = [];
-			var game_speeds = [40, 30, 20];
+			var game_speeds = [40, 31, 23, 16];
 			var game_rounds = [5, 10, Number.POSITIVE_INFINITY];
 			var game_text = "No game active, press space to start a 2x2 game";
 
@@ -95,10 +96,14 @@
 			var rounds_max = game_rounds[rounds_index];
 			var rounds_display = ["5", "10", "∞"];
 
-			var sound_on = true;
+			var sound_on = 1;
 			var sound_pos = 0.73;
 
-			var timer;
+			var timer_active = false;
+			var timer_pos = 0.63;
+			var timer_count = 0;
+
+			var animation_frame;
 
 			function setup() {
 				canvas = document.getElementById("canvas");
@@ -119,7 +124,7 @@
 
 				canvas.onclick = function() {canvas.requestPointerLock();}
 
-				timer = window.requestAnimationFrame(update);
+				animation_frame = window.requestAnimationFrame(update);
 			}
 
 			
@@ -129,10 +134,9 @@
 				ctx.fillStyle = color_bg;
 				ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-				
-
 				//timing logic
 				if (game_active) {
+					timer_count += 1;
 					//if a light is on, reduce the time left on it
 					if (light_time > 0) {
 						light_time -= 1;
@@ -175,6 +179,7 @@
 				drawClock();
 				drawRounds();
 				drawSound();
+				drawTimer();
 
 				//text
 				ctx.fillStyle = color_text;
@@ -183,7 +188,7 @@
 				drawCursor();
 
 				//call self
-				timer = window.requestAnimationFrame(update);
+				animation_frame = window.requestAnimationFrame(update);
 			}
 
 			function randomCustom(min, max) {
@@ -201,7 +206,13 @@
 				return Math.sqrt((p1[0] * p1[0]) + (p1[1] * p1[1]));
 			}
 
+			//returns true if cursor is close enough to a point
+			function getMenubarClickable(height) {
+				return (getDistance([cursor_x, cursor_y], [canvas.width * menubar_xPos, height]) < menubar_radius * 1.2);
+			}
+
 			function startGame() {
+				timer_count = 0;
 				game_forceLose = false;
 				game_text = `...Game in progress...`;
 				game_active = true;
@@ -211,13 +222,20 @@
 
 			function stopGame() {
 				if (game_move >= rounds_max && !game_forceLose) {
-					game_text = `You win!`;
+					//case for timer
+					if (timer_active) {
+						game_text = `You win! Your total time is ${(timer_count / 60).toFixed(2)} seconds.`;
+					} else {
+						game_text = `You win!`;
+					}
+					
 				} else if (rounds_max == Number.POSITIVE_INFINITY) {
 					game_text = `Game over, your score was ${game_path.length}`;
 				} else {
 					game_text = `Game over, you lost with a score of ${game_path.length}`;
 				}
 				game_active = false;
+				light_time = 0;
 			}
 
 			function startHumanTurn() {
@@ -262,6 +280,7 @@
 					ctx.stroke();
 				}
 			}
+
 			function drawBoard() {
 				//board
 				var baseX = (canvas.width / 2) - (board_size / 2) + (board_size / (board_numOfRows * 2));
@@ -274,7 +293,7 @@
 				}
 
 				//drawing lit up piece
-				if (light_time > light_timeMax / 2) {
+				if (light_time > light_timeMax / 4) {
 					drawPiece(light_color, baseX + (spacing * light_tile[0]), baseY + (spacing * light_tile[1]), (board_size / (board_numOfRows * 2)) * 0.8);
 				}
 			}
@@ -368,12 +387,40 @@
 					ctx.strokeStyle = color_board;
 					ctx.arc((canvas.width * menubar_xPos) - (menubar_radius * 0.2), canvas.height * sound_pos, menubar_radius * 0.5, Math.PI / -3, Math.PI / 3);
 					ctx.stroke();
-					ctx.beginPath();
-					ctx.arc((canvas.width * menubar_xPos) - (menubar_radius * 0.2), canvas.height * sound_pos, menubar_radius * 0.8, Math.PI / -4, Math.PI / 4);
-					ctx.stroke();
+					if (audio_happy.volume > 0.5) {
+						ctx.beginPath();
+						ctx.arc((canvas.width * menubar_xPos) - (menubar_radius * 0.2), canvas.height * sound_pos, menubar_radius * 0.8, Math.PI / -4, Math.PI / 4);
+						ctx.stroke();
+					}
 				}
 			}
 
+			function drawTimer() {
+				//knobbles
+				drawCircle(color_board, (canvas.width * menubar_xPos) - (menubar_radius * 0.5), (canvas.height * timer_pos) - (menubar_radius), menubar_radius * 0.2);
+				drawCircle(color_board, (canvas.width * menubar_xPos) + (menubar_radius * 0.5), (canvas.height * timer_pos) - (menubar_radius), menubar_radius * 0.2);
+
+				//outer circle uwu
+				drawCircle(color_board, canvas.width * menubar_xPos, canvas.height * timer_pos, menubar_radius);
+				drawCircle(color_bg, canvas.width * menubar_xPos, canvas.height * timer_pos, (menubar_radius - 1.5));
+
+				//arm
+				var angle = ((timer_active * 2) - 1) / 2;
+				var xOff = (menubar_radius * 0.7) * Math.sin(angle);
+				var yOff = (menubar_radius * 0.7) * Math.cos(angle);
+
+				if (!timer_active) {
+					ctx.strokeStyle = color_clockArm;
+				} else {
+					ctx.strokeStyle = color_timerArmActive;
+				}
+				
+				ctx.lineWidth = 4;
+				ctx.beginPath();
+				ctx.moveTo(canvas.width * menubar_xPos, canvas.height * timer_pos);
+				ctx.lineTo((canvas.width * menubar_xPos) + xOff, (canvas.height * timer_pos) - yOff);
+				ctx.stroke();
+			}
 
 			//input handling
 			function handleKeyPress(a) {
@@ -418,52 +465,11 @@
 			}
 
 			function handleMouseDown(a) {
-				//menubar items
-				//board speed
-				if (getDistance([cursor_x, cursor_y], [canvas.width * menubar_xPos, canvas.height * clock_pos]) < menubar_radius * 1.2) {
-					light_speed += 1;
-					if (light_speed > game_speeds.length - 1) {
-						light_speed = 0;
-					}
-
-					light_timeMax = game_speeds[light_speed];
-				}
-
-				//number of rounds (requires no game active)
-				else if (getDistance([cursor_x, cursor_y], [canvas.width * menubar_xPos, canvas.height * rounds_pos]) < menubar_radius * 1.2 && !game_active) {
-					rounds_index += 1;
-					if (rounds_index > game_rounds.length - 1) {
-						rounds_index = 0;
-					}
-					rounds_max = game_rounds[rounds_index];
-				}
-
-				//sound
-				else if (getDistance([cursor_x, cursor_y], [canvas.width * menubar_xPos, canvas.height * sound_pos]) < menubar_radius * 1.2) {
-					sound_on = !sound_on;
-					audio_happy.volume = sound_on;
-					audio_neutral.volume = sound_on;
-					audio_negative.volume = sound_on;
-				}
-
-				//board size
-				else if (cursor_x < canvas.width * 0.1 && board_numOfRows > board_limits[0]) {
-					//decrease board size
-					board_numOfRows -= 1;
-					stopGame();
-					game_text = `No game active, press space to start a ${board_numOfRows}x${board_numOfRows} game`;
-				} 
-				//increasing board size
-				else if (cursor_x > canvas.width * 0.9 && board_numOfRows < board_limits[1]) {
-					board_numOfRows += 1;
-					stopGame();
-					game_text = `No game active, press space to start a ${board_numOfRows}x${board_numOfRows} game`;
-				}
-
-
+				//updateMenubar returns true if an item is changed, if not do other things
+				var handled = updateMenubar(cursor_x, cursor_y);
 
 				//registering input in game if it's the person's turn
-				else if (game_active && game_humanTurn && game_move < game_path.length) {
+				if (!handled && game_active && game_humanTurn && (game_move < game_path.length)) {
 					//making sure click is in board bounds
 					var inBoundsX = cursor_x > (canvas.width / 2) - (board_size / 2) && cursor_x < (canvas.width / 2) + (board_size / 2);
 					var inBoundsY = cursor_y > (canvas.height * board_height) - (board_size * 0.48) && cursor_y < (canvas.height * board_height) + (board_size * 0.48);
@@ -491,12 +497,66 @@
 					}
 				}
 			}
-		</script>
 
+			//detecting clicks on the menubar
+			function updateMenubar(clickX, clickY) {
+				//I know if/else is probably not the best way to do it, but I don't know if I can turn this into a switch statement
+				//also it doesn't matter that much since they're clearly seperated into boxes
+				//I don't want to complicate things by making classes
+
+				
+				//board speed
+				if (getMenubarClickable(canvas.height * clock_pos)) {
+					light_speed += 1;
+					if (light_speed > game_speeds.length - 1) {
+						light_speed = 0;
+					}
+
+					light_timeMax = game_speeds[light_speed];
+				}
+
+				//number of rounds (requires no game active)
+				else if (!game_active && getMenubarClickable(canvas.height * rounds_pos)) {
+					rounds_index += 1;
+					if (rounds_index > game_rounds.length - 1) {
+						rounds_index = 0;
+					}
+					rounds_max = game_rounds[rounds_index];
+				}
+
+				//sound
+				else if (getMenubarClickable(canvas.height * sound_pos)) {
+					if (sound_on == 1) {
+						sound_on = -0.5;
+					}
+					sound_on += 0.5;
+					audio_happy.volume = sound_on;
+					audio_neutral.volume = sound_on;
+					audio_negative.volume = sound_on;
+				}
+
+				//timer active
+				else if (getMenubarClickable(canvas.height * timer_pos)) {
+					timer_active = !timer_active;
+				}
+
+				//board size
+				else if ((cursor_x < canvas.width * 0.1 && board_numOfRows > board_limits[0]) || (cursor_x > canvas.width * 0.9 && board_numOfRows < board_limits[1])) {
+					//increasing vs decreasing
+					if (cursor_x < canvas.width * 0.1 && board_numOfRows > board_limits[0]) {
+						board_numOfRows -= 1;
+					} else {
+						board_numOfRows += 1;
+					}
+
+					stopGame();
+					game_text = `No game active, press space to start a ${board_numOfRows}x${board_numOfRows} game`;
+				}
+			}
+		</script>
 		<div id="mid">
 			<canvas id="canvas" width="640" height="480"></canvas>
 			<p>Click on the game area / use the mouse to interact, and click space to start / reset a game.</p>
 		</div>
-		
 	</body>
 </html>
