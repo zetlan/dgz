@@ -1029,19 +1029,65 @@ let map_n1 = new Map(color_background_out, map_n1_data, [19, 4], map_n1_entities
 
 
 
-var map_n2_data = ['            aaaaaaaaa',
-					'            a   a',
-					'aaaaaaaa     a   a',
-					'aaaaaaa aaaa a aaaaa',
-					'aaaaaaaa  a a   a   a',
-					'aaaaaaaaaa  aaa a   a',
-					'aaaaaaaa    a   a   a',
-					'aaaaaaa    a   a   aaaaaa',
-					'aaaaaaaa aaaaaaa   a'];
+var map_n2_data = ['            aaaaaaaaaaaaaa',
+					'            a   a        aaa',
+					'aaaaaaaa     a   a    aaa a  a',
+					'aaaaaaa aaaa a a aaaaaa   a aaaaa',
+					'aaaaaaaa  a a   a      a  aaa   a',
+					'aaaaaaaaaa  aaa a   a  aa  a    a',
+					'aaaaaaaa    a   a   a   a   a a a     aaaa aaa0',
+					'aaaaaaa    a   a   aaaaaaaa  a  a    a   a a',
+					'aaaaaaaa aaaaaaa   a       a a   a   a aa a a',
+					'               aaaaaaaa    aaaa a   a a aa a',
+					'                                a   a a    a',
+					'                           aaaaa   a  a   a',
+					'             aaaaaaa       a        a  aaaa',
+					'                  a    aaaa      a a',
+					'            aaaaa  a      a     aaaa',
+					'            a  a   a  aaaa     aa',
+					'            a   aa    a  a     aa',
+					'           a     a aaa        aa',
+					'           aaaaaa aa    aaaaaaaa',
+					'            a     a aaaaaaaaaaa',
+					'         aaaaaaa    a  aaaaaaa',
+					'             a aaaaaa aaaaaaa',
+					'              a       aaaaaaaaaaaabb',
+					'              aaaaa      aaaaaabbbwb',
+					'                          aaaaabbbwwb',
+					'                          aaaabbbbwb',
+					'                           aaaabbbbb'];
 	
-	var map_n2_entities = [new ShadowStorm(), new LightSwitch([3, 5], [14, 4]), new Stone(6, 7), new Stone(5, 7)];
+	var map_n2_entities = [new ShadowStorm(), new LightSwitch([3, 5], [14, 4]), new LightSwitch([22, 9], [28, 5]),
+							new Stone(6, 7), new Stone(16, 9), new Stone(24, 20),
+							new Firefly(18, 17), new Firefly(12, 21), new Firefly(20.5, -6), new Firefly(38, 24), new Firefly(40, 7)];
 
-let map_n2 = new Map(color_background_out, map_n2_data, [1, 5], map_n2_entities, []);
+let map_n2 = new Map(color_background_out, map_n2_data, [1, 5], map_n2_entities, ["map_n3"]);
+
+
+
+
+
+var map_n3_data = ['                aaa aaa aaa  aaa aaa  aaa',
+					'         aaaa   a a a a a a  a a a a a a',
+					'   aaaa  b   a  aa a a a aaa a a aaa a a',
+					'   a  b   aa aaa a aaa a a a aaa a a a a',
+					'    aa  b b a a a a a a a a a a a a a aaa',
+					'    a be a a a a a a a aaa a a a a a a a',
+					' aa  a  b a a a a a a a a a a a a a a a a',
+					'a a a  b a Aa a a a a a a a a a aaa aaa a',
+					'a a a b  a aaaaaa a aaa a a a a a a a a a',
+					'a a a  aa a  a a a a aaa a a a a aaa a a',
+					' aaa aaaa a aa a a a a a a a a a a a aaa',
+					' a a      aa  a a a a aaa  aaAaaa aaa a',
+					'  a aaaaaa   aa a a a    a            a',
+					'  a      aaaa  a  aa aaaaaaaaaaaaaaaaa',
+					'   aaaaaa    aaa',
+					'        aaaaaa'];
+	
+	var map_n3_entities = [new ShadowStorm(),
+							new Firefly(7, 6), new Firefly(15, 7), new Firefly(28, 7)];
+
+let map_n3 = new Map(color_background_out, map_n3_data, [6, 3], map_n3_entities, []);
 
 
 

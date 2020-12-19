@@ -48,6 +48,7 @@ var display_entityLightRadius = 6;
 var display_tileShadowOffset = 6;
 var display_vignetting = 0.6;
 var display_mapSwitchSpeed = 0.02;
+var display_fillRule = "evenodd";
 
 
 var editor_active = false;
@@ -374,6 +375,12 @@ function determineEnding() {
 		loading_map.parent = map_free;
 	}
 }
+
+function getDistance(xyTile1, xyTile2) {
+	var xDist = Math.abs(xyTile2[0] - xyTile1[0]);
+	var yDist = Math.abs(xyTile2[1] - xyTile1[1]);
+	return Math.sqrt((xDist * xDist) + ((yDist * 0.866) * (yDist * 0.866)));
+}
 function linterp(a, b, percentage) {
 	return (a + ((b - a) * percentage));
 }
@@ -458,6 +465,40 @@ function validateMovement(x, y) {
 	return false;
 }
 
+//2d collision, I compacted these functions from rotate/2d-collision both for optimization and so they don't take as much space
+function getOrientation(p1, p2, p3) {
+    var value = (p2[1] - p1[1]) * (p3[0] - p2[0]) - (p2[0] - p1[0]) * (p3[1] - p2[1]); 
+    if (value > 0) {
+        return 2;
+    } 
+    if (value < 0) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+function lineIntersect(lin1p1, lin1p2, lin2p1, lin2p2) {
+	if (getOrientation(lin1p1, lin1p2, lin2p1) != getOrientation(lin1p1, lin1p2, lin2p2) && getOrientation(lin2p1, lin2p2, lin1p1) != getOrientation(lin2p1, lin2p2, lin1p2)) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
+function inPoly(xyPoint, polyPoints) {
+	var intersectNum = 0;
+	for (var r=0;r<polyPoints.length;r++) {
+		if (lineIntersect(polyPoints[r % polyPoints.length], polyPoints[(r+1) % polyPoints.length], xyPoint, [xyPoint[0] + 1000, xyPoint[1]])) {
+			intersectNum += 1;
+		}
+	}
+	if (intersectNum % 2 == 1) {
+		return true;
+	}
+	return false;
+}
+
 
 //interesting, doing the math 100,000,000 times is faster than loading the value variable 100,000,000 times
 //(on average, 10-20 ms faster)
@@ -476,26 +517,4 @@ function performanceTest() {
         
 	var totalTime = perfTime[1] - perfTime[0];
 	console.log(`performance test took ${totalTime} ms`);
-}
-
-
-function shadowTest() {
-	ctx.fillStyle = "#000";
-	ctx.beginPath();
-	ctx.rect(0,0,canvas.width,canvas.height);
-	
-	ctx.moveTo(50, 50);
-	ctx.lineTo(50, 250);
-	ctx.lineTo(250,250);
-	ctx.lineTo(250, 50);
-
-	
-	ctx.moveTo(300, 300);
-	ctx.lineTo(300, 450);
-	ctx.lineTo(450, 450);
-	ctx.lineTo(450, 300);
-	
-	ctx.closePath();
-	//ctx.clip();
-	ctx.fill();
 }

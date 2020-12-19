@@ -204,6 +204,9 @@ function drawMapSquare(ex, why, tileType) {
 				drawHexagonTile(ex, why);
 				break;
 			case "i":
+				//invisible blocks are the color of the background
+				ctx.fillStyle = loading_map.bg;
+				drawHexagonTile(ex, why);
 				break;
 			default:
 				ctx.fillStyle = color_error;
