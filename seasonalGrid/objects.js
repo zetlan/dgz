@@ -796,7 +796,7 @@ class Walker extends MovableTileEntity {
 		this.mDPos = 0;
 		this.limit = 20;
 		this.pRP = [player.x, player.y];
-		this.stopSurfaces = "A";
+		this.stopSurfaces = tile_laserStops;
 		this.animLasers = [0, 0, 0, 0, 0, 0];
 
 		this.delay = 4;
