@@ -3,9 +3,12 @@
 /* 
   - empty space
 A - wall
-B -
+B - 
 C - ice
 D - stony desert land
+E - 
+F - 
+G - temple wall
 
 a - bluish ground
 b - grass
@@ -13,6 +16,7 @@ c - snow
 d - desert tile, wobbly middle
 e - exit block
 f - desert tile, no wobble
+g - temple tile
 
 0/9 - enter blocks 
 */
@@ -55,6 +59,10 @@ function drawMapShadow(ex, why, tileType) {
 					break;
 				case "g":
 					drawColor = color_temple_shadow;
+					break;
+				case "G":
+					drawColor = color_wall_temple_shadow;
+					break;
 				case "i":
 					drawColor = loading_map.bg;
 					break;
@@ -137,6 +145,12 @@ function drawMapSquare(ex, why, tileType) {
 					ctx.stroke();
 				}
 				break;
+			case "G":
+					ctx.fillStyle = color_wall_temple_secondary;
+					drawHexagonTile(ex, why);
+					ctx.fillStyle = color_wall_temple;
+					drawPoly(ex, why, tile_half * 0.9, 6, Math.PI / 6);
+					break;
 			case "c":
 				ctx.fillStyle = color_snow;
 				drawHexagonTile(ex, why);
