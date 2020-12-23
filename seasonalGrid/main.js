@@ -39,21 +39,24 @@ var color_temple_shadow = "#DA5";
 var color_text = "#226";
 var color_wall = "#044";
 var color_wall_secondary = "#024";
+var color_wall_temple = "#F90";
+var color_wall_temple_secondary = "#D60";
+var color_wall_temple_shadow = "#B46";
 var color_water = "#08F";
 
 
 var display_animDelay = 6;
 var display_entityShadowOffset = 3;
-var display_entityLightRadius = 6;
+var display_entityLightRadius = 6.5;
 var display_tileShadowOffset = 6;
 var display_vignetting = 0.6;
 var display_mapSwitchSpeed = 0.02;
-var display_fillRule = "evenodd";
+var display_fillRule = "nonzero";
 
 
 var editor_active = false;
 var editor_block = " ";
-var editor_possibleBlocks = " ACDabcdefgiw";
+var editor_possibleBlocks = " ACDGabcdefgiw";
 var editor_blockNumber = 0;
 
 var font_large = "40px Courier";
@@ -73,6 +76,7 @@ var centerY;
 
 var tile_size = 35;
 var tile_walkables = "Cabcbdefgi0123456789";
+var tile_laserStops = "AG";
 var tile_half = tile_size / 2;
 
 var camera =	{  
@@ -221,10 +225,11 @@ function main() {
 
 	//editor text if active
 	if (editor_active) {
-		//drawing box around edge
+		//debug mode tag
+		ctx.fillStyle = color_player;
+		ctx.fillText(`~~DEBUG MODE~~`, canvas.width * 0.5, canvas.height * 0.07);
 
 		//drawing coordinates
-		ctx.fillStyle = color_player;
 		ctx.fillText(`Block: ${editor_block}`, canvas.width * 0.5, canvas.height * 0.9);
 		ctx.fillText(`X: ${player.x} Y: ${player.y}`, canvas.width * 0.5, canvas.height * 0.95);
 	}
