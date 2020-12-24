@@ -117,6 +117,8 @@ class Map {
 			this.entities[a].tick();
 			this.entities[a].beDrawn();
 		}
+		//save player position
+		this.playerPos = [player.x, player.y];
 
 		//handle exits
 		if (!editor_active) {
@@ -183,9 +185,6 @@ class Map {
 				this.exiting = false;
 				loading_map = this.exitingTo;
 				
-
-				//save player position
-				this.playerPos = [player.x, player.y];
 				player.dir = "";
 				//updating player position
 				//reset map if moving to a child map
