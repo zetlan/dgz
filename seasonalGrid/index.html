@@ -1,6 +1,6 @@
 <!doctype html>
-<!-- Copyright Cynthia Clementine,
-	October-17-2019          -->
+<!-- Created by Cynthia Clementine,
+	Dec-24-2020-->
 <html>
 	<head>
 		<title>Tile World 0.8</title>
@@ -17,6 +17,11 @@
 				display: block;
 				
 			}
+
+			#resetButton {
+				margin: auto;
+				display: block;
+			}
 		</style>
 		<!--audio-->
 		<audio id="sound_step"><source src="soundies/steppy.mp3" type="audio/mpeg"></audio>
@@ -32,5 +37,6 @@
 	<body>
 		<canvas id="canvas" width="640" height="480">
 		</canvas>
+		<button id="resetButton" onclick="trueReset();">Reset Game</button>
 	</body>
 </html>
