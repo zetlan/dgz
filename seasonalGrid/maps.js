@@ -296,7 +296,7 @@ let map_0_6 = new Map(color_background_0, map_0_6_data, [1, 6], map_0_6_entities
 
 	var map_wd1_entities = [new Switch([6, 6], [18, 6], " ", "b"), new Switch([11, 28], [10, 12], "A", "b"),
 							new Switch([11, 28], [12, 22], " ", "b"), new Switch([19, 31], [25, 39], "C", " "), new Switch([19, 31], [27, 43], "C", " "), new Switch([16, 19], [25, 24], "A", "b"), new Switch([33, 19], [26, 26], "A", "b"),
-							new Orb("#AAF", 19, 4), new Orb("#FFF", 31, 5), new Orb("#FAF", 24, 13), new Orb("#AAF", 25, 3),
+							new Orb("#AAF", 19, 4), new Orb("#808", 31, 5), new Orb("#FAF", 24, 13), new Orb("#AAF", 25, 3),
 							new Stone(10, 25),
 							new Stone(9, 13), new Stone(9, 12), new Stone(10, 14), new Stone(25, 25), new Stone(19, 30), new Stone(27, 35)];
 
@@ -986,9 +986,9 @@ var map_tm5_data = ['    fffffffffffff      fff',
 					'                  fffffffff',
 					'                    ffff   f'];
 	
-	var map_tm5_entities = [new Switch([17, 4], [27, 11], "A", "g"), 
+	var map_tm5_entities = [new Switch([17, 4], [27, 11], "G", "g"), 
 							new Stone(15, 4),
-							new Orb("#FAF", 27, 35),
+							new SpecialOrb("#FAF", 27, 35, `map_tm5.parent = map_tm;`),
 							new LongWalker(7, 7, ["DR", "UR", "L", "UR"])];
 
 let map_tm5 = new Map(color_background_3, map_tm5_data, [7, 15], map_tm5_entities, ["map_tm0", "map_tm1", "map_tm2", "map_tm3", "map_tm4", "map_tm5"]);
