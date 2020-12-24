@@ -23,12 +23,17 @@
         <script src="rotate/2d-collision.js"></script>
         <script>
             window.onload = setup;
+            document.addEventListener("mousedown", handleMouseDown, false);
+            document.addEventListener("mousemove", handleMouseMove, false);
+            document.addEventListener("mouseup", handleMouseUp, false);
 
             //global variables
             var canvas;
             var ctx;
             var centerX;
             var centerY;
+            var color_bege = "#F80";
+            var mouse_down = false;
             let timer;
             //all the polygon objects go here
             let polygonArray = [];
@@ -42,19 +47,22 @@
                 constructor(x, y, sides, radius, offsetAngle) {
                     this.x = x;
                     this.y = y;
+                    this.s = sides;
                     this.r = radius;
-                    this.points = this.generatePoints(x, y, sides, radius, offsetAngle);
+                    this.a = offsetAngle;
+                    this.points;
+                    this.generatePoints();
                 }
 
-                generatePoints(x, y, sides, r, offsetAngle) {
+                generatePoints() {
                     var output = [];
-                    for (var an=0;an<sides+1;an++) {
-                        var trueAngle = ((an / sides) * (Math.PI * 2)) + (Math.PI / sides) + offsetAngle;
-                        var xAdd = r * Math.sin(trueAngle);
-                        var yAdd = r * Math.cos(trueAngle);
-                        output.push([x + xAdd, y + yAdd]);
+                    for (var an=0;an<this.s+1;an++) {
+                        var trueAngle = ((an / this.s) * (Math.PI * 2)) + (Math.PI / this.s) + this.a;
+                        var xAdd = this.r * Math.sin(trueAngle);
+                        var yAdd = this.r * Math.cos(trueAngle);
+                        output.push([this.x + xAdd, this.y + yAdd]);
                     }
-                    return output;
+                    this.points = output;
                 }
             }
 
@@ -66,11 +74,34 @@
                 centerX = canvas.width * 0.5;
                 centerY = canvas.height * 0.5;
 
-                polygonArray.push(new Polygon(centerX, centerY, 6, 100, 0));
+                polygonArray.push(new Polygon(centerX, centerY, 4, 100, 0));
                 polygonArray.push(new Polygon(centerX - 200, centerY, 5, 50, 0));
-                polygonArray.push(new Polygon(centerX + 1230, centerY, 6, 50, 0));
+                polygonArray.push(new Polygon(centerX + 120, centerY, 3, 50, 0));
+
+                ctx.fill()
 
                 timer = setInterval(iterate, 20);
+            }
+
+            //input handling
+            function handleMouseDown(a) {
+                mouse_down = true;
+                var rect = canvas.getBoundingClientRect();
+                //var root = document.documentElement;
+
+                polygonArray[0].x = a.clientX - rect.left;
+                polygonArray[0].y = a.clientY - rect.top;
+                polygonArray[0].generatePoints();
+            }
+
+            function handleMouseMove(a) {
+                if (mouse_down) {
+                    handleMouseDown(a);
+                }
+            }
+
+            function handleMouseUp(a) {
+                mouse_down = false;
             }
 
             function iterate() {
@@ -78,10 +109,13 @@
                 ctx.fillStyle = "#CCF";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+                pointsArray = [];
                 //creating final shape
                 for (var a=0;a<polygonArray.length;a++) {
                     pointsArray = dissolve(pointsArray, polygonArray[a].points);
+                    //drawPoly(polygonArray[a].points);
                 }
+                pointsArray = dissolve(pointsArray, [[0, 0], [0, canvas.height], [canvas.width, canvas.height], [canvas.width, 0], [0, 0]]);
 
                 //drawing all polygons
                 drawPoly(pointsArray);
@@ -95,16 +129,73 @@
                     for (var g=1;g<XYPointsArr.length;g++) {
                         ctx.lineTo(XYPointsArr[g % (XYPointsArr.length-1)][0], XYPointsArr[g % (XYPointsArr.length-1)][1]);
                     }
-                    ctx.stroke();
+                    ctx.fillStyle = color_bege;
+                    ctx.fill("evenodd");
                 }
             }
 
-
             //this function takes in two arrays of xy points and dissolves them together, returning 1 polygon with just the outline
             function dissolve(poly1, poly2) {
+                var arr = [];
+                for (var r=0;r<poly1.length;r++) {
+                    arr.push(poly1[r]);
+                }
+
+                for (var a=0;a<poly2.length;a++) {
+                    if (!inPoly(poly2[a], poly1)) {
+                        arr.push(poly2[a]);
+                    }
+                }
                 //loop through all the lines in polygon 1
                 //loop through all the lines in polygon 2
-                return poly1;
+                return arr;
+            }
+
+
+
+
+
+            //2d collision functions, for convienence
+            function getOrientation(p1, p2, p3) {
+                var value = (p2[1] - p1[1]) * (p3[0] - p2[0]) - (p2[0] - p1[0]) * (p3[1] - p2[1]); 
+                if (value > 0) {
+                    return 2;
+                } 
+                if (value < 0) {
+                    return 1;
+                } else {
+                    return 0;
+                }
+            }
+
+            function lineIntersect(lin1p1, lin1p2, lin2p1, lin2p2) {
+                var a = getOrientation(lin1p1, lin1p2, lin2p1);
+                var b = getOrientation(lin1p1, lin1p2, lin2p2);
+                var c = getOrientation(lin2p1, lin2p2, lin1p1);
+                var d = getOrientation(lin2p1, lin2p2, lin1p2);
+                if (a != b && c != d) {
+                    return 1;
+                } else {
+                    return 0;
+                }
+            }
+
+            function inPoly(xyPoint, polyPoints) {
+                var linP1 = xyPoint;
+                var linP2 = [canvas.width, xyPoint[1]];
+                var intersectNum = 0;
+                for (var r=0;r<polyPoints.length;r++) {
+                    var p1 = polyPoints[r % polyPoints.length];
+                    var p2 = polyPoints[(r+1) % polyPoints.length];
+                    if (lineIntersect(p1, p2, linP1, linP2)) {
+                        intersectNum += 1;
+                    }
+                }
+                if (intersectNum % 2 == 1) {
+                    return true;
+                } else {
+                    return false;
+                }
             }
 
         </script>

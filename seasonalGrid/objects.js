@@ -117,6 +117,8 @@ class Map {
 			this.entities[a].tick();
 			this.entities[a].beDrawn();
 		}
+		//save player position
+		this.playerPos = [player.x, player.y];
 
 		//handle exits
 		if (!editor_active) {
@@ -183,9 +185,6 @@ class Map {
 				this.exiting = false;
 				loading_map = this.exitingTo;
 				
-
-				//save player position
-				this.playerPos = [player.x, player.y];
 				player.dir = "";
 				//updating player position
 				//reset map if moving to a child map
@@ -565,6 +564,7 @@ class ShadowStorm {
 		this.dispRad = this.rad + (Math.sin(game_timer / 20) / 4);
 	}
 
+	
 	beDrawn() {
 		//only draw self if in regular mode
 		if (!editor_active) {
@@ -574,7 +574,6 @@ class ShadowStorm {
 			//loop through all entities and create light bubbles around them
 			for (var a=0;a<loading_map.entities.length;a++) {
 				if (loading_map.entities[a] != this) {
-
 					var size = this.dispRad;
 					if (!(loading_map.entities[a] instanceof Firefly)) {
 						size /= 3;
@@ -589,10 +588,50 @@ class ShadowStorm {
 					}
 				}
 			}
-			ctx.closePath();
-			ctx.fill();
+			ctx.fill(display_fillRule);
 		}
 	}
+	beDrawn() {
+		//only draw self if in regular mode
+		if (!editor_active) {
+			//steals map drawing code because I don't feel like doing the hard way
+			var tileStartX = Math.floor(camera.x);
+			var tileStartY = Math.floor(camera.y / 0.866) - 1;
+			var drawSquaresX = Math.floor(canvas.width / tile_size) + 2;
+			var drawSquaresY = Math.floor((canvas.height / tile_size) * 1.4);
+		
+			//main for loop
+			ctx.globalAlpha = 0.5;
+			for (var yM=0;yM<drawSquaresY;yM++) {
+				for (var xM=0;xM<drawSquaresX;xM++) {
+					var squarePos = spaceToScreen(tileStartX + xM, tileStartY + yM);
+					var [squareX, squareY] = squarePos;
+
+					//entity distance
+					var entityDist = this.dispRad + 1;
+					for (var a=0;a<loading_map.entities.length;a++) {
+						if (loading_map.entities[a] != this) {
+							if (loading_map.entities[a] instanceof Firefly) {
+								entityDist = Math.min(entityDist, getDistance([tileStartX + xM, tileStartY + yM], [loading_map.entities[a].animX, loading_map.entities[a].animY]) / 3);
+							} else {
+								entityDist = Math.min(entityDist, getDistance([tileStartX + xM, tileStartY + yM], [loading_map.entities[a].animX, loading_map.entities[a].animY]));
+							}
+						}
+					}
+
+					ctx.globalAlpha = 1 - Math.max(-1 * ((entityDist * 3) / this.dispRad) + 1, 0);
+					
+					drawMapSquare(squareX, squareY, "i");
+				}
+				//if off the end of the map, skip the rest
+				if (yM + tileStartY > loading_map.data.length-1) {
+					yM = drawSquaresY + 1;
+				}
+			}
+			ctx.globalAlpha = 1;
+		}
+	}
+	
 
 	beReset() {
 
@@ -721,6 +760,26 @@ class LightSwitch extends Switch {
 			}
 		}
 	}
+
+	drawTarget() {
+		//drawing ring around target block
+		if (Math.abs(this.targetX - player.animX) < canvas.width / (tile_size * 1.5) && Math.abs(this.targetY - player.animY) < canvas.height / (tile_size * 1.5)) {
+			var drawCoords = spaceToScreen(this.targetX, this.targetY);
+			//ring part 1
+			ctx.strokeStyle = color_firefly;
+			ctx.lineWidth = 2;
+			ctx.beginPath();
+			for (var an=0;an<7;an++) {
+				var trueAngle = ((an / 6) * (Math.PI * 2)) + (Math.PI / 6) + (Math.PI / 6);
+				var spice = (0.8 + (Math.abs(((((this.pressTime) / 30) + 5) % 2) - 1) / 4));
+				var xAdd = (tile_half / 0.8) * Math.sin(trueAngle) * spice;
+				var yAdd = (tile_half / 0.8) * Math.cos(trueAngle) * spice;
+				ctx.lineTo(drawCoords[0] + xAdd, drawCoords[1] + yAdd);
+			}
+			ctx.stroke();
+			ctx.lineWidth = 1;
+		}
+	}
 }
 
 
@@ -736,7 +795,7 @@ class Walker extends MovableTileEntity {
 		this.mDPos = 0;
 		this.limit = 20;
 		this.pRP = [player.x, player.y];
-		this.stopSurfaces = "A";
+		this.stopSurfaces = tile_laserStops;
 		this.animLasers = [0, 0, 0, 0, 0, 0];
 
 		this.delay = 4;
