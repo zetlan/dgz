@@ -1,9 +1,9 @@
 <!doctype html>
-<!-- Copyright Cynthia Clementine,
-	October-17-2019          -->
+<!-- Created by Cynthia Clementine,
+	Dec-24-2020-->
 <html>
 	<head>
-		<title>Tile World 0.8</title>
+		<title>Tile World 1.0</title>
 		<meta charset="utf-8">
 		<style>
 			body {
@@ -16,6 +16,11 @@
 				border-color: slateblue;
 				display: block;
 				
+			}
+
+			#resetButton {
+				margin: auto;
+				display: block;
 			}
 		</style>
 		<!--audio-->
@@ -32,5 +37,6 @@
 	<body>
 		<canvas id="canvas" width="640" height="480">
 		</canvas>
+		<button id="resetButton" onclick="trueReset();">Reset Game</button>
 	</body>
 </html>

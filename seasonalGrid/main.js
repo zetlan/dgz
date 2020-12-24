@@ -551,6 +551,16 @@ function handleLocalStorage(writingBOOLEAN) {
 		game_flags.out_pos = map_out.playerPos;
 		game_flags.end_pos = map_free.playerPos;
 
+		//keeping the default map from being un-enterable
+		if (game_flags.deflt_pos[0] == 127 && game_flags.deflt_pos[1] == 7) {
+			game_flags.deflt_pos[0] = 126;
+		}
+
+		//allowing the player to choose not to go through dark area
+		if (game_flags.out_pos[0] == 73 && game_flags.out_pos[1] == 3) {
+			game_flags.out_pos[0] = 72;
+		}
+
 		//turn gameflags into a string that can be written to the tileWorld_data section
 		var toWrite = game_flags;
 		toWrite = JSON.stringify(toWrite);
@@ -582,23 +592,8 @@ function trueReset() {
 	if (confirm("This action cannot be undone. Would you like to reset completely? \n(Press OK to reset, Cancel to prevent reset)")) {
 		//stop game
 		window.cancelAnimationFrame(game_animation);
-		//reset game flags
-		game_flags = {
-			phase: 0,
-			deflt_fin: false,
-			wld_1_fin: false,
-			wld_2_fin: false,
-			wld_3_fin: false,
-			wld_4_fin: false,
-			wld_5_fin: false,
-		
-			deflt_pos: [2, 1],
-			out_pos: [4, 3],
-			end_pos: [8, 4]
-		};
-
-		//push to local storage
-		handleLocalStorage(true);
+		//reset localStorage 
+		window.localStorage.tileWorld_data = undefined;
 
 		//refresh page
 		window.location.reload();
