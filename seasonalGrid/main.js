@@ -67,6 +67,21 @@ var game_animation;
 var game_timer = 0;
 var game_avgFrameTime = [];
 
+//phase: phase of game. 0 for playing, 1 for good end, and 2 for bad end
+var game_flags = {
+	phase: 0,
+	deflt_fin: false,
+	wld_0_fin: false,
+	wld_1_fin: false,
+	wld_2_fin: false,
+	wld_3_fin: false,
+	wld_4_fin: false,
+
+	deflt_pos: [2, 1],
+	out_pos: [4, 3],
+	end_pos: [8, 4]
+};
+
 
 var loading_animation;
 var loading_map;
@@ -97,6 +112,7 @@ function preSetup() {
 }
 
 function setup() {
+	//setting up code structure things
 	canvas = document.getElementById("canvas");
 	ctx = canvas.getContext("2d");
 	ctx.lineJoin = "round";
@@ -105,24 +121,61 @@ function setup() {
 
 	loading_map = map_out;
 
-	//setting up entities in the map_out zone
-	for (var a=0;a<16;a++) {
-		map_out.entities.push(new Orb("#AAF", 52 + a, 0));
-	}
-	for (var a=0;a<16;a++) {
-		map_out.entities.push(new Orb("#FAF", 52 + a, 6));
-	}
-
-	//setting up the rn map relations
-	map_rn1.parent = map_rn2;
-	map_rn2.parent = map_rn3;
-	map_rn3.parent = map_rn4;
-	map_rn4.parent = map_rn5;
-	map_rn5.parent = map_rn6;
-
 	centerX = canvas.width / 2;
 	centerY = canvas.height / 2;
 	game_animation = window.requestAnimationFrame(main);
+
+	//setting up main game things
+	handleLocalStorage(false);
+	console.log(game_flags.phase);
+
+	if (game_flags.phase == 0) {
+		//main game stuff
+
+		//setting up entities in the map_out zone
+		for (var a=0;a<16;a++) {
+			map_out.entities.push(new Orb("#AAF", 52 + a, 0));
+		}
+		for (var a=0;a<16;a++) {
+			map_out.entities.push(new Orb("#FAF", 52 + a, 6));
+		}
+
+		//setting up the rn map relations
+		map_rn1.parent = map_rn2;
+		map_rn2.parent = map_rn3;
+		map_rn3.parent = map_rn4;
+		map_rn4.parent = map_rn5;
+		map_rn5.parent = map_rn6;
+
+		//making sure important things stay complete
+		map_def.completed = game_flags.deflt_fin;
+		map_wd0.completed = game_flags.wld_0_fin;
+		map_wd1.completed = game_flags.wld_1_fin;
+		map_wd2.completed = game_flags.wld_2_fin;
+		map_tmß.completed = game_flags.wld_3_fin;
+		map_n1.completed = game_flags.wld_4_fin;
+
+		map_def.playerPos = game_flags.deflt_pos;
+		map_def.playerPosDefault = map_def.playerPos;
+
+		map_out.playerPos = game_flags.out_pos;
+		map_out.playerPosDefault = map_out.playerPos;
+		map_free.playerPos = game_flags.end_pos;
+
+		//if the default map is completed, make absolutely sure that the player is in the right spot
+		if (map_def.completed) {
+			[player.x, player.y] = game_flags.out_pos;
+			player.queue.push([player.x, player.y]);
+		}
+	} else if (game_flags.phase == 1) {
+		//good ending
+		[player.x, player.y] = game_flags.end_pos;
+		player.queue.push([player.x, player.y]);
+		loading_map = map_free;
+	} else {
+		//bad ending
+		loading_map = map_rn6;
+	}
 }
 
 function keyPress(hn) {
@@ -205,9 +258,6 @@ function keyPress(hn) {
 
 /*this function is the main function that repeats every time the timer goes off. It clears the screen and then draws everything.  */
 function main() {
-	//starting performance test
-	//var times = [performance.now(), 0];
-
 	//clearing / drawing background
 	ctx.fillStyle = loading_map.bg;
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -249,23 +299,6 @@ function main() {
 	//time based things
 	game_timer += 1;
 	display_tileShadowOffset = 6 + (Math.sin(game_timer / 100) * 2);
-
-
-	//performance testing
-	/*
-	times[1] = performance.now();
-	var totalTime = times[1] - times[0];
-	game_avgFrameTime.push(totalTime);
-	if (game_avgFrameTime.length > 100) {
-		var avg = 0;
-		for (var v=0;v<game_avgFrameTime.length;v++) {
-			avg += game_avgFrameTime[v];
-		}
-		avg /= game_avgFrameTime.length;
-
-		console.log("average time for past 100 frames is " + avg + "ms");
-		game_avgFrameTime = [];
-	} */
 
 	//call self for next frame
 	game_animation = window.requestAnimationFrame(main);
@@ -502,6 +535,74 @@ function inPoly(xyPoint, polyPoints) {
 		return true;
 	}
 	return false;
+}
+
+function handleLocalStorage(writingBOOLEAN) {
+	if (writingBOOLEAN) {
+		//first update game_flags
+		game_flags.deflt_fin = map_def.completed
+		game_flags.wld_0_fin = map_wd0.completed;
+		game_flags.wld_1_fin = map_wd1.completed;
+		game_flags.wld_2_fin = map_wd2.completed;
+		game_flags.wld_3_fin = map_tmß.completed;
+		game_flags.wld_4_fin = map_n1.completed;
+
+		game_flags.deflt_pos = map_def.playerPos;
+		game_flags.out_pos = map_out.playerPos;
+		game_flags.end_pos = map_free.playerPos;
+
+		//turn gameflags into a string that can be written to the tileWorld_data section
+		var toWrite = game_flags;
+		toWrite = JSON.stringify(toWrite);
+		//write it
+		window.localStorage.tileWorld_data = toWrite;
+	} else {
+		//turn the things in the messages section of local storage into a string that can be read into gameFlags
+		var toRead = window.localStorage.tileWorld_data;
+		try {
+			toRead = JSON.parse(toRead);
+		} catch (error) {
+			console.log(`could not parse localStorage --> tileWorld_data --> ${toRead}, defaulting to site tags`);
+			return;
+		}
+		
+
+		//make sure it's somewhat safe, and then make it into the game flags
+		if (typeof(toRead) == "object") {
+			game_flags = toRead;
+		} else {
+			console.log("invalid type specified in localStorage --> tileWorld_data, defaulting to site tags");
+		}
+	}
+}
+
+
+function trueReset() {
+	//give user a warning
+	if (confirm("This action cannot be undone. Would you like to reset completely? \n(Press OK to reset, Cancel to prevent reset)")) {
+		//stop game
+		window.cancelAnimationFrame(game_animation);
+		//reset game flags
+		game_flags = {
+			phase: 0,
+			deflt_fin: false,
+			wld_1_fin: false,
+			wld_2_fin: false,
+			wld_3_fin: false,
+			wld_4_fin: false,
+			wld_5_fin: false,
+		
+			deflt_pos: [2, 1],
+			out_pos: [4, 3],
+			end_pos: [8, 4]
+		};
+
+		//push to local storage
+		handleLocalStorage(true);
+
+		//refresh page
+		window.location.reload();
+	}
 }
 
 
