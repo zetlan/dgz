@@ -620,7 +620,6 @@ function performanceTest() {
 		}
 	}
 	perfTime[1] = performance.now();
-        
 	var totalTime = perfTime[1] - perfTime[0];
 	console.log(`performance test took ${totalTime} ms`);
 }
