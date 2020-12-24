@@ -19,7 +19,8 @@
 	var map_out_entities = [new Switch([75, 3], [72, 5], " ", "a"),
 							new Switch([69, 0], [72, 1], " ", "a"),
 							new Stone(74, 3), 
-							new SpecialOrb("#AAF", 68, 0, `if (player.x > 66 && this.x == 68) {this.dir = "R"; this.moveImpulse = true;}`),
+							new SpecialOrb("#AAF", 68, 0, `if (player.x > 66 && this.x == 68) {this.dir = "R"; this.moveImpulse = true;}
+															if (game_timer % 45 == 0) {handleLocalStorage(true);}`),
 							new SpecialOrb("#FAF", 68, 6, `determineEnding();`),
 							new Text("Loading...", 10, 15)];
 
@@ -77,7 +78,8 @@ let map_dbg = new Map("#888", map_dbg_data, [0, 1], map_dbg_entities, []);
 							new Text("that are already completed", 62, -1.5),
 
 							new Switch([88, 2], [88, 5], " ", "a"), new Switch([88, 10], [88, 7], " ", "a"), new Switch([82, 6], [89, 6], " ", "a"),
-							new SpecialOrb("#FFF", 81, 6, `if (player.x == 88 && player.y == 6) {this.dir = "R"; this.moveImpulse = true;}`),
+							new SpecialOrb("#808", 81, 6, `if (player.x == 88 && player.y == 6) {this.dir = "R"; this.moveImpulse = true;}
+															if (game_timer % 45 == 0) {handleLocalStorage(true);}`),
 
 							new Orb("#AAF", 87, 10), new Orb("#AAF", 103, 2), new Orb("#AAF", 108, 10), new Orb("#AAF", 113, 10), new Orb("#AAF", 118, 2), 
 							new Orb("#FAF", 87, 2), new Orb("#FAF", 103, 10), new Orb("#FAF", 108, 2), new Orb("#FAF", 113, 2), new Orb("#FAF", 118, 10)];
@@ -1158,8 +1160,8 @@ let map_n4 = new Map(color_background_out, map_n4_data, [15, 7], map_n4_entities
 						'      ffffffffffbbbbbbbbbbb         Ccccc',
 						'       ffbfffffffffbbbbbbbbb         Cccc',
 						'      ffbbbbffDfffbffbbbbbbbc       Ccccc',
-						'       ffb bbfffDfffbbbbbbbbcCC      Ccccc',
-						'       ffb  bfffffffffbbbbbbccC     Ccccc',
+						'       ffbwbbfffDfffbbbbbbbbcCC      Ccccc',
+						'       ffbwwbfffffffffbbbbbbccC     Ccccc',
 						'       DffbbbffffDfffffffbbbbccCC   CCcccc',
 						'       fffffffDffffffffbbbbbccccCCCCCcccc',
 						'        ffffffffffffffbffbbbbccccccCCcccc',
@@ -1171,7 +1173,8 @@ let map_n4 = new Map(color_background_out, map_n4_data, [15, 7], map_n4_entities
 						'                      ffbbbb  ccccccc',
 						'                                ccc'];
 	
-	var map_free_entities = [];
+	var map_free_entities = [new SpecialOrb(color_water, 19823, 5, `game_flags.phase = 1;
+																	handleLocalStorage(true);`)];
 
 let map_free = new Map(color_water, map_free_data, [8, 4], map_free_entities, []);
 
@@ -1259,5 +1262,7 @@ let map_rn4 = new Map(color_background_out, map_rn4_data, [7, 5], [], []);
 
 let map_rn5 = new Map(color_background_out, map_rn5_data, [7, 5], [], []);
 
-let map_rn6 = new Map(color_background_out, [''], [7, 5], [new SpecialOrb("#000", 81, 5, `player.r *= 0.95;`)], []);
+let map_rn6 = new Map(color_background_out, [''], [7, 5], [new SpecialOrb("#000", 81, 5, `player.r *= 0.95;
+																						game_flags.phase = 2;
+																						handleLocalStorage(true);`)], []);
 
