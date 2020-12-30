@@ -1,12 +1,16 @@
 
-//a system contains center bodies, outer bodies, and debris
-//coordinates of bodies are all relative to the system
+/*a system contains center bodies, outer bodies, and debris
+it acts like a little mini main loop, ticking / drawing everything inside, 
+Systems are always either fixed or orbiting some body. Their x, y, dx, and dy can't just be set to something to start. By default they're all 0
+*/
 class System {
-	constructor(x, y, dx, dy, centerBodies, outerBodies, debrisMax) {
-		this.x = x;
-		this.y = y;
-		this.dx = dx;
-		this.dy = dy;
+	constructor(centerBodies, outerBodies, debrisMax) {
+		this.x = 0;
+		this.y = 0;
+		this.dx = 0;
+		this.dy = 0;
+
+		this.prevD = [this.dx, this.dy];
 
 		this.r = 10;
 		this.m = 1;
@@ -17,7 +21,43 @@ class System {
 		this.debrisMaxNum = debrisMax;
 	}
 
-	tick() {
+	//updates radius / mass
+	calibrate() {
+		this.m = 0;
+		this.r = 0;
+		var extraAdd = Math.sqrt(Math.pow(canvas.width / (2 * camera.scale_min), 2) + Math.pow(canvas.height / (2 * camera.scale_min), 2));
+
+		this.centers.forEach(a => {
+			this.m += a.m;
+		});
+
+		this.bodies.forEach(b => {
+			//body mass moves around, so it isn't weighted as heavily
+			this.m += b.m / 3;
+			this.r = Math.max(this.r, b.apoapsis + extraAdd);
+		});
+	}
+
+	tick() { 
+		//system-wide things
+		this.x += this.dx / dt;
+		this.y += this.dy / dt;
+
+		//adding dx / dy to all bodies in the system
+		if (this.prevD[0] != this.dx) {
+			this.centers.forEach(a => {a.dx += this.dx - this.prevD[0];});
+			this.bodies.forEach(b => {b.dx += this.dx - this.prevD[0];});
+			this.debris.forEach(c => {c.dx += this.dx - this.prevD[0];});
+		}
+
+		if (this.prevD[1] != this.dy) {
+			this.centers.forEach(a => {a.dy += this.dy - this.prevD[1];});
+			this.bodies.forEach(b => {b.dy += this.dy - this.prevD[1];});
+			this.debris.forEach(c => {c.dy += this.dy - this.prevD[1];});
+		}
+		this.prevD = [this.dx, this.dy];
+
+
 		//adding debris, as they run into or out of the universe rather often
 		if (this.debris.length < this.debrisMaxNum) {
 			if (time % 30 == 1) {
@@ -28,15 +68,15 @@ class System {
 			}
 		}
 
-		//debris
+		//debris interaction
 		for (var w=0;w<this.debris.length;w++) {
-			//debris-body interaction
+			//with bodies
 			this.centers.forEach(a => {a.gravitate(this.debris[w]);});
 			this.bodies.forEach(b => {b.gravitate(this.debris[w]);});
 
 			this.debris[w].tick();
 
-			//debris-player interaction
+			//with player
 			var diffX = Math.abs(character.x - this.debris[w].x);
 			var diffY = Math.abs(character.y - this.debris[w].y);
 			if (diffX < 10 && diffY < 10) {
@@ -49,28 +89,28 @@ class System {
 			}
 		}
 
-		//player-body interaction
-		this.centers.forEach(a => {a.gravitate(character);});
+		//body interaction with player
 		this.bodies.forEach(b => {b.gravitate(character);});
 
-		//center-body interaction
+		//center interaction
 		this.centers.forEach(a => {
+			//with bodies
 			this.bodies.forEach(b => {a.gravitate(b);});
-		});
-		//center-center interaction
-		this.centers.forEach(a => {
-			this.centers.forEach(b => {
-				if (a != b) {
-					a.gravitate(b);
+
+			//with other centers
+			this.centers.forEach(c => {
+				if (a != c) {
+					a.gravitate(c);
 				}
 			});
+
+			//with player
+			a.gravitate(character);
 		});
 
-		//moving things
+		//ticking; bodies, centers, and player
 		this.bodies.forEach(a => {a.tick();});
 		this.centers.forEach(b => {b.tick();});
-
-		//character input handling
 		character.recieveInput();
 		character.tick();
 	}
@@ -81,22 +121,95 @@ class System {
 		this.bodies.forEach(b => {b.beDrawn();});
 		this.debris.forEach(c => {c.beDrawn();});
 		character.beDrawn();
+
+		//indicator dot
+		
+		ctx.fillStyle = "#F0F";
+		ctx.beginPath();
+		var tempXY = spaceToScreen(this.x, this.y);
+		ctx.ellipse(tempXY[0], tempXY[1], 5, 5, 0, 0, Math.PI * 2, false);
+		ctx.fill();
 	}
 
 	gravitate(entity) {
+		//given that the entity is outside the system range, treat it as a whole one object
+		if (getDistance([entity.x, entity.y], [this.x, this.y]) > this.r) {
+			var xDist = entity.x - this.x;
+			var yDist = entity.y - this.y;
+			var direction = (Math.atan2(xDist, yDist) - (Math.PI));
+			var magnitude = (this.m / gravityDampener) / ((xDist * xDist) + (yDist * yDist));
+			magnitude = magnitude / dt;
 		
+			entity.dx += magnitude * Math.sin(direction);
+			entity.dy += magnitude * Math.cos(direction);
+
+			var magniAtRadius = (this.m / gravityDampener) / (this.r * this.r);
+			magniAtRadius = magniAtRadius / dt;
+			if (magnitude >= magniAtRadius) {
+				try {
+					entity.physical = false;
+				}
+				catch(error) {
+					console.error(`error: attempted entity was not an object able to be given a .physical tag`);
+				}
+			}
+		} else {
+			//if the entity is instead inside the system range, make sure that each individual object acts on them (debris have no gravity)
+			//centers
+			this.centers.forEach(a => {a.gravitate(entity);});
+
+			//bodies
+			this.bodies.forEach(b => {b.gravitate(entity);});
+		}
+	}
+
+	setOrbit(bodyToOrbit, apoH, periH, apoA, startA, ccwBOOL) {
+		//first subtract all x, y, dx, and dy given to child objects by the system
+		
+		this.centers.forEach(a => {
+			a.x -= this.x;
+			a.y -= this.y;
+			a.dx -= this.dx;
+			a.dy -= this.dy;
+		});
+		this.bodies.forEach(b => {
+			b.x -= this.x;
+			b.y -= this.y;
+			b.dx -= this.dx;
+			b.dy -= this.dy;
+		});
+		this.debris.forEach(c => {
+			c.x -= this.x;
+			c.y -= this.y;
+			c.dx -= this.dx;
+			c.dy -= this.dy;
+		});
+
+		//then set properties to new values
+		[this.x, this.y, this.dx, this.dy] = calculateOrbitalParameters(bodyToOrbit, apoH, periH, apoA, startA, ccwBOOL);
+		console.log(this.x, this.y, this.dx, this.dy);
+		//add values to children
+		this.centers.forEach(a => {
+			a.x += this.x;
+			a.y += this.y;
+			a.dx += this.dx;
+			a.dy += this.dy;
+		});
+		this.bodies.forEach(b => {
+			b.x += this.x;
+			b.y += this.y;
+			b.dx += this.dx;
+			b.dy += this.dy;
+		});
+		this.debris.forEach(c => {
+			c.x += this.x;
+			c.y += this.y;
+			c.dx += this.dx;
+			c.dy += this.dy;
+		});
+		this.prevD = [this.dx, this.dy];
 	}
 }
-
-//splitting up the system into types of system
-class SystemOrbiting extends System {
-	constructor(orbitingBody, apoapsis, periapsis, apoapsisAngleRADIANS, startAngleRADIANS, counterClockwiseBOOLEAN, centerBodies, outerBodies, debrisMax) {
-		var [x, y, dx, dy] = calculateOrbitalParameters(orbitingBody, apoapsis, periapsis, apoapsisAngleRADIANS, startAngleRADIANS, counterClockwiseBOOLEAN);
-		super(x, y, dx, dy, centerBodies, outerBodies, debrisMax);
-	}
-}
-
-//
 
 //all objects that have gravity
 class Body {
@@ -112,6 +225,7 @@ class Body {
 		this.parent = undefined;
 	}
 	
+	//draws the object. All the drawing functions for bodies have a built in limiter of 1 px, after that they won't draw smaller
 	beDrawn() {
 		var tempXY = spaceToScreen(this.x, this.y);
 		//multiplier is for the first atmosphere ring, which wobbles in and out.
@@ -124,36 +238,29 @@ class Body {
 		if (this.atmo) {
 			//first atmo ring
 			ctx.globalAlpha = 0.5;
-			ctx.ellipse(tempXY[0], tempXY[1], this.r * camera.scale * multiplier, this.r * camera.scale * multiplier, 0, 0, Math.PI * 2);
+			var radius = Math.max(1, this.r * camera.scale * multiplier);
+			ctx.ellipse(tempXY[0], tempXY[1], radius, radius, 0, 0, Math.PI * 2);
 			ctx.fill();
 			//all other rings
 			var mult = 2.5;
 			var ga;
 			for (ga=4;ga>0;ga--) {
+				var rad2 = Math.max(1, this.r * camera.scale * mult);
 				ctx.globalAlpha = ga / 10;
-				ctx.ellipse(tempXY[0], tempXY[1], this.r * camera.scale * mult, this.r * camera.scale * mult, 0, 0, Math.PI * 2);
+				ctx.ellipse(tempXY[0], tempXY[1], rad2, rad2, 0, 0, Math.PI * 2);
 				ctx.fill();
 				mult += 2.5;
 			}
 			ctx.globalAlpha = 1;
 			ctx.closePath();
 		}
-		//if in map mode
-		if (gameState == 2 && this.parent != undefined) {
-			var tempXY = spaceToScreen(this.parent.x, this.parent.y);
-			ctx.beginPath();
-			ctx.lineWidth = 2;
-			ctx.strokeStyle = this.c;
-			ctx.ellipse(tempXY[0], tempXY[1], this.r * camera.scale, this.r * camera.scale, 0, 0, Math.PI * 2);
-			ctx.stroke();
-		}
 	}
 
 	//changes the thing's dx / dy based off of mass 
 	gravitate(thing) {
-		//atan2 does y, x instead of x, y for some reason, so I adjust by subtracting Pi.
 		var xDist = thing.x - this.x;
 		var yDist = thing.y - this.y;
+		//atan2 does y, x instead of x, y for some reason, so I adjust by subtracting Pi.
 		var direction = (Math.atan2(xDist, yDist) - (Math.PI));
 		//magnitude was annoying to get right, I just messed around with gravitational strength until something looked right.
 		var magnitude = (this.m / gravityDampener) / ((xDist * xDist) + (yDist * yDist));
@@ -185,8 +292,11 @@ class Body {
 class Planet extends Body {
 	constructor(orbitingBody, apoapsis, periapsis, apoapsisAngleRADIANS, planetStartAngleRADIANS, counterClockwiseBOOLEAN, radius, mass, hasAtmosphereBOOLEAN, color) {
 		var [x, y, dx, dy] = calculateOrbitalParameters(orbitingBody, apoapsis, periapsis, apoapsisAngleRADIANS, planetStartAngleRADIANS, counterClockwiseBOOLEAN);
+		console.log(x, y, dx, dy);
 		super(x, y, dx, dy, radius, mass, hasAtmosphereBOOLEAN, color);
 		this.parent = orbitingBody;
+		this.apoapsis = apoapsis;
+		this.periapsis = periapsis;
 	}
 
 	beDrawn() {
@@ -195,7 +305,7 @@ class Planet extends Body {
 			ctx.fillStyle = this.color;
 			ctx.beginPath();
 			var tempXY = spaceToScreen(this.x, this.y);
-			ctx.ellipse(tempXY[0], tempXY[1], this.r * camera.scale, this.r * camera.scale, 0, 0, Math.PI * 2);
+			ctx.ellipse(tempXY[0], tempXY[1], Math.max(1, this.r * camera.scale), Math.max(1, this.r * camera.scale), 0, 0, Math.PI * 2);
 			ctx.fill();
 			
 			if (this.atmo) {
@@ -204,7 +314,8 @@ class Planet extends Body {
 				for (ga=2;ga>0;ga--) {
 					ctx.globalAlpha = 1 / (ga + 1);
 					ctx.beginPath();
-					ctx.ellipse(tempXY[0], tempXY[1], this.r * camera.scale * ((ga + 4) / 4), this.r * camera.scale * ((ga + 4) / 4), 0, 0, Math.PI * 2);
+					var radius = Math.max(1, this.r * camera.scale * ((ga + 4) / 4));
+					ctx.ellipse(tempXY[0], tempXY[1], radius, radius, 0, 0, Math.PI * 2);
 					ctx.fill();
 				}
 			}
@@ -364,7 +475,7 @@ class Player {
 	beDrawn() {
 		var tempXY = spaceToScreen(this.x, this.y);
 		//drawing engine flames
-		if (this.pow > 0 && this.fuel > 0) {
+		if (this.pow > 0 && this.fuel > 0 && this.timeout == 0) {
 			ctx.beginPath();
 			ctx.globalAlpha = 0.7;
 			ctx.strokeStyle = engineColor;
@@ -392,9 +503,8 @@ class Player {
 		ctx.ellipse(tempXY[0], tempXY[1], Math.max(5 * camera.scale, 1), Math.max(5 * camera.scale, 1), 0, 0, Math.PI * 2);
 		ctx.fill();
 		//drawing explosion
-		if (this.timeout > 0) {
+		if (this.timeout > 0 && this.timeout < cutsceneTime * 3) {
 			this.timeout++;
-			gameState = 1;
 			if (this.warm > 33) {
 				ctx.fillStyle = color_player;
 			} else {
@@ -403,11 +513,6 @@ class Player {
 			
 			ctx.ellipse(tempXY[0], tempXY[1], this.timeout / 4, this.timeout / 4, 0, 0, Math.PI * 2);
 			ctx.fill();
-		
-			if (this.timeout > cutsceneTime * 3) { 
-				gameState = 0;
-				time = 10;
-			}
 		}
 		ctx.globalAlpha = 1;
 	}
@@ -415,28 +520,29 @@ class Player {
 	destroy() {
 		if (this.timeout == 0) {
 			this.timeout = 1;
-			dt = 10000;
+			gameState = 3;
+			dt *= 10;
 		}
-	}
-	
-	end() {
-		this.ax = 0;
-		this.ay = 0;
-		this.tele = 1;
 	}
 }
 
 //creates an easily visible perfectly circular ring
 class Ring {
 	constructor(parentBody, apoapsisHeight, periapsisHeight, angleOfApoapsis) {
-		
+		//ring specific things
+		this.apoapsis = apoapsisHeight;
+		this.periapsis = periapsisHeight;
 		this.major = (apoapsisHeight + periapsisHeight) / 2;
 		this.minor = Math.sqrt(apoapsisHeight * periapsisHeight);
-		this.color = "#FFF";
-		this.physical = true;
 		this.a = angleOfApoapsis;
 		this.highlightA = 0;
+
+		//general things
+		this.color = "#FFF";
+		this.physical = true;
 		this.parent = parentBody;
+		this.m = 1;
+		this.r = 1;
 
 		//parent body determines position, as it is always at the first focal point
 		//amount to offset by
@@ -455,6 +561,7 @@ class Ring {
 		var tempXY = spaceToScreen(this.x, this.y);
 		ctx.strokeStyle = this.color;
 		ctx.lineWidth = 2;
+		ctx.globalAlpha = 0.2;
 		ctx.ellipse(tempXY[0], tempXY[1], this.major * camera.scale, this.minor * camera.scale, this.a, 0, Math.PI * 2, false);
 		ctx.stroke();
 
@@ -466,6 +573,7 @@ class Ring {
 		ctx.fillStyle = this.color;
 		ctx.ellipse(tempXY[0], tempXY[1], 10 * camera.scale, 10 * camera.scale, 0, 0, Math.PI * 2, false);
 		ctx.fill();
+		ctx.globalAlpha = 1;
 
 	}
 
