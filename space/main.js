@@ -11,7 +11,7 @@ var menuIncrement = 0.005;
 var menuLimit = 0.82;
 
 var player_thrusterStrength = 0.025;
-var player_maxSpeed = 20;
+var player_maxSpeed = 50;
 
 var game_animation;
 var time = -1;
@@ -32,9 +32,11 @@ var beltCreated = 0;
 
 //all the colors used
 var spaceColor = "#222266";
+var color_black = "#220";
 var color_green = "#0D8";
 var color_sun = "#F30";
 var color_neutron = "#88F";
+var color_rocky = "#886";
 var color_text = "#8FC";
 
 var mercColor = "#A7A2A0";
@@ -65,6 +67,7 @@ var hTemperColor = "#FA917C";
 //const keycode_s;
 //const keycode_d;
 const keycode_m = 77;
+const keycode_z = 90;
 
 const keycode_left = 37;
 const keycode_up = 38;
@@ -88,13 +91,7 @@ var barsText = ["Power: ", "Temperature: ", "Fuel: "];
 //classes exist here, oh boy!
 let testSystem = new System(1000, 0);
 
-let loading_system = new System(0, 0, 0, 0, [new Body(0, 0, 0, 0, 80, 500000, true, color_sun)], [], 0);
-	loading_system.bodies = [
-		new Planet(loading_system.centers[0], 600, 600, 0, 0, false, 10, 2000, false, color_neutron),
-		new Planet(loading_system.centers[0], 350, 120, Math.PI * 0.666, 0, false, 10, 2000, true, color_neutron),
-		new Planet(loading_system.centers[0], 900, 900, 0, Math.PI / 3, false, 15, 4000, true, color_green),
-		//new Ring(loading_system.centers[0], 450, 150, Math.PI * 0.666),
-	];
+let loading_system;
 
 let camera = {
 	x: 0,
@@ -118,8 +115,11 @@ function setup() {
 	centerX = canvas.width / 2;
 	centerY = canvas.height / 2;
 
-	var [x, y, dx, dy] = calculateOrbitalParameters(loading_system.bodies[0], 20, 20, 0, 0, true);
-	console.log(x, y, dx, dy);
+	initWorld();
+
+	loading_system = system_main;
+
+	var [x, y, dx, dy] = calculateOrbitalParameters(loading_system.bodies[0], 60, 60, Math.PI / 3, Math.PI / 3, false);
 	character = new Player(x, y, dx, dy);
 
 	//populating the debris field
@@ -156,13 +156,16 @@ function keyPress(h) {
 		//special operations
 		//m for map view
 		case keycode_m:
-			if (gameState > 0) {
-				gameState = 2;
-				if (menuPos > 1) {
-					menuPos = 1;
-				}
-				if (dt == dtBase) {
-				dt = dtBase * dtMult;
+			if (gameState > 0 && gameState < 3) {
+				if (gameState == 1) {
+					gameState = 2;
+					if (menuPos > 1) {
+						menuPos = 1;
+					}
+					camera.scale = 1 / 128;
+				} else {
+					gameState = 1;
+					camera.scale = 1;
 				}
 			}
 			break;
@@ -174,8 +177,8 @@ function keyPress(h) {
 			camera.scale_d = -1 * camera.scale_speed;
 			break;
 		//z
-		case 90:
-			if (gameState == 0) {
+		case keycode_z:
+			if (gameState == 0 && character.timeout == 0) {
 				gameState = 1;
 			}
 			break;
@@ -215,16 +218,6 @@ function keyNegate(h) {
 			character.ay = 0;
 		}
 		break;
-	//map view
-	case keycode_m:
-		if (gameState > 0) {
-			gameState = 1;
-			if (dt == dtBase * dtMult) {
-				dt = dtBase;
-			}
-		}
-		break;
-
 	//camera
 	case keycode_shift:
 		if (camera.scale_d > 0) {
@@ -245,7 +238,7 @@ function main() {
 	if (gameState == 0) {
 		drawSplash();
 	} else {
-		//gameState specific things
+		//gameState specific things, if I add any more game states I'll just make this a switch statement
 		if (gameState == 1) {
 			camera.scale += camera.scale_d;
 			if (camera.scale > camera.scale_max) {
@@ -258,23 +251,29 @@ function main() {
 			menuPos += menuIncrement;
 			camera.x = character.x;
 			camera.y = character.y;
-		} else {
-			//scaling camera for map view
-			camera.scale = 1 / 32;
+		} else if (gameState == 2) {
 			menuPos -= menuIncrement * 3;
 			if (menuPos < menuLimit) {
 				menuPos = menuLimit;
 			}
 			camera.x = loading_system.centers[0].x;
 			camera.y = loading_system.centers[0].y;
+		} else if (gameState == 3) {
+			dt *= 1.1;
 		}
 		
 		//drawing background
 		ctx.fillStyle = spaceColor;
 		ctx.fillRect(0, 0, canvas.width, canvas.height);
-
 		
-		loading_system.tick();
+		/*dt affects physics timestepping, not just speed, so if it's too low physics will be unstable. 
+		To counteract this, low dt has a fast draw but multiple physics timesteps, so it's accurate as well */
+		var physSteps = Math.floor(1 / dt);
+		dt *= physSteps;
+		for (var g=0; g<physSteps; g++) {
+			loading_system.tick();
+		}
+		dt /= physSteps;
 		loading_system.beDrawn();
 
 		//tick time
@@ -302,7 +301,7 @@ function drawMenu() {
 		ctx.fillText(barsText[0], 12, canvas.height * (menuPos + 0.06));
 		ctx.fillText(barsText[1], 12, canvas.height * (menuPos + 0.11));
 		ctx.fillText(barsText[2], 12, canvas.height * (menuPos + 0.16));
-		ctx.fillText(`Coords: (${(character.x).toFixed(3)}, ${(character.y).toFixed(3)})`, canvas.width * 0.3, canvas.height * (1 - (menuPos + 0.13)));
+		ctx.fillText(`Momentum: (${(character.dx).toFixed(3)}, ${(character.dy).toFixed(3)})`, canvas.width * 0.3, canvas.height * (1 - (menuPos + 0.13)));
 		
 		//timer and effects
 
@@ -335,20 +334,21 @@ function drawMenu() {
 	var angle = Math.PI + Math.atan2((character.x - loading_system.x), (character.y - loading_system.y));
 	var l = 20;
 	ctx.strokeStyle = color_text;
-	ctx.lineWidth = "4";
+	ctx.lineWidth = 7;
 	ctx.beginPath();
-	ctx.ellipse(dialX, dialY, 20, 20, 0, 0, Math.PI * 2);
+	ctx.ellipse(dialX, dialY, 18, 18, 0, 0, Math.PI * 2);
 	ctx.stroke();
 	ctx.beginPath();
-	ctx.strokeStyle = color_sun;
+	ctx.strokeStyle = loading_system.centers[0].color;
 	ctx.moveTo(dialX, dialY);
 	ctx.lineTo(dialX + (l * Math.sin(angle)), dialY + (l * Math.cos(angle)));
 	ctx.stroke();
 
 	//zoom text
 	ctx.font = "20px Century Gothic";
-	ctx.fillStyle = color_text
-	ctx.fillText(`Zoom: ${(camera.scale).toFixed(3)}x`, canvas.width * 0.1, canvas.height * (0.9 + (menuPos - 1)));
+	ctx.fillStyle = color_text;
+	ctx.textAlign = "left";
+	ctx.fillText(`Zoom: ${(camera.scale).toFixed(3)}x`, canvas.width * 0.1, canvas.height * (0.95 + (menuPos - 1)));
 
 }
 
@@ -374,6 +374,10 @@ function drawMeter(x, y, width, height, value, min, max, color) {
 	ctx.stroke();
 	ctx.fillRect(x+3, y+3, (width - 6) * percentage, height-6);
 }
+
+
+
+//utility functions
 
 function spaceToScreen(x, y) {
 	x = x - camera.x;
@@ -440,4 +444,13 @@ function calculateOrbitalParameters(body, apo, peri, apoA, startA, counterClockw
 
 	var [dx, dy] = [velocity * Math.cos(orbitAngle + apoA), velocity * Math.sin(orbitAngle + apoA)];
 	return [x + body.x, y + body.y, dx + body.dx, dy + body.dy];
+}
+
+//takes in two points and gets the distance between them
+function getDistance(xyP1, xyP2) {
+	//setting the second point relative to the first point
+	xyP2[0] -= xyP1[0];
+	xyP2[1] -= xyP1[1];
+
+	return Math.sqrt((xyP2[0] * xyP2[0]) + (xyP2[1] * xyP2[1]));
 }
