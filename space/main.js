@@ -11,7 +11,8 @@ var menuIncrement = 0.005;
 var menuLimit = 0.82;
 
 var player_thrusterStrength = 0.025;
-var player_maxSpeed = 50;
+var player_turnStrength = 0.025;
+var player_turnSpeedMax = 0.2;
 
 var game_animation;
 var time = -1;
@@ -19,10 +20,6 @@ var time = -1;
 var gameState = 0;
 var cutsceneTime = 50;
 var gravityDampener = 20;
-//the greater dt is, the slower the game is.
-var dt = 1;
-var dtBase = dt;
-var dtMult = 2;
 
 var debStartNum = 0;
 var maxDebris = 0;
@@ -32,17 +29,20 @@ var beltCreated = 0;
 
 //all the colors used
 var spaceColor = "#222266";
-var color_black = "#220";
-var color_green = "#0D8";
-var color_sun = "#F30";
-var color_neutron = "#88F";
-var color_rocky = "#886";
-var color_text = "#8FC";
+const color_black = "#220";
+const color_coolPuff = "#59C";
+const color_engineFlames = "#66F";
+const color_green = "#0D8";
+const color_ice = "#BEF";
+const color_purple = "#808";
+const color_sun = "#F30";
+const color_neutron = "#0DF";
+const color_rocky = "#886";
+const color_text = "#8FC";
 
 var mercColor = "#A7A2A0";
 var debrisColor = "#8888FF";
 
-var engineColor = "#6666FF";
 var shipColor = "#FFFFFF";
 var computeColor = "#307529";
 var computeWireColor = "#FFEE25";
@@ -62,10 +62,12 @@ var mTemperColor = "#7CFA80";
 var hTemperColor = "#FA917C";
 
 //keycodes for button inputs
-//const keycode_w;
-//const keycode_a;
-//const keycode_s;
-//const keycode_d;
+const keycode_w = 87;
+const keycode_a = 65;
+const keycode_s = 83;
+const keycode_d = 68;
+
+const keycode_l = 76;
 const keycode_m = 77;
 const keycode_z = 90;
 
@@ -77,31 +79,30 @@ const keycode_down = 40;
 const keycode_shift = 16;
 const keycode_space = 32;
 
+const keycode_right_carat = 190;
+const keycode_left_carat = 188;
+
+//the greater dt is, the slower the game is.
+var dt = 1;
+var dt_base = 3;
+var dt_values = [8, 4, 2, 1, 1/2, 1/4, 1/8, 1/20, 1/50, 1/100];
+var dt_selector = dt_base;
 
 
 var menuColor = "#333366";
-var color_player = "#FAF";
+
 
 var teleColor = "#8A4EC3";
 var explosionColor = "#FF8800";
-var coolExplosionColor = "#4D97C7";
 
 var barsText = ["Power: ", "Temperature: ", "Fuel: "];
 
-//classes exist here, oh boy!
-let testSystem = new System(1000, 0);
+//objects here
+let camera_world = new Camera_World();
+let camera_map = new Camera_Map();
 
 let loading_system;
-
-let camera = {
-	x: 0,
-	y: 0,
-	scale: 1,
-	scale_max: 2,
-	scale_min: 1/2,
-	scale_speed: 1/32,
-	scale_d: 0
-};
+let loading_camera = camera_world;
 
 let character;
 
@@ -118,8 +119,8 @@ function setup() {
 	initWorld();
 
 	loading_system = system_main;
-
-	var [x, y, dx, dy] = calculateOrbitalParameters(loading_system.bodies[0], 60, 60, Math.PI / 3, Math.PI / 3, false);
+	
+	var [x, y, dx, dy] = calculateOrbitalParameters(loading_system.bodies[0], 400, 400, Math.PI / 3, 0, false);
 	character = new Player(x, y, dx, dy);
 
 	//populating the debris field
@@ -134,24 +135,18 @@ function setup() {
 function keyPress(h) {
 	switch (h.keyCode) { 
 		//directional movements
-		case 65:
+		case keycode_a:
 		case keycode_left:
-			character.ax = -1 * player_thrusterStrength;
+			character.aa = -1 * player_turnStrength;
 			break;
-		case 87:
+		case keycode_w:
 		case keycode_up:
-			character.ay = -1 * player_thrusterStrength;
+			character.acc = true;
 			break;
-		case 68:
+		case keycode_d:
 		case keycode_right:
-			character.ax = 1 * player_thrusterStrength;
+			character.aa = player_turnStrength;
 			break;
-		case 83:
-		case keycode_down:
-			character.ay = 1 * player_thrusterStrength;
-			break;
-		
-		//numbers for inventory selection
 
 		//special operations
 		//m for map view
@@ -162,27 +157,48 @@ function keyPress(h) {
 					if (menuPos > 1) {
 						menuPos = 1;
 					}
-					camera.scale = 1 / 128;
+					loading_camera = camera_map;
 				} else {
 					gameState = 1;
-					camera.scale = 1;
+					loading_camera = camera_world;
 				}
 			}
 			break;
 		//scale out + in
 		case keycode_shift:
-			camera.scale_d = camera.scale_speed;
+			loading_camera.scale_d = loading_camera.scale_speed;
 			break;
 		case keycode_space:
-			camera.scale_d = -1 * camera.scale_speed;
+			loading_camera.scale_d = -1 * loading_camera.scale_speed;
 			break;
-		//z
+		//starting / restarting game
 		case keycode_z:
 			if (gameState == 0 && character.timeout == 0) {
 				gameState = 1;
 			}
 			break;
+		//dt stepping
+		case keycode_right_carat:
+			if (gameState < 3 && dt_selector < dt_values.length - 1) {
+				dt_selector += 1;
+				dt = dt_values[dt_selector];
+			}
+			break;
+		case keycode_left_carat:
+			if (gameState < 3 && dt_selector > 0) {
+				dt_selector -= 1;
+				dt = dt_values[dt_selector];
+			}
+			break;
+		case keycode_l:
+			if (gameState < 3) {
+				dt_selector = dt_base;
+				dt = dt_values[dt_selector];
+			}
+			break;
+
 	}
+	h.preventDefault();
 }
 
 /*all the "character dot"s make it confusing, but I'm making the player an object
@@ -193,42 +209,34 @@ and
 through the gravity function, stored inside the bodies. */
 function keyNegate(h) {
 	switch (h.keyCode) {
-	case 65:
-	//directional movements
-	case keycode_left:
-		if (character.ax < 0) {
-			character.ax = 0;
-		}
-		break;
-	case 87:
-	case keycode_up:
-		if (character.ay < 0) {
-			character.ay = 0;
-		}
-		break;
-	case 68:
-	case keycode_right:
-		if (character.ax > 0) {
-			character.ax = 0;
-		}
-		break;
-	case 83:
-	case keycode_down:
-		if (character.ay > 0) {
-			character.ay = 0;
-		}
-		break;
-	//camera
-	case keycode_shift:
-		if (camera.scale_d > 0) {
-			camera.scale_d = 0;
-		}
-		break;
-	case keycode_space:
-		if (camera.scale_d < 0) {
-			camera.scale_d = 0;
-		}
-		break;
+		//directional movements
+		case keycode_a:
+		case keycode_left:
+			if (character.aa < 0) {
+				character.aa = 0;
+			}
+			break;
+		case keycode_w:
+		case keycode_up:
+			character.acc = false;
+			break;
+		case keycode_d:
+		case keycode_right:
+			if (character.aa > 0) {
+				character.aa = 0;
+			}
+			break;
+		//camera
+		case keycode_shift:
+			if (loading_camera.scale_d > 0) {
+				loading_camera.scale_d = 0;
+			}
+			break;
+		case keycode_space:
+			if (loading_camera.scale_d < 0) {
+				loading_camera.scale_d = 0;
+			}
+			break;
 	}
 }
 
@@ -238,26 +246,15 @@ function main() {
 	if (gameState == 0) {
 		drawSplash();
 	} else {
+		loading_camera.tick();
 		//gameState specific things, if I add any more game states I'll just make this a switch statement
 		if (gameState == 1) {
-			camera.scale += camera.scale_d;
-			if (camera.scale > camera.scale_max) {
-				camera.scale = camera.scale_max;
-			}
-			if (camera.scale < camera.scale_min) {
-				camera.scale = camera.scale_min;
-			}
-
 			menuPos += menuIncrement;
-			camera.x = character.x;
-			camera.y = character.y;
 		} else if (gameState == 2) {
 			menuPos -= menuIncrement * 3;
 			if (menuPos < menuLimit) {
 				menuPos = menuLimit;
 			}
-			camera.x = loading_system.centers[0].x;
-			camera.y = loading_system.centers[0].y;
 		} else if (gameState == 3) {
 			dt *= 1.1;
 		}
@@ -268,13 +265,20 @@ function main() {
 		
 		/*dt affects physics timestepping, not just speed, so if it's too low physics will be unstable. 
 		To counteract this, low dt has a fast draw but multiple physics timesteps, so it's accurate as well */
-		var physSteps = Math.floor(1 / dt);
-		dt *= physSteps;
-		for (var g=0; g<physSteps; g++) {
+		if (dt < 1) {
+			var physSteps = Math.floor(1 / dt);
+			dt *= physSteps;
+			for (var g=0; g<physSteps; g++) {
+				loading_system.tick();
+				character.tick();
+			}
+			dt /= physSteps;
+		} else {
 			loading_system.tick();
+			character.tick();
 		}
-		dt /= physSteps;
 		loading_system.beDrawn();
+		character.beDrawn();
 
 		//tick time
 		time += 1 / dt;
@@ -320,7 +324,7 @@ function drawMenu() {
 		var meterWidth = canvas.width * 0.5;
 		var meterHeight = canvas.height * 0.04;
 		//solar
-		drawMeter(meterX, canvas.height * (menuPos + 0.03), meterWidth, meterHeight, character.pow, 0, 100, powerColor);
+		drawMeter(meterX, canvas.height * (menuPos + 0.03), meterWidth, meterHeight, character.power, 0, 100, powerColor);
 		//temp
 		drawMeter(meterX, canvas.height * (menuPos + 0.08), meterWidth, meterHeight, character.warm, 0, 100, temperColor);
 		//fuel
@@ -329,17 +333,19 @@ function drawMenu() {
 		menuPos = 1;
 	}
 	//sun-pointer
-	var dialX = canvas.width * 0.9;
-	var dialY = (canvas.height * (0.9 + (menuPos - 1)));
-	var angle = Math.PI + Math.atan2((character.x - loading_system.x), (character.y - loading_system.y));
-	var l = 20;
+	var dialR = 12;
+	var dialX = canvas.width - (dialR * 1.8);
+	var dialY = dialR * 1.6;
+	var angle = Math.PI + Math.atan2((character.x - character.parent.x), (character.y - character.parent.y));
+	var l = dialR + 2;
 	ctx.strokeStyle = color_text;
-	ctx.lineWidth = 7;
+	ctx.lineWidth = dialR / 3;
+	ctx.globalAlpha = 0.5;
 	ctx.beginPath();
-	ctx.ellipse(dialX, dialY, 18, 18, 0, 0, Math.PI * 2);
+	ctx.ellipse(dialX, dialY, dialR, dialR, 0, 0, Math.PI * 2);
 	ctx.stroke();
 	ctx.beginPath();
-	ctx.strokeStyle = loading_system.centers[0].color;
+	ctx.strokeStyle = character.parent.color;
 	ctx.moveTo(dialX, dialY);
 	ctx.lineTo(dialX + (l * Math.sin(angle)), dialY + (l * Math.cos(angle)));
 	ctx.stroke();
@@ -348,7 +354,8 @@ function drawMenu() {
 	ctx.font = "20px Century Gothic";
 	ctx.fillStyle = color_text;
 	ctx.textAlign = "left";
-	ctx.fillText(`Zoom: ${(camera.scale).toFixed(3)}x`, canvas.width * 0.1, canvas.height * (0.95 + (menuPos - 1)));
+	ctx.fillText(`Zoom: ${(loading_camera.scale).toFixed(3)}x`, canvas.width * 0.05, (dialR * 1.8));
+	ctx.globalAlpha = 1;
 
 }
 
@@ -380,11 +387,11 @@ function drawMeter(x, y, width, height, value, min, max, color) {
 //utility functions
 
 function spaceToScreen(x, y) {
-	x = x - camera.x;
-	y = y - camera.y;
+	x = x - loading_camera.x;
+	y = y - loading_camera.y;
 
-	x *= camera.scale;
-	y *= camera.scale;
+	x *= loading_camera.scale;
+	y *= loading_camera.scale;
 
 	x += centerX;
 	y += centerY;
@@ -407,7 +414,7 @@ function calculateOrbitalVelocity(centerMass, periapsis, apoapsis) {
 
 //takes in parameters and turns them into x / y, dx / dy
 function calculateOrbitalParameters(body, apo, peri, apoA, startA, counterClockwiseBOOLEAN) {
-	//formula for instantaneous velocity is v = sqrt(GM(2/r - 1/a))
+	//formula for instantaneous velocity is v = sqrt(GM(2/r - 1/a)) (vis-viva equation) where r is current distance and a is semi-major axis
 	//position on ellipse is (length * cos(theta), length * sin(theta))
 	//length = ab / (sqrt((b * cos(theta))^2 + (a * sin(theta))^2))
 	//semi-minor axis is sqrt(periapsis * apoapsis)
@@ -444,6 +451,11 @@ function calculateOrbitalParameters(body, apo, peri, apoA, startA, counterClockw
 
 	var [dx, dy] = [velocity * Math.cos(orbitAngle + apoA), velocity * Math.sin(orbitAngle + apoA)];
 	return [x + body.x, y + body.y, dx + body.dx, dy + body.dy];
+}
+
+//calculates orbits for 2 bodies in a binary orbit, where they're centered on 0, 0
+function calculateBinaryOrbitalParameters(body1, body2, ) {
+
 }
 
 //takes in two points and gets the distance between them
