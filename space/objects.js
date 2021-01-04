@@ -4,7 +4,6 @@ index:
 
 Body
 
-
 Camera
 Camera_Map
 Camera_World
@@ -13,6 +12,7 @@ Planet
 Player
 Ring
 Star
+Star_Binary
 System
 
 */
@@ -69,55 +69,61 @@ class Body {
 
 	//changes the thing's dx / dy based off of mass 
 	gravitate(thing) {
-		var xDist = thing.x - this.x;
-		var yDist = thing.y - this.y;
-		//atan2 does y, x instead of x, y for some reason, so I adjust by subtracting Pi.
-		var direction = (Math.atan2(xDist, yDist) - (Math.PI));
-		//magnitude was annoying to get right, I just messed around with gravitational strength until something looked right.
-		var magnitude = (this.m / gravityDampener) / ((xDist * xDist) + (yDist * yDist));
-		magnitude = magnitude / dt;
-	
-		thing.dx += magnitude * Math.sin(direction);
-		thing.dy += magnitude * Math.cos(direction);
-	
-		/*if the thing is experiencing a gravitational force it could only get by being inside the object, destroy it */
-		var magniAtRadius = (this.m / gravityDampener) / (this.r * this.r);
-		magniAtRadius = magniAtRadius / dt;
-		if (magnitude >= magniAtRadius) {
-			try {
-				thing.physical = false;
-			}
-			catch(error) {
-				console.error(`error: attempted entity was not an object able to be given a .physical tag`);
-			}
-		}
-	}
-
-	gravitateToArray(thing) {
 		//getting distance to object for strength of pull
 		var xDist = thing.x - this.x;
 		var yDist = thing.y - this.y;
 		//atan2 does y, x instead of x, y for some reason, so I adjust by subtracting Pi.
 		var direction = (Math.atan2(xDist, yDist) - (Math.PI));
 
-		//magnitude was annoying to get right, I just messed around with gravitational strength until something looked right.
-		var magnitude = (this.m / gravityDampener) / ((xDist * xDist) + (yDist * yDist));
-		magnitude = magnitude / dt;
+		//normally gravity would be (m1 * m2 * g) / d^2, but that m2 is because of inertia, which doesn't exist here.
+		//that simplifies it to (m1 * g) / d^2
+		//since distance is sqrt(x^2 + y^2), I can just avoid using the square root
+		var magnitude = ((this.m / gravityDampener) / ((xDist * xDist) + (yDist * yDist))) / dt;
 	
-		//pushes the force to the entity's array in format [self, magnitude, change in dx, change in dy]
+		thing.dx += magnitude * Math.sin(direction);
+		thing.dy += magnitude * Math.cos(direction);
+	
+		/*if the thing is experiencing a gravitational force strong enough that it could only be inside self's radius, destroy it 
+		I don't use pythagorean distance here because that requires a square root.*/
+		var magniAtRadius = (this.m / gravityDampener) / (this.r * this.r);
+		magniAtRadius = magniAtRadius / dt;
+		if (magnitude >= magniAtRadius) {
+			thing.physical = false;
+		}
+	}
+
+	//gravitate all child bodies as well as give all debris forces in their forces array
+	gravitateAll() {
+		loading_debris.forEach(a => {
+			this.gravitateToArray(a);
+		});
+	}
+
+	gravitateToArray(thing) {
+		//same as gravitate but with a different output
+		var xDist = thing.x - this.x;
+		var yDist = thing.y - this.y;
+		var direction = (Math.atan2(xDist, yDist) - (Math.PI));
+		var magnitude = ((this.m / gravityDampener) / ((xDist * xDist) + (yDist * yDist))) / dt;
+
 		thing.gravityForces.push([this, magnitude, magnitude * Math.sin(direction), magnitude * Math.cos(direction)]);
-	
-		//if the thing is experiencing a gravitational force strong enough that it could only be inside self's radius, destroy it
-		//CHANGE LATER: why not just use pythagorean distance?
+
 		var magniAtRadius = ((this.m / gravityDampener) / (this.r * this.r)) / dt;
 		if (magnitude >= magniAtRadius) {
-			try {
-				thing.physical = false;
-			}
-			catch(error) {
-				console.error(`error: attempted entity was not an object able to be given a .physical tag`);
-			}
+			thing.physical = false;
 		}
+	}
+
+	pullChildren() {
+		//adding dx / dy to all children
+		if (this.prevD[0] != this.dx) {
+			this.debris.forEach(c => {c.dx += this.dx - this.prevD[0];});
+		}
+
+		if (this.prevD[1] != this.dy) {
+			this.debris.forEach(c => {c.dy += this.dy - this.prevD[1];});
+		}
+		this.prevD = [this.dx, this.dy];
 	}
 
 	setOrbit(bodyToOrbit, apoH, periH, apoA, startA, ccwBOOL) {
@@ -134,6 +140,8 @@ class Body {
 		this.parent = bodyToOrbit;
 		this.ring = new Ring(bodyToOrbit, apoH, periH, apoA);
 		this.prevD = [this.dx, this.dy];
+		this.apoapsis = apoH;
+		this.periapsis = periH;
 
 		//add values to children
 		this.debris.forEach(c => {
@@ -143,8 +151,8 @@ class Body {
 			c.dy += this.dy;
 		});
 	}
-	
-	tick() {
+
+	spliceIncorrect() {
 		//loop through debris, if they don't point to this body remove them
 		for (var h=0; h<this.debris.length; h++) {
 			if (this.debris[h].parent != this) {
@@ -154,7 +162,10 @@ class Body {
 				this.debris.splice(h, 1);
 			}
 		}
-
+	}
+	
+	tick() {
+		//change x / y of self
 		this.x += this.dx / dt;
 		this.y += this.dy / dt;
 	}
@@ -174,7 +185,7 @@ class Camera {
 	}
 
 	tick() {
-		if (gameState < 3) {
+		if (game_state < 3) {
 			//updating scale and keeping it in bounds
 			this.scale += this.scale_d;
 			if (this.scale > this.scale_max) {
@@ -192,13 +203,17 @@ class Camera_Map extends Camera {
 		super(0, 0, 1/128, 1/48, 1/128, 1/512);
 
 		//the map camera can move around
+		this.animSteps = 7;
 
 	}
 
 	tick() {
 		super.tick();
-		this.x = loading_system.x;
-		this.y = loading_system.y;
+		this.x = ((this.x * this.animSteps) + character.parent.x) / (this.animSteps + 1);
+		this.y = ((this.y * this.animSteps) + character.parent.y) / (this.animSteps + 1);
+
+		//setting max scale to a reasonable value based on body
+		this.scale_max = canvas.height / (character.parent.r * 75);
 	}
 }
 
@@ -280,7 +295,7 @@ class Player {
 		//x / y keep track of position, Dx/dy are change in position over time, and acc is whether the engine is on or not. (allows player to control dx / dy)
 		this.x = x;
 		this.y = y;
-		this.r = 10;
+		this.r = player_radius;
 		
 		this.dx = dx;
 		this.dy = dy;
@@ -289,6 +304,10 @@ class Player {
 		this.da = 0;
 		this.aa = 0;
 		this.acc = false;
+
+		this.apoapsis = undefined;
+		this.periapsis = undefined;
+		this.ring = undefined;
 	
 		
 		this.power = 50;
@@ -298,40 +317,16 @@ class Player {
 		this.timeout = 0;
 		this.dtStore = 0;
 
-		this.color = "#FAF";
+		this.color = color_ship;
 		this.dialColor = color_black;
 		this.gravityForces = [];
 		this.parent = system_main;
+
+		this.predictLength = 50;
+		this.predictCoords = [[game_time, this.x, this.y, this.dx, this.dy]];
 	}
-	
-	tick() {
-		//recieving input
-		
-		//changing direction
-		this.da += this.aa;
-		this.da *= 0.85;
-		if (Math.abs(this.da) > player_turnSpeedMax) {
-			if (this.da < 0) {
-				this.da = -1 * player_turnSpeedMax;
-			} else {
-				this.da = player_turnSpeedMax;
-			}
-		}
-		this.a += this.da;
 
-
-		//using fuel to change dx / dy
-		if (this.acc && this.fuel > 0 && this.power > 0) {
-			//subtract fuel
-			this.fuel -= player_thrusterStrength / dt;
-
-			//calculate change in dx / dy
-			this.dx -= (player_thrusterStrength / dt) * Math.cos(this.a);
-			this.dy -= (player_thrusterStrength / dt) * Math.sin(this.a);
-		}
-
-		//changing dx / dy based on gravity
-		
+	applyGravity() {
 		if (this.gravityForces.length > 0) {
 			//formula is [body, magnitude, dx, dy]
 			var maxForce = [undefined, 0, 0, 0];
@@ -344,73 +339,41 @@ class Player {
 			//after finding the max force, set parent / apply it
 			this.parent = maxForce[0];
 
+			if (!this.parent.debris.includes(this)) {
+				this.parent.debris.push(this);
+			}
+			
+
 			this.dx += maxForce[2];
 			this.dy += maxForce[3];
 			//reset array
 			this.gravityForces = [];
-		}
-
-
-		//updating the player's position
-		this.x += this.dx / dt;
-		this.y += this.dy / dt;
-
-
-		//updating vitals
-		if (this.warm < 0) {
-			this.warm = 0;
-			this.physical = false;
-		}
-		if (this.warm > 100) {
-			this.warm = 100;
-			this.physical = false;
-		}
-
-		if (this.pow < 0) {
-			this.pow = 0;
-		}
-
-		if (this.pow > 100) {
-			this.pow = 100;
-		}
-
-		if (!this.physical) {
-			this.destroy();
+			
 		}
 	}
-	
-	debrisHit(dx, dy) {
-		var asteroidVelX = dx;
-		var asteroidVelY = dy;
-		//take a weighted average of the velocities
-		var dxAverage = ((6 * this.dx) + asteroidVelX) / 7;
-		var dyAverage = ((6 * this.dy) + asteroidVelY) / 7;
-		//with this, distances can be negative, but it doesn't matter because I square them anyways
-		var xSunDist = this.x - sun.x;
-		var ySunDist = this.y - sun.y;
-		var dist = Math.sqrt((xSunDist * xSunDist) + (ySunDist * ySunDist));
-		//make the weighted average the player's new velocity
-		this.dx = dxAverage;
-		this.dy = dyAverage;
-	
-		//give the player power, because asteroids do that I guess
-		this.pow += powerIncrement * 16;
-	
-		/*if the player has collided in a range that suggests being in the belt area, 
-		(36-50 sun radii) make the game spawn a new belt object 
-		Belt objects also give the player more charge*/
-		if (dist > (sun.r * 18) && dist < (sun.r * 25)) {
-			beltCreated -= 1;
-			this.pow += powerIncrement * 512;
-		}
-	}
-	
+
 	beDrawn() {
-		this.color = this.parent.color;
-		//if in the map, draw ring
-		if (gameState == 2) {
-			//determining orbit from instantaneous velocity
-		}
+		//if in the map, draw prediction path
+		
+		if (game_state == 2) {
+			//redraw prediction path if out
+			if (game_time > 0) {
+				this.prediction_create();
+			}
+
+			//drawing all prediction lines, starting at the player's ship
+			ctx.strokeStyle = color_ring;
+			ctx.globalAlpha = display_orbitOpacity;
+			var coords = spaceToScreen(this.x, this.y);
+			ctx.moveTo(coords[0], coords[1]);
+			ctx.beginPath();
+			this.predictCoords.forEach(v => {
+				coords = spaceToScreen(v[1], v[2]);
+				ctx.lineTo(coords[0], coords[1]);
+			});
+			ctx.stroke();
+			ctx.globalAlpha = 1;
+		} 
 
 		//drawing self
 		var tempXY = spaceToScreen(this.x, this.y);
@@ -452,7 +415,7 @@ class Player {
 				ctx.fillStyle = color_coolPuff;
 			}
 			
-			ctx.ellipse(tempXY[0], tempXY[1], (this.timeout / 4) + this.r, (this.timeout / 8) + (this.r / 2), this.a, 0, Math.PI * 2);
+			ctx.ellipse(tempXY[0], tempXY[1], ((this.timeout / 4) + this.r), (this.timeout / 8) + (this.r / 2), this.a, 0, Math.PI * 2);
 			ctx.fill();
 		} else {
 			//regular ship
@@ -462,14 +425,148 @@ class Player {
 		}
 		ctx.globalAlpha = 1;
 	}
+
+	fireThrusters() {
+		//changing direction
+		this.da += this.aa;
+		this.da *= 0.85;
+		if (Math.abs(this.da) > player_turnSpeedMax) {
+			if (this.da < 0) {
+				this.da = -1 * player_turnSpeedMax;
+			} else {
+				this.da = player_turnSpeedMax;
+			}
+		}
+		this.a += this.da;
+
+
+		//using fuel to change dx / dy
+		if (this.acc && this.fuel > 0 && this.power > 0) {
+			//subtract fuel
+			this.fuel -= player_thrusterStrength / dt;
+
+			//calculate change in dx / dy
+			this.dx -= (player_thrusterStrength / dt) * Math.cos(this.a);
+			this.dy -= (player_thrusterStrength / dt) * Math.sin(this.a);
+
+			//change orbit ring
+			this.prediction_create();
+		}
+	}
 	
+	tick() {
+		//recieving input
+		this.fireThrusters();
+
+		//changing dx / dy based on gravity
+		this.applyGravity();
+
+
+		//updating the player's position
+		this.x += this.dx / dt;
+		this.y += this.dy / dt;
+
+
+		//updating vitals
+		if (this.warm < 0) {
+			this.warm = 0;
+			this.physical = false;
+		}
+		if (this.warm > 100) {
+			this.warm = 100;
+			this.physical = false;
+		}
+
+		if (this.pow < 0) {
+			this.pow = 0;
+		}
+
+		if (this.pow > 100) {
+			this.pow = 100;
+		}
+
+		if (!this.physical) {
+			this.destroy();
+			this.physical = true;
+		}
+	}
 	
+	debrisHit(dx, dy) {
+		var asteroidVelX = dx;
+		var asteroidVelY = dy;
+		//take a weighted average of the velocities
+		var dxAverage = ((6 * this.dx) + asteroidVelX) / 7;
+		var dyAverage = ((6 * this.dy) + asteroidVelY) / 7;
+		//with this, distances can be negative, but it doesn't matter because I square them anyways
+		var xSunDist = this.x - sun.x;
+		var ySunDist = this.y - sun.y;
+		var dist = Math.sqrt((xSunDist * xSunDist) + (ySunDist * ySunDist));
+		//make the weighted average the player's new velocity
+		this.dx = dxAverage;
+		this.dy = dyAverage;
+	
+		//give the player power, because asteroids do that I guess
+		this.pow += powerIncrement * 16;
+	
+		/*if the player has collided in a range that suggests being in the belt area, 
+		(36-50 sun radii) make the game spawn a new belt object 
+		Belt objects also give the player more charge*/
+		if (dist > (sun.r * 18) && dist < (sun.r * 25)) {
+			beltCreated -= 1;
+			this.pow += powerIncrement * 512;
+		}
+	}
+
 	destroy() {
 		if (this.timeout == 0) {
 			this.timeout = 1;
 			this.dtStore = dt;
-			gameState = 3;
+			game_state = 3;
 			dt *= 10;
+		}
+	}
+
+	prediction_add() {
+		//takes in the previous predict coordinate, and adds a line to it
+		var stepsPerLine = 40;
+
+		var lastPredict = this.predictCoords[this.predictCoords.length - 1];
+		
+
+		//creating new predict coordinate
+		this.predictCoords.push([game_time + stepsPerLine, lastPredict[1], lastPredict[2], lastPredict[3], lastPredict[4]]);
+
+		//setting easy reference
+		lastPredict = this.predictCoords[this.predictCoords.length - 1];
+
+		for (var t=0; t<stepsPerLine; t++) {
+			//each line takes over 10 timesteps, iterate until done
+
+			//this is just the gravitate function, but compressed and modifies the predictCoords, not an object
+			var dist = [lastPredict[1] - this.parent.x, lastPredict[2] - this.parent.y];
+			var direction = (Math.atan2(dist[0], dist[1]) - (Math.PI));
+			var magnitude = (this.parent.m / gravityDampener) / ((dist[0] * dist[0]) + (dist[1] * dist[1]));
+		
+			lastPredict[3] += magnitude * Math.sin(direction);
+			lastPredict[4] += magnitude * Math.cos(direction);
+
+			lastPredict[1] += lastPredict[3];
+			lastPredict[2] += lastPredict[4];
+		}
+	}
+
+	prediction_create() {
+		this.predictCoords = [[game_time, this.x, this.y, this.dx - this.parent.dx, this.dy - this.parent.dy]];
+
+		//helpful label variable. Hopefully the name is self-explanatory. If you cannot understand what this variable does that is also ok.
+		//However, I'm not going to explain it. Perhaps you could mess around with it and see what changes in-game.
+
+		//aright i'll explain it it controls the number of prediction lines this function creates in the predictCoords array
+		var numOfLines = 20;
+
+		//push out 7 lines
+		for (var w=0; w<numOfLines; w++) {
+			this.prediction_add();
 		}
 	}
 }
@@ -485,7 +582,6 @@ class Ring {
 		this.a = angleOfApoapsis;
 
 		//general things
-		this.color = "#FFF";
 		this.physical = true;
 		this.parent = parentBody;
 		this.m = 1;
@@ -509,16 +605,12 @@ class Ring {
 		//ring
 		ctx.beginPath();
 		var tempXY = spaceToScreen(this.x, this.y);
-		ctx.strokeStyle = this.color;
+		ctx.strokeStyle = color_ring;
 		ctx.lineWidth = 2;
-		ctx.globalAlpha = 0.2;
+		ctx.globalAlpha = display_orbitOpacity;
 		ctx.ellipse(tempXY[0], tempXY[1], this.major * loading_camera.scale, this.minor * loading_camera.scale, this.a, 0, Math.PI * 2, false);
 		ctx.stroke();
 		ctx.globalAlpha = 1;
-	}
-
-	gravitate(body) {
-
 	}
 }
 
@@ -529,110 +621,38 @@ class Star extends Body {
 		super(x, y, dx, dy, radius, mass, color);
 	}
 
+	gravitateToArray(thing) {
+		var xDist = thing.x - this.x;
+		var yDist = thing.y - this.y;
+		var direction = (Math.atan2(xDist, yDist) - (Math.PI));
+		var magnitude = ((this.m / gravityDampener) / ((xDist * xDist) + (yDist * yDist))) / dt;
+
+		thing.gravityForces.push([this.parent, magnitude, magnitude * Math.sin(direction), magnitude * Math.cos(direction)]);
+
+		var magniAtRadius = ((this.m / gravityDampener) / (this.r * this.r)) / dt;
+		if (magnitude >= magniAtRadius) {
+			thing.physical = false;
+		}
+	}
+
 	beDrawn() {
 		this.drawBody(this.x, this.y, this.r, 5, 1.8, this.color);
 	}
 }
 
 
-/*a system contains center bodies, outer bodies, and debris
-it acts like a little mini main loop, ticking / drawing everything inside, 
-Systems are always either fixed or orbiting some body. Their x, y, dx, and dy can't just be set to something to start. By default they're all 0
-*/
-class System extends Body {
-	constructor(centerBodies, outerBodies, debrisMax) {
-		super(0, 0, 0, 0, 10, 1, "#F0F");
 
-		this.centers = centerBodies;
-		this.bodies = outerBodies;
-		this.debrisMaxNum = debrisMax;
-	}
-
-	//updates radius / mass
-	calibrate() {
-		this.m = 0;
-		this.r = 0;
-		this.color = this.centers[0].color;
-		var extraAdd = Math.sqrt(Math.pow(canvas.width / (2 * loading_camera.scale_min), 2) + Math.pow(canvas.height / (2 * loading_camera.scale_min), 2));
-
-		this.centers.forEach(a => {
-			this.m += a.m;
-		});
-
-		this.bodies.forEach(b => {
-			this.r = Math.max(this.r, b.apoapsis + extraAdd);
-		});
-	}
-
-	tick() { 
-		//system-wide things
-		this.x += this.dx / dt;
-		this.y += this.dy / dt;
-
-		//adding dx / dy to all entities in the system
-		if (this.prevD[0] != this.dx) {
-			this.centers.forEach(a => {a.dx += this.dx - this.prevD[0];});
-			this.bodies.forEach(b => {b.dx += this.dx - this.prevD[0];});
-			this.debris.forEach(c => {c.dx += this.dx - this.prevD[0];});
-		}
-
-		if (this.prevD[1] != this.dy) {
-			this.centers.forEach(a => {a.dy += this.dy - this.prevD[1];});
-			this.bodies.forEach(b => {b.dy += this.dy - this.prevD[1];});
-			this.debris.forEach(c => {c.dy += this.dy - this.prevD[1];});
-		}
-		this.prevD = [this.dx, this.dy];
-
-		//debris interaction
-		for (var h=0; h<this.debris.length; h++) {
-			//remove debris that doesn't have this as a parent
-			if (this.debris[h].parent != this) {
-				this.debris.splice(h, 1);
-			} else if (!this.debris[h].physical) {
-				//if the debris isn't physical, delete it
-				this.debris.splice(h, 1);
-			}
-
-			//apply forces to debris (centers + bodies)
-			this.centers.forEach(a => {a.gravitateToArray(this.debris[h]);});
-			this.bodies.forEach(b => {b.gravitateToArray(this.debris[h]);});
-		}
-		
-
-		//body interaction with player
-		this.bodies.forEach(b => {b.gravitateToArray(character);});
-
-		//center interaction
-		this.centers.forEach(a => {
-			//with bodies
-			this.bodies.forEach(b => {a.gravitate(b);});
-
-			//with other centers
-			this.centers.forEach(c => {
-				if (a != c) {
-					a.gravitate(c);
-				}
-			});
-
-			//with player
-			a.gravitateToArray(character);
-		});
-
-		//ticking; bodies, centers, and debris
-		this.bodies.forEach(a => {a.tick();});
-		this.centers.forEach(b => {b.tick();});
-		this.debris.forEach(c => {c.tick();});
+//binary stars are sets of two stars that orbit each other. It's one object so I don't have to deal with the hell of having multiple objects in the center of each System.
+class Star_Binary extends Body {
+	constructor(body1, body2) {
+		super((body1.x + body2.x) / 2, (body1.y + body2.y) / 2, (body1.dx + body2.dx) / 2, (body1.dy + body2.dy) / 2, 0, body1.m + body2.m, body1.color);
+		this.body1 = body1;
+		this.body2 = body2;
 	}
 
 	beDrawn() {
-		//drawing ring if has
-		if (this.ring != undefined && loading_camera == camera_map) {
-			this.ring.beDrawn();
-		}
-		//drawing everything
-		this.centers.forEach(a => {a.beDrawn();});
-		this.bodies.forEach(b => {b.beDrawn();});
-		this.debris.forEach(c => {c.beDrawn();});
+		this.body1.beDrawn();
+		this.body2.beDrawn();
 
 		//indicator dot
 		/*
@@ -644,42 +664,168 @@ class System extends Body {
 		*/
 	}
 
-	gravitate(thing) {
-		//given that the entity is outside self's range, treat self as a whole one object
-		if (getDistance([thing.x, thing.y], [this.x, this.y]) > this.r) {
-			super.gravitate(thing);
-		} else {
-			//if the entity is instead inside the system range, make sure that each individual object acts on them (debris have no gravity)
-			//centers
-			this.centers.forEach(a => {a.gravitate(thing);});
+	tick() {
+		//interaction with self
+		this.body1.gravitate(body2);
+		this.body2.gravitate(body1);
 
-			//bodies
+		//tick child objects
+		this.body1.tick();
+		this.body2.tick();
+
+
+		super.tick();
+	}
+
+	gravitate() {
+		var xDist = (thing.x - this.x);
+		var yDist = thing.y - this.y;
+		var direction = (Math.atan2(xDist, yDist) - (Math.PI));
+		var magnitude = ((this.m / gravityDampener) / ((xDist * xDist) + (yDist * yDist))) / dt;
+	
+		thing.dx += magnitude * Math.sin(direction);
+		thing.dy += magnitude * Math.cos(direction);
+	
+
+		var magniAtRadius = (this.m / gravityDampener) / (this.r * this.r);
+		magniAtRadius = magniAtRadius / dt;
+		if (magnitude >= magniAtRadius) {
+			thing.physical = false;
+		}
+	}
+
+	
+
+	setOrbit(bodyToOrbit, apoH, periH, apoA, startA, ccwBOOL) {
+		this.body1.x -= this.x;
+		this.body1.y -= this.y;
+		this.body1.dx -= this.dx;
+		this.body1.dy -= this.dy;
+
+		this.body2.x -= this.x;
+		this.body2.y -= this.y;
+		this.body2.dx -= this.dx;
+		this.body2.dy -= this.dy;
+
+		super.setOrbit(bodyToOrbit, apoH, periH, apoA, startA, ccwBOOL);
+
+		this.body1.x += this.x;
+		this.body1.y += this.y;
+		this.body1.dx += this.dx;
+		this.body1.dy += this.dy;
+
+		this.body2.x += this.x;
+		this.body2.y += this.y;
+		this.body2.dx += this.dx;
+		this.body2.dy += this.dy;
+	}
+}
+
+
+/*a system contains center bodies, outer bodies, and debris
+it acts like a little mini main loop, ticking / drawing everything inside, 
+Systems are always either fixed or orbiting some body. Their x, y, dx, and dy can't just be set to something to start. By default they're all 0
+*/
+class System extends Body {
+	constructor(centerBody, outerBodies, debrisMax) {
+		super(0, 0, 0, 0, 0, 0, "#F0F");
+
+		this.center = centerBody;
+		this.bodies = outerBodies;
+		this.debrisMaxNum = debrisMax;
+	}
+
+	beDrawn() {
+		//drawing ring if has
+		if (this.ring != undefined && loading_camera == camera_map) {
+			this.ring.beDrawn();
+		}
+
+		//drawing everything else
+		this.center.beDrawn();
+		this.bodies.forEach(b => {b.beDrawn();});
+
+		//indicator dot
+		/*
+		ctx.fillStyle = "#F0F";
+		ctx.beginPath();
+		var tempXY = spaceToScreen(this.x, this.y);
+		ctx.ellipse(tempXY[0], tempXY[1], 5, 5, 0, 0, Math.PI * 2, false);
+		ctx.fill(); */
+	}
+
+	//updates radius, mass, and color
+	calibrate() {
+		this.m = this.center.m;
+		this.center.parent = this;
+		this.r = this.center.r;
+		this.color = this.center.color;
+
+		/*
+		var extraAdd = Math.sqrt(Math.pow(canvas.width / (2 * loading_camera.scale_min), 2) + Math.pow(canvas.height / (2 * loading_camera.scale_min), 2));
+		this.bodies.forEach(b => {
+			this.r = Math.max(this.r, b.apoapsis + extraAdd);
+		}); */
+	}
+
+	gravitate(thing) {
+		//given that the entity is outside self's range, just use the center
+		super.gravitate(thing);
+
+		//if the entity is inside the range, gravitate with bodies as well
+		if (getDistance([thing.x, thing.y], [this.x, this.y]) <= this.r) {
 			this.bodies.forEach(b => {b.gravitate(thing);});
 		}
 	}
 
-	gravitateToArray(thing) {
-		//same outside / inside split as with gravitate(), but forces are handled differently
-		if (getDistance([thing.x, thing.y], [this.x, this.y]) > this.r) {
-			super.gravitateToArray(thing);
-		} else {
-			//if the entity is instead inside the system range, make sure that each individual object acts on them (debris have no gravity)
-			//centers
-			this.centers.forEach(a => {a.gravitateToArray(thing);});
+	gravitateAll() {
+		//gravitate children and have them give debris forces
+		this.bodies.forEach(b => {
+			this.gravitate(b);
+			b.gravitateAll();
+		});
+	
+		//give debris forces
+		super.gravitateAll();
+	}
 
-			//bodies
-			this.bodies.forEach(b => {b.gravitateToArray(thing);});
+	gravitateToArray(thing) {
+		this.center.gravitateToArray(thing);
+		this.bodies.forEach(b => {b.gravitateToArray(thing);});
+	}
+
+	pullChildren() {
+		//pulling own children
+		if (this.prevD[0] != this.dx) {
+			this.center.dx += this.dx - this.prevD[0];
+			this.bodies.forEach(b => {b.dx += this.dx - this.prevD[0];});
+			this.debris.forEach(c => {c.dx += this.dx - this.prevD[0];});
 		}
+
+		if (this.prevD[1] != this.dy) {
+			this.center.dy += this.dy - this.prevD[1];
+			this.bodies.forEach(b => {b.dy += this.dy - this.prevD[1];});
+			this.debris.forEach(c => {c.dy += this.dy - this.prevD[1];});
+		}
+
+		this.center.x = this.x;
+		this.center.y = this.y;
+		this.prevD = [this.dx, this.dy];
+
+		//recursing
+		this.bodies.forEach(b => {
+			b.pullChildren();
+		});
 	}
 
 	setOrbit(bodyToOrbit, apoH, periH, apoA, startA, ccwBOOL) {
+		
 		//first subtract all x, y, dx, and dy given to child objects by the system
-		this.centers.forEach(a => {
-			a.x -= this.x;
-			a.y -= this.y;
-			a.dx -= this.dx;
-			a.dy -= this.dy;
-		});
+		this.center.x -= this.x;
+		this.center.y -= this.y;
+		this.center.dx -= this.dx;
+		this.center.dy -= this.dy;
+
 		this.bodies.forEach(b => {
 			b.x -= this.x;
 			b.y -= this.y;
@@ -691,17 +837,41 @@ class System extends Body {
 		super.setOrbit(bodyToOrbit, apoH, periH, apoA, startA, ccwBOOL);
 
 		//adding changed parameters to child bodies
-		this.centers.forEach(a => {
-			a.x += this.x;
-			a.y += this.y;
-			a.dx += this.dx;
-			a.dy += this.dy;
-		});
+		this.center.x += this.x;
+		this.center.y += this.y;
+		this.center.dx += this.dx;
+		this.center.dy += this.dy;
+
 		this.bodies.forEach(b => {
 			b.x += this.x;
 			b.y += this.y;
 			b.dx += this.dx;
 			b.dy += this.dy;
 		});
+	}
+
+	spliceIncorrect() {
+		//loop through debris, if they don't point to this body remove them
+		for (var h=0; h<this.debris.length; h++) {
+			if (this.debris[h].parent != this) {
+				this.debris.splice(h, 1);
+			} else if (!this.debris[h].physical) {
+				//if the debris isn't physical, delete it as well
+				this.debris.splice(h, 1);
+			}
+		}
+
+		//call for children, center isn't used because the debris never see the center (they only see the System and its bodies)
+		this.bodies.forEach(s => {
+			s.spliceIncorrect();
+		});
+
+	}
+
+	tick() {
+		//ticking; bodies, center, and self
+		this.center.tick();
+		this.bodies.forEach(a => {a.tick();});
+		super.tick();
 	}
 }
