@@ -10,14 +10,10 @@ var menuPos = 1;
 var menuIncrement = 0.005;
 var menuLimit = 0.82;
 
-var player_thrusterStrength = 0.025;
-var player_turnStrength = 0.025;
-var player_turnSpeedMax = 0.2;
-
 var game_animation;
-var time = -1;
+var game_time = -1;
 
-var gameState = 0;
+var game_state = 0;
 var cutsceneTime = 50;
 var gravityDampener = 20;
 
@@ -27,21 +23,34 @@ var maxBelt = 0;
 var beltV = 1.56;
 var beltCreated = 0;
 
+
+let camera_world = new Camera_World();
+let camera_map = new Camera_Map();
+
 //all the colors used
-var spaceColor = "#222266";
 const color_black = "#220";
 const color_coolPuff = "#59C";
+const color_debris = "#88F";
 const color_engineFlames = "#66F";
 const color_green = "#0D8";
 const color_ice = "#BEF";
-const color_purple = "#808";
-const color_sun = "#F30";
 const color_neutron = "#0DF";
+const color_purple = "#808";
+const color_ring = "#FFF";
 const color_rocky = "#886";
+const color_space = "#226";
+const color_sun = "#F30";
+const color_ship = "#F8F";
 const color_text = "#8FC";
 
-var mercColor = "#A7A2A0";
-var debrisColor = "#8888FF";
+var display_orbitOpacity = 0.2;
+var display_menuOpacity = 0.2;
+
+//DT stuff. the greater dt is, the slower the game is.
+var dt = 1;
+var dt_base = 3;
+var dt_values = [8, 4, 2, 1, 1/2, 1/4, 1/8, 1/20, 1/50, 1/100];
+var dt_selector = dt_base;
 
 var shipColor = "#FFFFFF";
 var computeColor = "#307529";
@@ -82,27 +91,22 @@ const keycode_space = 32;
 const keycode_right_carat = 190;
 const keycode_left_carat = 188;
 
-//the greater dt is, the slower the game is.
-var dt = 1;
-var dt_base = 3;
-var dt_values = [8, 4, 2, 1, 1/2, 1/4, 1/8, 1/20, 1/50, 1/100];
-var dt_selector = dt_base;
+let loading_debris = [];
+let loading_system;
+let loading_camera = camera_world;
+
+var player_radius = 7;
+var player_thrusterStrength = 0.025;
+var player_turnStrength = 0.025;
+var player_turnSpeedMax = 0.2;
 
 
 var menuColor = "#333366";
 
-
-var teleColor = "#8A4EC3";
-var explosionColor = "#FF8800";
-
-var barsText = ["Power: ", "Temperature: ", "Fuel: "];
-
 //objects here
-let camera_world = new Camera_World();
-let camera_map = new Camera_Map();
 
-let loading_system;
-let loading_camera = camera_world;
+
+
 
 let character;
 
@@ -120,8 +124,9 @@ function setup() {
 
 	loading_system = system_main;
 	
-	var [x, y, dx, dy] = calculateOrbitalParameters(loading_system.bodies[0], 400, 400, Math.PI / 3, 0, false);
+	var [x, y, dx, dy] = calculateOrbitalParameters(system_main.bodies[0], 800, 800, 0, 0, false);
 	character = new Player(x, y, dx, dy);
+	loading_debris.push(character);
 
 	//populating the debris field
 	for (jc=0;jc<debStartNum;jc++) {
@@ -151,15 +156,15 @@ function keyPress(h) {
 		//special operations
 		//m for map view
 		case keycode_m:
-			if (gameState > 0 && gameState < 3) {
-				if (gameState == 1) {
-					gameState = 2;
+			if (game_state > 0 && game_state < 3) {
+				if (game_state == 1) {
+					game_state = 2;
 					if (menuPos > 1) {
 						menuPos = 1;
 					}
 					loading_camera = camera_map;
 				} else {
-					gameState = 1;
+					game_state = 1;
 					loading_camera = camera_world;
 				}
 			}
@@ -173,25 +178,25 @@ function keyPress(h) {
 			break;
 		//starting / restarting game
 		case keycode_z:
-			if (gameState == 0 && character.timeout == 0) {
-				gameState = 1;
+			if (game_state == 0 && character.timeout == 0) {
+				game_state = 1;
 			}
 			break;
 		//dt stepping
 		case keycode_right_carat:
-			if (gameState < 3 && dt_selector < dt_values.length - 1) {
+			if (game_state < 3 && dt_selector < dt_values.length - 1) {
 				dt_selector += 1;
 				dt = dt_values[dt_selector];
 			}
 			break;
 		case keycode_left_carat:
-			if (gameState < 3 && dt_selector > 0) {
+			if (game_state < 3 && dt_selector > 0) {
 				dt_selector -= 1;
 				dt = dt_values[dt_selector];
 			}
 			break;
 		case keycode_l:
-			if (gameState < 3) {
+			if (game_state < 3) {
 				dt_selector = dt_base;
 				dt = dt_values[dt_selector];
 			}
@@ -243,24 +248,24 @@ function keyNegate(h) {
 //this function is the main function that repeats every time the timer goes off. It is very important.
 function main() {
 	//gamestate 0 is just the splash screen. As such it is entirely text.
-	if (gameState == 0) {
+	if (game_state == 0) {
 		drawSplash();
 	} else {
 		loading_camera.tick();
 		//gameState specific things, if I add any more game states I'll just make this a switch statement
-		if (gameState == 1) {
+		if (game_state == 1) {
 			menuPos += menuIncrement;
-		} else if (gameState == 2) {
+		} else if (game_state == 2) {
 			menuPos -= menuIncrement * 3;
 			if (menuPos < menuLimit) {
 				menuPos = menuLimit;
 			}
-		} else if (gameState == 3) {
+		} else if (game_state == 3) {
 			dt *= 1.1;
 		}
 		
 		//drawing background
-		ctx.fillStyle = spaceColor;
+		ctx.fillStyle = color_space;
 		ctx.fillRect(0, 0, canvas.width, canvas.height);
 		
 		/*dt affects physics timestepping, not just speed, so if it's too low physics will be unstable. 
@@ -269,23 +274,39 @@ function main() {
 			var physSteps = Math.floor(1 / dt);
 			dt *= physSteps;
 			for (var g=0; g<physSteps; g++) {
-				loading_system.tick();
-				character.tick();
+				trueMain();
 			}
 			dt /= physSteps;
 		} else {
-			loading_system.tick();
-			character.tick();
+			trueMain();
 		}
-		loading_system.beDrawn();
-		character.beDrawn();
 
-		//tick time
-		time += 1 / dt;
+
+		//drawing
+		loading_system.beDrawn();
+		loading_debris.forEach(a => {a.beDrawn();});
 		//drawing the menu goes last, because it needs to be on top of everything.
 		drawMenu();
 	}
 	game_animation = window.requestAnimationFrame(main);
+}
+
+//this function has the function calls that occurr for the simulation to run, without all the extra stuff that normally happens in main
+function trueMain() {
+	//most of these are recursive functions that call for every body when called on loading_system. 
+	//The exceptions are the ones with loading_debris, which have forEach loops,
+	loading_system.spliceIncorrect();
+	loading_system.gravitateAll();
+	loading_system.pullChildren();
+	
+	loading_debris.forEach(a => {
+		loading_system.gravitateToArray(a);
+	});
+	
+	loading_system.tick();
+	loading_debris.forEach(a => {a.tick();});
+
+	game_time += 1 / dt;
 }
 
 
@@ -293,18 +314,17 @@ function drawMenu() {
 	//to save time, only draw the menu if it is in-bounds
 	if (menuPos < 1) {
 		//drawing menu boxes
-		ctx.globalAlpha = 0.2;
+		ctx.globalAlpha = display_menuOpacity;
 		ctx.fillStyle = "#FFF";
 		ctx.fillRect(0, canvas.height * menuPos, canvas.width, canvas.height * 0.3);
-		ctx.fillRect(0, 0, canvas.width, canvas.height * (1 - (menuPos + 0.1)));
 		ctx.globalAlpha = 1;
 		//text for all the meters
 		ctx.fillStyle = color_text;
 		ctx.textAlign = "left";
 		ctx.font = "20px Century Gothic";
-		ctx.fillText(barsText[0], 12, canvas.height * (menuPos + 0.06));
-		ctx.fillText(barsText[1], 12, canvas.height * (menuPos + 0.11));
-		ctx.fillText(barsText[2], 12, canvas.height * (menuPos + 0.16));
+		ctx.fillText("Power: ", 12, canvas.height * (menuPos + 0.06));
+		ctx.fillText("Temperature: ", 12, canvas.height * (menuPos + 0.11));
+		ctx.fillText("Fuel: ", 12, canvas.height * (menuPos + 0.16));
 		ctx.fillText(`Momentum: (${(character.dx).toFixed(3)}, ${(character.dy).toFixed(3)})`, canvas.width * 0.3, canvas.height * (1 - (menuPos + 0.13)));
 		
 		//timer and effects
@@ -338,12 +358,12 @@ function drawMenu() {
 	var dialY = dialR * 1.6;
 	var angle = Math.PI + Math.atan2((character.x - character.parent.x), (character.y - character.parent.y));
 	var l = dialR + 2;
-	ctx.strokeStyle = color_text;
-	ctx.lineWidth = dialR / 3;
-	ctx.globalAlpha = 0.5;
+	ctx.fillStyle = color_ship;
+	ctx.lineWidth = dialR / 6;
+	ctx.globalAlpha = 1;
 	ctx.beginPath();
 	ctx.ellipse(dialX, dialY, dialR, dialR, 0, 0, Math.PI * 2);
-	ctx.stroke();
+	ctx.fill();
 	ctx.beginPath();
 	ctx.strokeStyle = character.parent.color;
 	ctx.moveTo(dialX, dialY);
@@ -454,7 +474,7 @@ function calculateOrbitalParameters(body, apo, peri, apoA, startA, counterClockw
 }
 
 //calculates orbits for 2 bodies in a binary orbit, where they're centered on 0, 0
-function calculateBinaryOrbitalParameters(body1, body2, ) {
+function calculateBinaryOrbitalParameters(body1, body2) {
 
 }
 
