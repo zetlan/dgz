@@ -50,20 +50,24 @@ class Body {
 	//draws the object. All the drawing functions for bodies have a built in limiter of 1 px, after that they won't draw smaller
 	drawBody(bodyX, bodyY, r, atmoRings, extraRadiusPerRing, color) {
 		var tempXY = spaceToScreen(bodyX, bodyY);
-		//main ring
-		ctx.fillStyle = color;
-		ctx.beginPath();
-		ctx.ellipse(tempXY[0], tempXY[1], Math.max(1, r * loading_camera.scale), Math.max(1, r * loading_camera.scale), 0, 0, Math.PI * 2);
-		ctx.fill();
-		if (atmoRings > 0) {
-			ctx.globalAlpha = 0.2;
-			for (var u=0; u<atmoRings; u++) {
-				var rad2 = Math.max(1, (this.r * (1 + (extraRadiusPerRing * (u + 1)))) * loading_camera.scale);
-				ctx.ellipse(tempXY[0], tempXY[1], rad2, rad2, 0, 0, Math.PI * 2);
-				ctx.fill();
+
+		//only draw if going to be on screen
+		if (isOnScreen(tempXY[0], tempXY[1], (r * (1 + (extraRadiusPerRing * atmoRings))) * loading_camera.scale)) {
+			//main ring
+			ctx.fillStyle = color;
+			ctx.beginPath();
+			ctx.ellipse(tempXY[0], tempXY[1], Math.max(1, r * loading_camera.scale), Math.max(1, r * loading_camera.scale), 0, 0, Math.PI * 2);
+			ctx.fill();
+			if (atmoRings > 0) {
+				ctx.globalAlpha = 0.2;
+				for (var u=0; u<atmoRings; u++) {
+					var rad2 = Math.max(1, (r * (1 + (extraRadiusPerRing * (u + 1)))) * loading_camera.scale);
+					ctx.ellipse(tempXY[0], tempXY[1], rad2, rad2, 0, 0, Math.PI * 2);
+					ctx.fill();
+				}
+				ctx.globalAlpha = 1;
+				ctx.closePath();
 			}
-			ctx.globalAlpha = 1;
-			ctx.closePath();
 		}
 	}
 
@@ -114,8 +118,27 @@ class Body {
 		}
 	}
 
+	//modifies coordinates without directly changing x, y, dx, dy. This is useful in systems, where changing the x / y of the system does not change the x / y of the child bodies.
+	modifyCoordinates(xModifier, yModifier, dxModifier, dyModifier, subtractingBOOLEAN) {
+		//changing subtractingBOOLEAN from a boolean into a -1, 1 multiplier
+		var mult = (subtractingBOOLEAN * -2) + 1;
+
+		//changing own parameters
+		this.x += xModifier * mult;
+		this.y += yModifier * mult;
+		this.dx += dxModifier * mult;
+		this.dy += dyModifier * mult;
+		this.prevD = [this.dx, this.dy];
+
+		//also change debris parameters
+		this.debris.forEach(d => {
+			d.modifyCoordinates(xModifier, yModifier, dxModifier, dyModifier, subtractingBOOLEAN);
+		});
+	}
+
 	pullChildren() {
 		//adding dx / dy to all children
+		//modifying just the dx / dy in pullChildren rather than calling the whole modifyCoordinates function is faster, so I'm doing that. It doesn't appear to cause any problems.
 		if (this.prevD[0] != this.dx) {
 			this.debris.forEach(c => {c.dx += this.dx - this.prevD[0];});
 		}
@@ -127,29 +150,18 @@ class Body {
 	}
 
 	setOrbit(bodyToOrbit, apoH, periH, apoA, startA, ccwBOOL) {
-		//first subtract all x, y, dx, and dy given to child objects by the system
-		this.debris.forEach(c => {
-			c.x -= this.x;
-			c.y -= this.y;
-			c.dx -= this.dx;
-			c.dy -= this.dy;
-		});
+		//first subtract all x, y, dx, and dy
+		this.modifyCoordinates(this.x, this.y, this.dx, this.dy, true);
 
 		//then set orbital properties to new values
-		[this.x, this.y, this.dx, this.dy] = calculateOrbitalParameters(bodyToOrbit, apoH, periH, apoA, startA, ccwBOOL);
+		var newCoords = calculateOrbitalParameters(bodyToOrbit, apoH, periH, apoA, startA, ccwBOOL);
 		this.parent = bodyToOrbit;
 		this.ring = new Ring(bodyToOrbit, apoH, periH, apoA);
-		this.prevD = [this.dx, this.dy];
+		this.prevD = [newCoords[2], newCoords[3]];
 		this.apoapsis = apoH;
 		this.periapsis = periH;
 
-		//add values to children
-		this.debris.forEach(c => {
-			c.x += this.x;
-			c.y += this.y;
-			c.dx += this.dx;
-			c.dy += this.dy;
-		});
+		this.modifyCoordinates(newCoords[0], newCoords[1], newCoords[2], newCoords[3], false);
 	}
 
 	spliceIncorrect() {
@@ -200,7 +212,7 @@ class Camera {
 
 class Camera_Map extends Camera {
 	constructor() {
-		super(0, 0, 1/128, 1/48, 1/128, 1/512);
+		super(0, 0, 1/128, 1/48, 1/256, 1/512);
 
 		//the map camera can move around
 		this.animSteps = 7;
@@ -213,13 +225,13 @@ class Camera_Map extends Camera {
 		this.y = ((this.y * this.animSteps) + character.parent.y) / (this.animSteps + 1);
 
 		//setting max scale to a reasonable value based on body
-		this.scale_max = canvas.height / (character.parent.r * 75);
+		this.scale_max = Math.min(1 / 8, canvas.height / (character.parent.r * 75));
 	}
 }
 
 class Camera_World extends Camera {
 	constructor() {
-		super(0, 0, 1, 2, 0.5, 1/32);
+		super(0, 0, 1, 2, 0.75, 1/32);
 	}
 
 	tick() {
@@ -234,34 +246,74 @@ class Camera_World extends Camera {
 
 class Debris {
 	constructor(x, y, dx, dy) {
+		//x / y keep track of position, Dx/dy are change in position over time
 		this.x = x;
 		this.y = y;
+		this.dx = dx;
+		this.dy = dy;
+
 		this.r = 3;
-		this.m = 1;
-		if (dx === undefined || dy === undefined) {
-			this.dx = (Math.random() - 0.7) * (9 / Math.abs(this.x / 750));
-			this.dy = (Math.random() - 0.7) * (9 / Math.abs(this.x / 750));
-		} else {
-			this.dx = dx;
-			this.dy = dy;
-		}
-		
-		
+		this.apoapsis = undefined;
+		this.periapsis = undefined;
+
 		this.physical = true;
+
+		this.color = color_debris;
+		this.gravityForces = [];
+		this.parent = system_main;
+	}
+
+	applyGravity() {
+		if (this.gravityForces.length > 0) {
+			//formula is [body, magnitude, dx, dy]
+			var maxForce = [undefined, 0, 0, 0];
+			for (var g=0; g<this.gravityForces.length; g++) {
+				if (this.gravityForces[g][1] > maxForce[1]) {
+					maxForce = this.gravityForces[g];
+				}
+			}
+
+			//after finding the max force, set parent / apply it
+			this.parent = maxForce[0];
+			if (!this.parent.debris.includes(this)) {
+				this.parent.debris.push(this);
+			}
+			
+
+			this.dx += maxForce[2];
+			this.dy += maxForce[3];
+			//reset array
+			this.gravityForces = [];
+			
+		}
+	}
+
+	beDrawn() {
+		
+		var tempXY = spaceToScreen(this.x, this.y);
+		if (isOnScreen(tempXY[0], tempXY[1], this.r * loading_camera.scale)) {
+			ctx.beginPath();
+			ctx.fillStyle = color_debris;
+			ctx.ellipse(tempXY[0], tempXY[1], Math.max(debris_minSize, this.r * loading_camera.scale), Math.max(debris_minSize, this.r * loading_camera.scale), 0, 0, Math.PI * 2);
+			ctx.fill();
+		}
+	}
+
+	modifyCoordinates(xModifier, yModifier, dxModifier, dyModifier, subtractingBOOLEAN) {
+		var mult = (subtractingBOOLEAN * -2) + 1;
+		this.x += xModifier * mult;
+		this.y += yModifier * mult;
+		this.dx += dxModifier * mult;
+		this.dy += dyModifier * mult;
 	}
 	
 	tick() {
+		//changing dx / dy based on gravity
+		this.applyGravity();
+
+		//updating position
 		this.x += this.dx / dt;
 		this.y += this.dy / dt;
-	}
-	
-	beDrawn() {
-		ctx.beginPath();
-		ctx.fillStyle = debrisColor;
-		var tempXY = spaceToScreen(this.x, this.y);
-		ctx.ellipse(tempXY[0], tempXY[1], this.r * loading_camera.scale, this.r * loading_camera.scale, 0, 0, Math.PI * 2);
-		ctx.fill();
-		ctx.closePath();
 	}
 }
 
@@ -290,39 +342,27 @@ class Planet extends Body {
 }
 
 
-class Player {
+//player extends debris for convienence sake, they share a lot of the same gravitatonal properties
+class Player extends Debris {
 	constructor(x, y, dx, dy) {
-		//x / y keep track of position, Dx/dy are change in position over time, and acc is whether the engine is on or not. (allows player to control dx / dy)
-		this.x = x;
-		this.y = y;
+		super(x, y, dx, dy);
+		this.color = color_ship;
 		this.r = player_radius;
-		
-		this.dx = dx;
-		this.dy = dy;
 
 		this.a = 0;
 		this.da = 0;
 		this.aa = 0;
 		this.acc = false;
 
-		this.apoapsis = undefined;
-		this.periapsis = undefined;
 		this.ring = undefined;
 	
 		
 		this.power = 50;
 		this.fuel = 100;
 		this.warm = 50;
-		this.physical = true;
 		this.timeout = 0;
 		this.dtStore = 0;
 
-		this.color = color_ship;
-		this.dialColor = color_black;
-		this.gravityForces = [];
-		this.parent = system_main;
-
-		this.predictLength = 50;
 		this.predictCoords = [[game_time, this.x, this.y, this.dx, this.dy]];
 	}
 
@@ -425,71 +465,6 @@ class Player {
 		}
 		ctx.globalAlpha = 1;
 	}
-
-	fireThrusters() {
-		//changing direction
-		this.da += this.aa;
-		this.da *= 0.85;
-		if (Math.abs(this.da) > player_turnSpeedMax) {
-			if (this.da < 0) {
-				this.da = -1 * player_turnSpeedMax;
-			} else {
-				this.da = player_turnSpeedMax;
-			}
-		}
-		this.a += this.da;
-
-
-		//using fuel to change dx / dy
-		if (this.acc && this.fuel > 0 && this.power > 0) {
-			//subtract fuel
-			this.fuel -= player_thrusterStrength / dt;
-
-			//calculate change in dx / dy
-			this.dx -= (player_thrusterStrength / dt) * Math.cos(this.a);
-			this.dy -= (player_thrusterStrength / dt) * Math.sin(this.a);
-
-			//change orbit ring
-			this.prediction_create();
-		}
-	}
-	
-	tick() {
-		//recieving input
-		this.fireThrusters();
-
-		//changing dx / dy based on gravity
-		this.applyGravity();
-
-
-		//updating the player's position
-		this.x += this.dx / dt;
-		this.y += this.dy / dt;
-
-
-		//updating vitals
-		if (this.warm < 0) {
-			this.warm = 0;
-			this.physical = false;
-		}
-		if (this.warm > 100) {
-			this.warm = 100;
-			this.physical = false;
-		}
-
-		if (this.pow < 0) {
-			this.pow = 0;
-		}
-
-		if (this.pow > 100) {
-			this.pow = 100;
-		}
-
-		if (!this.physical) {
-			this.destroy();
-			this.physical = true;
-		}
-	}
 	
 	debrisHit(dx, dy) {
 		var asteroidVelX = dx;
@@ -497,24 +472,13 @@ class Player {
 		//take a weighted average of the velocities
 		var dxAverage = ((6 * this.dx) + asteroidVelX) / 7;
 		var dyAverage = ((6 * this.dy) + asteroidVelY) / 7;
-		//with this, distances can be negative, but it doesn't matter because I square them anyways
-		var xSunDist = this.x - sun.x;
-		var ySunDist = this.y - sun.y;
-		var dist = Math.sqrt((xSunDist * xSunDist) + (ySunDist * ySunDist));
+
 		//make the weighted average the player's new velocity
 		this.dx = dxAverage;
 		this.dy = dyAverage;
 	
 		//give the player power, because asteroids do that I guess
 		this.pow += powerIncrement * 16;
-	
-		/*if the player has collided in a range that suggests being in the belt area, 
-		(36-50 sun radii) make the game spawn a new belt object 
-		Belt objects also give the player more charge*/
-		if (dist > (sun.r * 18) && dist < (sun.r * 25)) {
-			beltCreated -= 1;
-			this.pow += powerIncrement * 512;
-		}
 	}
 
 	destroy() {
@@ -528,7 +492,7 @@ class Player {
 
 	prediction_add() {
 		//takes in the previous predict coordinate, and adds a line to it
-		var stepsPerLine = 40;
+		var stepsPerLine = 35;
 
 		var lastPredict = this.predictCoords[this.predictCoords.length - 1];
 		
@@ -555,6 +519,34 @@ class Player {
 		}
 	}
 
+	fireThrusters() {
+		//changing direction
+		this.da += this.aa;
+		this.da *= 0.85;
+		if (Math.abs(this.da) > player_turnSpeedMax) {
+			if (this.da < 0) {
+				this.da = -1 * player_turnSpeedMax;
+			} else {
+				this.da = player_turnSpeedMax;
+			}
+		}
+		this.a += this.da;
+
+
+		//using fuel to change dx / dy
+		if (this.acc && this.fuel > 0 && this.power > 0) {
+			//subtract fuel
+			this.fuel -= (player_thrusterStrength * player_fuelEfficiency) / dt;
+
+			//calculate change in dx / dy
+			this.dx -= (player_thrusterStrength / dt) * Math.cos(this.a);
+			this.dy -= (player_thrusterStrength / dt) * Math.sin(this.a);
+
+			//change orbit ring
+			this.prediction_create();
+		}
+	}
+
 	prediction_create() {
 		this.predictCoords = [[game_time, this.x, this.y, this.dx - this.parent.dx, this.dy - this.parent.dy]];
 
@@ -562,11 +554,40 @@ class Player {
 		//However, I'm not going to explain it. Perhaps you could mess around with it and see what changes in-game.
 
 		//aright i'll explain it it controls the number of prediction lines this function creates in the predictCoords array
-		var numOfLines = 20;
+		var numOfLines = 25;
 
 		//push out 7 lines
 		for (var w=0; w<numOfLines; w++) {
 			this.prediction_add();
+		}
+	}
+
+	tick() {
+		//recieving input
+		this.fireThrusters();
+		super.tick();
+
+		//updating vitals
+		if (this.warm < 0) {
+			this.warm = 0;
+			this.physical = false;
+		}
+		if (this.warm > 100) {
+			this.warm = 100;
+			this.physical = false;
+		}
+
+		if (this.pow < 0) {
+			this.pow = 0;
+		}
+
+		if (this.pow > 100) {
+			this.pow = 100;
+		}
+
+		if (!this.physical) {
+			this.destroy();
+			this.physical = true;
 		}
 	}
 }
@@ -596,11 +617,6 @@ class Ring {
 		this.y = this.parent.y + this.offY;
 	}
 
-	tick() {
-		this.x = this.parent.x + this.offX;
-		this.y = this.parent.y + this.offY;
-	}
-
 	beDrawn() {
 		//ring
 		ctx.beginPath();
@@ -612,31 +628,31 @@ class Ring {
 		ctx.stroke();
 		ctx.globalAlpha = 1;
 	}
+
+	tick() {
+		this.x = this.parent.x + this.offX;
+		this.y = this.parent.y + this.offY;
+	}
 }
 
 
 //stars are special bodies that have a large atmosphere
 class Star extends Body {
-	constructor(x, y, dx, dy, radius, mass, color) {
+	constructor(x, y, dx, dy, radius, mass, hasAtmosphereBOOLEAN, color) {
 		super(x, y, dx, dy, radius, mass, color);
-	}
-
-	gravitateToArray(thing) {
-		var xDist = thing.x - this.x;
-		var yDist = thing.y - this.y;
-		var direction = (Math.atan2(xDist, yDist) - (Math.PI));
-		var magnitude = ((this.m / gravityDampener) / ((xDist * xDist) + (yDist * yDist))) / dt;
-
-		thing.gravityForces.push([this.parent, magnitude, magnitude * Math.sin(direction), magnitude * Math.cos(direction)]);
-
-		var magniAtRadius = ((this.m / gravityDampener) / (this.r * this.r)) / dt;
-		if (magnitude >= magniAtRadius) {
-			thing.physical = false;
-		}
+		this.atmo = hasAtmosphereBOOLEAN;
 	}
 
 	beDrawn() {
-		this.drawBody(this.x, this.y, this.r, 5, 1.8, this.color);
+		if (this.atmo) {
+			this.drawBody(this.x, this.y, this.r, 5, 1.8, this.color);
+		} else {
+			this.drawBody(this.x, this.y, this.r, 0, 1, this.color);
+		}
+	}
+
+	tick() {
+		super.tick();
 	}
 }
 
@@ -655,13 +671,24 @@ class Star_Binary extends Body {
 		this.body2.beDrawn();
 
 		//indicator dot
-		/*
+		
 		ctx.fillStyle = "#F0F";
 		ctx.beginPath();
 		var tempXY = spaceToScreen(this.x, this.y);
 		ctx.ellipse(tempXY[0], tempXY[1], 5, 5, 0, 0, Math.PI * 2, false);
 		ctx.fill();
-		*/
+		
+	}
+
+	
+
+	modifyCoordinates(xModifier, yModifier, dxModifier, dyModifier, subtractingBOOLEAN) {
+
+		super.modifyCoordinates(xModifier, yModifier, dxModifier, dyModifier, subtractingBOOLEAN);
+
+		//also modify child coordinates
+		this.body1.modifyCoordinates(xModifier, yModifier, dxModifier, dyModifier, subtractingBOOLEAN);
+		this.body2.modifyCoordinates(xModifier, yModifier, dxModifier, dyModifier, subtractingBOOLEAN);
 	}
 
 	tick() {
@@ -672,7 +699,6 @@ class Star_Binary extends Body {
 		//tick child objects
 		this.body1.tick();
 		this.body2.tick();
-
 
 		super.tick();
 	}
@@ -687,9 +713,23 @@ class Star_Binary extends Body {
 		thing.dy += magnitude * Math.cos(direction);
 	
 
-		var magniAtRadius = (this.m / gravityDampener) / (this.r * this.r);
-		magniAtRadius = magniAtRadius / dt;
-		if (magnitude >= magniAtRadius) {
+		//checking with body radii
+		var inABody = (getDistance([thing.x, thing.y], [this.body1.x, this.body1.y]) < this.body1.r) || (getDistance([thing.x, thing.y], [this.body2.x, this.body2.y]) < this.body2.r);
+		if (inABody) {
+			thing.physical = false;
+		}
+	}
+
+	gravitateToArray(thing) {
+		var xDist = thing.x - this.x;
+		var yDist = thing.y - this.y;
+		var direction = (Math.atan2(xDist, yDist) - (Math.PI));
+		var magnitude = ((this.m / gravityDampener) / ((xDist * xDist) + (yDist * yDist))) / dt;
+		thing.gravityForces.push([this, magnitude, magnitude * Math.sin(direction), magnitude * Math.cos(direction)]);
+
+		//same body radii check
+		var inABody = (getDistance([thing.x, thing.y], [this.body1.x, this.body1.y]) < this.body1.r) || (getDistance([thing.x, thing.y], [this.body2.x, this.body2.y]) < this.body2.r);
+		if (inABody) {
 			thing.physical = false;
 		}
 	}
@@ -733,6 +773,9 @@ class System extends Body {
 		this.center = centerBody;
 		this.bodies = outerBodies;
 		this.debrisMaxNum = debrisMax;
+		if (this.center != undefined) {
+			this.setCenter(this.center);
+		}
 	}
 
 	beDrawn() {
@@ -752,20 +795,6 @@ class System extends Body {
 		var tempXY = spaceToScreen(this.x, this.y);
 		ctx.ellipse(tempXY[0], tempXY[1], 5, 5, 0, 0, Math.PI * 2, false);
 		ctx.fill(); */
-	}
-
-	//updates radius, mass, and color
-	calibrate() {
-		this.m = this.center.m;
-		this.center.parent = this;
-		this.r = this.center.r;
-		this.color = this.center.color;
-
-		/*
-		var extraAdd = Math.sqrt(Math.pow(canvas.width / (2 * loading_camera.scale_min), 2) + Math.pow(canvas.height / (2 * loading_camera.scale_min), 2));
-		this.bodies.forEach(b => {
-			this.r = Math.max(this.r, b.apoapsis + extraAdd);
-		}); */
 	}
 
 	gravitate(thing) {
@@ -790,8 +819,18 @@ class System extends Body {
 	}
 
 	gravitateToArray(thing) {
-		this.center.gravitateToArray(thing);
+		super.gravitateToArray(thing);
 		this.bodies.forEach(b => {b.gravitateToArray(thing);});
+	}
+
+	modifyCoordinates(xModifier, yModifier, dxModifier, dyModifier, subtractingBOOLEAN) {
+		super.modifyCoordinates(xModifier, yModifier, dxModifier, dyModifier, subtractingBOOLEAN);
+
+		//also modify center and bodies
+		this.center.modifyCoordinates(xModifier, yModifier, dxModifier, dyModifier, subtractingBOOLEAN);
+		this.bodies.forEach(b => {
+			b.modifyCoordinates(xModifier, yModifier, dxModifier, dyModifier, subtractingBOOLEAN);
+		});
 	}
 
 	pullChildren() {
@@ -818,36 +857,14 @@ class System extends Body {
 		});
 	}
 
-	setOrbit(bodyToOrbit, apoH, periH, apoA, startA, ccwBOOL) {
+	//updates radius, mass, and color
+	setCenter(object) {
+		this.center = object;
 		
-		//first subtract all x, y, dx, and dy given to child objects by the system
-		this.center.x -= this.x;
-		this.center.y -= this.y;
-		this.center.dx -= this.dx;
-		this.center.dy -= this.dy;
-
-		this.bodies.forEach(b => {
-			b.x -= this.x;
-			b.y -= this.y;
-			b.dx -= this.dx;
-			b.dy -= this.dy;
-		});
-
-		//actual orbit setting, done by Body class
-		super.setOrbit(bodyToOrbit, apoH, periH, apoA, startA, ccwBOOL);
-
-		//adding changed parameters to child bodies
-		this.center.x += this.x;
-		this.center.y += this.y;
-		this.center.dx += this.dx;
-		this.center.dy += this.dy;
-
-		this.bodies.forEach(b => {
-			b.x += this.x;
-			b.y += this.y;
-			b.dx += this.dx;
-			b.dy += this.dy;
-		});
+		this.m = this.center.m;
+		this.center.parent = this;
+		this.r = this.center.r;
+		this.color = this.center.color;
 	}
 
 	spliceIncorrect() {
@@ -873,5 +890,10 @@ class System extends Body {
 		this.center.tick();
 		this.bodies.forEach(a => {a.tick();});
 		super.tick();
+
+		//ring if has
+		if (this.ring != undefined) {
+			this.ring.tick();
+		}
 	}
 }
