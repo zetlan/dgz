@@ -32,19 +32,25 @@ const color_black = "#220";
 const color_coolPuff = "#59C";
 const color_debris = "#88F";
 const color_engineFlames = "#66F";
+const color_fuel = "#F90";
 const color_green = "#0D8";
 const color_ice = "#BEF";
-const color_neutron = "#0DF";
 const color_purple = "#808";
 const color_ring = "#FFF";
-const color_rocky = "#886";
+const color_rocky = "#868";
 const color_space = "#226";
-const color_sun = "#F30";
+const color_star_neutron = "#0DF";
+const color_star_sun = "#FB0";
+const color_star_warm = "#F30";
 const color_ship = "#F8F";
 const color_text = "#8FC";
+const color_water = "#88F";
 
 var display_orbitOpacity = 0.2;
 var display_menuOpacity = 0.2;
+
+var debris_startNum = 0;
+var debris_minSize = 0.3;
 
 //DT stuff. the greater dt is, the slower the game is.
 var dt = 1;
@@ -52,7 +58,6 @@ var dt_base = 3;
 var dt_values = [8, 4, 2, 1, 1/2, 1/4, 1/8, 1/20, 1/50, 1/100];
 var dt_selector = dt_base;
 
-var shipColor = "#FFFFFF";
 var computeColor = "#307529";
 var computeWireColor = "#FFEE25";
 var hyperColor = "#3872FF";
@@ -62,10 +67,8 @@ var repairColor = "#76AA9F";
 var endingColor = "#FF00FF";
 var startingColor = "#00FF00";
 var stoneColor = "#6F8389";
-var blackColor = "#000000";
 
 var powerColor = "#FFD800";
-var fuelColor = "#FF9300";
 var cTemperColor = "#7CBBFA";
 var mTemperColor = "#7CFA80";
 var hTemperColor = "#FA917C";
@@ -95,8 +98,10 @@ let loading_debris = [];
 let loading_system;
 let loading_camera = camera_world;
 
-var player_radius = 7;
-var player_thrusterStrength = 0.025;
+var player_radius = 5;
+var player_thrusterStrength = 1 / 256;
+//fuel efficiency is the ratio of fuel used to velocity gained. The higher it is, the more fuel needs to be used for the same amount of thrust.
+var player_fuelEfficiency = 4;
 var player_turnStrength = 0.025;
 var player_turnSpeedMax = 0.2;
 
@@ -124,13 +129,16 @@ function setup() {
 
 	loading_system = system_main;
 	
-	var [x, y, dx, dy] = calculateOrbitalParameters(system_main.bodies[0], 800, 800, 0, 0, false);
+	var [x, y, dx, dy] = calculateOrbitalParameters(system_start, 300, 300, Math.PI * 0.4, 0.6, false);
 	character = new Player(x, y, dx, dy);
 	loading_debris.push(character);
 
 	//populating the debris field
-	for (jc=0;jc<debStartNum;jc++) {
-		debrisBits.push(new Debris(sun.x + ((Math.random() - 0.5) * 700), sun.y + ((Math.random() - 0.5) * 700)));
+	for (jc=0;jc<debris_startNum;jc++) {
+		var apoH = (Math.random() * 30000) + 200;
+		var periH = Math.abs(apoH - (Math.random() * 5000));
+		var [x, y, dx, dy] = calculateOrbitalParameters(loading_system, apoH, periH, Math.random() * Math.PI * 2, Math.random() * Math.PI * 2, Math.floor(Math.random() * 1.01));
+		loading_debris.push(new Debris(x, y, dx, dy));
 	}
 
 	//calling main
@@ -166,6 +174,7 @@ function keyPress(h) {
 				} else {
 					game_state = 1;
 					loading_camera = camera_world;
+					menuPos = 1.5;
 				}
 			}
 			break;
@@ -176,12 +185,14 @@ function keyPress(h) {
 		case keycode_space:
 			loading_camera.scale_d = -1 * loading_camera.scale_speed;
 			break;
+
 		//starting / restarting game
 		case keycode_z:
 			if (game_state == 0 && character.timeout == 0) {
 				game_state = 1;
 			}
 			break;
+
 		//dt stepping
 		case keycode_right_carat:
 			if (game_state < 3 && dt_selector < dt_values.length - 1) {
@@ -252,16 +263,20 @@ function main() {
 		drawSplash();
 	} else {
 		loading_camera.tick();
-		//gameState specific things, if I add any more game states I'll just make this a switch statement
-		if (game_state == 1) {
-			menuPos += menuIncrement;
-		} else if (game_state == 2) {
-			menuPos -= menuIncrement * 3;
-			if (menuPos < menuLimit) {
-				menuPos = menuLimit;
-			}
-		} else if (game_state == 3) {
-			dt *= 1.1;
+
+		//gamestate specific actions
+		switch (game_state) {
+			case 1:
+				break;
+			case 2:
+				menuPos -= menuIncrement * 3;
+				if (menuPos < menuLimit) {
+					menuPos = menuLimit;
+				}
+				break;
+			case 3:
+				dt *= 1.1;
+				break;
 		}
 		
 		//drawing background
@@ -280,6 +295,16 @@ function main() {
 		} else {
 			trueMain();
 		}
+
+		//remove debris that isn't physical
+		for (var u=0; u<loading_debris.length; u++) {
+			if (!loading_debris[u].physical && loading_debris[u] != character) {
+				loading_debris.splice(u, 1);
+				u -= 1;
+			}
+		}
+
+		//generate new debris
 
 
 		//drawing
@@ -325,7 +350,6 @@ function drawMenu() {
 		ctx.fillText("Power: ", 12, canvas.height * (menuPos + 0.06));
 		ctx.fillText("Temperature: ", 12, canvas.height * (menuPos + 0.11));
 		ctx.fillText("Fuel: ", 12, canvas.height * (menuPos + 0.16));
-		ctx.fillText(`Momentum: (${(character.dx).toFixed(3)}, ${(character.dy).toFixed(3)})`, canvas.width * 0.3, canvas.height * (1 - (menuPos + 0.13)));
 		
 		//timer and effects
 
@@ -348,7 +372,7 @@ function drawMenu() {
 		//temp
 		drawMeter(meterX, canvas.height * (menuPos + 0.08), meterWidth, meterHeight, character.warm, 0, 100, temperColor);
 		//fuel
-		drawMeter(meterX, canvas.height * (menuPos + 0.13), meterWidth, meterHeight, character.fuel, 0, 100, fuelColor);
+		drawMeter(meterX, canvas.height * (menuPos + 0.13), meterWidth, meterHeight, character.fuel, 0, 100, color_fuel);
 	} else {
 		menuPos = 1;
 	}
@@ -356,8 +380,12 @@ function drawMenu() {
 	var dialR = 12;
 	var dialX = canvas.width - (dialR * 1.8);
 	var dialY = dialR * 1.6;
-	var angle = Math.PI + Math.atan2((character.x - character.parent.x), (character.y - character.parent.y));
+	var dialAngle = Math.PI + Math.atan2(character.x - character.parent.x, character.y - character.parent.y);
 	var l = dialR + 2;
+
+	var momentumAngle = Math.atan2(character.dx - character.parent.dx, character.dy - character.parent.dy);
+	var momentumAmount = Math.sqrt(((character.dx - character.parent.dx) * (character.dx - character.parent.dx)) + ((character.dy - character.parent.dy) * (character.dy - character.parent.dy)));
+
 	ctx.fillStyle = color_ship;
 	ctx.lineWidth = dialR / 6;
 	ctx.globalAlpha = 1;
@@ -367,14 +395,16 @@ function drawMenu() {
 	ctx.beginPath();
 	ctx.strokeStyle = character.parent.color;
 	ctx.moveTo(dialX, dialY);
-	ctx.lineTo(dialX + (l * Math.sin(angle)), dialY + (l * Math.cos(angle)));
+	ctx.lineTo(dialX + (l * Math.sin(dialAngle)), dialY + (l * Math.cos(dialAngle)));
 	ctx.stroke();
 
 	//zoom text
 	ctx.font = "20px Century Gothic";
 	ctx.fillStyle = color_text;
-	ctx.textAlign = "left";
-	ctx.fillText(`Zoom: ${(loading_camera.scale).toFixed(3)}x`, canvas.width * 0.05, (dialR * 1.8));
+	ctx.textAlign = "center";
+	ctx.fillText(`Zoom: ${(loading_camera.scale).toFixed(3)}x`, canvas.width * 0.2, (dialR * 1.8));
+	ctx.fillText(`Time: ${(1 / dt).toFixed(3)}x`, canvas.width * 0.2, (dialR * 3.6));
+	ctx.fillText(`Momentum: (${(momentumAmount).toFixed(3)} km/s, ${(((momentumAngle / Math.PI) * 180) + 180).toFixed(1)}°)`, canvas.width * 0.65, canvas.height * (1 - (menuPos + 0.13)));
 	ctx.globalAlpha = 1;
 
 }
@@ -405,6 +435,26 @@ function drawMeter(x, y, width, height, value, min, max, color) {
 
 
 //utility functions
+//takes in an x, y screen coordinate as well as a tolerance, and returns whether that is inside the screen or not. 
+//Tolerance is the amount the object can be off the screen by and still be counted.
+function isOnScreen(x, y, r) {
+	//x offscreen
+	if (x + r < 0) {
+		return false;
+	}
+	if (x - r > canvas.width) {
+		return false;
+	}
+
+	//y offscreen
+	if (y + r < 0) {
+		return false;
+	}
+	if (y - r > canvas.height) {
+		return false;
+	}
+	return true;
+}
 
 function spaceToScreen(x, y) {
 	x = x - loading_camera.x;
@@ -439,6 +489,13 @@ function calculateOrbitalParameters(body, apo, peri, apoA, startA, counterClockw
 	//length = ab / (sqrt((b * cos(theta))^2 + (a * sin(theta))^2))
 	//semi-minor axis is sqrt(periapsis * apoapsis)
 	//semi-major axis is apoapsis + periapsis
+
+	//if periapsis is greater than apoapsis, assume a mistake and swap them
+	if (apo > peri) {
+		[apo, peri] = [peri, apo];
+		apoA += Math.PI;
+		startA += Math.PI;
+	}
 
 
 	//major / minor axes for convienence
