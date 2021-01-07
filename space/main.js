@@ -13,15 +13,8 @@ var menuLimit = 0.82;
 var game_animation;
 var game_time = -1;
 
-var game_state = 0;
 var cutsceneTime = 50;
 var gravityDampener = 20;
-
-var debStartNum = 0;
-var maxDebris = 0;
-var maxBelt = 0;
-var beltV = 1.56;
-var beltCreated = 0;
 
 
 let camera_world = new Camera_World();
@@ -43,6 +36,9 @@ const color_star_neutron = "#0DF";
 const color_star_sun = "#FB0";
 const color_star_warm = "#F30";
 const color_ship = "#F8F";
+const color_shop = "#DAF";
+const color_shop_dark = "#C7C";
+const color_shop_glow = "#FB0";
 const color_text = "#8FC";
 const color_water = "#88F";
 
@@ -50,6 +46,7 @@ var display_orbitOpacity = 0.2;
 var display_menuOpacity = 0.2;
 
 var debris_startNum = 0;
+var debris_maxNum = 0;
 var debris_minSize = 0.3;
 
 //DT stuff. the greater dt is, the slower the game is.
@@ -95,8 +92,9 @@ const keycode_right_carat = 190;
 const keycode_left_carat = 188;
 
 let loading_debris = [];
-let loading_system;
 let loading_camera = camera_world;
+let loading_state = new State_Splash();
+let loading_system;
 
 var player_radius = 5;
 var player_thrusterStrength = 1 / 256;
@@ -129,7 +127,7 @@ function setup() {
 
 	loading_system = system_main;
 	
-	var [x, y, dx, dy] = calculateOrbitalParameters(system_start, 300, 300, Math.PI * 0.4, 0.6, false);
+	var [x, y, dx, dy] = calculateOrbitalParameters(system_main, 2000, 2000, Math.PI * 0, 0.1, false);
 	character = new Player(x, y, dx, dy);
 	loading_debris.push(character);
 
@@ -164,18 +162,10 @@ function keyPress(h) {
 		//special operations
 		//m for map view
 		case keycode_m:
-			if (game_state > 0 && game_state < 3) {
-				if (game_state == 1) {
-					game_state = 2;
-					if (menuPos > 1) {
-						menuPos = 1;
-					}
-					loading_camera = camera_map;
-				} else {
-					game_state = 1;
-					loading_camera = camera_world;
-					menuPos = 1.5;
-				}
+			if (loading_state.id == "world") {
+				loading_state = new State_Map();
+			} else if (loading_state.id == "map") {
+				loading_state = new State_World();
 			}
 			break;
 		//scale out + in
@@ -188,26 +178,26 @@ function keyPress(h) {
 
 		//starting / restarting game
 		case keycode_z:
-			if (game_state == 0 && character.timeout == 0) {
-				game_state = 1;
+			if (loading_state.id == "splash" && character.timeout == 0) {
+				loading_state = new State_World();
 			}
 			break;
 
 		//dt stepping
 		case keycode_right_carat:
-			if (game_state < 3 && dt_selector < dt_values.length - 1) {
+			if ((loading_state.id == "map" || loading_state.id == "world") && dt_selector < dt_values.length - 1) {
 				dt_selector += 1;
 				dt = dt_values[dt_selector];
 			}
 			break;
 		case keycode_left_carat:
-			if (game_state < 3 && dt_selector > 0) {
+			if ((loading_state.id == "map" || loading_state.id == "world") && dt_selector > 0) {
 				dt_selector -= 1;
 				dt = dt_values[dt_selector];
 			}
 			break;
 		case keycode_l:
-			if (game_state < 3) {
+			if (loading_state.id == "map" || loading_state.id == "world") {
 				dt_selector = dt_base;
 				dt = dt_values[dt_selector];
 			}
@@ -258,61 +248,7 @@ function keyNegate(h) {
 
 //this function is the main function that repeats every time the timer goes off. It is very important.
 function main() {
-	//gamestate 0 is just the splash screen. As such it is entirely text.
-	if (game_state == 0) {
-		drawSplash();
-	} else {
-		loading_camera.tick();
-
-		//gamestate specific actions
-		switch (game_state) {
-			case 1:
-				break;
-			case 2:
-				menuPos -= menuIncrement * 3;
-				if (menuPos < menuLimit) {
-					menuPos = menuLimit;
-				}
-				break;
-			case 3:
-				dt *= 1.1;
-				break;
-		}
-		
-		//drawing background
-		ctx.fillStyle = color_space;
-		ctx.fillRect(0, 0, canvas.width, canvas.height);
-		
-		/*dt affects physics timestepping, not just speed, so if it's too low physics will be unstable. 
-		To counteract this, low dt has a fast draw but multiple physics timesteps, so it's accurate as well */
-		if (dt < 1) {
-			var physSteps = Math.floor(1 / dt);
-			dt *= physSteps;
-			for (var g=0; g<physSteps; g++) {
-				trueMain();
-			}
-			dt /= physSteps;
-		} else {
-			trueMain();
-		}
-
-		//remove debris that isn't physical
-		for (var u=0; u<loading_debris.length; u++) {
-			if (!loading_debris[u].physical && loading_debris[u] != character) {
-				loading_debris.splice(u, 1);
-				u -= 1;
-			}
-		}
-
-		//generate new debris
-
-
-		//drawing
-		loading_system.beDrawn();
-		loading_debris.forEach(a => {a.beDrawn();});
-		//drawing the menu goes last, because it needs to be on top of everything.
-		drawMenu();
-	}
+	loading_state.tick();
 	game_animation = window.requestAnimationFrame(main);
 }
 

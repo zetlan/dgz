@@ -66,7 +66,6 @@ class Body {
 					ctx.fill();
 				}
 				ctx.globalAlpha = 1;
-				ctx.closePath();
 			}
 		}
 	}
@@ -183,67 +182,6 @@ class Body {
 	}
 }
 
-//I feel dirty for creating 3 camera classes
-//it's like I've committed a crime
-class Camera {
-	constructor(x, y, scale, scaleMax, scaleMin, scaleSpeed) {
-		this.x = x;
-		this.y = y;
-		this.scale = scale;
-		this.scale_max = scaleMax;
-		this.scale_min = scaleMin;
-		this.scale_speed = scaleSpeed;
-		this.scale_d = 0;
-	}
-
-	tick() {
-		if (game_state < 3) {
-			//updating scale and keeping it in bounds
-			this.scale += this.scale_d;
-			if (this.scale > this.scale_max) {
-				this.scale = this.scale_max;
-			}
-			if (this.scale < this.scale_min) {
-				this.scale = this.scale_min;
-			}
-		}
-	}
-}
-
-class Camera_Map extends Camera {
-	constructor() {
-		super(0, 0, 1/128, 1/48, 1/256, 1/512);
-
-		//the map camera can move around
-		this.animSteps = 7;
-
-	}
-
-	tick() {
-		super.tick();
-		this.x = ((this.x * this.animSteps) + character.parent.x) / (this.animSteps + 1);
-		this.y = ((this.y * this.animSteps) + character.parent.y) / (this.animSteps + 1);
-
-		//setting max scale to a reasonable value based on body
-		this.scale_max = Math.min(1 / 8, canvas.height / (character.parent.r * 75));
-	}
-}
-
-class Camera_World extends Camera {
-	constructor() {
-		super(0, 0, 1, 2, 0.75, 1/32);
-	}
-
-	tick() {
-		super.tick();
-		//lock self to player position
-		this.x = character.x;
-		this.y = character.y;
-	}
-}
-
-
-
 class Debris {
 	constructor(x, y, dx, dy) {
 		//x / y keep track of position, Dx/dy are change in position over time
@@ -318,11 +256,26 @@ class Debris {
 }
 
 
-//planets are like bodies, but they generate into stable orbits and have a smaller atmosphere
+//planets are stars that don't generate heat or have large atmospheres
 class Planet extends Body {
-	constructor(bodyToOrbit, apoapsis, periapsis, apoapsisAngleRADIANS, planetStartAngleRADIANS, counterClockwiseBOOLEAN, radius, mass, hasAtmosphereBOOLEAN, color) {
-		super(0, 0, 0, 0, radius, mass, color);
+	constructor(x, y, dx, dy, radius, mass, hasAtmosphereBOOLEAN, color) {
+		super(x, y, dx, dy, radius, mass, color);
 		this.atmo = hasAtmosphereBOOLEAN;
+	}
+
+	beDrawn() {
+		if (this.atmo) {
+			this.drawBody(this.x, this.y, this.r, 2, 0.4, this.color);
+		} else {
+			this.drawBody(this.x, this.y, this.r, 0, 0, this.color);
+		}
+	}
+}
+
+//like a planet but it generates into a stable orbit
+class Planet_Orbiting extends Planet {
+	constructor(bodyToOrbit, apoapsis, periapsis, apoapsisAngleRADIANS, planetStartAngleRADIANS, counterClockwiseBOOLEAN, radius, mass, hasAtmosphereBOOLEAN, color) {
+		super(0, 0, 0, 0, radius, mass, hasAtmosphereBOOLEAN, color);
 
 		this.setOrbit(bodyToOrbit, apoapsis, periapsis, apoapsisAngleRADIANS, planetStartAngleRADIANS, counterClockwiseBOOLEAN);
 	}
@@ -333,11 +286,7 @@ class Planet extends Body {
 			this.ring.beDrawn();
 		}
 
-		if (this.atmo) {
-			this.drawBody(this.x, this.y, this.r, 2, 0.4, this.color);
-		} else {
-			this.drawBody(this.x, this.y, this.r, 0, 0, this.color);
-		}
+		super.beDrawn();
 	}
 }
 
@@ -395,7 +344,7 @@ class Player extends Debris {
 	beDrawn() {
 		//if in the map, draw prediction path
 		
-		if (game_state == 2) {
+		if (loading_state.id == "map") {
 			//redraw prediction path if out
 			if (game_time > 0) {
 				this.prediction_create();
@@ -455,6 +404,7 @@ class Player extends Debris {
 				ctx.fillStyle = color_coolPuff;
 			}
 			
+			ctx.beginPath();
 			ctx.ellipse(tempXY[0], tempXY[1], ((this.timeout / 4) + this.r), (this.timeout / 8) + (this.r / 2), this.a, 0, Math.PI * 2);
 			ctx.fill();
 		} else {
@@ -485,7 +435,7 @@ class Player extends Debris {
 		if (this.timeout == 0) {
 			this.timeout = 1;
 			this.dtStore = dt;
-			game_state = 3;
+			loading_state = new State_Death();
 			dt *= 10;
 		}
 	}
@@ -635,6 +585,99 @@ class Ring {
 	}
 }
 
+//shops always orbit a parent body, like orbiting planets, but the player can enter them
+class Shop extends Body {
+	constructor(bodyToOrbit, apoapsis, periapsis, apoapsisAngleRADIANS, startAngleRADIANS, ccwBOOL) {
+		super(0, 0, 0, 0, 10, 10, color_shop);
+		this.setOrbit(bodyToOrbit, apoapsis, periapsis, apoapsisAngleRADIANS, startAngleRADIANS, ccwBOOL);
+	}
+
+	beDrawn() {
+		var tempXY = spaceToScreen(this.x, this.y);
+		if (isOnScreen(tempXY[0], tempXY[1], this.r * 1.4 * loading_camera.scale)) {
+			var glowRad = Math.max(1, (this.r * loading_camera.scale * 1.4));
+			var rad = Math.max(1, (this.r * loading_camera.scale))
+			//drawing glow (diamond shape)
+			ctx.fillStyle = color_shop_glow;
+			ctx.globalAlpha = 0.3;
+			ctx.beginPath();
+			ctx.moveTo(tempXY[0] - glowRad, tempXY[1]);
+			ctx.lineTo(tempXY[0], tempXY[1] - glowRad);
+			ctx.lineTo(tempXY[0] + glowRad, tempXY[1]);
+			ctx.lineTo(tempXY[0], tempXY[1] + glowRad);
+			ctx.fill();
+
+			//drawing actual entity (same diamond shape)
+			ctx.fillStyle = this.color;
+			ctx.globalAlpha = 1;
+			ctx.beginPath();
+			ctx.moveTo(tempXY[0] - rad, tempXY[1]);
+			ctx.lineTo(tempXY[0], tempXY[1] - rad);
+			ctx.lineTo(tempXY[0] + rad, tempXY[1]);
+			ctx.lineTo(tempXY[0], tempXY[1] + rad);
+			ctx.fill();
+		}
+	}
+
+	//because the shop just pushes away debris and attracts the player, gravitate to array doesn't push any forces. Instead, it directly affects dx / dy
+	gravitateToArray(entity) {
+		//for regular debris
+		//diagonal shape allows for simple distance calculation, no pythagoren theorum required
+		var entityDist = Math.abs(entity.x - this.x) + Math.abs(entity.y - this.y);
+		if (entityDist <= this.r) {
+			this.color = color_shop_dark;
+
+			//bouncing effect
+			var dxRel = entity.dx - this.dx;
+			var dyRel = entity.dy - this.dy;
+
+			/*moving towards the shop from different directions yields different results.
+			dx / dy are swapped, and one or both of them are multiplied by -1
+			left-upper: swap with -1, -1
+			left-lower: swap with -1, 1
+
+			right-upper: swap with 1, 1
+			right-lower: swap with -1, -1
+			*/
+
+			if (entity.x < this.x) {
+				//entity is to the left
+				if (entity.y < this.y) {
+					entity.dx = (-1 * dyRel) + this.dx;
+					entity.dy = (-1 * dxRel) + this.dy;
+				} else {
+					entity.dx = (-1 * dyRel) + this.dx;
+					entity.dy = (dxRel) + this.dy;
+				}
+			} else {
+				//entity is to the right
+				if (entity.y < this.y) {
+					entity.dx = (dyRel) + this.dx;
+					entity.dy = (dxRel) + this.dy;
+				} else {
+					entity.dx = (-1 * dyRel) + this.dx;
+					entity.dy = (-1 * dxRel) + this.dy;
+				}
+			}
+
+			//ticking once so the entity is for sure out of the area
+			entity.x += entity.dx - this.dx;
+			entity.y += entity.dy - this.dy;
+
+			//if the entity is the character, put them in the shop
+		} else {
+			if (Math.floor(game_time) % 100 == 0) {
+				this.color = color_shop;
+			}
+		}
+	}
+
+	//this function is empty because the shop generates such little force that it's pointless to do the calculation
+	gravitate(entity) {
+
+	}
+}
+
 
 //stars are special bodies that have a large atmosphere
 class Star extends Body {
@@ -649,10 +692,6 @@ class Star extends Body {
 		} else {
 			this.drawBody(this.x, this.y, this.r, 0, 1, this.color);
 		}
-	}
-
-	tick() {
-		super.tick();
 	}
 }
 
