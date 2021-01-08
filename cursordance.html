@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width">
+		<title>Polar Prime Plot</title>
+		<style>
+
+		body {
+			background-color: slateblue;
+		}
+		#canvas {
+			border-style: double;
+			border-color: slateblue;
+		}
+		#mid {
+			text-align: center;
+			margin-right: 15%;
+		}
+
+		.slider {
+				width: 100%;
+				height: 15px;
+				border-radius: 5px;  
+				background: #d3d3d3;
+				outline: none;
+				opacity: 0.7;
+				-webkit-transition: .2s;
+				transition: opacity .2s;
+		}
+		</style>
+	</head>
+	<body>
+		<script type="text/javascript">
+			var timer;
+
+			var color_bg = "#000";
+			var color_dot = "#0FF";
+			var color_centerDot = "#888";
+			var color_cursor = "#8FF";
+
+			var centerX;
+			var centerY;
+
+			let cursor;
+
+			window.onload = setup;
+
+			//main cursor class, child classes change behavior
+			class Cursor {
+				constructor(x, y, a, vel) {
+					this.x = x;
+					this.y = y;
+					this.a = a;
+					this.vel = vel;
+				}
+
+				beDrawn() {
+					drawCircle(color_cursor, this.x, this.y, 4);
+				}
+
+				//converting angular momentum to true momentum
+				convertMomentum() {
+					var dx = this.vel * Math.cos(this.a);
+					var dy = this.vel * Math.sin(this.a);
+					return [dx, dy];
+				}
+			}
+
+			class Cursor_DVD extends Cursor {
+				constructor(x, y, a, vel) {
+					super(x, y, a, vel);
+					this.maxV = 15;
+					this.minV = -15;
+					this.dv = 0;
+				}
+
+				tick() {
+					var mom = this.convertMomentum();
+					this.x += mom[0];
+					this.y += mom[1];
+
+					//if hitting the edge of the screen, change angle
+					if (this.x < 0 || this.x > canvas.width) {
+						this.a = Math.PI - this.a;
+					}
+
+					if (this.y < 0 || this.y > canvas.height) {
+						this.a = (Math.PI * 2) - this.a
+					}
+
+					//occasionally switch modes
+					if (Math.random() > 0.999) {
+						this.switchModes();
+					}
+					this.handleTurning();
+					this.handleVelocity();
+				}
+
+				handleTurning() {
+					if (this.vel < 1.5 && this.vel > -1.5) {
+						this.a += Math.PI * 0.005;
+					}
+				}
+
+				handleVelocity() {
+					//changing velocity
+					if (Math.random() > 0.999) {
+						this.dv = 0.05;
+					}
+					if (Math.random() > 0.999) {
+						this.dv = -0.05;
+					}
+
+
+					this.vel += this.dv;
+
+					if (this.vel < this.minV) {
+						this.vel = this.minV;
+					}
+					if (this.vel > this.maxV) {
+						this.vel = this.maxV;
+					}
+				}
+
+				switchModes() {
+					//choose random number
+					var rand = Math.floor(Math.random() * 2);
+					switch(rand) {
+						case 0:
+							cursor = new Cursor_DVD_Curve(this.x, this.y, this.a, this.vel);
+							break;
+						case 1:
+							break;
+					}
+				}
+			}
+
+			class Cursor_DVD_Curve extends Cursor_DVD {
+				constructor(x, y, a, vel) {
+					super(x, y, a, vel)
+				}
+
+				handleTurning() {
+					this.a += Math.PI * 0.005;
+				}
+
+				switchModes() {
+					//choose random number
+					var rand = Math.floor(Math.random() * 2);
+					switch(rand) {
+						case 0:
+							cursor = new Cursor_DVD(this.x, this.y, this.a, this.vel);
+							break;
+						case 1:
+							break;
+					}
+				}
+			}
+
+			function setup() {
+				canvas = document.getElementById("canvas");
+				ctx = canvas.getContext("2d");
+
+				centerX = canvas.width / 2;
+				centerY = canvas.height / 2;
+
+				cursor = new Cursor_DVD(centerX, centerY, Math.PI * 0.3, 1);
+
+				timer = window.requestAnimationFrame(draw);
+			}
+			
+			function draw() {
+				//bee g
+				ctx.globalAlpha = 0.4;
+				ctx.fillStyle = color_bg;
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+				ctx.globalAlpha = 1;
+
+				//cycle happens twice
+				cursor.tick();
+				cursor.beDrawn();
+
+				cursor.tick();
+				cursor.beDrawn();
+
+				timer = window.requestAnimationFrame(draw);
+			}
+
+			function drawCircle(color, x, y, radius) {
+				ctx.beginPath();
+				ctx.fillStyle = color;
+				ctx.strokeStyle = color;
+				ctx.ellipse(x, y, radius, radius, 0, 0, Math.PI * 2);
+				ctx.stroke();
+				ctx.fill();
+			}
+
+		</script>
+		<div id="mid">
+			<canvas id="canvas" width="640" height="480"></canvas>
+		</div>
+		
+	</body>
+</html>
