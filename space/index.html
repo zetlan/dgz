@@ -17,6 +17,7 @@ Dec-26-2020 -->
         display: block;
       }
     </style>
+    <script src="functions-drawing.js" type="text/javascript"></script>
     <script src="objects-nonPhysical.js" type="text/javascript"></script>
     <script src="objects.js" type="text/javascript"></script>
     <script src="systems.js" type="text/javascript"></script>
@@ -26,6 +27,7 @@ Dec-26-2020 -->
     <div>
       <canvas id="canvas" width="640" height="480">
       </canvas>
+      <input type="checkbox" id="haveHighResolution" onchange="updateColor"><label for="haveHighResolution">High resolution</label><br>
       <p>Controls:<br>
          W A D / arrow keys for ship movement<br>
          shift / space for camera scale<br>
