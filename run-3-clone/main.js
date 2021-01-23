@@ -14,22 +14,31 @@ var centerY;
 
 var controls_cursorLock = false;
 var controls_sensitivity = 100;
+var controls_object;
 
 var editor_active = false;
-var noclip_active = false;
 
 let page_animation;
-let player;
 
-var world_bg = "#002";
-var world_pRandValue = 1.241;
-var world_starDistance = 10000;
+const color_keyPress = "#8FC";
+const color_keyUp = "#666";
+const color_stars = "#44A";
+const color_bg = "#204";
+
+let world_camera;
+var world_pRandValue = 1.2532;
+var world_starDistance = 1500;
+var world_starNumber = 500;
+var world_time = 0;
 let world_objects = [];
-let world_binTree;
+let active_objects = [];
 
 var render_crosshairSize = 10;
 var render_clipDistance = 0.1;
+var render_maxColorDistance = 1000;
 var render_identicalPointTolerance = 0.00001;
+
+var haltCollision = false;
 
 
 
@@ -44,208 +53,222 @@ function setup() {
 	//cursor movements setup
 	canvas.requestPointerLock = canvas.requestPointerLock || canvas.mozRequestPointerLock;
 	document.exitPointerLock = document.exitPointerLock || document.mozExitPointerLock;
+	canvas.onclick = function() {
+		canvas.requestPointerLock();
+	}
 
-	canvas.onclick = function() {canvas.requestPointerLock();}
+	world_camera = new Camera(0, 8, 0, 0, 0);
+	player = new Character(-60, 0, 0);
 
-	centerX = canvas.width * 0.5;
-	centerY = canvas.height * 0.5;
-
-	player = new Camera(0, 8, 0, 0, 0);
+	controls_object = player;
 
 	//setting up world
-	
-	world_objects = [new Floor(0, -0.01, 0, 5000, 5000, "#868"),
-					//box
-					new FreePoly([[0, 0, 10], [0, 0, -10], [10, 10, -10], [10, 10, 10]], "#FFF"),
-					new WallX(100, 10, 0, 10, 10, "#088"), new WallX(120, 10, 0, 10, 10, "#088"),
-					new WallZ(110, 10, -10, 10, 10, "#068"), new WallZ(110, 10, 10, 15, 10, "#068"),
-					
-					//house
-					//house outside walls
-					
-					new WallZ(0, 15, -130, 50, 15, "#FB6"),
-					new WallZ(0, 15, -220, 50, 15, "#FB6"), 
-					new WallX(50, 15, -175, 45, 15, "#EA8"),
-					new WallX(-50, 25, -175, 45, 5, "#EA8"),
-					new WallX(-50, 15, -200, 20, 15, "#EA8"),
-					new WallX(-50, 15, -150, 20, 15, "#EA8"),
-
-					
-					//house stairs
-					new FreePoly([[0, 0, -200], [0, 0, -219], [38, 20, -219], [38, 20, -200]], "#A60"),
-
-					new FreePoly([[-103, 12, 9], [-81, 12, -33], [-116, 12, -37]], "#000")
+	//as a reminder, tunnels are (x, y, z, angle, tile size, sides, tiles per sides, color, length, data)
+	world_objects = [
+					//new Tunnel(0, 0, 0, Math.PI / 4, 40, 6, 2, {h:310, s:100}, 40, []),
+					new Tunnel(-20, 0, 0, 40, 6, 2, {h:310, s:100}, 9, []),
+					new Tunnel_FromData(100, 100, 0, levelData_mainTunnel.split("\n")[64], []),
 					]; 
 	world_stars = [];
 
+	//high resolution slider
+	document.getElementById("haveHighResolution").onchange = updateResolution;
+	//if the box is already checked from a previous session update resolution to max
+	if (document.getElementById("haveHighResolution").checked) {
+		updateResolution();
+	}
+
 	generateStarSphere();
-	generateStaircase();
-	generateBinTree();
+
+	//setting the player in a tunnel
 
 	page_animation = window.requestAnimationFrame(main);
 }
 
 function main() {
 	//drawing background
-	ctx.fillStyle = world_bg;
+	ctx.fillStyle = color_bg;
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-	//handling entities
-	player.tick();
-	//player buffer position
-	player.posBuffer = [];
-
-	//handling stars
-	for (var c=0;c<world_stars.length;c++) {
-		world_stars[c].tick();
-		world_stars[c].beDrawn();
-	}
-	world_binTree.traverse(true);
-
-	//updating player position based on forces
-	for (var a=0;a<player.posBuffer.length;a++) {
-		player.x += player.posBuffer[a][0];
-		player.y += player.posBuffer[a][1];
-		player.z += player.posBuffer[a][2];
-	}
-
-	world_binTree.traverse(false);
 
 	
 
+	//handling entities
+	world_camera.tick();
+	player.tick();
+
+	//handling stars
+	for (var c=0;c<world_stars.length;c++) {
+		world_stars[c].beDrawn();
+	}
+
+	//calculating which objects should be active
+
+	//every few ticks reorder objects
+	if (world_time % 25 == 1) {
+		world_objects = orderObjects(world_objects);
+	}
+
+	//order the objects of the closet tunnel for drawing
+	if (world_time % 10 == 0) {
+		world_objects[world_objects.length - 1].strips = orderObjects(world_objects[world_objects.length - 1].strips);
+	}
+
+	world_objects.forEach(a => {
+		a.tick();
+	});
+
+	for (var a=0; a<world_objects.length - 1; a++) {
+		world_objects[a].beDrawn();
+	}
+
+	//sorting player in with the closest tunnel to be drawn
+	var belowStorage = [];
+	var aboveStorage = [];
+	world_objects[world_objects.length - 1].strips.forEach(t => {
+		if (t.playerIsOnTop()) {
+			belowStorage.push(t);
+		} else {
+			aboveStorage.push(t);
+		}
+	});
+	belowStorage.forEach(o => {
+		o.beDrawn();
+	});
+	player.beDrawn();
+	aboveStorage.forEach(o => {
+		o.beDrawn();
+	});
+
 	//crosshair
-	ctx.strokeStyle = "#AFF";
-	ctx.beginPath();
-	ctx.rect(centerX - (render_crosshairSize / 2), centerY - (render_crosshairSize / 2), render_crosshairSize, render_crosshairSize);
-	ctx.stroke();
-
-	//crosshair 2
 	if (editor_active) {
-		ctx.strokeStyle = "#FFF";
-		//starting pos
-		var center = polToCart(player.theta, player.phi, 5);
-		center = [center[0] + player.x, center[1] + player.y, center[2] + player.z];
+		drawCrosshair();
+	}
 
-		//jumping-off points
-		var xPlus = [center[0] + (render_crosshairSize / 20), center[1], center[2]];
-		var yPlus = [center[0], center[1] + (render_crosshairSize / 20), center[2]];
-		var zPlus = [center[0], center[1], center[2] + (render_crosshairSize / 20)];
+	//drawing pressed keys
+	ctx.fillStyle = color_keyUp;
+	ctx.fillRect(canvas.width * 0.05, canvas.height * 0.95, 30, 30);
+	ctx.fillRect(canvas.width * 0.1, canvas.height * 0.95, 30, 30);
+	ctx.fillRect(canvas.width * 0.1, canvas.height * 0.9, 30, 30);
+	ctx.fillRect(canvas.width * 0.15, canvas.height * 0.95, 30, 30);
 
-		//transforming lines to screen coordinates
-		[center, xPlus, yPlus, zPlus] = [spaceToScreen(center), spaceToScreen(xPlus), spaceToScreen(yPlus), spaceToScreen(zPlus)];
+	ctx.fillStyle = color_keyPress;
+	if (controls_object.ax < 0) {
+		ctx.fillRect(canvas.width * 0.05, canvas.height * 0.95, 30, 30);
+	}
+	if (controls_object.ax > 0) {
+		ctx.fillRect(canvas.width * 0.15, canvas.height * 0.95, 30, 30);
+	}
 
-		//drawing lines
-		ctx.strokeStyle = "#F00";
-		drawPoly("#F00", [center, xPlus]);
-		ctx.strokeStyle = "#0F0";
-		drawPoly("#0F0", [center, yPlus]);
-		ctx.strokeStyle = "#00F";
-		drawPoly("#00F", [center, zPlus]);
+	if (controls_object.az > 0) {
+		ctx.fillRect(canvas.width * 0.1, canvas.height * 0.9, 30, 30);
+	}
+	if (controls_object.az < 0) {
+		ctx.fillRect(canvas.width * 0.1, canvas.height * 0.95, 30, 30);
 	}
 	
 
 	//call self
+	world_time += 1;
 	page_animation = window.requestAnimationFrame(main);
 }
 
 //input handling
 function handleKeyPress(a) {
 	switch(a.keyCode) {
-		//player controls
+		//direction controls
 		// a/d
 		case 65:
-			player.ax = -1 * player.speed;
+			controls_object.ax = -1 * controls_object.speed;
 			break;
 		case 68:
-			player.ax = player.speed;
+			controls_object.ax = controls_object.speed;
 			break;
 		// w/s
 		case 87:
-			player.az = player.speed;
+			controls_object.az = controls_object.speed;
 			break;
 		case 83:
-			player.az = -1 * player.speed;
+			controls_object.az = -1 * controls_object.speed;
 			break;
 
 		//space
 		case 32:
-			if (player.onGround) {
-				player.onGround = false;
-				player.dy = 2.5;
-			}
+			controls_object.dy = controls_object.dMax;
 			break;
 
 		//camera controls
 		case 37:
-			player.dt = -1 * player.sens;
+			world_camera.dt = -1 * world_camera.sens;
 			break;
 		case 38:
-			player.dp = player.sens;
+			world_camera.dp = world_camera.sens;
 			break;
 		case 39:
-			player.dt = player.sens;
+			world_camera.dt = world_camera.sens;
 			break;
 		case 40:
-			player.dp = -1 * player.sens;
+			world_camera.dp = -1 * world_camera.sens;
 			break;
 
-		case 219:
-			noclip_active = !noclip_active;
-			player.dy = 0;
-			break;
+		//editor / noclip
 		case 221:
 			ctx.lineWidth = 2;
 			editor_active = !editor_active;
+			if (editor_active) {
+				controls_object = world_camera;
+			} else {
+				controls_object = player;
+			}
 			break;
 	}
 }
 
 function handleKeyNegate(a) {
 	switch(a.keyCode) {
-		//player controls
+		//direction controls
 		// a/d
 		case 65:
-			if (player.ax < 0) {
-				player.ax = 0;
+			if (controls_object.ax < 0) {
+				controls_object.ax = 0;
 			}
 			break;
 		case 68:
-			if (player.ax > 0) {
-				player.ax = 0;
+			if (controls_object.ax > 0) {
+				controls_object.ax = 0;
 			}
 			break;
 		// w/s
 		case 87:
-			if (player.az > 0) {
-				player.az = 0;
+			if (controls_object.az > 0) {
+				controls_object.az = 0;
 			}
 			break;
 		case 83:
-			if (player.az < 0) {
-				player.az = 0;
+			if (controls_object.az < 0) {
+				controls_object.az = 0;
 			}
 			break;
 
 
-		//camera controls
+		//angle controls
 		case 37:
-			if (player.dt < 0) {
-				player.dt = 0;
+			if (world_camera.dt < 0) {
+				world_camera.dt = 0;
 			}
 			break;
 		case 38:
-			if (player.dp > 0) {
-				player.dp = 0;
+			if (world_camera.dp > 0) {
+				world_camera.dp = 0;
 			}
 			break;
 		case 39:
-			if (player.dt > 0) {
-				player.dt = 0;
+			if (world_camera.dt > 0) {
+				world_camera.dt = 0;
 			}
 			break;
 		case 40:
-			if (player.dp < 0) {
-				player.dp = 0;
+			if (world_camera.dp < 0) {
+				world_camera.dp = 0;
 			}
 			break;
 	}
@@ -262,13 +285,25 @@ function handleCursorLockChange() {
 }
 
 function handleMouseMove(a) {
-	player.theta += a.movementX / controls_sensitivity;
-	player.phi -= a.movementY / controls_sensitivity;
-	if (Math.abs(player.phi) > Math.PI / 2.02) {
-		if (player.phi < 0) {
-			player.phi = Math.PI / -2.01;
+	world_camera.theta += a.movementX / controls_sensitivity;
+	world_camera.phi -= a.movementY / controls_sensitivity;
+	if (Math.abs(world_camera.phi) > Math.PI / 2.02) {
+		if (world_camera.phi < 0) {
+			world_camera.phi = Math.PI / -2.01;
 		} else {
-			player.phi = Math.PI / 2.01;
+			world_camera.phi = Math.PI / 2.01;
 		}
 	}
+}
+
+function updateResolution() {
+	var multiplier = 0.5;
+	if (document.getElementById("haveHighResolution").checked) {
+		multiplier = 2;
+	}
+
+	//all things necessary for switching between resolutions
+	canvas.width *= multiplier;
+	canvas.height *= multiplier;
+	world_camera.scale *= multiplier;
 }
