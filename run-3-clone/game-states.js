@@ -33,25 +33,24 @@ class State_Game {
 		}
 
 		//sorting player in with the closest tunnel to be drawn
-		var belowStorage = [];
-		var aboveStorage = [];
-		world_objects[world_objects.length - 1].strips.forEach(t => {
-			if (t.playerIsOnTop()) {
-				belowStorage.push(t);
+		var stripStorage = orderObjects(world_objects[world_objects.length - 1].strips);
+
+		//if the player is in the middle of the strips (on top of some but not all) do the special
+		var drawPlayer = true;
+		stripStorage.forEach(t => {
+			if (drawPlayer && t.playerIsOnTop()) {
+				t.beDrawn();
+			} else if (drawPlayer) {
+				drawPlayer = false;
+				player.beDrawn();
+				t.beDrawn();
 			} else {
-				aboveStorage.push(t);
+				t.beDrawn();
 			}
 		});
-		//order the objects of the closet tunnel for drawing
-		belowStorage = orderObjects(belowStorage);
-		aboveStorage = orderObjects(aboveStorage);
-		belowStorage.forEach(o => {
-			o.beDrawn();
-		});
-		player.beDrawn();
-		aboveStorage.forEach(o => {
-			o.beDrawn();
-		});
+		if (drawPlayer) {
+			player.beDrawn();
+		}
 
 		//crosshair
 		if (editor_active) {
@@ -59,26 +58,7 @@ class State_Game {
 		}
 
 		//drawing pressed keys
-		ctx.fillStyle = color_keyUp;
-		ctx.fillRect(canvas.width * 0.05, canvas.height * 0.95, 30, 30);
-		ctx.fillRect(canvas.width * 0.1, canvas.height * 0.95, 30, 30);
-		ctx.fillRect(canvas.width * 0.1, canvas.height * 0.9, 30, 30);
-		ctx.fillRect(canvas.width * 0.15, canvas.height * 0.95, 30, 30);
-
-		ctx.fillStyle = color_keyPress;
-		if (controls_object.ax < 0) {
-			ctx.fillRect(canvas.width * 0.05, canvas.height * 0.95, 30, 30);
-		}
-		if (controls_object.ax > 0) {
-			ctx.fillRect(canvas.width * 0.15, canvas.height * 0.95, 30, 30);
-		}
-
-		if (controls_object.az > 0) {
-			ctx.fillRect(canvas.width * 0.1, canvas.height * 0.9, 30, 30);
-		}
-		if (controls_object.az < 0) {
-			ctx.fillRect(canvas.width * 0.1, canvas.height * 0.95, 30, 30);
-		}
+		drawKeys();
 	}
 }
 
@@ -97,7 +77,7 @@ class State_Loading {
 		drawCircle(color_stars, randomSeeded(0, canvas.width), randomSeeded(0, canvas.height), randomSeeded(3, 7));
 		
 		if (this.time > 50) {
-			loading_state = new State_Game();
+			loading_state = new State_Map();
 		}
 	}
 }
@@ -105,13 +85,16 @@ class State_Loading {
 class State_Map {
 	constructor() {
 		world_camera.x = 0;
-		world_camera.y = 4000;
+		world_camera.y = 250000;
 		world_camera.z = 0;
+
+		world_camera.phi = -0.5 * Math.PI;
+		world_camera.theta = -0.5 * Math.PI;
 	}
 
 	execute() {
 		//draw background
-		ctx.fillStyle = color_bg_map;
+		ctx.fillStyle = color_map_bg;
 		ctx.fillRect(0, 0, canvas.width, canvas.height);
 
 		
@@ -121,6 +104,11 @@ class State_Map {
 		}
 
 		//draw world objects
+		ctx.lineWidth = 2;
+		ctx.strokeStyle = color_map_writing;
+		world_objects.forEach(w => {
+			w.beDrawnOnMap();
+		});
 
 	}
 }
