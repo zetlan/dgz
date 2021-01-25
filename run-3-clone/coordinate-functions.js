@@ -9,6 +9,7 @@
 	relativeToSpace();
 	spaceToRelative();
 	spaceToScreen();
+	transformPoint();
 */
 
 //turns camera coordinates into 2d screen coordinates
@@ -202,4 +203,20 @@ function spaceToScreen(pointArr) {
 	tY += canvas.height / 2;
 
 	return [tX, tY];
+}
+
+function transformPoint(pointToTransform, addPoint, rot, phi, theta, size) {
+	//multiply point by size, then apply various rotations
+	pointToTransform[0] *= size / 2;
+	pointToTransform[2] *= size / 2;
+
+	//spin
+	[pointToTransform[0], pointToTransform[2]] = rotate(pointToTransform[0], pointToTransform[2], rot);
+	[pointToTransform[0], pointToTransform[1]] = rotate(pointToTransform[0], pointToTransform[1], phi);
+	[pointToTransform[0], pointToTransform[2]] = rotate(pointToTransform[0], pointToTransform[2], theta); 
+
+	//adjusting for coordinates
+	pointToTransform = [pointToTransform[0] + addPoint[0], pointToTransform[1] + addPoint[1], pointToTransform[2] + addPoint[2]];
+
+	return pointToTransform;
 }
