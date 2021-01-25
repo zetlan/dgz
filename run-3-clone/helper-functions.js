@@ -242,7 +242,6 @@ function tunnelData_subdivide(data) {
 	 
 
 	var rawInput = data;
-	console.log(rawInput);
 	//remove color indicators, I don't want to deal with that
 	rawInput = rawInput.replace("~color-1", "");
 	rawInput = rawInput.replace("~color-0", "");
@@ -256,6 +255,7 @@ function tunnelData_subdivide(data) {
 	var tunnel_sides = 0;
 	var tunnel_tilesPerSide = 0;
 	var tunnel_tileSize = 70;
+	var tunnel_id = "";
 
 	
 
@@ -286,6 +286,11 @@ function tunnelData_subdivide(data) {
 			tunnel_tileSize = i.replace("tileWidth-", "") * 1;
 		}
 
+		//if it's an id tag, update the id, you know the thingy
+		if (i.includes("id-")) {
+			tunnel_id = i.replace("id-", "");
+		}
+
 		//if it's a data tag, update the data array
 		if (i.includes("terrain-pos")) {
 			//first splice out the terrain pos
@@ -302,7 +307,7 @@ function tunnelData_subdivide(data) {
 		}
 	});
 
-	return {color: tunnel_color, tileSize: tunnel_tileSize, tilesPerSide: tunnel_tilesPerSide, maxLen: 0, sides: tunnel_sides, tileData: tunnel_tileData};
+	return {color: tunnel_color, id: tunnel_id, tileSize: tunnel_tileSize, tilesPerSide: tunnel_tilesPerSide, maxLen: 0, sides: tunnel_sides, tileData: tunnel_tileData};
 }
 
 
@@ -449,74 +454,4 @@ function inPoly(xyPoint, polyPoints) {
 	} else {
 		return false;
 	}
-}
-
-
-
-
-
-
-//drawing functions
-function drawCrosshair() {
-	ctx.strokeStyle = "#FFF";
-	//starting pos
-	var center = polToCart(world_camera.theta, world_camera.phi, 5);
-	center = [center[0] + world_camera.x, center[1] + world_camera.y, center[2] + world_camera.z];
-
-	//jumping-off points
-	var xPlus = [center[0] + (render_crosshairSize / 20), center[1], center[2]];
-	var yPlus = [center[0], center[1] + (render_crosshairSize / 20), center[2]];
-	var zPlus = [center[0], center[1], center[2] + (render_crosshairSize / 20)];
-
-	//transforming lines to screen coordinates
-	[center, xPlus, yPlus, zPlus] = [spaceToScreen(center), spaceToScreen(xPlus), spaceToScreen(yPlus), spaceToScreen(zPlus)];
-
-	//drawing lines
-	ctx.strokeStyle = "#F00";
-	drawPoly("#F00", [center, xPlus]);
-	ctx.strokeStyle = "#0F0";
-	drawPoly("#0F0", [center, yPlus]);
-	ctx.strokeStyle = "#00F";
-	drawPoly("#00F", [center, zPlus]);
-}
-
-function drawQuad(color, p1, p2, p3, p4) {
-	//console.log(color, p1, p2, p3, p4);
-	ctx.fillStyle = color;
-	ctx.strokeStyle = color;
-	ctx.beginPath();
-	ctx.moveTo(p1[0], p1[1]);
-	ctx.lineTo(p2[0], p2[1]);
-	ctx.lineTo(p3[0], p3[1]);
-	ctx.lineTo(p4[0], p4[1]);
-	ctx.lineTo(p1[0], p1[1]);
-	ctx.stroke();
-	ctx.fill();
-}
-
-function drawPoly(color, xyPointsArr) {
-	ctx.fillStyle = color;
-	if (!editor_active) {
-		ctx.strokeStyle = color;
-	}
-	
-	var xypa = xyPointsArr;
-	ctx.beginPath();
-	ctx.moveTo(xypa[0][0], xypa[0][1]);
-	for (var i=1;i<xypa.length;i++) {
-		ctx.lineTo(xypa[i][0], xypa[i][1]);
-	}
-	//back to start
-	ctx.lineTo(xypa[0][0], xypa[0][1]);
-	ctx.stroke();
-	ctx.fill();
-}
-
-function drawCircle(color, x, y, radius) {
-	ctx.beginPath();
-	ctx.fillStyle = color;
-	ctx.strokeStyle = color;
-	ctx.ellipse(x, y, radius, radius, 0, 0, Math.PI * 2);
-	ctx.stroke();
-	ctx.fill();
 }
