@@ -15,6 +15,7 @@ var centerY;
 var controls_cursorLock = false;
 var controls_sensitivity = 100;
 var controls_object;
+var controls_spacePressed = false;
 
 var editor_active = false;
 
@@ -23,7 +24,11 @@ let page_animation;
 const color_keyPress = "#8FC";
 const color_keyUp = "#666";
 const color_stars = "#44A";
-const color_bg = "#204";
+const color_bg = "#103";
+const color_map_bg = "#FEA";
+const color_map_writing = "#010";
+
+let loading_state = new State_Loading();
 
 let world_camera;
 var world_pRandValue = 1.2532;
@@ -65,11 +70,13 @@ function setup() {
 	//setting up world
 	//as a reminder, tunnels are (x, y, z, angle, tile size, sides, tiles per sides, color, length, data)
 	world_objects = [
-					//new Tunnel(0, 0, 0, Math.PI / 4, 40, 6, 2, {h:310, s:100}, 40, []),
-					new Tunnel(-20, 0, 0, 40, 6, 2, {h:310, s:100}, 9, []),
-					new Tunnel_FromData(100, 100, 0, levelData_mainTunnel.split("\n")[64], []),
+					new Tunnel_FromData(100, 100, 0, levelData_mainTunnel.split("\n")[60], []),
 					]; 
 	world_stars = [];
+
+	//for (var g=0; g<64; g++) {
+	//	world_objects.push(new Tunnel_FromData(0, 0, 0, levelData_mainTunnel.split("\n")[g], []));
+	//}
 
 	//high resolution slider
 	document.getElementById("haveHighResolution").onchange = updateResolution;
@@ -86,86 +93,7 @@ function setup() {
 }
 
 function main() {
-	//drawing background
-	ctx.fillStyle = color_bg;
-	ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-	
-
-	//handling entities
-	world_camera.tick();
-	player.tick();
-
-	//handling stars
-	for (var c=0;c<world_stars.length;c++) {
-		world_stars[c].beDrawn();
-	}
-
-	//calculating which objects should be active
-
-	//every few ticks reorder objects
-	if (world_time % 25 == 1) {
-		world_objects = orderObjects(world_objects);
-	}
-
-	//order the objects of the closet tunnel for drawing
-	if (world_time % 10 == 0) {
-		world_objects[world_objects.length - 1].strips = orderObjects(world_objects[world_objects.length - 1].strips);
-	}
-
-	world_objects.forEach(a => {
-		a.tick();
-	});
-
-	for (var a=0; a<world_objects.length - 1; a++) {
-		world_objects[a].beDrawn();
-	}
-
-	//sorting player in with the closest tunnel to be drawn
-	var belowStorage = [];
-	var aboveStorage = [];
-	world_objects[world_objects.length - 1].strips.forEach(t => {
-		if (t.playerIsOnTop()) {
-			belowStorage.push(t);
-		} else {
-			aboveStorage.push(t);
-		}
-	});
-	belowStorage.forEach(o => {
-		o.beDrawn();
-	});
-	player.beDrawn();
-	aboveStorage.forEach(o => {
-		o.beDrawn();
-	});
-
-	//crosshair
-	if (editor_active) {
-		drawCrosshair();
-	}
-
-	//drawing pressed keys
-	ctx.fillStyle = color_keyUp;
-	ctx.fillRect(canvas.width * 0.05, canvas.height * 0.95, 30, 30);
-	ctx.fillRect(canvas.width * 0.1, canvas.height * 0.95, 30, 30);
-	ctx.fillRect(canvas.width * 0.1, canvas.height * 0.9, 30, 30);
-	ctx.fillRect(canvas.width * 0.15, canvas.height * 0.95, 30, 30);
-
-	ctx.fillStyle = color_keyPress;
-	if (controls_object.ax < 0) {
-		ctx.fillRect(canvas.width * 0.05, canvas.height * 0.95, 30, 30);
-	}
-	if (controls_object.ax > 0) {
-		ctx.fillRect(canvas.width * 0.15, canvas.height * 0.95, 30, 30);
-	}
-
-	if (controls_object.az > 0) {
-		ctx.fillRect(canvas.width * 0.1, canvas.height * 0.9, 30, 30);
-	}
-	if (controls_object.az < 0) {
-		ctx.fillRect(canvas.width * 0.1, canvas.height * 0.95, 30, 30);
-	}
-	
+	loading_state.execute();
 
 	//call self
 	world_time += 1;
@@ -193,7 +121,8 @@ function handleKeyPress(a) {
 
 		//space
 		case 32:
-			controls_object.dy = controls_object.dMax;
+			controls_object.dy = controls_object.dMax * 4;
+			controls_spacePressed = true;
 			break;
 
 		//camera controls
@@ -249,6 +178,9 @@ function handleKeyNegate(a) {
 			}
 			break;
 
+		case 32:
+			controls_spacePressed = false;
+			break;
 
 		//angle controls
 		case 37:
@@ -306,4 +238,28 @@ function updateResolution() {
 	canvas.width *= multiplier;
 	canvas.height *= multiplier;
 	world_camera.scale *= multiplier;
+}
+
+//with default square root, 930 - 960 ms
+//interesting, trig functions are slower at around 1100 - 1300 ms
+function performanceTest() {
+	var perfTime = [performance.now(), 0];
+
+	for (var a=0;a<10000000;a++) {
+		//part to test performance
+		var value = randomSeeded(1, 10);
+		var testApple = Math.cos(value);
+		//var testApple = fastSqrt(value, 7);
+
+		//constant part
+		testApple *= 2;
+		if (testApple > 0) {
+			testApple /= 2;
+		}
+	}
+
+
+	perfTime[1] = performance.now();
+	var totalTime = perfTime[1] - perfTime[0];
+	console.log(`performance test took ${totalTime} ms`);
 }
