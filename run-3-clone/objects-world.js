@@ -55,31 +55,37 @@ class FreePoly {
 
 		//if the player is too close, take them seriously
 		if (Math.abs(playerCoords[2]) < this.tolerance) {
-			
+			//if they're in the collision area, actually do things
 			if (inPoly([playerCoords[0], playerCoords[1]], this.collisionPoints)) {
 				//different behavior depending on side
 				if (playerCoords[2] < 0) {
 					playerCoords[2] = -1 * this.tolerance;
 				} else {
-					playerCoords[2] = this.tolerance;
+					playerCoords[2] = this.tolerance; 	
 				}
 
 				//special collision effects for inside the tunnel
 				if (!haltCollision && (player.dir_down[0] != this.normal[0] || player.dir_down[1] != this.normal[1])) {
-					this.doCollideEffects();
+					this.doRotationEffects();
 				}
+
+				//special collision effects in general, will be filled out by lower classes
+				this.doCollisionEffects();
 
 				//transforming back to regular coordinates
 				playerCoords = relativeToSpace(playerCoords, [this.x, this.y, this.z], this.normal);
 
 				//getting difference between actual player coordinates and attempted coords for forces
 				playerCoords = [playerCoords[0] - player.x, playerCoords[1] - player.y, playerCoords[2] - player.z];
-				//player.posBuffer.push(playerCoords);
 				player.x += playerCoords[0];
 				player.y += playerCoords[1];
 				player.z += playerCoords[2];
 			}
 		}
+	}
+
+	doCollisionEffects() {
+		//intentionally left blank haha
 	}
 
 	//clips self and returns an array with two polygons, clipped at the input plane.
@@ -242,7 +248,7 @@ class Star {
 
 
 class Tunnel {
-	constructor(x, z, angle, tileSize, sides, tilesPerSide, color, lengthInTiles, data, connections) {
+	constructor(x, z, angle, tileSize, sides, tilesPerSide, color, lengthInTiles, data, id, connections) {
 		this.x = x;
 		this.y = 0;
 		this.z = z;
@@ -250,7 +256,10 @@ class Tunnel {
 		this.phi = 0;
 		this.rot = 0;
 
+		this.id = id;
+
 		this.color = color;
+		this.cameraDist = 1000;
 
 		this.sides = sides;
 		this.tilesPerSide = tilesPerSide;
@@ -294,12 +303,12 @@ class Tunnel {
 			//tunnel strip parameters, sorry this code is messy
 			var stripNormal = cartToPol(apothemLength * Math.cos(apothemAngle), apothemLength * Math.sin(apothemAngle), 0);
 
-			var stripPos = [apothemLength * Math.cos(apothemAngle), apothemLength * Math.sin(apothemAngle), (this.len / 2) * this.tileSize];
+			var stripPos = [apothemLength * Math.cos(apothemAngle), apothemLength * Math.sin(apothemAngle), 0];
 			[stripPos[0], stripPos[1]] = [stripPos[0] + additionLength * Math.cos(additionAngle), stripPos[1] + additionLength * Math.sin(additionAngle)];
 			[stripPos[0], stripPos[2]] = rotate(stripPos[0], stripPos[2], this.theta);
 			stripPos = [stripPos[0] + this.x, stripPos[1] + this.y, stripPos[2] + this.z];
 
-			var loadingStrip = new Tunnel_Strip(stripPos[0], stripPos[1], stripPos[2], stripNormal[0], stripNormal[1]);
+			var loadingStrip = new Tunnel_Strip(stripPos[0], stripPos[1], stripPos[2], stripNormal[0], stripNormal[1], this.tileSize, this.theta);
 
 			//run through every tile in the strip
 			for (var a=0; a<this.len; a++) {
@@ -322,18 +331,20 @@ class Tunnel {
 				} catch(e) {
 					//I really don't care if there's no data. If I start to care later I'll change this
 				}
-				if (value != 0) {
-					loadingStrip.tiles.push(this.generateTile(value, this.x + tileX, this.y + tileY, this.z + tileZ, this.tileSize, this.theta, apothemAngle + (Math.PI / 2), 0, [stripNormal[0] + Math.PI - this.theta, stripNormal[1]], this.theta, this.color));
-				}
+				loadingStrip.tiles.push(this.generateTile(value, this.x + tileX, this.y + tileY, this.z + tileZ, this.tileSize, this.theta, apothemAngle + (Math.PI / 2), 0, [stripNormal[0] + Math.PI - this.theta, stripNormal[1]], this.theta, [t, a], this.color));
 			}
 			this.strips.push(loadingStrip);
 		}
 	}
 
-	generateTile(type, x, y, z, size, theta, phi, rot, normal, tunnelDir, color) {
+	generateTile(type, x, y, z, size, theta, phi, rot, normal, tunnelDir, position, color) {
 		switch(type) {
+			case 0:
+				return undefined;
+			case 3:
+				return new Tile_Crumbling(x, y, z, size, theta, phi, rot, normal, tunnelDir, this, position, color);
 			default:
-				return new Tile(x, y, z, size, theta, phi, rot, normal, tunnelDir, color);
+				return new Tile(x, y, z, size, theta, phi, rot, normal, tunnelDir, this, position, color);
 		}
 		
 	}
@@ -355,24 +366,23 @@ class Tunnel {
 				s.beDrawn();
 			});
 		} else {
-			//camera coordinate points
-			var tempPoints = [spaceToRelative([this.x, this.y, this.z], [world_camera.x, world_camera.y, world_camera.z], [world_camera.theta, world_camera.phi, world_camera.rot]),
-								spaceToRelative(this.endPos, [world_camera.x, world_camera.y, world_camera.z], [world_camera.theta, world_camera.phi, world_camera.rot])];
-			tempPoints = clipToZ0(tempPoints, render_clipDistance, false);
-			
-			//turn points into screen coordinates
-			var screenPoints = [];
-			for (var a=0;a<tempPoints.length;a++) {
-				screenPoints.push(cameraToScreen(tempPoints[a]));
-			}
-
-			//draw screen points
-			ctx.lineWidth = (this.r * this.r) / this.cameraDist;
+			//draw self as a line
+			ctx.lineWidth = Math.max(1, (this.r * this.r) / this.cameraDist);
 			ctx.strokeStyle = "#000";
-			ctx.moveTo(screenPoints[0][0], screenPoints[0][1]);
-			ctx.lineTo(screenPoints[1][0], screenPoints[1][1]);
-			ctx.stroke();
+			drawWorldLine([this.x, this.y, this.z], this.endPos);
 		}
+	}
+
+	beDrawnOnMap() {
+		//circle + line
+		var circleCoords = spaceToScreen([this.x, this.y, this.z]);
+		var endCoords = spaceToScreen(this.endPos);
+		drawCircle(color_map_writing, circleCoords[0], circleCoords[1], 3);
+
+		ctx.beginPath();
+		ctx.moveTo(circleCoords[0], circleCoords[1]);
+		ctx.lineTo(endCoords[0], endCoords[1]);
+		ctx.stroke();
 	}
 	//returns true if the player is inside the tunnel, and false if the player is not
 	playerIsInTunnel() {
@@ -383,32 +393,62 @@ class Tunnel {
 class Tunnel_FromData extends Tunnel {
 	constructor(x, z, angle, tunnelData, connections) {
 		var data = tunnelData_handle(tunnelData);
-		super(x, z, angle, data.tileSize, data.sides, data.tilesPerSide, RGBtoHSV(data.color), data.maxLen, data.tileData, connections);
+		super(x, z, angle, data.tileSize, data.sides, data.tilesPerSide, RGBtoHSV(data.color), data.maxLen, data.tileData, data.id, connections);
+		this.rawData = tunnelData;
+	}
+
+	giveStringData() {
+		var toReturn = this.rawData;
+		if (!this.rawData.includes("coordinate-pos-x:")) {
+			toReturn += `|coordinate-pos-x:${this.x}`;
+		}
+		
+		if (!this.rawData.includes("coordinate-pos-z:")) {
+			toReturn += `|coordinate-pos-z:${this.z}`;
+		}
+
+		return toReturn;
 	}
 }
 
 //the tunnel strips don't need to be organized by 
 class Tunnel_Strip {
-	constructor(x, y, z, theta, phi) {
+	constructor(x, y, z, theta, phi, tileSize, tunnelTheta) {
 		this.x = x;
 		this.y = y;
 		this.z = z;
 		this.cameraDist = 1000;
 		this.theta = theta;
+		this.tunnelTheta = tunnelTheta;
 		this.phi = phi;
+		this.tileSize = tileSize;
 
 		this.tiles = [];
 	}
 
 	//returns true if the player should be drawn on top of the strip
 	playerIsOnTop() {
+		//first figure out the reference plane being used, tunnels are always [theta, 0]
+		var playerRel = spaceToRelative([player.x, player.y, player.z], [this.x, this.y, this.z], [this.tunnelTheta, 0, 0]);
+		var tileNum = Math.floor(playerRel[2] / this.tileSize);
+
+		if (this.tiles[tileNum] == undefined) {
+			//if there's no tile there, just use self's plane
+			return ((spaceToRelative([player.x, player.y, player.z], [this.x, this.y, this.z], [this.theta, this.phi, 0])[2] * spaceToRelative([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], [this.theta, this.phi, 0])[2]) > 0);
+		} else {
+			//if there is a tile there, use the tile's coordinates
+			return ((spaceToRelative([player.x, player.y, player.z], [this.tiles[tileNum].x, this.tiles[tileNum].y, this.tiles[tileNum].z], [this.theta, this.phi, 0])[2] * spaceToRelative([world_camera.x, world_camera.y, world_camera.z], [this.tiles[tileNum].x, this.tiles[tileNum].y, this.tiles[tileNum].z], [this.theta, this.phi, 0])[2]) > 0);
+		}
+
+		//player position relative to self
 		//if the camera / player are on the same side, return true. If not, return false.
-		return ((spaceToRelative([player.x, player.y, player.z], [this.x, this.y, this.z], [this.theta, this.phi, 0])[2] * spaceToRelative([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], [this.theta, this.phi, 0])[2]) > 0);
 	}
 
 	beDrawn() {
 		this.tiles.forEach(t => {
-			t.beDrawn();
+			if (t != undefined) {
+				t.beDrawn();
+			}
 		});
 	}
 
@@ -416,39 +456,30 @@ class Tunnel_Strip {
 		//setting camera distance
 		this.cameraDist = getDistance(this, world_camera);
 		this.tiles.forEach(t => {
-			t.tick();
+			if (t != undefined) {
+				t.tick();
+			}
 		});
 	}
 }
 
 class Tile extends FreePoly {
-	constructor(x, y, z, size, theta, phi, rot, normal, tunnelDir, color) {
+	constructor(x, y, z, size, theta, phi, rot, normal, tunnelDir, parent, parentPosition, color) {
 		var points = [[-1, 0, -1], [-1, 0, 1], [1, 0, 1], [1, 0, -1]];
 
 		var rPoint = [10, 0, 0];
+		rPoint = transformPoint(rPoint, [0, 0, 0], rot, phi, theta, 1);
 
-		[rPoint[0], rPoint[2]] = rotate(rPoint[0], rPoint[2], rot);
-		[rPoint[0], rPoint[1]] = rotate(rPoint[0], rPoint[1], phi);
-		[rPoint[0], rPoint[2]] = rotate(rPoint[0], rPoint[2], theta);
-
-		//multiply points by size, then apply various rotations
 		for (var p=0; p<points.length; p++) {
-			points[p][0] *= size / 2;
-			points[p][2] *= size / 2;
-
-			//spin
-			[points[p][0], points[p][2]] = rotate(points[p][0], points[p][2], rot);
-			[points[p][0], points[p][1]] = rotate(points[p][0], points[p][1], phi);
-			[points[p][0], points[p][2]] = rotate(points[p][0], points[p][2], theta); 
-
-			//adjusting for coordinates
-			points[p] = [points[p][0] + x, points[p][1] + y, points[p][2] + z];
-		} 
+			points[p] = transformPoint(points[p], [x, y, z], rot, phi, theta, size);
+		}
 		
 		super(points, color);
+		this.size = size;
 		
 		this.normal = [normal[0], -1 * normal[1]];
 		this.collisionPoints = this.calculateCollision();
+		this.rPoint = [rPoint[0] + x, rPoint[1] + y, rPoint[2] + z];
 		this.theta = theta;
 		this.phi = phi;
 		this.rot = rot;
@@ -457,12 +488,13 @@ class Tile extends FreePoly {
 		this.dir_right = cartToPol(rPoint[0], rPoint[1], rPoint[2]);
 		this.cameraRot = phi - (Math.PI / 2);
 
-		this.size = size;
+		this.parent = parent;
+		this.parentPosition = parentPosition;
 		
-		this.rPoint = [rPoint[0] + x, rPoint[1] + y, rPoint[2] + z];
+		
 	}
 
-	doCollideEffects() {
+	doRotationEffects() {
 		player.dir_down = this.normal;
 		player.dir_front = [this.dir_tunnel, 0];
 		player.dir_side = this.dir_right;
@@ -478,6 +510,88 @@ class Tile extends FreePoly {
 		//only collide if player is within certain distance, being this size
 		if (Math.abs(this.x - player.x) + Math.abs(this.y - player.y) + Math.abs(this.z - player.z) < this.size * 2) {
 			super.collideWithPlayer();
+		}
+	}
+}
+
+
+class Tile_Crumbling extends Tile {
+	constructor(x, y, z, size, theta, phi, rot, normal, tunnelDir, parent, parentPosition) {
+		super(x, y, z, size, theta, phi, rot, normal, tunnelDir, parent, parentPosition, {h: 0, s: 0});
+		this.line1 = [transformPoint([0.5, 0, 0.5], [x, y, z], rot, phi, theta, size), transformPoint([-0.5, 0, -0.5], [x, y, z], rot, phi, theta, size)];
+		this.line2 = [transformPoint([-0.5, 0, 0.5], [x, y, z], rot, phi, theta, size), transformPoint([0.5, 0, -0.5], [x, y, z], rot, phi, theta, size)];
+
+		this.fallStatus = undefined;
+		this.fallRate = -0.4;
+	}
+
+	tick() {
+		super.tick();
+		if (this.fallStatus != undefined) {
+			this.fallStatus += 1;
+
+			if (this.fallStatus > 0) {
+				//fall downward
+				var changeBy = polToCart(this.normal[0], this.normal[1], this.fallRate);
+				this.x += changeBy[0];
+				this.y += changeBy[1];
+				this.z += changeBy[2];
+
+				//recalculate points
+				this.points.forEach(p => {
+					p[0] += changeBy[0];
+					p[1] += changeBy[1];
+					p[2] += changeBy[2];
+				});
+
+				this.line1.forEach(p => {
+					p[0] += changeBy[0];
+					p[1] += changeBy[1];
+					p[2] += changeBy[2];
+				});
+
+				this.line2.forEach(p => {
+					p[0] += changeBy[0];
+					p[1] += changeBy[1];
+					p[2] += changeBy[2];
+				});
+			}
+		}
+	}
+
+	beDrawn() {
+		super.beDrawn();
+		if (this.cameraDist / render_maxColorDistance < 0.95) {
+			ctx.strokeStyle = `hsl(0, 0%, ${linterp(50, 0, this.cameraDist / render_maxColorDistance)}%)`;
+			drawWorldLine(this.line1[0], this.line1[1]);
+			drawWorldLine(this.line2[0], this.line2[1]);
+		}
+	}
+
+	//yes I have three functions for this one behavior. No I'm not proud of it. But it works (:
+	doCollisionEffects() {
+		this.fallStatus = 0;
+		this.propogateCrumble();
+	}
+
+	propogateCrumble() {
+		//crumble all other tiles around self
+		var positions = [[-1, -1], [-1, 0], [-1, 1], [0, 1], [1, 1], [1, 0], [1, -1], [0, -1]];
+		positions.forEach(r => {
+			//keeping numbers in bounds, for strip number through modulo and for tile number through clamping
+			r[0] = (r[0] + this.parentPosition[0] + this.parent.strips.length) % this.parent.strips.length;
+			r[1] = clamp(r[1] + this.parentPosition[1], 0, this.parent.strips[r[0]].length - 1);
+		});
+
+		positions.forEach(r => {
+			this.crumbleOtherTile(r[0], r[1]);
+		});
+	}
+
+	crumbleOtherTile(strip, num) {
+		if (this.parent.strips[strip].tiles[num] instanceof Tile_Crumbling && this.parent.strips[strip].tiles[num].fallStatus == undefined) {
+			this.parent.strips[strip].tiles[num].fallStatus = 0;
+			this.parent.strips[strip].tiles[num].propogateCrumble();
 		}
 	}
 }
