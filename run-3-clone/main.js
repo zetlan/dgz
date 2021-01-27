@@ -3,8 +3,6 @@
 window.onload = setup;
 window.addEventListener("keydown", handleKeyPress, false);
 window.addEventListener("keyup", handleKeyNegate, false);
-document.addEventListener('pointerlockchange', handleCursorLockChange, false);
-document.addEventListener('mozpointerlockchange', handleCursorLockChange, false);
 
 //global variables
 var canvas;
@@ -17,18 +15,37 @@ var controls_sensitivity = 100;
 var controls_object;
 var controls_spacePressed = false;
 
-var editor_active = false;
+var cursor_x = 0;
+var cursor_y = 0;
+var cursor_down = false;
 
 let page_animation;
 
+const color_bg = "#103";
+const color_character = "#888";
+const color_editor_border = "#F8F";
+const color_editor_cursor = "#0FF";
 const color_keyPress = "#8FC";
 const color_keyUp = "#666";
-const color_stars = "#44A";
-const color_bg = "#103";
 const color_map_bg = "#FEA";
 const color_map_writing = "#010";
+const color_stars = "#44A";
+const color_text = "#424";
+
+var editor_active = false;
+var editor_changingTheta = false;
+var editor_selected = undefined;
+var editor_clickTolerance = 5;
+var editor_snapTolerance = 5;
+var editor_thetaCircleRadius = 60;
+var editor_thetaKnobRadius = 10;
 
 let loading_state = new State_Loading();
+
+var map_cameraHeight = 175000;
+
+var tunnel_transitionLength = 200;
+var tunnel_voidWidth = 200;
 
 let world_camera;
 var world_pRandValue = 1.2532;
@@ -41,7 +58,9 @@ let active_objects = [];
 var render_crosshairSize = 10;
 var render_clipDistance = 0.1;
 var render_maxColorDistance = 1000;
+var render_minTileSize = 8;
 var render_identicalPointTolerance = 0.00001;
+var render_times = [];
 
 var haltCollision = false;
 
@@ -56,11 +75,9 @@ function setup() {
 	ctx.lineJoin = "round";
 
 	//cursor movements setup
-	canvas.requestPointerLock = canvas.requestPointerLock || canvas.mozRequestPointerLock;
-	document.exitPointerLock = document.exitPointerLock || document.mozExitPointerLock;
-	canvas.onclick = function() {
-		canvas.requestPointerLock();
-	}
+	document.addEventListener("mousemove", handleMouseMove, false);
+	document.addEventListener("mousedown", handleMouseDown, false);
+	document.addEventListener("mouseup", handleMouseUp, false);
 
 	world_camera = new Camera(0, 8, 0, 0, 0);
 	player = new Character(-60, 0, 0);
@@ -69,14 +86,14 @@ function setup() {
 
 	//setting up world
 	//as a reminder, tunnels are (x, y, z, angle, tile size, sides, tiles per sides, color, length, data)
-	world_objects = [
-					new Tunnel_FromData(100, 100, 0, levelData_mainTunnel.split("\n")[60], []),
-					]; 
+	world_objects = []; 
 	world_stars = [];
 
-	//for (var g=0; g<64; g++) {
-	//	world_objects.push(new Tunnel_FromData(0, 0, 0, levelData_mainTunnel.split("\n")[g], []));
-	//}
+	world_objects.push(new Tunnel_FromData(levelData_mainTunnel.split("\n")[0], []));
+
+	for (var g=0; g<65; g++) {
+		world_objects.push(new Tunnel_FromData(levelData_mainTunnel.split("\n")[g], []));
+	}
 
 	//high resolution slider
 	document.getElementById("haveHighResolution").onchange = updateResolution;
@@ -123,6 +140,9 @@ function handleKeyPress(a) {
 		case 32:
 			controls_object.dy = controls_object.dMax * 4;
 			controls_spacePressed = true;
+			if (editor_active && loading_state instanceof State_Game) {
+				world_camera.targetRot = 0;
+			}
 			break;
 
 		//camera controls
@@ -206,24 +226,123 @@ function handleKeyNegate(a) {
 	}
 }
 
-function handleCursorLockChange() {
-	if (document.pointerLockElement === canvas || document.mozPointerLockElement === canvas) {
-		controls_cursorLock = true;
-		document.addEventListener("mousemove", handleMouseMove, false);
+function handleMouseDown(a) {
+	if (editor_active) {
+		cursor_down = true;
+
+		var canvasArea = canvas.getBoundingClientRect();
+		
+		if (editor_selected != undefined) {
+			var selectedCoords = spaceToScreen([editor_selected.x, editor_selected.y, editor_selected.z]);
+			var knobCoords = [selectedCoords[0] + (editor_thetaCircleRadius * Math.cos(editor_selected.theta)), selectedCoords[1] - (editor_thetaCircleRadius * Math.sin(editor_selected.theta))];
+
+			//if colliding with the theta change circle, do that stuff
+			if (getDistance2d(knobCoords, [Math.round(a.clientX - canvasArea.left), Math.round(a.clientY - canvasArea.top)]) < editor_thetaKnobRadius) {
+				editor_changingTheta = true;
+				var diffX = Math.round(a.clientX - canvasArea.left) - cursor_x;
+				var diffY = -1 * (Math.round(a.clientY - canvasArea.top) - cursor_y);
+				editor_selected.theta = (Math.atan2(diffY, diffX) + (Math.PI * 2)) % (Math.PI * 2);
+				editor_selected.updatePosition([editor_selected.x, editor_selected.y, editor_selected.z]);
+			} else {
+				editor_changingTheta = false;
+				editor_selected = undefined;
+			}
+		} else {
+			//update cursor position
+			cursor_x = Math.round(a.clientX - canvasArea.left);
+			cursor_y = Math.round(a.clientY - canvasArea.top);
+
+			//modifying regular tunnels
+
+			//loop through all world objects, if one is close enough, make it the selected one
+			for (var a=0; a<world_objects.length; a++) {
+				var tunnelDrawCoords = spaceToScreen([world_objects[a].x, world_objects[a].y, world_objects[a].z]);
+				if (getDistance2d(tunnelDrawCoords, [cursor_x, cursor_y]) < editor_clickTolerance) {
+					editor_selected = world_objects[a];
+					cursor_x = tunnelDrawCoords[0];
+					cursor_y = tunnelDrawCoords[1];
+					a = world_objects.length + 1;
+				}
+			}
+		}
 	} else {
-		controls_cursorLock = false;
-		document.removeEventListener("mousemove", handleMouseMove, false);
+		//going into the level that's selected
+		if (loading_state instanceof State_Map && loading_state.levelSelected != undefined) {
+			//ordering all the objects
+			world_objects.forEach(u => {
+				u.getCameraDist();
+			});
+			world_objects = orderObjects(world_objects, 8);
+			player.parentPrev = loading_state.levelSelected;
+			loading_state = new State_Game();
+			player.parentPrev.reset();
+		}
 	}
 }
 
+function handleMouseUp(a) {
+	cursor_down = false;
+}
+
 function handleMouseMove(a) {
-	world_camera.theta += a.movementX / controls_sensitivity;
-	world_camera.phi -= a.movementY / controls_sensitivity;
-	if (Math.abs(world_camera.phi) > Math.PI / 2.02) {
-		if (world_camera.phi < 0) {
-			world_camera.phi = Math.PI / -2.01;
-		} else {
-			world_camera.phi = Math.PI / 2.01;
+	var canvasArea = canvas.getBoundingClientRect();
+
+	if (editor_active) {
+		if (cursor_down && editor_selected != undefined) {
+			if (editor_changingTheta) {
+				//update selected tunnel direction
+				var diffX = Math.round(a.clientX - canvasArea.left) - cursor_x;
+				var diffY = -1 * (Math.round(a.clientY - canvasArea.top) - cursor_y);
+				editor_selected.theta = (Math.atan2(diffY, diffX) + (Math.PI * 2)) % (Math.PI * 2);
+				editor_selected.updatePosition([editor_selected.x, editor_selected.y, editor_selected.z]);
+			} else {
+				//moving the tunnel
+				cursor_x = Math.round(a.clientX - canvasArea.left);
+				cursor_y = Math.round(a.clientY - canvasArea.top);
+
+				var snapX = cursor_x;
+				var snapY = cursor_y;
+
+				//if a tunnel end is close enough, snap the tunnel to that position
+				//calculating tunnel end pos
+				for (var a=0; a<world_objects.length; a++) {
+					if (world_objects[a] != editor_selected) {
+						var snapPos = spaceToScreen([world_objects[a].endPos[0] + (tunnel_transitionLength * Math.sin(world_objects[a].theta)), 0, world_objects[a].endPos[2] + (tunnel_transitionLength * Math.cos(world_objects[a].theta))]);
+						if (getDistance2d([snapPos[0], snapPos[1]], [snapX, snapY]) < editor_snapTolerance) {
+							[snapX, snapY] = snapPos;
+						}
+					}
+				}
+
+				//update selected tunnel position
+				if (editor_selected != undefined) {
+					var newCoords = screenToSpace([snapX, snapY], map_cameraHeight);
+					editor_selected.updatePosition(newCoords);
+				}
+			}
+		}
+	} else {
+		if (loading_state instanceof State_Map) {
+			//if mousing over a level, set the ID to the display text
+			var testX = Math.round(a.clientX - canvasArea.left);
+			var testY = Math.round(a.clientY - canvasArea.top);
+
+			//resetting both text and position
+			loading_state.levelSelected = undefined;
+			loading_state.cursorPos = [-100, -100];
+
+			//if a tunnel end is close enough, snap the tunnel to that position
+			//calculating tunnel end pos
+			for (var a=0; a<world_objects.length; a++) {
+				if (world_objects[a] != editor_selected) {
+					var tunnelPos = spaceToScreen([world_objects[a].x, 0, world_objects[a].z]);
+					if (getDistance2d([tunnelPos[0], tunnelPos[1]], [testX, testY]) < editor_snapTolerance) {
+						loading_state.cursorPos = tunnelPos;
+						loading_state.levelSelected = world_objects[a];
+						a = world_objects.length + 1;
+					}
+				}
+			}
 		}
 	}
 }
@@ -240,21 +359,31 @@ function updateResolution() {
 	world_camera.scale *= multiplier;
 }
 
-//with default square root, 930 - 960 ms
-//interesting, trig functions are slower at around 1100 - 1300 ms
+/* results:
+	performing 10,000,000 square roots on random numbers from 1 to 4000 took from 930 - 960 ms
+	this is slightly faster than the same number of sin, cos, and tan operations, at 1100-1300 ms
+
+	performing 100,000 spaceToRelative functions with a variable declaration took 218 - 228 ms
+	performing the same number of spaceToRelative functions with the variable declaration removed took 210-211 ms,
+	
+
+	TL;DR-
+	square roots are slow, but faster than trig functions
+	variable declarations take time, but aren't the end of the world
+
+
+*/
 function performanceTest() {
 	var perfTime = [performance.now(), 0];
 
-	for (var a=0;a<10000000;a++) {
+	for (var a=0;a<100000;a++) {
 		//part to test performance
-		var value = randomSeeded(1, 10);
-		var testApple = Math.cos(value);
-		//var testApple = fastSqrt(value, 7);
+		var value = spaceToRelative([Math.random() * 60, Math.random() * 60, Math.random() * 60], [8, 8, 8], [1, 0.4, 0]);
 
 		//constant part
-		testApple *= 2;
-		if (testApple > 0) {
-			testApple /= 2;
+		value *= 2;
+		if (value > 0) {
+			value /= 2;
 		}
 	}
 
