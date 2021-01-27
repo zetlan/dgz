@@ -29,6 +29,7 @@ class Camera {
 		this.theta = yRot;
 		this.phi = xRot;
 		this.rot = 0;
+		this.targetTheta = 0;
 		this.targetRot = 0;
 		this.animSteps = 9;
 
@@ -37,7 +38,7 @@ class Camera {
 	}
 
 	tick() {
-		if (editor_active) {
+		if (editor_active || !(loading_state instanceof State_Game)) {
 			//handling velocity
 
 			//adding
@@ -55,7 +56,7 @@ class Camera {
 
 			this.dz += this.az;
 			if (Math.abs(this.dz) > this.dMax) {
-				this.dz *= 0.95;
+				this.dz = clamp(this.dz, -1 * this.dMax, this.dMax);
 			}
 			if (this.az == 0) {
 				this.dz *= this.friction;
@@ -79,16 +80,17 @@ class Camera {
 			this.x += moveCoords[0];
 			this.y += moveCoords[1];
 			this.z += moveCoords[2];
+			this.theta += this.dt;
 		} else {
 			//changing with average
 			this.x = (this.targetX + (this.x * (this.animSteps - 1))) / this.animSteps;
 			this.y = (this.targetY + (this.y * (this.animSteps - 1))) / this.animSteps;
 			this.z = (this.targetZ + (this.z * (this.animSteps - 1))) / this.animSteps;
+			this.theta = (this.targetTheta + (this.theta * (this.animSteps - 1))) / this.animSteps;
 		}
 
 
 		//camera velocity
-		this.theta += this.dt;
 		this.phi += this.dp;
 		//weighted average towards target rotation
 		this.rot = (this.targetRot + (this.rot * (this.animSteps - 1))) / this.animSteps;
@@ -107,19 +109,21 @@ class Character {
 		this.dir_down = [0, Math.PI / 2];
 		this.dir_side = [0, 0];
 		this.dir_front = [Math.PI / 2, 0];
-		this.gravStrength = 0.08;
+		this.gravStrength = 0.09;
 		this.speed = 0.15;
-		this.dMax = 2;
+		this.dMax = 3;
 
 		this.x = x;
 		this.y = y;
 		this.z = z;
 
 		this.refPoint = [this.x, this.y + 10, this.z];
+		this.parent = undefined;
+		this.parentPrev = undefined;
 
 		this.dx = 0;
 		this.dy = 0;
-		this.dz = 0;
+		this.dz = this.dMax;
 
 		this.ax = 0;
 		this.az = 0;
@@ -128,7 +132,7 @@ class Character {
 		this.r = 10;
 		this.cameraDist = 1000;
 		this.drawR = this.r / getDistance(this, world_camera);
-		this.color = "#888";
+		this.color = color_character;
 
 	}
 
@@ -157,15 +161,12 @@ class Character {
 			this.dx *= this.friction;
 		}
 		if (Math.abs(this.dx) > this.dMax) {
-			this.dx = clamp(this.dx, -1 * this.dMax, this.dMax);
+			this.dx = clamp(this.dx, -0.8 * this.dMax, 0.8 * this.dMax);
 		}
 
 		this.dz += this.az;
-		if (this.az == 0) {
-			this.dz *= this.friction;
-		}
-		if (Math.abs(this.dz) > this.dMax * 2) {
-			this.dz = clamp(this.dz, -2 * this.dMax, 2 * this.dMax);
+		if (Math.abs(this.dz) > this.dMax * 1.2) {
+			this.dz = clamp(this.dz, -1.2 * this.dMax, 1.2 * this.dMax);
 		}
 
 		//moving according to forces
