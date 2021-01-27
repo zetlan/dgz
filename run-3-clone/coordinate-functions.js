@@ -107,16 +107,19 @@ function clipToZ0(polyPoints, tolerance, invertClipDirection) {
 	return polyPoints;
 }
 
+//returns the distance between two objects
 function getDistance(obj1, obj2) {
-	//returns the pythagorean distance between two objects
 	return Math.sqrt(((obj1.x - obj2.x) * (obj1.x - obj2.x)) + ((obj1.y - obj2.y) * (obj1.y - obj2.y)) + ((obj1.z - obj2.z) * (obj1.z - obj2.z)));
+}
+
+//returns the pythagorean xy distance between two objects 
+function getDistance2d(xyP1, xyP2) {
+	return Math.sqrt(((xyP1[0] - xyP2[0]) * (xyP1[0] - xyP2[0])) + ((xyP1[1] - xyP2[1]) * (xyP1[1] - xyP2[1])));
 }
 
 //determines if a point will be clipped due to being behind / too close to the camera
 function isClipped(pointArr) {
-	var tX = pointArr[0];
-	var tY = pointArr[1];
-	var tZ = pointArr[2];
+	var [tX, tY, tZ] = pointArr;
 	tX -= world_camera.x;
 	tY -= world_camera.y;
 	tZ -= world_camera.z;
@@ -128,10 +131,9 @@ function isClipped(pointArr) {
 
 function polToCart(theta, phi, radius) {
 	//theta here is horizontal angle, while phi is vertical inclination
-	var x = radius * Math.sin(theta) * Math.cos(phi);
-	var y = radius * Math.sin(phi);
-	var z = radius * Math.cos(theta) * Math.cos(phi);
-	return [x, y, z];
+	return [radius * Math.sin(theta) * Math.cos(phi), 
+			radius * Math.sin(phi), 
+			radius * Math.cos(theta) * Math.cos(phi)];
 }
 
 //converts from relative camera coordinates into world coordinates
@@ -146,13 +148,25 @@ function relativeToSpace(pointToTransform, point, normal) {
 	return [tX, tY, tZ];
 }
 
+//takes in a screen point, and returns the spot on the world that would get you that point at a certain Z;
+function screenToSpace(screenSpot, targetZ) {
+	//converting coordinates to different offsets that are applied to the camera's position
+	var sideOffset = polToCart(world_camera.theta + (Math.PI / 2), 0, (screenSpot[0] - (canvas.width / 2)) * (targetZ / world_camera.scale));
+	var upOffset = polToCart(world_camera.theta, world_camera.phi + (Math.PI / 2), (-1 * (screenSpot[1] - (canvas.height / 2))) * (targetZ / world_camera.scale));
+	var frontOffset = polToCart(world_camera.theta, world_camera.phi, targetZ);
+
+	return [world_camera.x + sideOffset[0] + upOffset[0] + frontOffset[0], 
+			world_camera.y + sideOffset[1] + upOffset[1] + frontOffset[1], 
+			world_camera.z + sideOffset[2] + upOffset[2] + frontOffset[2]]; 
+}
+
 //turns world coordinates into 3d camera coordinates
 function spaceToRelative(pointToChange, point, normal) {
 	var [tX, tY, tZ] = pointToChange;
 
-	tX -= point[0];
-	tY -= point[1];
-	tZ -= point[2];
+	var tX = pointToChange[0] - point[0];
+	var tY = pointToChange[1] - point[1];
+	var tZ = pointToChange[2] - point[2];
 
 	[tX, tZ] = rotate(tX, tZ, normal[0]);
 	[tY, tZ] = rotate(tY, tZ, normal[1]);
@@ -161,11 +175,12 @@ function spaceToRelative(pointToChange, point, normal) {
 	return [tX, tY, tZ];
 }
 
-function spaceToScreen(pointArr) {
+
+function spaceToScreen(point) {
 	//takes in an xyz list and outputs an xy list
-	var tX = pointArr[0];
-	var tY = pointArr[1];
-	var tZ = pointArr[2];
+	var tX = point[0];
+	var tY = point[1];
+	var tZ = point[2];
 
 	//step 1: make coordinates relative to camera
 	tX -= world_camera.x;
