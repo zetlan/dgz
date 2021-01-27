@@ -82,25 +82,21 @@ function drawPoly(color, xyPointsArr) {
 }
 
 function drawCircle(color, x, y, radius) {
+	radius = clamp(radius, 0, 1000);
 	ctx.beginPath();
 	ctx.fillStyle = color;
-	ctx.strokeStyle = color;
 	ctx.ellipse(x, y, radius, radius, 0, 0, Math.PI * 2);
-	ctx.stroke();
 	ctx.fill();
 }
 
 function drawQuad(color, p1, p2, p3, p4) {
-	//console.log(color, p1, p2, p3, p4);
 	ctx.fillStyle = color;
-	ctx.strokeStyle = color;
 	ctx.beginPath();
 	ctx.moveTo(p1[0], p1[1]);
 	ctx.lineTo(p2[0], p2[1]);
 	ctx.lineTo(p3[0], p3[1]);
 	ctx.lineTo(p4[0], p4[1]);
 	ctx.lineTo(p1[0], p1[1]);
-	ctx.stroke();
 	ctx.fill();
 }
 
