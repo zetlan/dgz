@@ -175,20 +175,12 @@ class FreePoly {
 			//drawCircle("#FFF", screenPoints[0][0], screenPoints[0][1], 4);
 			if (editor_active && !isClipped([[this.x, this.y, this.z]])) {
 				//draw self's normal as well
-				var dXY = spaceToScreen([this.x, this.y, this.z]);
 				var cXYZ = polToCart(this.normal[0], this.normal[1], 5);
-				var eXY = spaceToScreen([this.x + cXYZ[0], this.y + cXYZ[1], this.z + cXYZ[2]]);
-				//var fXY = spaceToScreen(this.rPoint);
+				cXYZ = [this.x + cXYZ[0], this.y + cXYZ[1], this.z + cXYZ[2]];
 				ctx.beginPath();
+				ctx.lineWidth = 2;
 				ctx.strokeStyle = "#AFF";
-				ctx.fillStyle = "#AFF";
-				//ctx.font = "20px Century Gothic";
-				//ctx.fillText(this.dir_down.toFixed(2), dXY[0], dXY[1]);
-				ctx.moveTo(dXY[0], dXY[1]);
-				ctx.lineTo(eXY[0], eXY[1]);
-				//ctx.moveTo(dXY[0], dXY[1]);
-				//ctx.lineTo(fXY[0], fXY[1]);
-				ctx.stroke();
+				drawWorldLine([this.x, this.y, this.z], cXYZ);
 			}
 		}
 	}
@@ -287,6 +279,33 @@ class Tunnel {
 		this.maxTileRenderDist = (this.tileSize / 2) * world_camera.scale;
 	}
 
+	beDrawn() {
+		//if player is close enough, draw individual tiles. If not, draw a thin line
+		if (this.cameraDist < this.maxTileRenderDist) {
+			this.strips.forEach(s => {
+				s.beDrawn();
+			});
+		} else {
+			//draw self as a line
+			ctx.lineWidth = Math.max(1, ((2 * this.r) / this.cameraDist) * world_camera.scale);
+			ctx.strokeStyle = "#000";
+			drawWorldLine([this.x, this.y, this.z], this.endPos);
+			ctx.lineWidth = 2;
+		}
+	}
+
+	beDrawnOnMap() {
+		//circle + line
+		var circleCoords = spaceToScreen([this.x, this.y, this.z]);
+		var endCoords = spaceToScreen(this.endPos);
+		drawCircle(color_map_writing, circleCoords[0], circleCoords[1], canvas.height / 320);
+
+		ctx.beginPath();
+		ctx.moveTo(circleCoords[0], circleCoords[1]);
+		ctx.lineTo(endCoords[0], endCoords[1]);
+		ctx.stroke();
+	}
+
 	generateTiles() {
 		this.strips = [];
 		//split array into strips, with each strip being its own data structure
@@ -317,7 +336,7 @@ class Tunnel {
 				var tileY = apothemLength * Math.sin(apothemAngle);
 				var tileZ = 0 + (a * this.tileSize);
 				
-				//modifying coordinates
+				//modifying coordinate
 				tileX += additionLength * Math.cos(additionAngle);
 				tileY += additionLength * Math.sin(additionAngle);
 
@@ -333,10 +352,12 @@ class Tunnel {
 				}
 				loadingStrip.tiles.push(this.generateTile(value, this.x + tileX, this.y + tileY, this.z + tileZ, this.tileSize, this.theta, apothemAngle + (Math.PI / 2), 0, [stripNormal[0] + Math.PI - this.theta, stripNormal[1]], this.theta, [t, a], this.color));
 			}
+			loadingStrip.establishReals();
 			this.strips.push(loadingStrip);
 		}
 	}
 
+	//generates a single tile from parameters
 	generateTile(type, x, y, z, size, theta, phi, rot, normal, tunnelDir, position, color) {
 		switch(type) {
 			case 0:
@@ -349,62 +370,92 @@ class Tunnel {
 		
 	}
 
-	tick() {
-		//keep track of distance from player, use center of tunnel rather than start
-		this.cameraDist = getDistance({x:this.centerPos[0], y:this.centerPos[1], z:this.centerPos[2]}, world_camera);
-
-		this.strips.forEach(s => {
-			s.tick();
-		});
-		haltCollision = false;
+	getCameraDist() {
+		//keep track of distance from camera, use center of tunnel rather than start
+		this.cameraDist = getDistance({x:this.centerPos[0], y:this.centerPos[1], z:this.centerPos[2]}, {x:world_camera.targetX, y:world_camera.targetY, z:world_camera.targetZ});
 	}
 
-	beDrawn() {
-		//if player is close enough, draw individual tiles. If not, draw a thin line
-		if (this.cameraDist < this.maxTileRenderDist) {
-			this.strips.forEach(s => {
-				s.beDrawn();
-			});
-		} else {
-			//draw self as a line
-			ctx.lineWidth = Math.max(1, (this.r * this.r) / this.cameraDist);
-			ctx.strokeStyle = "#000";
-			drawWorldLine([this.x, this.y, this.z], this.endPos);
-		}
-	}
-
-	beDrawnOnMap() {
-		//circle + line
-		var circleCoords = spaceToScreen([this.x, this.y, this.z]);
-		var endCoords = spaceToScreen(this.endPos);
-		drawCircle(color_map_writing, circleCoords[0], circleCoords[1], 3);
-
-		ctx.beginPath();
-		ctx.moveTo(circleCoords[0], circleCoords[1]);
-		ctx.lineTo(endCoords[0], endCoords[1]);
-		ctx.stroke();
-	}
 	//returns true if the player is inside the tunnel, and false if the player is not
 	playerIsInTunnel() {
 		
 	}
+
+	//returns true if the player is inside the tunnel bounds; this is what's used to check for killing the player 
+	playerIsInBounds() {
+		var newCoords = [player.x - this.x, player.y - this.y, player.z - this.z];
+		//rotating by tunnel thetat
+		[newCoords[0], newCoords[2]] = rotate(newCoords[0], newCoords[2], this.theta * -1);
+		if (getDistance2d([newCoords[0], newCoords[1]], [0, 0]) < this.r + tunnel_voidWidth && newCoords[2] > 0 && newCoords[2] < (this.len * this.tileSize) + tunnel_transitionLength * 1.5) {
+			return true;
+		}
+		return false;
+	}
+
+	reset() {
+		//put player on first tile of self
+		player.x = this.x;
+		player.y = this.y;
+		player.z = this.z;
+		for (var a=0; a<this.strips.length-1; a++) {
+			if (this.strips[a].tiles[0] != undefined) {
+				this.strips[a].tiles[0].doRotationEffects();
+			}
+		}
+		
+	}
+
+	tick() {
+		//only bother with collision and all that jazz if it's close enough to matter
+		if (this.cameraDist - (this.len * this.tileSize) < render_maxColorDistance) {
+			this.strips.forEach(s => {
+				s.tick();
+			});
+			haltCollision = false;
+		}
+	}
+
+	updatePosition(newPosition) {
+		//start
+		this.x = newPosition[0];
+		this.y = newPosition[1];
+		this.z = newPosition[2];
+
+		//middle
+		this.centerPos = [0, 0, (this.len / 2) * this.tileSize];
+		[this.centerPos[0], this.centerPos[2]] = rotate(this.centerPos[0], this.centerPos[2], this.theta);
+		this.centerPos = [this.centerPos[0] + this.x, this.centerPos[1] + this.y, this.centerPos[2] + this.z];
+
+		//generating end
+		this.endPos = [0, 0, this.len * this.tileSize];
+		[this.endPos[0], this.endPos[2]] = rotate(this.endPos[0], this.endPos[2], this.theta);
+		this.endPos = [this.endPos[0] + this.x, this.endPos[1] + this.y, this.endPos[2] + this.z];
+
+		this.generateTiles();
+	}
+
+	
+	
 }
 
 class Tunnel_FromData extends Tunnel {
-	constructor(x, z, angle, tunnelData, connections) {
+	constructor(tunnelData, connections) {
 		var data = tunnelData_handle(tunnelData);
-		super(x, z, angle, data.tileSize, data.sides, data.tilesPerSide, RGBtoHSV(data.color), data.maxLen, data.tileData, data.id, connections);
+		super(data.x, data.z, data.theta, data.tileSize, data.sides, data.tilesPerSide, RGBtoHSV(data.color), data.maxLen, data.tileData, data.id, connections);
 		this.rawData = tunnelData;
 	}
 
 	giveStringData() {
 		var toReturn = this.rawData;
 		if (!this.rawData.includes("coordinate-pos-x:")) {
-			toReturn += `|coordinate-pos-x:${this.x}`;
+			toReturn += `|pos-x:${Math.round(this.x)}`;
 		}
 		
 		if (!this.rawData.includes("coordinate-pos-z:")) {
-			toReturn += `|coordinate-pos-z:${this.z}`;
+			toReturn += `|pos-z:${Math.round(this.z)}`;
+		}
+
+		if (!this.rawData.includes("tunnel-direction:")) {
+			toReturn += `|direction:${this.theta.toFixed(4)}`;
 		}
 
 		return toReturn;
@@ -424,6 +475,7 @@ class Tunnel_Strip {
 		this.tileSize = tileSize;
 
 		this.tiles = [];
+		this.realTiles = [];
 	}
 
 	//returns true if the player should be drawn on top of the strip
@@ -445,26 +497,46 @@ class Tunnel_Strip {
 	}
 
 	beDrawn() {
+		this.realTiles.forEach(t => {
+			t.beDrawn();
+		});
+
+		if (editor_active) {
+			//debug normal stuff
+			var cXYZ = polToCart(this.theta, this.phi, 10);
+			cXYZ = [this.x + cXYZ[0], this.y + cXYZ[1], this.z + cXYZ[2]];
+			ctx.beginPath();
+			ctx.lineWidth = 4;
+			ctx.strokeStyle = "#F00";
+			drawWorldLine([this.x, this.y, this.z], cXYZ);
+		}
+	}
+
+	//makes drawing / ticking self tiles slightly faster
+	establishReals() {
+		this.realTiles = [];
 		this.tiles.forEach(t => {
 			if (t != undefined) {
-				t.beDrawn();
+				this.realTiles.push(t)
 			}
 		});
+		if (this.realTiles.length > 0) {
+			this.theta = this.realTiles[0].normal[0];
+			this.phi = this.realTiles[0].normal[1];
+		}
 	}
 
 	tick() {
 		//setting camera distance
 		this.cameraDist = getDistance(this, world_camera);
-		this.tiles.forEach(t => {
-			if (t != undefined) {
-				t.tick();
-			}
+		this.realTiles.forEach(t => {
+			t.tick();
 		});
 	}
 }
 
 class Tile extends FreePoly {
-	constructor(x, y, z, size, theta, phi, rot, normal, tunnelDir, parent, parentPosition, color) {
+	constructor(x, y, z, size, theta, phi, rot, normal, tunnelDir, parent, tilePosition, color) {
 		var points = [[-1, 0, -1], [-1, 0, 1], [1, 0, 1], [1, 0, -1]];
 
 		var rPoint = [10, 0, 0];
@@ -489,18 +561,42 @@ class Tile extends FreePoly {
 		this.cameraRot = phi - (Math.PI / 2);
 
 		this.parent = parent;
-		this.parentPosition = parentPosition;
-		
-		
+		this.parentPosition = tilePosition;
+	}
+
+	beDrawn() {
+		if ((this.size / this.cameraDist) * world_camera.scale > render_minTileSize) {
+			super.beDrawn();
+		}
 	}
 
 	doRotationEffects() {
 		player.dir_down = this.normal;
-		player.dir_front = [this.dir_tunnel, 0];
+		player.dir_front = [(Math.PI * 2) - this.dir_tunnel, 0];
 		player.dir_side = this.dir_right;
 
-		if (world_camera.targetRot != (Math.PI * 1.5) - this.cameraRot) {
+		world_camera.phi = 0;
+		world_camera.targetTheta = (Math.PI * 2) - this.parent.theta;
+		//if the difference is too great, fix that
+		if (Math.abs(world_camera.theta - world_camera.targetTheta) > Math.PI) {
+			if (world_camera.theta > Math.PI) {
+				world_camera.theta -= Math.PI * 2;
+			} else {
+				world_camera.theta += Math.PI * 2;
+			}
+		}
+
+		if (!editor_active && world_camera.targetRot != (Math.PI * 1.5) - this.cameraRot) {
 			world_camera.targetRot = (Math.PI * 1.5) - this.cameraRot;
+
+			//if the rotation difference is too great, fix that
+			if (Math.abs(world_camera.rot - world_camera.targetRot) > Math.PI) {
+				if (world_camera.rot > Math.PI) {
+					world_camera.rot -= Math.PI * 2;
+				} else {
+					world_camera.rot += Math.PI * 2;
+				}
+			}
 			haltCollision = true;
 		}
 		player.dy = 0;
@@ -516,13 +612,13 @@ class Tile extends FreePoly {
 
 
 class Tile_Crumbling extends Tile {
-	constructor(x, y, z, size, theta, phi, rot, normal, tunnelDir, parent, parentPosition) {
-		super(x, y, z, size, theta, phi, rot, normal, tunnelDir, parent, parentPosition, {h: 0, s: 0});
+	constructor(x, y, z, size, theta, phi, rot, normal, tunnelDir, parent, tilePosition) {
+		super(x, y, z, size, theta, phi, rot, normal, tunnelDir, parent, tilePosition, {h: 0, s: 0});
 		this.line1 = [transformPoint([0.5, 0, 0.5], [x, y, z], rot, phi, theta, size), transformPoint([-0.5, 0, -0.5], [x, y, z], rot, phi, theta, size)];
 		this.line2 = [transformPoint([-0.5, 0, 0.5], [x, y, z], rot, phi, theta, size), transformPoint([0.5, 0, -0.5], [x, y, z], rot, phi, theta, size)];
 
 		this.fallStatus = undefined;
-		this.fallRate = -0.4;
+		this.fallRate = -0.5;
 	}
 
 	tick() {
