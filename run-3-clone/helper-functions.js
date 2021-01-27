@@ -97,7 +97,7 @@ function linterp(a, b, percentage) {
 }
 
 //takes in an array of objects with cameraDist values and returns the array, ordered by distance from the camera
-function orderObjects(array) {
+function orderObjects(array, places) {
 	//addings all objects to first array
 	let unsorted_objects = [];
 	let ordered = [];
@@ -107,8 +107,7 @@ function orderObjects(array) {
 	});
 
 	//running a radix sort
-	//4 places
-	for (var pos=1; pos<5; pos++) {
+	for (var pos=1; pos<places+1; pos++) {
 		//push objects to buckets
 		while (unsorted_objects.length > 0) {
 			//formula determines which bucket to push into
@@ -257,6 +256,10 @@ function tunnelData_subdivide(data) {
 	var tunnel_tileSize = 70;
 	var tunnel_id = "";
 
+	var tunnel_x = 0;
+	var tunnel_z = 0;
+	var tunnel_theta = 0;
+
 	
 
 		//determining what to do with the input
@@ -305,9 +308,22 @@ function tunnelData_subdivide(data) {
 
 			tunnel_tileData[position] = dataBit[0];
 		}
+
+		//x, z, and theta 
+		if (i.includes("pos-x:")) {
+			tunnel_x = i.replace("pos-x:", "") * 1;
+		}
+
+		if (i.includes("pos-z:")) {
+			tunnel_z = i.replace("pos-z:", "") * 1;
+		}
+
+		if (i.includes("direction:")) {
+			tunnel_theta = i.replace("direction:", "") * 1;
+		}
 	});
 
-	return {color: tunnel_color, id: tunnel_id, tileSize: tunnel_tileSize, tilesPerSide: tunnel_tilesPerSide, maxLen: 0, sides: tunnel_sides, tileData: tunnel_tileData};
+	return {color: tunnel_color, id: tunnel_id, tileSize: tunnel_tileSize, tilesPerSide: tunnel_tilesPerSide, maxLen: 0, sides: tunnel_sides, tileData: tunnel_tileData, x: tunnel_x, z: tunnel_z, theta: tunnel_theta};
 }
 
 
@@ -405,6 +421,16 @@ function spliceOut(string, charStart, charEnd) {
 	return string.slice(0, charStart) + string.slice(charEnd, string.length);
 }
 
+
+//outputs every tunnel in the world as a string
+function worldOutput() {
+	var output = ``;
+	world_objects.forEach(w => {
+		output += w.giveStringData() + "\n";
+	});
+
+	return output;
+}
 
 
 
