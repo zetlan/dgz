@@ -24,15 +24,14 @@ function drawCrosshair() {
 	var zPlus = [center[0], center[1], center[2] + (render_crosshairSize / 20)];
 
 	//transforming lines to screen coordinates
-	[center, xPlus, yPlus, zPlus] = [spaceToScreen(center), spaceToScreen(xPlus), spaceToScreen(yPlus), spaceToScreen(zPlus)];
 
 	//drawing lines
 	ctx.strokeStyle = "#F00";
-	drawPoly("#F00", [center, xPlus]);
+	drawWorldLine(center, xPlus);
 	ctx.strokeStyle = "#0F0";
-	drawPoly("#0F0", [center, yPlus]);
+	drawWorldLine(center, yPlus);
 	ctx.strokeStyle = "#00F";
-	drawPoly("#00F", [center, zPlus]);
+	drawWorldLine(center, zPlus);
 }
 
 function drawKeys() {
@@ -65,9 +64,6 @@ function drawKeys() {
 
 function drawPoly(color, xyPointsArr) {
 	ctx.fillStyle = color;
-	if (!editor_active) {
-		ctx.strokeStyle = color;
-	}
 	
 	var xypa = xyPointsArr;
 	ctx.beginPath();
@@ -75,9 +71,6 @@ function drawPoly(color, xyPointsArr) {
 	for (var i=1;i<xypa.length;i++) {
 		ctx.lineTo(xypa[i][0], xypa[i][1]);
 	}
-	//back to start
-	ctx.lineTo(xypa[0][0], xypa[0][1]);
-	ctx.stroke();
 	ctx.fill();
 }
 
