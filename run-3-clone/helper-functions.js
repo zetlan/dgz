@@ -10,10 +10,16 @@ utility:
 	clamp();
 	getPercentage();
 	linterp();
-	tunnelData_handle();
-	tunnelData_parseData();
-	tunnelData_subdivide();
-	
+
+	power_falseAlarm();
+	power_fast();
+	power_glimpse();
+	power_instant();
+	power_notSoFalseAlarm();
+	power_slow();
+	power_slowSmooth();
+	power_smooth();
+
 	randomCustom();
 	randomSeeded();
 	RGBtoHSV();
@@ -21,14 +27,15 @@ utility:
 	runCrash();
 	spliceIn();
 	spliceOut();
+	tunnelData_handle();
+	tunnelData_parseData();
+	tunnelData_subdivide();
+	worldOutput();
 
 2d collision:
-
-
-drawing:
-	drawQuad();
-	drawPoly();
-	drawCircle();
+	getOrientation();
+	lineIntersect();
+	inPoly();
 */
 
 
@@ -133,11 +140,181 @@ function orderObjects(array, places) {
 	return ordered;
 }
 
+//power functions!
+//each power function takes in a start power, end power, and a time. The time determines what the power will be.
+function power_falseAlarm(powStart, powEnd, time) {
+	time = clamp(time / 60, 0, 1);
+	return linterp(powEnd, powStart, Math.max(0, 1 - (2 * (3.00006648 * time * time)) + (6 * (time * time * time * time))))
+
+}
+
+function power_fast(powStart, powEnd, time) {
+	//fast is made from other functions
+	if (time < 90) {
+		return power_notSoFalseAlarm(powStart, powEnd, time);
+	} else if (time < 100) {
+		return linterp(powStart, powEnd, 0.5);
+	} else {
+		return power_smooth(powStart, powEnd, (time - 100) * 4);
+	}
+}
+
+function power_glimpse(powStart, powEnd, time) {
+	time = clamp(time / 60, 0, 2);
+	return linterp(powStart, powEnd, 1 - ((time - 1) * (time - 1)));
+}
+
+function power_instant(powStart, powEnd, time) {
+	return powEnd;
+}
+
+function power_notSoFalseAlarm(powStart, powEnd, time) {
+	//slow fade, jump to start, then jump back to end
+	if (time > 70) {
+		return powEnd;
+	}
+	return power_falseAlarm(powStart, powEnd, time);
+}
+
+function power_slow(powStart, powEnd, time) {
+	//slow is also made from other functions, I used switch because it was worth it
+	var mode = Math.floor(time / 10);
+
+	switch (mode) {
+		case 0:
+		case 1:
+		case 2:
+		case 3:
+		case 4:
+		case 5:
+		case 6:
+		case 7:
+		case 8:
+		case 9:
+			return power_notSoFalseAlarm(powStart, powEnd, time);
+		case 10:
+			return power_smooth(powStart, powEnd, (time - 100) * 6);
+		case 11:
+		case 12:
+			return linterp(powEnd, powStart, 0.6);
+		case 13:
+			return linterp(powEnd, powStart, 0.2);
+		case 14:
+		case 15:
+			return linterp(powEnd, powStart, 0.4);
+		case 16:
+			return linterp(powEnd, powStart, 0);
+		case 17:
+			return linterp(powEnd, powStart, 0.3);
+		case 18:
+		default:
+			return linterp(powEnd, powStart, 0);
+	}
+}
+
+//I like the smooth functions because they're easy
+function power_slowSmooth(powStart, powEnd, time) {
+	return linterp(powStart, powEnd, clamp(time, 0, 120) / 120);
+}
+
+function power_smooth(powStart, powEnd, time) {
+	return linterp(powStart, powEnd, clamp(time, 0, 60) / 60);
+}
 
 
 
 
 
+
+//returns a random value between the min value and max values, using the default javascript randomizer
+function randomCustom(min, max) {
+	return (Math.random() * (max - min)) + min;
+}
+
+//returns a pseudo-random value between the min value and max values
+function randomSeeded(min, max) {
+	world_pRandValue = Math.pow(world_pRandValue, 1.6414756);
+	//keep value in bounds
+	while (world_pRandValue > 100) {
+		world_pRandValue -= 98;
+	}
+	return ((world_pRandValue % 1) * (max - min)) + min;
+}
+
+//takes in a six digit RGB hex code and outputs an HSV code in object form.
+function RGBtoHSV(sixDigitRGBHexCode) {
+	//first get the seperate red, green, and blue values
+	var val_red = sixDigitRGBHexCode.substring(1, 3);
+	var val_green = sixDigitRGBHexCode.substring(3, 5);
+	var val_blue = sixDigitRGBHexCode.substring(5, 7);
+
+	//map from strings to 0-255 value
+	val_red = parseInt(val_red, 16);
+	val_green = parseInt(val_green, 16);
+	val_blue = parseInt(val_blue, 16);
+
+	
+	//convert to 0-1 scalar
+	val_red /= 255;
+	val_green /= 255;
+	val_blue /= 255;
+
+	//other helpful parameters
+	var val_max = Math.max(val_red, val_green, val_blue);
+	var val_min = Math.min(val_red, val_green, val_blue);
+	var diff = val_max - val_min;
+
+	var hue;
+	var saturation;
+	var value = val_max;
+
+	//calculating hue
+	if (diff == 0) {
+		hue = 0;
+	} else if (val_red == val_max) {
+		hue = 60 * (((val_green - val_blue) / diff) % 6);
+	} else if (val_green == val_max) {
+		hue = 60 * (((val_blue - val_red) / diff) + 2);
+	} else if (val_blue == val_max) {
+		hue = 60 * (((val_red - val_green) / diff) + 4);
+	}
+
+
+
+	//calculating saturation
+	if (val_max == 0) {
+		saturation = 0;
+	} else {
+		saturation = diff / val_max;
+	}
+
+	return {h: hue, s: saturation * 100, v: value};
+}
+
+function rotate(x, z, radians) {
+	[x, z] = [(x * Math.cos(radians)) - (z * Math.sin(radians)), (z * Math.cos(radians)) + (x * Math.sin(radians))];
+	return [x, z];
+}
+
+function runCrash() {
+	ctx.fillStyle = "#F0F";
+	ctx.fillRect(0, 0, canvas.width / 2, canvas.height / 2);
+	ctx.fillRect(canvas.width / 2, canvas.height / 2, canvas.width / 2, canvas.height / 2);
+
+	ctx.fillStyle = "#000";
+	ctx.fillRect(canvas.width / 2, 0, canvas.width / 2, canvas.height / 2);
+	ctx.fillRect(0, canvas.height / 2, canvas.width / 2, canvas.height / 2);
+
+	window.cancelAnimationFrame(game_animation);
+}
+
+function spliceIn(string, charStart, string2) {
+	return string.slice(0, charStart) + string2 + string.slice(charStart, string.length);
+}
+
+function spliceOut(string, charStart, charEnd) {
+	return string.slice(0, charStart) + string.slice(charEnd, string.length);
+}
 
 function tunnelData_handle(data) {
 	//turn raw input into slightly more managable data by subdividing it
@@ -256,23 +433,28 @@ function tunnelData_subdivide(data) {
 	var tunnel_tileSize = 70;
 	var tunnel_id = "";
 
+	var tunnel_power = 1;
+	var tunnel_powerFunctions = [];
+
+	var tunnel_spawns = [];
+
+	var tunnel_theta = 0;
 	var tunnel_x = 0;
 	var tunnel_z = 0;
-	var tunnel_theta = 0;
+	
 
 	
 
 		//determining what to do with the input
 	splitInput.forEach(i => {
-
 		//if it's a color tag, update the color
-		if (i.includes("color")) {
+		if (i.indexOf("color") == 0) {
 			//take the last 6 chars as the color code
 			tunnel_color = "#" + i.substr(i.length - 6, 6);
 		}
 
 		//if it's a layout tag, update the tiles per row
-		if (i.includes("layout")) {
+		else if (i.indexOf("layout") == 0) {
 			//splice out the non-numbers
 			var layoutNumberBits = i.replace("layout-tunnel", "");
 			layoutNumberBits = "[" + layoutNumberBits + "]";
@@ -284,18 +466,33 @@ function tunnelData_subdivide(data) {
 		}
 
 		//if it's a tile size tag, update the tile size
-		if (i.includes("tileWidth")) {
+		else if (i.indexOf("tileWidth") == 0) {
 			//splice out the first part, multiply by 1 so it's not a string anymore
 			tunnel_tileSize = i.replace("tileWidth-", "") * 1;
 		}
 
 		//if it's an id tag, update the id, you know the thingy
-		if (i.includes("id-")) {
+		else if (i.indexOf("id-") == 0) {
 			tunnel_id = i.replace("id-", "");
 		}
 
-		//if it's a data tag, update the data array
-		if (i.includes("terrain-pos")) {
+		//trigger conditionals
+		else if (i.indexOf("trigger-condition-z,") == 0) {
+			var temp = i.replace("trigger-condition-z,", "");
+			//only proceed if it's actually a power trigger
+			if (temp.indexOf("result-power-") != -1) {
+				temp = temp.split(",");
+
+				//the first box is the tile to trigger at,
+				//the second box is the result power, and 
+				//the third box is the type of fade
+				//EX [10, 0.4, "slow"]
+				tunnel_powerFunctions.push([temp[0] * 1, temp[1].replace(">~result-power-", "")* 1, temp[2]]);
+			}
+		}
+
+		//data tags
+		else if (i.indexOf("terrain-pos") == 0) {
 			//first splice out the terrain pos
 			var dataBit = i.replace("terrain-pos-", "");
 			//splice out the type definition
@@ -310,115 +507,31 @@ function tunnelData_subdivide(data) {
 		}
 
 		//x, z, and theta 
-		if (i.includes("pos-x:")) {
+		else if (i.indexOf("pos-x:") == 0) {
 			tunnel_x = i.replace("pos-x:", "") * 1;
 		}
 
-		if (i.includes("pos-z:")) {
+		else if (i.indexOf("pos-z:") == 0) {
 			tunnel_z = i.replace("pos-z:", "") * 1;
 		}
 
-		if (i.includes("direction:")) {
+		else if (i.indexOf("direction:") == 0) {
 			tunnel_theta = i.replace("direction:", "") * 1;
+		}
+
+		//spawns
+		else if (i.indexOf("spawn-") == 0) {
+			tunnel_spawns.push(i.replace("spawn-", "") * 1);
+		}
+
+		//power
+		else if (i.indexOf("power-") == 0) {
+			tunnel_power = i.replace("power-", "") * 1;
 		}
 	});
 
-	return {color: tunnel_color, id: tunnel_id, tileSize: tunnel_tileSize, tilesPerSide: tunnel_tilesPerSide, maxLen: 0, sides: tunnel_sides, tileData: tunnel_tileData, x: tunnel_x, z: tunnel_z, theta: tunnel_theta};
-}
-
-
-
-
-
-
-//returns a random value between the min value and max values, using the default javascript randomizer
-function randomCustom(min, max) {
-	return (Math.random() * (max - min)) + min;
-}
-
-//returns a pseudo-random value between the min value and max values
-function randomSeeded(min, max) {
-	world_pRandValue = Math.pow(world_pRandValue, 1.6414756);
-	//keep value in bounds
-	while (world_pRandValue > 100) {
-		world_pRandValue -= 98;
-	}
-	return ((world_pRandValue % 1) * (max - min)) + min;
-}
-
-//takes in a six digit RGB hex code and outputs an HSV code in object form.
-function RGBtoHSV(sixDigitRGBHexCode) {
-	//first get the seperate red, green, and blue values
-	var val_red = sixDigitRGBHexCode.substring(1, 3);
-	var val_green = sixDigitRGBHexCode.substring(3, 5);
-	var val_blue = sixDigitRGBHexCode.substring(5, 7);
-
-	//map from strings to 0-255 value
-	val_red = parseInt(val_red, 16);
-	val_green = parseInt(val_green, 16);
-	val_blue = parseInt(val_blue, 16);
-
-	
-	//convert to 0-1 scalar
-	val_red /= 255;
-	val_green /= 255;
-	val_blue /= 255;
-
-	//other helpful parameters
-	var val_max = Math.max(val_red, val_green, val_blue);
-	var val_min = Math.min(val_red, val_green, val_blue);
-	var diff = val_max - val_min;
-
-	var hue;
-	var saturation;
-	var value = val_max;
-
-	//calculating hue
-	if (diff == 0) {
-		hue = 0;
-	} else if (val_red == val_max) {
-		hue = 60 * (((val_green - val_blue) / diff) % 6);
-	} else if (val_green == val_max) {
-		hue = 60 * (((val_blue - val_red) / diff) + 2);
-	} else if (val_blue == val_max) {
-		hue = 60 * (((val_red - val_green) / diff) + 4);
-	}
-
-
-
-	//calculating saturation
-	if (val_max == 0) {
-		saturation = 0;
-	} else {
-		saturation = diff / val_max;
-	}
-
-	return {h: hue, s: saturation * 100, v: value};
-}
-
-function rotate(x, z, radians) {
-	[x, z] = [(x * Math.cos(radians)) - (z * Math.sin(radians)), (z * Math.cos(radians)) + (x * Math.sin(radians))];
-	return [x, z];
-}
-
-function runCrash() {
-	ctx.fillStyle = "#F0F";
-	ctx.fillRect(0, 0, canvas.width / 2, canvas.height / 2);
-	ctx.fillRect(canvas.width / 2, canvas.height / 2, canvas.width / 2, canvas.height / 2);
-
-	ctx.fillStyle = "#000";
-	ctx.fillRect(canvas.width / 2, 0, canvas.width / 2, canvas.height / 2);
-	ctx.fillRect(0, canvas.height / 2, canvas.width / 2, canvas.height / 2);
-
-	window.cancelAnimationFrame(game_animation);
-}
-
-function spliceIn(string, charStart, string2) {
-	return string.slice(0, charStart) + string2 + string.slice(charStart, string.length);
-}
-
-function spliceOut(string, charStart, charEnd) {
-	return string.slice(0, charStart) + string.slice(charEnd, string.length);
+	return {color: tunnel_color, id: tunnel_id, maxLen: 0, power: tunnel_power, powerFunctions: tunnel_powerFunctions, sides: tunnel_sides, spawns: tunnel_spawns,
+			tileData: tunnel_tileData, tileSize: tunnel_tileSize, tilesPerSide: tunnel_tilesPerSide, theta: tunnel_theta, x: tunnel_x, z: tunnel_z};
 }
 
 
