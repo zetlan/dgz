@@ -43,12 +43,28 @@ class State_Game {
 			if (!player.parent.playerIsInBounds()) {
 				player.parentPrev = player.parent;
 				player.parent = undefined;
+			} else if (!player.parent.playerIsInTunnel()) {
+				//if the player is in the void, try to change parent without reordering objects
+
+				//try the player in the closest few tunnels
+				for (var v=world_objects.length-1; v>Math.max(-1, world_objects.length-6); v--) {
+					if (world_objects[v].playerIsInTunnel()) {
+						player.parentPrev = player.parent;
+						player.parent = world_objects[v];
+						v = -1;
+
+						//reorder objects anyways if found a new tunnel
+						world_objects.forEach(u => {
+							u.getCameraDist();
+						});
+						world_objects = orderObjects(world_objects, 8);
+					}
+				}
 			}
 		}
 
-		//just tick the closest 5 tunnels
-		for (var v=world_objects.length-1; v>Math.max(-1, world_objects.length-6); v--) {
-			world_objects[v].getCameraDist();
+		//just tick the closest few tunnels
+		for (var v=world_objects.length-1; v>Math.max(-1, world_objects.length-9); v--) {
 			world_objects[v].tick();
 		}
 
@@ -57,32 +73,47 @@ class State_Game {
 			if (world_objects[a] != player.parent) {
 				world_objects[a].beDrawn();
 			}
-			
 		}
 
-		
 		if (player.parent == undefined) {
 			player.beDrawn();
 		} else {
 			//sorting player in with the parent tunnel to be drawn
 			var stripStorage = orderObjects(player.parent.strips, 4);
-
+			
 			//if the player is in the middle of the strips (on top of some but not all) do the special
-			var drawPlayer = true;
-			stripStorage.forEach(t => {
-				if (drawPlayer && t.playerIsOnTop()) {
-					t.beDrawn();
-				} else if (drawPlayer) {
-					drawPlayer = false;
+			if (stripStorage[0].playerIsOnTop() != stripStorage[stripStorage.length-1].playerIsOnTop()) {
+				var drawPlayer = true;
+				stripStorage.forEach(t => {
+					if (drawPlayer && t.playerIsOnTop()) {
+						t.beDrawn();
+					} else if (drawPlayer) {
+						drawPlayer = false;
+						player.beDrawn();
+						t.beDrawn();
+					} else {
+						t.beDrawn();
+					}
+				});
+				if (drawPlayer) {
 					player.beDrawn();
-					t.beDrawn();
-				} else {
-					t.beDrawn();
 				}
-			});
-			if (drawPlayer) {
-				player.beDrawn();
-			}
+			} else {
+				//case where player is below all
+				if (!stripStorage[0].playerIsOnTop()) {
+					player.beDrawn();
+					stripStorage.forEach(t => {
+						t.beDrawn();
+					});
+				} else {
+					//case where player is above all
+					stripStorage.forEach(t => {
+						t.beDrawn();
+					});
+					player.beDrawn();
+				}
+			} 
+			
 		}
 
 		//crosshair
@@ -103,7 +134,7 @@ class State_Game {
 				avgTime += t;
 			});
 			avgTime /= render_times.length;
-			console.log(`avg frame time: ${avgTime} ms`);
+			//console.log(`avg frame time: ${avgTime} ms`);
 			render_times = [];
 		}
 	}
