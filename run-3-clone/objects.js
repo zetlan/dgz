@@ -101,6 +101,10 @@ class Camera {
 			this.phi = Math.PI * (-0.5 + (this.phi > 0));
 		}
 	}
+
+	handleSpace() {
+		this.targetRot = 0;
+	}
 }
 
 
@@ -109,15 +113,17 @@ class Character {
 		this.dir_down = [0, Math.PI / 2];
 		this.dir_side = [0, 0];
 		this.dir_front = [Math.PI / 2, 0];
-		this.gravStrength = 0.09;
+		this.gravStrength = 0.1;
 		this.speed = 0.15;
-		this.dMax = 3;
+		this.dMax = 3.6;
+
+		this.onGround = 0;
+		this.jumpTime = controls_jumpTime;
 
 		this.x = x;
 		this.y = y;
 		this.z = z;
-
-		this.refPoint = [this.x, this.y + 10, this.z];
+		
 		this.parent = undefined;
 		this.parentPrev = undefined;
 
@@ -128,12 +134,48 @@ class Character {
 		this.ax = 0;
 		this.az = 0;
 		this.friction = 0.85;
+		this.naturalFriction = 0.97;
 
 		this.r = 10;
 		this.cameraDist = 1000;
 		this.drawR = this.r / getDistance(this, world_camera);
 		this.color = color_character;
 
+	}
+
+	modifyDerivitives(activeGravity, activeFriction, activeAX, activeAZ) {
+		//decreasing the time to jump
+		this.onGround -= 1;
+		//modifying forces
+		if (this.parent != undefined) {
+			//if in the void, half gravity
+			this.dy -= linterp(activeGravity * 0.7, activeGravity, this.parent.power);
+		} else {
+			this.dy -= activeGravity;
+		}
+		if (this.dy > 0 && controls_spacePressed && this.jumpTime > 0) {
+			this.dy += controls_jumpBoost;
+			this.jumpTime -= 1;
+		}
+		if (Math.abs(this.dy) > this.dMax) {
+			this.dy = clamp(this.dy, -1 * this.dMax, 1.5 * this.dMax);
+		}
+
+		this.dx += activeAX;
+		if (this.ax == 0) {
+			this.dx *= activeFriction;
+		}
+		
+		if (Math.abs(this.dx) > this.dMax) {
+			this.dx = clamp(this.dx, -1 * this.dMax, this.dMax);
+		}
+
+		this.dz += activeAZ;
+		//natural friction
+		this.dz *= this.naturalFriction;
+		if (Math.abs(this.dz) > this.dMax) {
+			this.dz = clamp(this.dz, -1.05 * this.dMax, 1.05 * this.dMax);
+		}
 	}
 
 	tick() {
@@ -148,45 +190,33 @@ class Character {
 
 		//getting camera distance
 		this.cameraDist = Math.max(1, getDistance(this, world_camera) - 20);
-		//this.drawR = this.r / this.cameraDist;
+		this.drawR = (this.r / this.cameraDist) * world_camera.scale;
 
-		//modifying forces
-		this.dy -= this.gravStrength;
-		if (Math.abs(this.dy) > this.dMax) {
-			this.dy = clamp(this.dy, -1 * this.dMax, this.dMax);
-		}
+		//only do the other tick stuff if camera is close enough
+		if (this.cameraDist < 1000 && !editor_active) {
+			//if in the void, change around variables
+			if (this.parent != undefined && !this.parent.playerIsInTunnel()) {
+				this.modifyDerivitives(this.gravStrength / 7, this.friction * 0.8, this.ax / 2, this.speed / 2);
+			} else {
+				this.modifyDerivitives(this.gravStrength, this.friction, this.ax, this.speed);
+			}
 
-		this.dx += this.ax;
-		if (this.ax == 0) {
-			this.dx *= this.friction;
+			//moving according to forces
+			var turnForce = polToCart(this.dir_side[0], this.dir_side[1], this.dx);
+			var gravForce = polToCart(this.dir_down[0], this.dir_down[1], this.dy);
+			var frontForce = polToCart(this.dir_front[0], this.dir_front[1], this.dz);
+			
+			this.x += gravForce[0] + turnForce[0] + frontForce[0];
+			this.y += gravForce[1] + turnForce[1] + frontForce[1];
+			this.z += gravForce[2] + turnForce[2] + frontForce[2];
 		}
-		if (Math.abs(this.dx) > this.dMax) {
-			this.dx = clamp(this.dx, -0.8 * this.dMax, 0.8 * this.dMax);
-		}
-
-		this.dz += this.az;
-		if (Math.abs(this.dz) > this.dMax * 1.2) {
-			this.dz = clamp(this.dz, -1.2 * this.dMax, 1.2 * this.dMax);
-		}
-
-		//moving according to forces
-		var turnForce = polToCart(this.dir_side[0], this.dir_side[1], this.dx);
-		var gravForce = polToCart(this.dir_down[0], this.dir_down[1], this.dy);
-		var frontForce = polToCart(this.dir_front[0], this.dir_front[1], this.dz);
-		
-		this.x += gravForce[0] + turnForce[0] + frontForce[0];
-		this.y += gravForce[1] + turnForce[1] + frontForce[1];
-		this.z += gravForce[2] + turnForce[2] + frontForce[2];
-		this.refPoint = [this.x, this.y + this.r, this.z];
 	}
 
 	beDrawn() {
 		if (!isClipped([this.x, this.y, this.z])) {
 			var [tX, tY] = spaceToScreen([this.x, this.y, this.z]);
-			var [tX2, tY2] = spaceToScreen(this.refPoint);
-			var r = Math.sqrt(((tX - tX2) * (tX - tX2)) + ((tY -tY2) * (tY -tY2)));
-			drawCircle("#000", tX, tY, r);
-			drawCircle(this.color, tX, tY, r - 4);
+			drawCircle("#000", tX, tY, this.drawR);
+			drawCircle(this.color, tX, tY, this.drawR - 4);
 			
 			if (editor_active) {
 				var cartX = polToCart(this.dir_side[0], this.dir_side[1], 10);
@@ -213,6 +243,14 @@ class Character {
 				ctx.lineTo(zXY[0], zXY[1]);
 				ctx.stroke();
 			}
+		}
+	}
+
+	handleSpace() {
+		if (this.onGround > 0) {
+			this.dy = controls_jumpInitial;
+			this.jumpTime = controls_jumpTime;
+			this.onGround = 0;
 		}
 	}
 }
