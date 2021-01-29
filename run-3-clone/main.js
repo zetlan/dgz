@@ -15,13 +15,12 @@ var controls_sensitivity = 100;
 var controls_object;
 var controls_spacePressed = false;
 
-var cursor_x = 0;
-var cursor_y = 0;
-var cursor_down = false;
+var controls_jumpTime = 30;
+var controls_jumpInitial = 2.8;
+var controls_jumpBoost = 0.07;
 
-let page_animation;
-
-const color_bg = "#103";
+//bg is in 6 hex numbers for  p r e c i s i o n
+const color_bg = "#100026";
 const color_character = "#888";
 const color_editor_border = "#F8F";
 const color_editor_cursor = "#0FF";
@@ -31,6 +30,10 @@ const color_map_bg = "#FEA";
 const color_map_writing = "#010";
 const color_stars = "#44A";
 const color_text = "#424";
+
+var cursor_x = 0;
+var cursor_y = 0;
+var cursor_down = false;
 
 var editor_active = false;
 var editor_changingTheta = false;
@@ -44,8 +47,22 @@ let loading_state = new State_Loading();
 
 var map_cameraHeight = 175000;
 
+let page_animation;
+
 var tunnel_transitionLength = 200;
 var tunnel_voidWidth = 200;
+var tunnel_bufferTiles = 4;
+var tunnel_powerFunctions = {
+	"instant": power_instant,
+	"smooth": power_smooth,
+	"slowSmooth": power_slowSmooth,
+	"fast": power_fast,
+	"slow": power_slow,
+	"glimpse": power_glimpse,
+	"falseAlarm": power_falseAlarm,
+	"notSoFalseAlarm": power_notSoFalseAlarm,
+	"undefined": power_fast
+};
 
 let world_camera;
 var world_pRandValue = 1.2532;
@@ -58,8 +75,9 @@ let active_objects = [];
 var render_crosshairSize = 10;
 var render_clipDistance = 0.1;
 var render_maxColorDistance = 1000;
-var render_minTileSize = 8;
-var render_identicalPointTolerance = 0.00001;
+var render_minTileSize = 9;
+var render_identicalPointTolerance = 0.0001;
+
 var render_times = [];
 
 var haltCollision = false;
@@ -89,10 +107,17 @@ function setup() {
 	world_objects = []; 
 	world_stars = [];
 
-	world_objects.push(new Tunnel_FromData(levelData_mainTunnel.split("\n")[0], []));
+	//main tunnel
+	var tunnelSplit = [];
+	tunnelSplit = levelData_mainTunnel.split("\n");
+	for (var g=0; g<tunnelSplit.length-1; g++) {
+		world_objects.push(new Tunnel_FromData(tunnelSplit[g], []));
+	}
 
-	for (var g=0; g<65; g++) {
-		world_objects.push(new Tunnel_FromData(levelData_mainTunnel.split("\n")[g], []));
+	//low power tunnel
+	tunnelSplit = levelData_lowPower.split("\n");
+	for (var g=0; g<tunnelSplit.length-1; g++) {
+		world_objects.push(new Tunnel_FromData(tunnelSplit[g], []));
 	}
 
 	//high resolution slider
@@ -138,11 +163,10 @@ function handleKeyPress(a) {
 
 		//space
 		case 32:
-			controls_object.dy = controls_object.dMax * 4;
-			controls_spacePressed = true;
-			if (editor_active && loading_state instanceof State_Game) {
-				world_camera.targetRot = 0;
+			if (!controls_spacePressed) {
+				controls_object.handleSpace();
 			}
+			controls_spacePressed = true;
 			break;
 
 		//camera controls
@@ -307,7 +331,7 @@ function handleMouseMove(a) {
 				//calculating tunnel end pos
 				for (var a=0; a<world_objects.length; a++) {
 					if (world_objects[a] != editor_selected) {
-						var snapPos = spaceToScreen([world_objects[a].endPos[0] + (tunnel_transitionLength * Math.sin(world_objects[a].theta)), 0, world_objects[a].endPos[2] + (tunnel_transitionLength * Math.cos(world_objects[a].theta))]);
+						var snapPos = spaceToScreen([world_objects[a].endPos[0] - (tunnel_transitionLength * Math.sin(world_objects[a].theta)), 0, world_objects[a].endPos[2] + (tunnel_transitionLength * Math.cos(world_objects[a].theta))]);
 						if (getDistance2d([snapPos[0], snapPos[1]], [snapX, snapY]) < editor_snapTolerance) {
 							[snapX, snapY] = snapPos;
 						}
