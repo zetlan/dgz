@@ -220,15 +220,14 @@ function spaceToScreen(point) {
 	return [tX, tY];
 }
 
-function transformPoint(pointToTransform, addPoint, rot, phi, theta, size) {
+function transformPoint(pointToTransform, addPoint, normal, size) {
 	//multiply point by size, then apply various rotations
 	pointToTransform[0] *= size / 2;
 	pointToTransform[2] *= size / 2;
 
-	//spin
-	[pointToTransform[0], pointToTransform[2]] = rotate(pointToTransform[0], pointToTransform[2], rot);
-	[pointToTransform[0], pointToTransform[1]] = rotate(pointToTransform[0], pointToTransform[1], phi);
-	[pointToTransform[0], pointToTransform[2]] = rotate(pointToTransform[0], pointToTransform[2], theta); 
+	//I have no idea if this is correct but it appears to work
+	[pointToTransform[1], pointToTransform[2]] = rotate(pointToTransform[1], pointToTransform[2], (Math.PI * 2) - (normal[1] - (Math.PI * 0.5)));
+	[pointToTransform[0], pointToTransform[2]] = rotate(pointToTransform[0], pointToTransform[2], -1 * normal[0]); 
 
 	//adjusting for coordinates
 	pointToTransform = [pointToTransform[0] + addPoint[0], pointToTransform[1] + addPoint[1], pointToTransform[2] + addPoint[2]];
