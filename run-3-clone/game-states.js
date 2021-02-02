@@ -1,6 +1,7 @@
 class State_Game {
 	constructor() {
-
+		this.text = ``;
+		this.time = 0;
 	}
 
 	execute() {
@@ -20,11 +21,7 @@ class State_Game {
 
 		//if the player isn't in a tunnel, try to get them in one
 		if (player.parent == undefined) {
-			//ordering all the objects
-			world_objects.forEach(u => {
-				u.getCameraDist();
-			});
-			world_objects = orderObjects(world_objects, 8);
+			this.orderWorld();
 
 			//try the player in the closest few tunnels
 			for (var v=world_objects.length-1; v>Math.max(-1, world_objects.length-6); v--) {
@@ -37,6 +34,10 @@ class State_Game {
 			if (player.parent == undefined) {
 				player.parentPrev.reset();
 				player.parent = player.parentPrev;
+			} else {
+				//display text
+				this.text = player.parent.id;
+				this.time = render_tunnelTextTime;
 			}
 		} else {
 			//if the player's left their parent tunnel, change their parent
@@ -54,10 +55,11 @@ class State_Game {
 						v = -1;
 
 						//reorder objects anyways if found a new tunnel
-						world_objects.forEach(u => {
-							u.getCameraDist();
-						});
-						world_objects = orderObjects(world_objects, 8);
+						this.orderWorld();
+
+						//display text
+						this.text = player.parent.id;
+						this.time = render_tunnelTextTime;
 					}
 				}
 			}
@@ -125,6 +127,14 @@ class State_Game {
 		//drawing pressed keys
 		drawKeys();
 
+		//drawing new tunnel text
+		if (this.time > 0) {
+			ctx.fillStyle = color_text_bright;
+			ctx.font = `${canvas.height / 24}px Century Gothic`;
+			ctx.fillText(this.text, canvas.width * 0.5, canvas.height * 0.5);
+			this.time -= 1;
+		}
+
 		perfTime[1] = performance.now();
 		var totalTime = perfTime[1] - perfTime[0];
 		render_times.push(totalTime);
@@ -137,6 +147,28 @@ class State_Game {
 			//console.log(`avg frame time: ${avgTime} ms`);
 			render_times = [];
 		}
+	}
+
+	orderWorld() {
+		//ordering all the objects
+		world_objects.forEach(u => {
+			u.getCameraDist();
+		});
+
+		//if the camera distance is more than 5 digits (100,000), just put it in a seperate bin
+		var farObjs = [];
+		for (var v=0; v<world_objects.length; v++) {
+			if (world_objects[v].cameraDist > 99999) {
+				farObjs.push(world_objects[v]);
+				world_objects.splice(v, 1);
+				v -= 1;
+			}
+		}
+
+		world_objects = orderObjects(world_objects, 5);
+		farObjs.forEach(f => {
+			world_objects.splice(0, 0, f);
+		});
 	}
 }
 

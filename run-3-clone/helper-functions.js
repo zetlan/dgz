@@ -140,6 +140,13 @@ function orderObjects(array, places) {
 	return ordered;
 }
 
+function placeTunnelSet(setName) {
+	var setSplit = setName.split("\n");
+	for (var g=0; g<setSplit.length-1; g++) {
+		world_objects.push(new Tunnel_FromData(setSplit[g], []));
+	}
+}
+
 //power functions!
 //each power function takes in a start power, end power, and a time. The time determines what the power will be.
 function power_falseAlarm(powStart, powEnd, time) {

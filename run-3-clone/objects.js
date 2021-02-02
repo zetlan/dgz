@@ -113,12 +113,12 @@ class Character {
 		this.dir_down = [0, Math.PI / 2];
 		this.dir_side = [0, 0];
 		this.dir_front = [Math.PI / 2, 0];
-		this.gravStrength = 0.1;
+		this.gravStrength = 0.12;
 		this.speed = 0.15;
 		this.dMax = 3.6;
 
 		this.onGround = 0;
-		this.jumpTime = controls_jumpTime;
+		this.jumpTime = physics_jumpTime;
 
 		this.x = x;
 		this.y = y;
@@ -143,7 +143,7 @@ class Character {
 
 	}
 
-	modifyDerivitives(activeGravity, activeFriction, activeAX, activeAZ) {
+	modifyDerivitives(activeGravity, activeFriction, naturalFriction, activeAX, activeAZ) {
 		//decreasing the time to jump
 		this.onGround -= 1;
 		//modifying forces
@@ -154,7 +154,7 @@ class Character {
 			this.dy -= activeGravity;
 		}
 		if (this.dy > 0 && controls_spacePressed && this.jumpTime > 0) {
-			this.dy += controls_jumpBoost;
+			this.dy += physics_jumpBoost;
 			this.jumpTime -= 1;
 		}
 		if (Math.abs(this.dy) > this.dMax) {
@@ -172,16 +172,16 @@ class Character {
 
 		this.dz += activeAZ;
 		//natural friction
-		this.dz *= this.naturalFriction;
+		this.dz *= naturalFriction;
 		if (Math.abs(this.dz) > this.dMax) {
-			this.dz = clamp(this.dz, -1.05 * this.dMax, 1.05 * this.dMax);
+			this.dz = clamp(this.dz, -1.2 * this.dMax, 1.2 * this.dMax);
 		}
 	}
 
 	tick() {
 		//setting camera position
 		var vertOffset = polToCart(this.dir_down[0], this.dir_down[1], 100);
-		var horizOffset = polToCart(this.dir_front[0], this.dir_front[1], -100);
+		var horizOffset = polToCart(this.dir_front[0], this.dir_front[1], -150);
 		world_camera.targetX = this.x + vertOffset[0] + horizOffset[0];
 		world_camera.targetY = this.y + vertOffset[1] + horizOffset[1];
 		world_camera.targetZ = this.z + vertOffset[2] + horizOffset[2];
@@ -196,16 +196,24 @@ class Character {
 		if (this.cameraDist < 1000 && !editor_active) {
 			//if in the void, change around variables
 			if (this.parent != undefined && !this.parent.playerIsInTunnel()) {
-				this.modifyDerivitives(this.gravStrength / 7, this.friction * 0.8, this.ax / 2, this.speed / 2);
+				this.modifyDerivitives(this.gravStrength / 7, this.friction / 2, this.naturalFriction, this.ax / 2, this.speed / 2);
+			} else if (this.onIce) {
+				//ice also affects physics
+				this.modifyDerivitives(this.gravStrength, Math.min(1, this.friction * 1.1), this.naturalFriction + 0.01, this.ax * 0.8, this.speed);
 			} else {
-				this.modifyDerivitives(this.gravStrength, this.friction, this.ax, this.speed);
+				//don't accelerate if dz is too great
+				if (Math.abs(this.dz) > this.dMax * 1.1) {
+					this.modifyDerivitives(this.gravStrength, this.friction, this.naturalFriction, this.ax, 0);
+				} else {
+					this.modifyDerivitives(this.gravStrength, this.friction, this.naturalFriction, this.ax, this.speed);
+				}
 			}
 
 			//moving according to forces
 			var turnForce = polToCart(this.dir_side[0], this.dir_side[1], this.dx);
 			var gravForce = polToCart(this.dir_down[0], this.dir_down[1], this.dy);
 			var frontForce = polToCart(this.dir_front[0], this.dir_front[1], this.dz);
-			
+
 			this.x += gravForce[0] + turnForce[0] + frontForce[0];
 			this.y += gravForce[1] + turnForce[1] + frontForce[1];
 			this.z += gravForce[2] + turnForce[2] + frontForce[2];
@@ -248,8 +256,8 @@ class Character {
 
 	handleSpace() {
 		if (this.onGround > 0) {
-			this.dy = controls_jumpInitial;
-			this.jumpTime = controls_jumpTime;
+			this.dy = physics_jumpInitial;
+			this.jumpTime = physics_jumpTime;
 			this.onGround = 0;
 		}
 	}

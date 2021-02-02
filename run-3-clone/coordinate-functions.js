@@ -1,5 +1,6 @@
 //here are all the functions that tranform 3d coordinates
 /*overview:
+	calculateNormal();
 	cameraToScreen();
 	cartToPol();
 	clipToZ0();
@@ -11,6 +12,27 @@
 	spaceToScreen();
 	transformPoint();
 */
+
+//calculates a normal from an array of points
+function calculateNormal(points) {
+	//first get average point, that's self's xyz
+	var [x, y, z] = avgArray(points);
+
+	//get cross product of first two points, that's the normal
+	//every shape has to have at least 3 points, so 
+	//comparing points 2 and 3 to point 1 for normal getting
+	var v1 = [points[1][0] - points[0][0], points[1][1] - points[0][1], points[1][2] - points[0][2]];
+	var v2 = [points[2][0] - points[0][0], points[2][1] - points[0][1], points[2][2] - points[0][2]];
+	var cross = [(v1[1] * v2[2]) - (v1[2] * v2[1]), (v1[2] * v2[0]) - (v1[0] * v2[2]), (v1[0] * v2[1]) - (v1[1] * v2[0])];
+	
+	cross = cartToPol(cross[0], cross[1], cross[2]);
+	
+	//checking for alignment with camera
+	//if (spaceToRelative([world_camera.x, world_camera.y, world_camera.z], [x, y, z], [cross[0], cross[1]])[2] < 0) {
+	//	cross[0] = (cross[0] + Math.PI) % (Math.PI * 2);
+	//}
+	return [cross[0], cross[1]];
+}
 
 //turns camera coordinates into 2d screen coordinates
 function cameraToScreen(point) {
@@ -223,6 +245,7 @@ function spaceToScreen(point) {
 function transformPoint(pointToTransform, addPoint, normal, size) {
 	//multiply point by size, then apply various rotations
 	pointToTransform[0] *= size / 2;
+	pointToTransform[1] *= size / 2;
 	pointToTransform[2] *= size / 2;
 
 	//I have no idea if this is correct but it appears to work

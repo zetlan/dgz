@@ -7,17 +7,30 @@ class FreePoly {
 		this.normal = [0, 0];
 		this.dir_tunnel = 0;
 		this.color = color;
-		this.cameraDist = render_maxColorDistance;
-		this.playerDist = render_maxColorDistance;
+		this.cameraDist = render_maxColorDistance + 1;
+		this.playerDist = render_maxColorDistance + 1;
 
 		//collision tolerance
-		this.tolerance = player.dMax * 1.5;
-		this.calculateNormal();
+		this.tolerance = player.r;
+		this.normal = calculateNormal(this.points);
 
 		this.collisionPoints = this.calculateCollision();
 	}
 
 	calculateCollision() {
+		//figure out x, y, and z
+		var x = 0;
+		var y = 0;
+		var z = 0;
+		for (var j=0; j<this.points.length; j++) {
+			x += this.points[j][0];
+			y += this.points[j][1];
+			z += this.points[j][2];
+		}
+		this.x = x / this.points.length;
+		this.y = y / this.points.length;
+		this.z = z / this.points.length;
+
 		var temp = [];
 		//looping through all points
 		for (var u=0;u<this.points.length;u++) {
@@ -54,42 +67,40 @@ class FreePoly {
 		//transform player to self's coordinates
 		var playerCoords = spaceToRelative([player.x, player.y, player.z], [this.x, this.y, this.z], [this.normal[0], this.normal[1], 0]);
 
-		//if the player is too close, take them seriously
-		if (Math.abs(playerCoords[2]) < this.tolerance) {
-			//if they're in the collision area, actually do things
-			if (Math.abs(playerCoords[0]) < this.size / 2 && Math.abs(playerCoords[1]) < this.size / 2) {
-				//different behavior depending on side
-				if (playerCoords[2] < 0) {
-					//outside the tunnel
-					playerCoords[2] = -1 * this.tolerance;
-				} else {
-					//inside the tunnel
-					playerCoords[2] = this.tolerance;
-					//special collision effects for inside the tunnel
-					if (!haltCollision && (player.dir_down[0] != this.normal[0] || player.dir_down[1] != this.normal[1])) {
-						this.doRotationEffects();
-					}
+		//if the player is colliding, do collision stuffies
+		if (Math.abs(playerCoords[2]) < this.tolerance && Math.abs(playerCoords[0]) < (this.size / 2) + this.tolerance && Math.abs(playerCoords[1]) < (this.size / 2) + this.tolerance) {
+			//different behavior depending on side
+			if (playerCoords[2] < 0) {
+				//outside the tunnel
+				playerCoords[2] = -1 * this.tolerance;
+			} else {
+				//inside the tunnel
+				playerCoords[2] = this.tolerance;
+				//special collision effects for inside the tunnel
+				if (!haltCollision && (player.dir_down[0] != this.normal[0] || player.dir_down[1] != this.normal[1])) {
+					this.doRotationEffects();
 				}
-
-				
-
-				//special collision effects in general
-				this.doCollisionEffects();
-
-				//transforming back to regular coordinates
-				playerCoords = relativeToSpace(playerCoords, [this.x, this.y, this.z], this.normal);
-
-				//getting difference between actual player coordinates and attempted coords for forces
-				playerCoords = [playerCoords[0] - player.x, playerCoords[1] - player.y, playerCoords[2] - player.z];
-				player.x += playerCoords[0];
-				player.y += playerCoords[1];
-				player.z += playerCoords[2];
 			}
+
+			
+
+			//special collision effects in general
+			this.doCollisionEffects();
+
+			//transforming back to regular coordinates
+			playerCoords = relativeToSpace(playerCoords, [this.x, this.y, this.z], this.normal);
+
+			//getting difference between actual player coordinates and attempted coords for forces
+			playerCoords = [playerCoords[0] - player.x, playerCoords[1] - player.y, playerCoords[2] - player.z];
+			player.x += playerCoords[0];
+			player.y += playerCoords[1];
+			player.z += playerCoords[2];
 		}
 	}
 
 	doCollisionEffects() {
-		player.onGround = 3;
+		player.onGround = physics_graceTime;
+		player.onIce = false;
 	}
 
 	//clips self and returns an array with two polygons, clipped at the input plane.
@@ -185,6 +196,7 @@ class FreePoly {
 			drawPoly(this.getColor(), screenPoints);
 
 			if (editor_active) {
+				
 				//draw self's normal as well
 				var cXYZ = polToCart(this.normal[0], this.normal[1], 5);
 				cXYZ = [this.x + cXYZ[0], this.y + cXYZ[1], this.z + cXYZ[2]];
@@ -344,7 +356,7 @@ class Tunnel {
 			var additionLength = (this.tileSize) + ((this.tileSize * (t % this.tilesPerSide)) - (this.tileSize / 2)) - (l / 2);
 
 			//normal
-			var stripNormal = [(Math.PI * 1.5) - this.theta, apothemAngle * -1];
+			var stripNormal = [(Math.PI * 1.5) - this.theta, ((apothemAngle * -1) + (Math.PI * 2)) % (Math.PI * 2)];
 
 			var stripPos = [apothemLength * Math.cos(apothemAngle), apothemLength * Math.sin(apothemAngle), 0];
 			[stripPos[0], stripPos[1]] = [stripPos[0] + additionLength * Math.cos(additionAngle), stripPos[1] + additionLength * Math.sin(additionAngle)];
@@ -390,6 +402,14 @@ class Tunnel {
 				return new Tile_Bright(x, y, z, size, normal, this, position, color);
 			case 3:
 				return new Tile_Crumbling(x, y, z, size, normal, this, position);
+			case 4:
+				return new Tile_Ice(x, y, z, size, normal, this, position);
+			case 9: 
+				return new Tile_Box(x, y, z, size, normal, this, position);
+			case 11:
+				return new Tile_Ramp(x, y, z, size, normal, this, position, color);
+			case 12: 
+				return new Tile_Ice_Ramp(x, y, z, size, normal, this, position, color);
 			default:
 				return new Tile(x, y, z, size, normal, this, position, color);
 		}
@@ -397,8 +417,10 @@ class Tunnel {
 	}
 
 	getCameraDist() {
-		//keep track of distance from camera, use center of tunnel rather than start
-		this.cameraDist = getDistance({x:this.centerPos[0], y:this.centerPos[1], z:this.centerPos[2]}, {x:world_camera.targetX, y:world_camera.targetY, z:world_camera.targetZ});
+		//keep track of distance from camera, use all 3 points
+		this.cameraDist = Math.min(getDistance(this, {x:world_camera.targetX, y:world_camera.targetY, z:world_camera.targetZ}),
+								getDistance({x:this.centerPos[0], y:this.centerPos[1], z:this.centerPos[2]}, {x:world_camera.targetX, y:world_camera.targetY, z:world_camera.targetZ}),
+								getDistance({x:this.endPos[0], y:this.endPos[1], z:this.endPos[2]}, {x:world_camera.targetX, y:world_camera.targetY, z:world_camera.targetZ}));
 	}
 
 	//returns true if the player is inside the tunnel, and false if the player is not
@@ -442,6 +464,11 @@ class Tunnel {
 	reset() {
 		//choose randomly from spawns
 		var spawnChoice = this.spawns[Math.floor(Math.random() * this.spawns.length * 0.999)];
+		var tolerance = 0;
+		while (this.strips[spawnChoice].tiles[0] == undefined && tolerance < this.sides * this.tilesPerSide) {
+			spawnChoice = (spawnChoice + 1) % (this.sides * this.tilesPerSide);
+			tolerance += 1;
+		}
 
 		//placing player on that tile
 		var spawnObj = this.strips[spawnChoice].tiles[0];
@@ -451,6 +478,7 @@ class Tunnel {
 		player.x = spawnObj.x + offsetCoords[0];
 		player.y = spawnObj.y + offsetCoords[1];
 		player.z = spawnObj.z + offsetCoords[2];
+		player.dz = 0;
 
 		//misc tunnel things
 		this.playerTilePos = 0;
@@ -564,7 +592,7 @@ class Tunnel_Strip {
 
 		this.tiles = [];
 		this.realTiles = [];
-		this.hasCrumbling = false;
+		this.requiresOrdering = false;
 	}
 
 	//returns true if the player should be drawn on top of the strip
@@ -575,43 +603,55 @@ class Tunnel_Strip {
 			tileNum = Math.floor(this.realTiles[0].parent.playerTilePos);
 		}
 
-		if (!this.hasCrumbling || this.tiles[tileNum] == undefined) {
-			//if there's no tile there or there's no crumbling tiles, just use self's plane
+		if (!this.requiresOrdering || this.tiles[tileNum] == undefined) {
+			//if there's no tile there or there's no strange tiles, just use self's plane
 			return ((spaceToRelative([player.x, player.y, player.z], [this.x, this.y, this.z], this.normal)[2] * spaceToRelative([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], this.normal)[2]) > 0);
 		} else {
 			//if there is a tile there, use the tile's coordinates
-			return ((spaceToRelative([player.x, player.y, player.z], [this.tiles[tileNum].x, this.tiles[tileNum].y, this.tiles[tileNum].z], this.normal)[2] * spaceToRelative([world_camera.x, world_camera.y, world_camera.z], [this.tiles[tileNum].x, this.tiles[tileNum].y, this.tiles[tileNum].z], this.normal)[2]) > 0);
+			return ((spaceToRelative([player.x, player.y, player.z], [this.tiles[tileNum].x, this.tiles[tileNum].y, this.tiles[tileNum].z], this.tiles[tileNum].normal)[2] * spaceToRelative([world_camera.x, world_camera.y, world_camera.z], [this.tiles[tileNum].x, this.tiles[tileNum].y, this.tiles[tileNum].z], this.tiles[tileNum].normal)[2]) > 0);
 		}
 	}
 
 	beDrawn() {
+		this.realTiles.forEach(t => {
+			if ((t.size / t.cameraDist) * world_camera.scale > render_minTileSize) {
+				t.beDrawn();
+			}
+		});
+
 		var lineDown = false;
 		var lineStart = [];
-		this.realTiles.forEach(t => {
-			//if it's small enough to not be drawn, just start the line
-			if ((t.size / t.cameraDist) * world_camera.scale > render_minTileSize) {
-				//if drawing, but a line, end the line
-				if (lineDown) {
-					lineDown = false;
-					ctx.strokeStyle = "#000";
-					drawWorldLine(lineStart, [t.x, t.y, t.z]);
-				}
 
-				t.beDrawn();
-			} else {
-				//if the line hasn't started, start the line
-				if (!lineDown) {
-					lineDown = true;
-					lineStart = [t.x, t.y, t.z];
+		this.tiles.forEach(t => {
+			//if it's a tile
+			if (t != undefined) {
+				//if it's small enough to not be drawn, start the line™
+				if ((t.size / t.cameraDist) * world_camera.scale <= render_minTileSize) {
+					if (!lineDown) {
+						lineDown = true;
+						lineStart = [t.x, t.y, t.z];
+					}
+				} else {
+					//if drawing a line, end the line
+					if (lineDown) {
+						lineDown = false;
+						ctx.strokeStyle = "#000";
+						drawWorldLine(lineStart, [t.x, t.y, t.z]);
+					}
 				}
 			}
 		});
 
-		//if a line's going, end the line
+		//if a line is still down work backwards and end it
 		if (lineDown) {
+			var n = this.tiles.length - 1;
+			while (this.tiles[n] == undefined) {
+				n -= 1;
+			}
+
 			lineDown = false;
 			ctx.strokeStyle = "#000";
-			drawWorldLine(lineStart, [this.realTiles[this.realTiles.length-1].x, this.realTiles[this.realTiles.length-1].y, this.realTiles[this.realTiles.length-1].z]);
+			drawWorldLine(lineStart, [this.tiles[n].x, this.tiles[n].y, this.tiles[n].z]);
 		}
 
 
@@ -628,13 +668,11 @@ class Tunnel_Strip {
 
 	//makes drawing / ticking self tiles slightly faster
 	establishReals() {
-		this.hasCrumbling = false;
+		this.requiresOrdering = false;
 		this.realTiles = [];
 		this.tiles.forEach(t => {
 			if (t != undefined) {
-				if (t instanceof Tile_Crumbling) {
-					this.hasCrumbling = true;
-				}
+				this.requiresOrdering = this.requiresOrdering || t.requiresOrdering;
 				this.realTiles.push(t)
 			}
 		});
@@ -651,199 +689,9 @@ class Tunnel_Strip {
 			t.tick();
 		});
 		//ordering objects
-		if (this.hasCrumbling) {
+		if (this.requiresOrdering && world_time % 3 == 2) {
 			this.realTiles = orderObjects(this.realTiles, 5);
 		}
 		
-	}
-}
-
-//most base polygon behaviors are actually in freepoly, tile just has some extra things
-class Tile extends FreePoly {
-	constructor(x, y, z, size, normal, parent, tilePosition, color) {
-		var points = [[-1, 0, -1], [-1, 0, 1], [1, 0, 1], [1, 0, -1]];
-
-		var rPoint = [0, 0, -10];
-		rPoint = transformPoint(rPoint, [0, 0, 0], normal, 1);
-
-		for (var p=0; p<points.length; p++) {
-			points[p] = transformPoint(points[p], [x, y, z], normal, size + 0.6);
-		}
-		
-		super(points, color);
-		this.size = size;
-		
-		this.normal = normal;
-		this.rPoint = [rPoint[0] + x, rPoint[1] + y, rPoint[2] + z];
-		this.dir_right = cartToPol(rPoint[0], rPoint[1], rPoint[2]);
-
-		this.x = x;
-		this.y = y;
-		this.z = z;
-
-		this.parent = parent;
-		this.parentPosition = tilePosition;
-	}
-
-	doRotationEffects() {
-		player.dir_down = this.normal;
-		player.dir_front = [(Math.PI * 2) - this.parent.theta, 0];
-		player.dir_side = this.dir_right;
-
-		world_camera.phi = 0;
-		world_camera.targetTheta = (Math.PI * 2) - this.parent.theta;
-		//if the difference is too great, fix that
-		if (Math.abs(world_camera.theta - world_camera.targetTheta) > Math.PI) {
-			if (world_camera.theta > Math.PI) {
-				world_camera.theta -= Math.PI * 2;
-			} else {
-				world_camera.theta += Math.PI * 2;
-			}
-		}
-
-		if (!editor_active && world_camera.targetRot != (this.normal[1] - (Math.PI * 0.5))) {
-			world_camera.targetRot = (this.normal[1] - (Math.PI * 0.5));
-
-			//if the rotation difference is too great, fix that
-			if (Math.abs(world_camera.rot - world_camera.targetRot) > Math.PI) {
-				if (world_camera.rot > Math.PI) {
-					world_camera.rot -= Math.PI * 2;
-				} else {
-					world_camera.rot += Math.PI * 2;
-				}
-			}
-			haltCollision = true;
-		}
-		player.dy = 0;
-	}
-
-	collideWithPlayer() {
-		//only collide if player is within certain distance, being this size
-		if (Math.abs(this.x - player.x) + Math.abs(this.y - player.y) + Math.abs(this.z - player.z) < this.size * 2) {
-			super.collideWithPlayer();
-		}
-	}
-}
-
-class Tile_Bright extends Tile {
-	constructor(x, y, z, size, normal, parent, tilePosition, color) {
-		super(x, y, z, size, normal, parent, tilePosition, color);
-	}
-
-	getColor() {
-		return `hsl(${this.color.h}, ${this.color.s}%, ${linterp(70, 25, clamp((this.playerDist / render_maxColorDistance) * 0.5, 0.1, 1))}%)`
-	}
-}
-
-
-class Tile_Crumbling extends Tile {
-	constructor(x, y, z, size, normal, parent, tilePosition) {
-		super(x, y, z, size, normal, parent, tilePosition, {h: 0, s: 0});
-		this.line1 = [transformPoint([0.5, 0, 0.5], [x, y, z], this.normal, size), transformPoint([-0.5, 0, -0.5], [x, y, z], this.normal, size)];
-		this.line2 = [transformPoint([-0.5, 0, 0.5], [x, y, z], this.normal, size), transformPoint([0.5, 0, -0.5], [x, y, z], this.normal, size)];
-
-		this.home = [this.x, this.y, this.z];
-
-		this.fallStatus = undefined;
-		this.fallRate = -0.5;
-	}
-
-	tick() {
-		super.tick();
-		if (this.fallStatus != undefined) {
-			this.fallStatus += 1;
-
-			if (this.fallStatus > 0) {
-				//fall downward
-				var changeBy = polToCart(this.normal[0], this.normal[1], this.fallRate);
-				this.x += changeBy[0];
-				this.y += changeBy[1];
-				this.z += changeBy[2];
-
-				//recalculate points
-				this.points.forEach(p => {
-					p[0] += changeBy[0];
-					p[1] += changeBy[1];
-					p[2] += changeBy[2];
-				});
-
-				this.line1.forEach(p => {
-					p[0] += changeBy[0];
-					p[1] += changeBy[1];
-					p[2] += changeBy[2];
-				});
-
-				this.line2.forEach(p => {
-					p[0] += changeBy[0];
-					p[1] += changeBy[1];
-					p[2] += changeBy[2];
-				});
-			}
-		}
-	}
-
-	reset() {
-		//return to home
-		this.fallStatus = undefined;
-
-		//recalculating points
-		var difference = [this.home[0] - this.x, this.home[1] - this.y, this.home[2] - this.z];
-		[this.x, this.y, this.z] = this.home;
-
-		//recalculate points
-		this.points.forEach(p => {
-			p[0] += difference[0];
-			p[1] += difference[1];
-			p[2] += difference[2];
-		});
-
-		this.line1.forEach(p => {
-			p[0] += difference[0];
-			p[1] += difference[1];
-			p[2] += difference[2];
-		});
-
-		this.line2.forEach(p => {
-			p[0] += difference[0];
-			p[1] += difference[1];
-			p[2] += difference[2];
-		});
-	}
-
-	beDrawn() {
-		super.beDrawn();
-		if (this.playerDist / render_maxColorDistance < 0.95) {
-			ctx.strokeStyle = `hsl(0, 0%, ${linterp(50, 0, this.playerDist / render_maxColorDistance)}%)`;
-			drawWorldLine(this.line1[0], this.line1[1]);
-			drawWorldLine(this.line2[0], this.line2[1]);
-		}
-	}
-
-	//yes I have three functions for this one behavior. No I'm not proud of it. But it works (:
-	doCollisionEffects() {
-		super.doCollisionEffects();
-		this.fallStatus = 0;
-		this.propogateCrumble();
-	}
-
-	propogateCrumble() {
-		//crumble all other tiles around self
-		var positions = [[-1, -1], [-1, 0], [-1, 1], [0, 1], [1, 1], [1, 0], [1, -1], [0, -1]];
-		positions.forEach(r => {
-			//keeping numbers in bounds, for strip number through modulo and for tile number through clamping
-			r[0] = (r[0] + this.parentPosition[0] + this.parent.strips.length) % this.parent.strips.length;
-			r[1] = clamp(r[1] + this.parentPosition[1], 0, this.parent.strips[r[0]].length - 1);
-		});
-
-		positions.forEach(r => {
-			this.crumbleOtherTile(r[0], r[1]);
-		});
-	}
-
-	crumbleOtherTile(strip, num) {
-		if (this.parent.strips[strip].tiles[num] instanceof Tile_Crumbling && this.parent.strips[strip].tiles[num].fallStatus == undefined) {
-			this.parent.strips[strip].tiles[num].fallStatus = 0;
-			this.parent.strips[strip].tiles[num].propogateCrumble();
-		}
 	}
 }

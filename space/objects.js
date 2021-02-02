@@ -307,10 +307,14 @@ class Player extends Debris {
 	
 		
 		this.power = 50;
+		this.gold = 50;
 		this.fuel = 100;
+		this.fuel_max = 100;
 		this.warm = 50;
 		this.timeout = 0;
 		this.dtStore = 0;
+
+		this.hasHyperdrive = false;
 
 		this.predictCoords = [[game_time, this.x, this.y, this.dx, this.dy]];
 	}
@@ -326,7 +330,13 @@ class Player extends Debris {
 			}
 
 			//after finding the max force, set parent / apply it
-			this.parent = maxForce[0];
+			if (maxForce[0] != this.parent) {
+				this.parent = maxForce[0];
+				//change map camera scale
+				//scale is represented as (pixels on screen / units in world)
+				var distToBody = getDistance([character.parent.x, character.parent.y], [character.x, character.y]);
+				camera_map.scale = Math.min(canvas.height / (480 * 8), (canvas.height * 0.5) / (distToBody * 1.5));
+			}
 
 			if (!this.parent.debris.includes(this)) {
 				this.parent.debris.push(this);
@@ -428,7 +438,7 @@ class Player extends Debris {
 		this.dy = dyAverage;
 	
 		//give the player power, because asteroids do that I guess
-		this.pow += powerIncrement * 16;
+		this.power += powerIncrement * 16;
 	}
 
 	destroy() {
@@ -527,12 +537,15 @@ class Player extends Debris {
 			this.physical = false;
 		}
 
-		if (this.pow < 0) {
-			this.pow = 0;
+		if (this.power < 0) {
+			this.power = 0;
 		}
 
-		if (this.pow > 100) {
-			this.pow = 100;
+		if (this.power > 100) {
+			this.power = 100;
+		}
+		if (this.fuel > this.fuel_max) {
+			this.fuel = this.fuel_max;
 		}
 
 		if (!this.physical) {
@@ -586,9 +599,11 @@ class Ring {
 }
 
 //shops always orbit a parent body, like orbiting planets, but the player can enter them
-class Shop extends Body {
-	constructor(bodyToOrbit, apoapsis, periapsis, apoapsisAngleRADIANS, startAngleRADIANS, ccwBOOL) {
+class Shop_Entrance extends Body {
+	constructor(bodyToOrbit, apoapsis, periapsis, apoapsisAngleRADIANS, startAngleRADIANS, ccwBOOL, source) {
 		super(0, 0, 0, 0, 10, 10, color_shop);
+		this.source = source;
+		this.visited = false;
 		this.setOrbit(bodyToOrbit, apoapsis, periapsis, apoapsisAngleRADIANS, startAngleRADIANS, ccwBOOL);
 	}
 
@@ -665,6 +680,10 @@ class Shop extends Body {
 			entity.y += entity.dy - this.dy;
 
 			//if the entity is the character, put them in the shop
+			if (entity == character && this.source != undefined) {
+				loading_state = new State_Shop(this.source, this.visited);
+				this.visited = true;
+			}
 		} else {
 			if (Math.floor(game_time) % 100 == 0) {
 				this.color = color_shop;

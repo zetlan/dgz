@@ -4,6 +4,13 @@ Camera
 Camera_Map
 Camera_World
 
+State_Splash
+State_World
+State_Death
+State_Map
+State_Shop
+
+
 
 */
 class Camera {
@@ -20,7 +27,7 @@ class Camera {
 	tick() {
 		if (loading_state.id != "death") {
 			//updating scale and keeping it in bounds
-			this.scale += this.scale_d;
+			this.scale += this.scale_d * this.scale_speed;
 			if (this.scale > this.scale_max) {
 				this.scale = this.scale_max;
 			}
@@ -33,7 +40,7 @@ class Camera {
 
 class Camera_Map extends Camera {
 	constructor() {
-		super(0, 0, 1/128, 1/48, 1/384, 1/512);
+		super(0, 0, 1/128, 1/48, 1/1024, 1/512);
 
 		//the map camera can move around
 		this.animSteps = 7;
@@ -41,12 +48,14 @@ class Camera_Map extends Camera {
 	}
 
 	tick() {
+		//changing scale speed to match camera scaling
+		this.scale_speed = this.scale / 16;
 		super.tick();
 		this.x = ((this.x * this.animSteps) + character.parent.x) / (this.animSteps + 1);
 		this.y = ((this.y * this.animSteps) + character.parent.y) / (this.animSteps + 1);
 
 		//setting max scale to a reasonable value based on body
-		this.scale_max = Math.min(1 / 8, canvas.height / (character.parent.r * 75));
+		this.scale_max = Math.min(canvas.height / (480 * 8), canvas.height / (character.parent.r * 80));
 	}
 }
 
@@ -182,12 +191,47 @@ class State_Map extends State_World {
 }
 
 class State_Shop {
-	constructor() {
+	constructor(source, startOnSecondLineBOOLEAN) {
 		this.id = "shop";
+		this.data = source;
+		this.line = 0 + startOnSecondLineBOOLEAN;
+		this.text_shop = "";
+		this.text_response = "";
+
+		this.response_selected = 0;
+		this.response_max = 0;
+
+		this.item_cost = undefined;
+		this.item_name = undefined;
+		this.item_effect = undefined;
+
+		this.updateLine(this.line);
 	}
 
 	tick() {
-		drawSplash();
+		drawShopBackground();
+		drawShopText();
+	}
+
+	updateLine(newLine) {
+		this.line = newLine;
+
+		//updating parameters that control what's drawn
+
+		//this code is why we can't have nice things
+		this.text_shop = this.data[this.line][0].replaceAll("\t", "").split("|")
+		this.text_shop = eval("`" + this.text_shop[0] + "`").split("\n");
+		this.text_response = this.data[this.line][0].replaceAll("\t", "").split("|");
+		this.text_response.splice(0, 1);
+
+		this.response_selected = 0;
+		this.response_max = this.text_response.length - 1;
+	}
+
+	storeItem(displayName, cost, codeWhenBought) {
+		this.item_cost = cost;
+		this.item_name = displayName;
+		this.item_effect = codeWhenBought;
 	}
 }
 

@@ -15,21 +15,25 @@ var controls_sensitivity = 100;
 var controls_object;
 var controls_spacePressed = false;
 
-var controls_jumpTime = 30;
-var controls_jumpInitial = 2.8;
-var controls_jumpBoost = 0.07;
+var physics_jumpTime = 30;
+var physics_jumpInitial = 2.9;
+var physics_jumpBoost = 0.1;
+var physics_graceTime = 5;
+var physics_graceTimeRamp = 15;
 
 //bg is in 6 hex numbers for  p r e c i s i o n
 const color_bg = "#100026";
 const color_character = "#888";
 const color_editor_border = "#F8F";
 const color_editor_cursor = "#0FF";
+const color_ice = "#EFF";
 const color_keyPress = "#8FC";
 const color_keyUp = "#666";
 const color_map_bg = "#FEA";
 const color_map_writing = "#010";
 const color_stars = "#44A";
 const color_text = "#424";
+const color_text_bright = "#FAF";
 
 var cursor_x = 0;
 var cursor_y = 0;
@@ -77,6 +81,7 @@ var render_clipDistance = 0.1;
 var render_maxColorDistance = 1000;
 var render_minTileSize = 9;
 var render_identicalPointTolerance = 0.0001;
+var render_tunnelTextTime = 30;
 
 var render_times = [];
 
@@ -107,18 +112,16 @@ function setup() {
 	world_objects = []; 
 	world_stars = [];
 
-	//main tunnel
-	var tunnelSplit = [];
-	tunnelSplit = levelData_mainTunnel.split("\n");
-	for (var g=0; g<tunnelSplit.length-1; g++) {
-		world_objects.push(new Tunnel_FromData(tunnelSplit[g], []));
-	}
-
-	//low power tunnel
-	tunnelSplit = levelData_lowPower.split("\n");
-	for (var g=0; g<tunnelSplit.length-1; g++) {
-		world_objects.push(new Tunnel_FromData(tunnelSplit[g], []));
-	}
+	console.log("hi");
+	//placing tunnels into world
+	placeTunnelSet(levelData_mainTunnel);
+	placeTunnelSet(levelData_boxStorage);
+	placeTunnelSet(levelData_winterGames);
+	placeTunnelSet(levelData_lowPower);
+	placeTunnelSet(levelData_B);
+	placeTunnelSet(levelData_G);
+	placeTunnelSet(levelData_L);
+	placeTunnelSet(levelData_W);
 
 	//high resolution slider
 	document.getElementById("haveHighResolution").onchange = updateResolution;
@@ -300,6 +303,10 @@ function handleMouseDown(a) {
 			player.parentPrev = loading_state.levelSelected;
 			loading_state = new State_Game();
 			player.parentPrev.reset();
+
+			//displaying text
+			loading_state.text = player.parentPrev.id;
+			loading_state.time = render_tunnelTextTime;
 		}
 	}
 }

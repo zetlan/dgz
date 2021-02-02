@@ -3,8 +3,6 @@ window.addEventListener("keyup", keyNegate, false);
 //setting up variables for later
 var canvas;
 var ctx;
-var centerX;
-var centerY;
 
 var menuPos = 1;
 var menuIncrement = 0.005;
@@ -28,6 +26,8 @@ const color_engineFlames = "#66F";
 const color_fuel = "#F90";
 const color_green = "#0D8";
 const color_ice = "#BEF";
+const color_menu = "#FFF";
+const color_power = "#FD0";
 const color_purple = "#808";
 const color_ring = "#FFF";
 const color_rocky = "#868";
@@ -40,10 +40,13 @@ const color_shop = "#DAF";
 const color_shop_dark = "#C7C";
 const color_shop_glow = "#FB0";
 const color_text = "#8FC";
+const color_textBox = "#66F";
 const color_water = "#88F";
+const color_white = "#EFF";
 
 var display_orbitOpacity = 0.2;
 var display_menuOpacity = 0.2;
+var display_scaleMultiplier = 1;
 
 var debris_startNum = 0;
 var debris_maxNum = 0;
@@ -61,11 +64,6 @@ var hyperColor = "#3872FF";
 var brokenHyperColor = "#5D649C";
 var repairColor = "#76AA9F";
 
-var endingColor = "#FF00FF";
-var startingColor = "#00FF00";
-var stoneColor = "#6F8389";
-
-var powerColor = "#FFD800";
 var cTemperColor = "#7CBBFA";
 var mTemperColor = "#7CFA80";
 var hTemperColor = "#FA917C";
@@ -99,7 +97,7 @@ let loading_system;
 var player_radius = 5;
 var player_thrusterStrength = 1 / 256;
 //fuel efficiency is the ratio of fuel used to velocity gained. The higher it is, the more fuel needs to be used for the same amount of thrust.
-var player_fuelEfficiency = 4;
+var player_fuelEfficiency = 8;
 var player_turnStrength = 0.025;
 var player_turnSpeedMax = 0.2;
 
@@ -119,16 +117,25 @@ function setup() {
 	canvas = document.getElementById("canvas");
 	ctx = canvas.getContext("2d");
 	ctx.imageSmoothingEnabled = false;
+	ctx.fillRule = "evenodd";
 
-	centerX = canvas.width / 2;
-	centerY = canvas.height / 2;
+	//high resolution slider
+	document.getElementById("haveHighResolution").onchange = updateResolution;
+	//if the box is already checked from a previous session update resolution to max
+	if (document.getElementById("haveHighResolution").checked) {
+		updateResolution();
+	}
 
+	//initialize player
+	character = new Player(x, y, dx, dy);
+
+	//initialize world
 	initWorld();
 
 	loading_system = system_main;
 	
-	var [x, y, dx, dy] = calculateOrbitalParameters(system_main, 2000, 2000, Math.PI * 0, 0.1, false);
-	character = new Player(x, y, dx, dy);
+	//set player's orbit
+	[character.x, character.y, character.dx, character.dy] = calculateOrbitalParameters(system_d_a, 310, 290, 0, 0.05, false);
 	loading_debris.push(character);
 
 	//populating the debris field
@@ -152,11 +159,23 @@ function keyPress(h) {
 			break;
 		case keycode_w:
 		case keycode_up:
-			character.acc = true;
+			if (loading_state.id == "shop") {
+				shop_handleUp();
+			} else {
+				character.acc = true;
+			}
+			h.preventDefault();
 			break;
 		case keycode_d:
 		case keycode_right:
 			character.aa = player_turnStrength;
+			break;
+		case keycode_s:
+		case keycode_down:
+			if (loading_state.id == "shop") {
+				shop_handleDown();
+			}
+			h.preventDefault();
 			break;
 
 		//special operations
@@ -170,16 +189,20 @@ function keyPress(h) {
 			break;
 		//scale out + in
 		case keycode_shift:
-			loading_camera.scale_d = loading_camera.scale_speed;
+			loading_camera.scale_d = 1;
+			h.preventDefault();
 			break;
 		case keycode_space:
-			loading_camera.scale_d = -1 * loading_camera.scale_speed;
+			loading_camera.scale_d = -1;
+			h.preventDefault();
 			break;
 
 		//starting / restarting game
 		case keycode_z:
 			if (loading_state.id == "splash" && character.timeout == 0) {
 				loading_state = new State_World();
+			} else if (loading_state.id == "shop") {
+				shop_handleZ();
 			}
 			break;
 
@@ -204,7 +227,6 @@ function keyPress(h) {
 			break;
 
 	}
-	h.preventDefault();
 }
 
 /*all the "character dot"s make it confusing, but I'm making the player an object
@@ -271,105 +293,6 @@ function trueMain() {
 }
 
 
-function drawMenu() {
-	//to save time, only draw the menu if it is in-bounds
-	if (menuPos < 1) {
-		//drawing menu boxes
-		ctx.globalAlpha = display_menuOpacity;
-		ctx.fillStyle = "#FFF";
-		ctx.fillRect(0, canvas.height * menuPos, canvas.width, canvas.height * 0.3);
-		ctx.globalAlpha = 1;
-		//text for all the meters
-		ctx.fillStyle = color_text;
-		ctx.textAlign = "left";
-		ctx.font = "20px Century Gothic";
-		ctx.fillText("Power: ", 12, canvas.height * (menuPos + 0.06));
-		ctx.fillText("Temperature: ", 12, canvas.height * (menuPos + 0.11));
-		ctx.fillText("Fuel: ", 12, canvas.height * (menuPos + 0.16));
-		
-		//timer and effects
-
-		ctx.globalAlpha = 1;
-		//meters now
-		//determining the color of the temperature meter
-		var temperColor = hTemperColor;
-		if (character.warm < 67) {
-			temperColor = mTemperColor
-		}
-		if (character.warm < 33) {
-			temperColor = cTemperColor;
-		}
-
-		var meterX = canvas.width * 0.4;
-		var meterWidth = canvas.width * 0.5;
-		var meterHeight = canvas.height * 0.04;
-		//solar
-		drawMeter(meterX, canvas.height * (menuPos + 0.03), meterWidth, meterHeight, character.power, 0, 100, powerColor);
-		//temp
-		drawMeter(meterX, canvas.height * (menuPos + 0.08), meterWidth, meterHeight, character.warm, 0, 100, temperColor);
-		//fuel
-		drawMeter(meterX, canvas.height * (menuPos + 0.13), meterWidth, meterHeight, character.fuel, 0, 100, color_fuel);
-	} else {
-		menuPos = 1;
-	}
-	//sun-pointer
-	var dialR = 12;
-	var dialX = canvas.width - (dialR * 1.8);
-	var dialY = dialR * 1.6;
-	var dialAngle = Math.PI + Math.atan2(character.x - character.parent.x, character.y - character.parent.y);
-	var l = dialR + 2;
-
-	var momentumAngle = Math.atan2(character.dx - character.parent.dx, character.dy - character.parent.dy);
-	var momentumAmount = Math.sqrt(((character.dx - character.parent.dx) * (character.dx - character.parent.dx)) + ((character.dy - character.parent.dy) * (character.dy - character.parent.dy)));
-
-	ctx.fillStyle = color_ship;
-	ctx.lineWidth = dialR / 6;
-	ctx.globalAlpha = 1;
-	ctx.beginPath();
-	ctx.ellipse(dialX, dialY, dialR, dialR, 0, 0, Math.PI * 2);
-	ctx.fill();
-	ctx.beginPath();
-	ctx.strokeStyle = character.parent.color;
-	ctx.moveTo(dialX, dialY);
-	ctx.lineTo(dialX + (l * Math.sin(dialAngle)), dialY + (l * Math.cos(dialAngle)));
-	ctx.stroke();
-
-	//zoom text
-	ctx.font = "20px Century Gothic";
-	ctx.fillStyle = color_text;
-	ctx.textAlign = "center";
-	ctx.fillText(`Zoom: ${(loading_camera.scale).toFixed(3)}x`, canvas.width * 0.2, (dialR * 1.8));
-	ctx.fillText(`Time: ${(1 / dt).toFixed(3)}x`, canvas.width * 0.2, (dialR * 3.6));
-	ctx.fillText(`Momentum: (${(momentumAmount).toFixed(3)} km/s, ${(((momentumAngle / Math.PI) * 180) + 180).toFixed(1)}°)`, canvas.width * 0.65, canvas.height * (1 - (menuPos + 0.13)));
-	ctx.globalAlpha = 1;
-
-}
-
-function drawSplash() {
-	ctx.fillStyle = menuColor;
-	ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-	ctx.fillStyle = color_text;
-	ctx.textAlign = "center";
-	ctx.font = "45px Century Gothic";
-	ctx.fillText("Space", centerX - 5, 50);
-	ctx.font = "30px Century Gothic";
-	ctx.fillText("Press Z to begin", centerX, centerY);
-}
-
-function drawMeter(x, y, width, height, value, min, max, color) {
-	var percentage = value / (max - min);
-	ctx.strokeStyle = color;
-	ctx.fillStyle = color;
-	ctx.lineWidth = "2";
-	ctx.beginPath();
-	ctx.rect(x, y, width, height);
-	ctx.stroke();
-	ctx.fillRect(x+3, y+3, (width - 6) * percentage, height-6);
-}
-
-
-
 //utility functions
 //takes in an x, y screen coordinate as well as a tolerance, and returns whether that is inside the screen or not. 
 //Tolerance is the amount the object can be off the screen by and still be counted.
@@ -392,6 +315,33 @@ function isOnScreen(x, y, r) {
 	return true;
 }
 
+function rotate(x, y, angleRADIANS) {
+	//rotates an x y point by an angle
+	return [(x * Math.cos(angleRADIANS)) - (y * Math.sin(angleRADIANS)), (y * Math.cos(angleRADIANS)) + (x * Math.sin(angleRADIANS))];
+}
+
+function updateResolution() {
+	var multiplier = 0.5;
+	if (document.getElementById("haveHighResolution").checked) {
+		multiplier = 2;
+	}
+
+	//all things necessary for switching between resolutions
+	canvas.width *= multiplier;
+	canvas.height *= multiplier;
+	display_scaleMultiplier *= multiplier;
+
+	camera_world.scale *= multiplier;
+	camera_world.scale_min *= multiplier;
+	camera_world.scale_max *= multiplier;
+	camera_world.scale_speed *= multiplier;
+
+	camera_map.scale *= multiplier;
+	camera_map.scale_min *= multiplier;
+	camera_map.scale_max *= multiplier;
+	camera_map.scale_speed *= multiplier;
+}
+
 function spaceToScreen(x, y) {
 	x = x - loading_camera.x;
 	y = y - loading_camera.y;
@@ -399,8 +349,8 @@ function spaceToScreen(x, y) {
 	x *= loading_camera.scale;
 	y *= loading_camera.scale;
 
-	x += centerX;
-	y += centerY;
+	x += canvas.width * 0.5;
+	y += canvas.height * 0.5;
 
 	return [x, y];
 }
