@@ -2,31 +2,27 @@ class State_Game {
 	constructor() {
 		this.text = ``;
 		this.time = 0;
+
+		this.nearObjs = [];
+		this.farObjs = [];
+
+		this.orderWorld();
 	}
 
 	execute() {
-		var perfTime = [performance.now(), 0];
-		//drawing background
-		ctx.fillStyle = color_bg;
-		ctx.fillRect(0, 0, canvas.width, canvas.height);
-
+		logTime("total");
 		//handling entities
 		world_camera.tick();
 		player.tick();
-
-		//handling stars
-		for (var c=0;c<world_stars.length;c++) {
-			world_stars[c].beDrawn();
-		}
 
 		//if the player isn't in a tunnel, try to get them in one
 		if (player.parent == undefined) {
 			this.orderWorld();
 
 			//try the player in the closest few tunnels
-			for (var v=world_objects.length-1; v>Math.max(-1, world_objects.length-6); v--) {
-				if (world_objects[v].playerIsInBounds()) {
-					player.parent = world_objects[v];
+			for (var v=this.nearObjs.length-1; v>Math.max(-1, this.nearObjs.length-6); v--) {
+				if (this.nearObjs[v].playerIsInBounds()) {
+					player.parent = this.nearObjs[v];
 					v = -1;
 				}
 			}
@@ -45,13 +41,13 @@ class State_Game {
 				player.parentPrev = player.parent;
 				player.parent = undefined;
 			} else if (!player.parent.playerIsInTunnel()) {
+				
 				//if the player is in the void, try to change parent without reordering objects
-
 				//try the player in the closest few tunnels
-				for (var v=world_objects.length-1; v>Math.max(-1, world_objects.length-6); v--) {
-					if (world_objects[v].playerIsInTunnel()) {
+				for (var v=this.nearObjs.length-1; v>Math.max(-1, this.nearObjs.length-10); v--) {
+					if (this.nearObjs[v].playerIsInTunnel()) {
 						player.parentPrev = player.parent;
-						player.parent = world_objects[v];
+						player.parent = this.nearObjs[v];
 						v = -1;
 
 						//reorder objects anyways if found a new tunnel
@@ -65,17 +61,31 @@ class State_Game {
 			}
 		}
 
+		
 		//just tick the closest few tunnels
-		for (var v=world_objects.length-1; v>Math.max(-1, world_objects.length-9); v--) {
-			world_objects[v].tick();
+		for (var v=this.nearObjs.length-1; v>Math.max(-1, this.nearObjs.length-20); v--) {
+			this.nearObjs[v].tick();
+		}
+		
+
+		//drawing background
+		ctx.fillStyle = color_bg;
+		ctx.fillRect(0, 0, canvas.width, canvas.height);
+		
+		//draw stars
+		for (var c=0;c<world_stars.length;c++) {
+			world_stars[c].beDrawn();
 		}
 
 		//drawing all tunnels
-		for (var a=0; a<world_objects.length; a++) {
-			if (world_objects[a] != player.parent) {
-				world_objects[a].beDrawn();
+		this.farObjs.forEach(f => {
+			f.beDrawn();
+		});
+		this.nearObjs.forEach(f => {
+			if (f != player.parent) {
+				f.beDrawn();
 			}
-		}
+		})
 
 		if (player.parent == undefined) {
 			player.beDrawn();
@@ -130,23 +140,11 @@ class State_Game {
 		//drawing new tunnel text
 		if (this.time > 0) {
 			ctx.fillStyle = color_text_bright;
-			ctx.font = `${canvas.height / 24}px Century Gothic`;
+			ctx.font = `${canvas.height / 22}px Century Gothic`;
 			ctx.fillText(this.text, canvas.width * 0.5, canvas.height * 0.5);
 			this.time -= 1;
 		}
-
-		perfTime[1] = performance.now();
-		var totalTime = perfTime[1] - perfTime[0];
-		render_times.push(totalTime);
-		if (render_times.length > 150) {
-			var avgTime = 0;
-			render_times.forEach(t => {
-				avgTime += t;
-			});
-			avgTime /= render_times.length;
-			//console.log(`avg frame time: ${avgTime} ms`);
-			render_times = [];
-		}
+		logTimeEnd("total", "avg. frame time");
 	}
 
 	orderWorld() {
@@ -156,19 +154,17 @@ class State_Game {
 		});
 
 		//if the camera distance is more than 5 digits (100,000), just put it in a seperate bin
-		var farObjs = [];
+		this.farObjs = [];
+		this.nearObjs = [];
 		for (var v=0; v<world_objects.length; v++) {
 			if (world_objects[v].cameraDist > 99999) {
-				farObjs.push(world_objects[v]);
-				world_objects.splice(v, 1);
-				v -= 1;
+				this.farObjs.push(world_objects[v]);
+			} else {
+				this.nearObjs.push(world_objects[v]);
 			}
 		}
 
-		world_objects = orderObjects(world_objects, 5);
-		farObjs.forEach(f => {
-			world_objects.splice(0, 0, f);
-		});
+		this.nearObjs = orderObjects(this.nearObjs, 5);
 	}
 }
 
@@ -189,6 +185,61 @@ class State_Loading {
 			var xAdd = (this.time * (canvas.height / 480) * Math.cos((Math.PI * 0.666 * this.time) + Math.pow(randomSeeded(-0.8, 0.8), 3)));
 			var yAdd = (this.time * (canvas.height / 480) * Math.sin((Math.PI * 0.666 * this.time) + Math.pow(randomSeeded(-0.8, 0.8), 3)));
 			drawCircle(color_stars, (canvas.width * 0.5) + xAdd, (canvas.height * 0.5) + yAdd, randomSeeded(3, 7));
+
+			//loading tunnels at certain times
+			//TODO: refactor this, it's difficult to read
+			switch (this.time) {
+				case 11:
+					placeTunnelSet(levelData_mainTunnel);
+					console.log(`placed main tunnel`);
+					break;
+				case 20:
+					placeTunnelSet(levelData_boxStorage);
+					console.log(`placed box storage`);
+					break; 
+				case 40:
+					placeTunnelSet(levelData_winterGames);
+					console.log(`placed winter games`);
+					break;
+				case 60:
+					placeTunnelSet(levelData_lowPower);
+					console.log(`placed low power`);
+					break;
+				case 80:
+					placeTunnelSet(levelData_A);
+					console.log(`placed A`);
+					break;
+				case 100:
+					placeTunnelSet(levelData_B);
+					console.log(`placed B`);
+					break;
+				case 120:
+					placeTunnelSet(levelData_D);
+					console.log(`placed D`);
+					break;
+				case 140:
+					placeTunnelSet(levelData_G);
+					console.log(`placed G`);
+					break;
+				case 160:
+					placeTunnelSet(levelData_L);
+					console.log(`placed L`);
+					break;
+				case 180:
+					placeTunnelSet(levelData_T);
+					console.log(`placed T`);
+					break;
+				case 200:
+					placeTunnelSet(levelData_U);
+					console.log(`placed U`);
+					break;
+				case 220:
+					placeTunnelSet(levelData_W);
+					console.log(`placed W`);
+					break;
+				default:
+					break;
+			}
 		}
 		if (this.time > 550) {
 			loading_state = new State_Map();
@@ -204,9 +255,21 @@ class State_Map {
 
 		world_camera.phi = -0.5 * Math.PI;
 		world_camera.theta = -0.5 * Math.PI;
+		world_camera.rot = 0;
+
+		//targets
+		world_camera.targetRot = world_camera.rot;
+		world_camera.targetTheta = world_camera.theta;
 
 		this.levelSelected = undefined;
 		this.cursorPos = [-100, -100];
+
+		//clear player's previous levels
+		player.parent = undefined;
+		player.parentPrev = undefined;
+		player.x = 1e10;
+		player.y = 1e10;
+		player.z = 1e10;
 	}
 
 	execute() {
@@ -234,7 +297,6 @@ class State_Map {
 
 		//draw selected object + extra UI
 		if (editor_active) {
-			
 			if (editor_selected != undefined) {
 				//drawing cursor
 				drawCircle(color_editor_cursor, cursor_x, cursor_y, 4);
@@ -242,10 +304,10 @@ class State_Map {
 				//drawing theta circle + knob
 				ctx.beginPath();
 				ctx.strokeStyle = color_editor_cursor;
-				ctx.ellipse(cursor_x, cursor_y, editor_thetaCircleRadius, editor_thetaCircleRadius, 0, 0, Math.PI * 2);
+				ctx.ellipse(editor_selected.map_startCoords[0], editor_selected.map_startCoords[1], editor_thetaCircleRadius, editor_thetaCircleRadius, 0, 0, Math.PI * 2);
 				ctx.stroke();
 				ctx.beginPath();
-				ctx.ellipse(cursor_x + (editor_thetaCircleRadius * Math.cos(editor_selected.theta)), cursor_y - (editor_thetaCircleRadius * Math.sin(editor_selected.theta)), editor_thetaKnobRadius, editor_thetaKnobRadius, 0, 0, Math.PI * 2);
+				ctx.ellipse(editor_selected.map_startCoords[0] + (editor_thetaCircleRadius * Math.cos(editor_selected.theta)), editor_selected.map_startCoords[1] - (editor_thetaCircleRadius * Math.sin(editor_selected.theta)), editor_thetaKnobRadius, editor_thetaKnobRadius, 0, 0, Math.PI * 2);
 				ctx.fill();
 				
 				ctx.fillStyle = color_text;

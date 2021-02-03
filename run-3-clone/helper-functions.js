@@ -103,6 +103,27 @@ function linterp(a, b, percentage) {
 	return a + ((b - a) * percentage);
 }
 
+function logTime(logName) {
+	times_current[logName] = [performance.now(), 0];
+	if (times_past[logName] == undefined) {
+		times_past[logName] = [];
+	}
+}
+
+function logTimeEnd(logName, textToDisplay) {
+	times_current[logName][1] = performance.now();
+	times_past[logName].push(times_current[logName][1] - times_current[logName][0]);
+	if (times_past[logName].length > 150) {
+		var avgTime = 0;
+		times_past[logName].forEach(t => {
+			avgTime += t;
+		});
+		avgTime /= times_past[logName].length;
+		console.log(`${textToDisplay}: ${avgTime.toFixed(3)} ms`);
+		times_past[logName] = [];
+	}
+}
+
 //takes in an array of objects with cameraDist values and returns the array, ordered by distance from the camera
 function orderObjects(array, places) {
 	//addings all objects to first array

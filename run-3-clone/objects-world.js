@@ -88,13 +88,7 @@ class FreePoly {
 			this.doCollisionEffects();
 
 			//transforming back to regular coordinates
-			playerCoords = relativeToSpace(playerCoords, [this.x, this.y, this.z], this.normal);
-
-			//getting difference between actual player coordinates and attempted coords for forces
-			playerCoords = [playerCoords[0] - player.x, playerCoords[1] - player.y, playerCoords[2] - player.z];
-			player.x += playerCoords[0];
-			player.y += playerCoords[1];
-			player.z += playerCoords[2];
+			[player.x, player.y, player.z] = relativeToSpace(playerCoords, [this.x, this.y, this.z], this.normal);
 		}
 	}
 
@@ -177,34 +171,15 @@ class FreePoly {
 	}
 
 	beDrawn() {
-		//first get camera coordinate points
-		var tempPoints = [];
-		for (var p=0;p<this.points.length;p++) {
-			tempPoints.push(spaceToRelative(this.points[p], [world_camera.x, world_camera.y, world_camera.z], [world_camera.theta, world_camera.phi, world_camera.rot]));
-		}
-
-		tempPoints = clipToZ0(tempPoints, render_clipDistance, false);
-		
-		//turn points into screen coordinates
-		var screenPoints = [];
-		for (var a=0;a<tempPoints.length;a++) {
-			screenPoints.push(cameraToScreen(tempPoints[a]));
-		}
-
-		if (screenPoints.length > 0) {
-			//finally draw self
-			drawPoly(this.getColor(), screenPoints);
-
-			if (editor_active) {
-				
-				//draw self's normal as well
-				var cXYZ = polToCart(this.normal[0], this.normal[1], 5);
-				cXYZ = [this.x + cXYZ[0], this.y + cXYZ[1], this.z + cXYZ[2]];
-				ctx.beginPath();
-				ctx.lineWidth = 2;
-				ctx.strokeStyle = "#AFF";
-				drawWorldLine([this.x, this.y, this.z], cXYZ);
-			}
+		drawWorldPoly(this.points, this.getColor());
+		if (editor_active) {
+			//draw self's normal as well
+			var cXYZ = polToCart(this.normal[0], this.normal[1], 5);
+			cXYZ = [this.x + cXYZ[0], this.y + cXYZ[1], this.z + cXYZ[2]];
+			ctx.beginPath();
+			ctx.lineWidth = 2;
+			ctx.strokeStyle = "#AFF";
+			drawWorldLine([this.x, this.y, this.z], cXYZ);
 		}
 	}
 }
@@ -309,13 +284,18 @@ class Tunnel {
 		this.generateTiles();
 		//stop rendering individual tiles when they're less than 10 units per tile
 		this.maxTileRenderDist = (this.tileSize / 2) * world_camera.scale;
+
+		//map stuffies
+		this.map_startCoords = spaceToScreen([this.x, this.y, this.z]);
+		this.map_circleCoords = spaceToScreen([this.centerPos[0], this.centerPos[1], this.centerPos[2]]);
+		this.map_endCoords = spaceToScreen([this.endPos[0], this.endPos[1], this.endPos[2]]);
 	}
 
 	beDrawn() {
 		//if player is close enough, draw individual tiles. If not, draw a thin line
 		if (this.cameraDist < this.maxTileRenderDist) {
 			//sort strips
-			var stripStorage = orderObjects(this.strips, 5);
+			var stripStorage = orderObjects(this.strips, 6);
 
 			stripStorage.forEach(s => {
 				s.beDrawn();
@@ -330,14 +310,16 @@ class Tunnel {
 	}
 
 	beDrawnOnMap() {
+		this.map_startCoords = spaceToScreen([this.x, this.y, this.z]);
+		this.map_circleCoords = spaceToScreen([this.centerPos[0], this.centerPos[1], this.centerPos[2]]);
+		this.map_endCoords = spaceToScreen([this.endPos[0] - (tunnel_transitionLength * Math.sin(this.theta)), this.endPos[1], this.endPos[2] + (tunnel_transitionLength * Math.cos(this.theta))]);
+
 		//circle + line
-		var circleCoords = spaceToScreen([this.x, this.y, this.z]);
-		var endCoords = spaceToScreen(this.endPos);
-		drawCircle(color_map_writing, circleCoords[0], circleCoords[1], canvas.height / 320);
+		drawCircle(color_map_writing, this.map_circleCoords[0], this.map_circleCoords[1], canvas.height / 320);
 
 		ctx.beginPath();
-		ctx.moveTo(circleCoords[0], circleCoords[1]);
-		ctx.lineTo(endCoords[0], endCoords[1]);
+		ctx.moveTo(this.map_startCoords[0], this.map_startCoords[1]);
+		ctx.lineTo(this.map_endCoords[0], this.map_endCoords[1]);
 		ctx.stroke();
 	}
 
@@ -406,6 +388,8 @@ class Tunnel {
 				return new Tile_Ice(x, y, z, size, normal, this, position);
 			case 9: 
 				return new Tile_Box(x, y, z, size, normal, this, position);
+			case 10:
+				return new Tile_Box_Spun(x, y, z, size, normal, this, position);
 			case 11:
 				return new Tile_Ramp(x, y, z, size, normal, this, position, color);
 			case 12: 
@@ -543,6 +527,11 @@ class Tunnel {
 		this.endPos = [this.endPos[0] + this.x, this.endPos[1] + this.y, this.endPos[2] + this.z];
 
 		this.generateTiles();
+
+		//map coordinate stuff
+		this.map_startCoords = spaceToScreen([this.x, this.y, this.z]);
+		this.map_circleCoords = spaceToScreen([this.centerPos[0], this.centerPos[1], this.centerPos[2]]);
+		this.map_endCoords = spaceToScreen([this.endPos[0] - (tunnel_transitionLength * Math.sin(this.theta)), this.endPos[1], this.endPos[2] + (tunnel_transitionLength * Math.cos(this.theta))]);
 	}
 
 	
@@ -608,7 +597,7 @@ class Tunnel_Strip {
 			return ((spaceToRelative([player.x, player.y, player.z], [this.x, this.y, this.z], this.normal)[2] * spaceToRelative([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], this.normal)[2]) > 0);
 		} else {
 			//if there is a tile there, use the tile's coordinates
-			return ((spaceToRelative([player.x, player.y, player.z], [this.tiles[tileNum].x, this.tiles[tileNum].y, this.tiles[tileNum].z], this.tiles[tileNum].normal)[2] * spaceToRelative([world_camera.x, world_camera.y, world_camera.z], [this.tiles[tileNum].x, this.tiles[tileNum].y, this.tiles[tileNum].z], this.tiles[tileNum].normal)[2]) > 0);
+			return this.tiles[tileNum].playerIsOnTop();
 		}
 	}
 
@@ -619,6 +608,7 @@ class Tunnel_Strip {
 			}
 		});
 
+		
 		var lineDown = false;
 		var lineStart = [];
 
@@ -653,6 +643,7 @@ class Tunnel_Strip {
 			ctx.strokeStyle = "#000";
 			drawWorldLine(lineStart, [this.tiles[n].x, this.tiles[n].y, this.tiles[n].z]);
 		}
+		
 
 
 		if (editor_active) {
@@ -688,10 +679,24 @@ class Tunnel_Strip {
 		this.realTiles.forEach(t => {
 			t.tick();
 		});
-		//ordering objects
-		if (this.requiresOrdering && world_time % 3 == 2) {
-			this.realTiles = orderObjects(this.realTiles, 5);
-		}
 		
+		//ordering objects
+		if (this.requiresOrdering && world_time % 4 == 3) {
+			var unordered = [];
+			//don't order tiles that are far enough away
+			for (var a=0; a<this.realTiles.length-1; a++) {
+				if (this.realTiles[a].cameraDist > 4999) {
+					unordered.push(this.realTiles[a]);
+					this.realTiles.splice(a, 1);
+					a -= 1;
+				}
+			}
+			if (this.realTiles.length > 0) {
+				this.realTiles = orderObjects(this.realTiles, 4);
+			}
+			while (unordered.length > 0) {
+				this.realTiles.splice(0, 0, unordered.pop());
+			}
+		} 
 	}
 }

@@ -111,3 +111,23 @@ function drawWorldLine(worldPoint1, worldPoint2) {
 		ctx.stroke();
 	}
 }
+
+function drawWorldPoly(points, color) {
+	//first get camera coordinate points
+	var tempPoints = [];
+	for (var p=0; p<points.length; p++) {
+		tempPoints.push(spaceToRelative(points[p], [world_camera.x, world_camera.y, world_camera.z], [world_camera.theta, world_camera.phi, world_camera.rot]));
+	}
+
+	tempPoints = clipToZ0(tempPoints, render_clipDistance, false);
+	
+	//turn points into screen coordinates
+	var screenPoints = [];
+	for (var a=0;a<tempPoints.length;a++) {
+		screenPoints.push(cameraToScreen(tempPoints[a]));
+	}
+
+	if (screenPoints.length > 0) {
+		drawPoly(color, screenPoints);
+	}
+}

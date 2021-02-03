@@ -81,50 +81,165 @@ class Tile extends FreePoly {
 			super.collideWithPlayer();
 		}
 	}
+
+	playerIsOnTop() {
+		return ((spaceToRelative([player.x, player.y, player.z], [this.x, this.y, this.z], this.normal)[2] * spaceToRelative([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], this.normal)[2]) > 0)
+	}
 }
 
+//I just gave up on the tile system with this one and made it its own object
 class Tile_Box extends Tile {
 	constructor(x, y, z, size, normal, parent, tilePosition) {
-		super(x, y, z, size, normal, parent, tilePosition, {h: 0, s: 100});
+		super(x, y, z, size, normal, parent, tilePosition, {h: 300, s: 10});
 
-		//create child tiles
-		this.children = [];
-		for (var s=0; s<4; s++) {
-			var offset = polToCart(this.normal[0], this.normal[1] + ((Math.PI * 0.5) * s), this.size / 2);
-			this.children.push(new Tile(this.x + offset[0], this.y + offset[1], this.z + offset[2], this.size, [this.normal[0], this.normal[1] + ((Math.PI * 0.5) * s)], this.parent, this.parentPosition, {h: 0, s: 0}));
-		}
 		this.requiresOrdering = true;
+
+		//all boxes have a left / right tile, for changing rotation
+		this.leftTile = new Tile(x, y, z, size, [normal[0], (normal[1] + (Math.PI * 1.5)) % (Math.PI * 2)], parent, tilePosition, this.color);
+		this.rightTile = new Tile(x, y, z, size, [normal[0], (normal[1] + (Math.PI * 0.5)) % (Math.PI * 2)], parent, tilePosition, this.color);
 	}
 
-	getCameraDist() {
-		super.getCameraDist();
-		//only get camera distance for children if close enough
-		this.children.forEach(c => {
-			c.getCameraDist();
-		});
+	calculatePointsAndNormal() {
+		var points = [	[-1, 1, -1], [-1, 1, 1], [1, 1, 1], [1, 1, -1],
+						[-1, -1, -1], [-1, -1, 1], [1, -1, 1], [1, -1, -1]];
+		
+		var rPoint = [0, 0, -10];
+		rPoint = transformPoint(rPoint, [0, 0, 0], this.normal, 1);
+
+		for (var p=0; p<points.length; p++) {
+			points[p] = transformPoint(points[p], [this.x, this.y, this.z], this.normal, this.size + 0.5);
+		}
+		
+		this.points = points;
+		this.rPoint = [rPoint[0] + this.x, rPoint[1] + this.y, rPoint[2] + this.z];
+		this.dir_right = cartToPol(rPoint[0], rPoint[1], rPoint[2]);
+		this.dir_down = this.normal;
 	}
+	
 
 	beDrawn() {
-		this.children.forEach(c => {
-			c.beDrawn();
-		});
+		if (this.cameraDist < render_maxColorDistance + this.size) {
+			//actual box shape
+			/*faces:
+			top - 0 1 2 3 
+			bottom - 4 5 6 7
+
+			left - 0 1 5 4
+			right - 3 2 6 7
+
+			front - 1 2 6 5
+			back - 0 3 7 4
+			*/
+
+			//getting camera position relative to self for proper ordering
+			var relCPos = spaceToRelative([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], [this.normal[0], this.normal[1], 0]);
+			var color = this.getColor();
+			
+			//top / bottom switch
+			if (relCPos[2] > 0) {
+				drawWorldPoly([this.points[0], this.points[1], this.points[2], this.points[3]], color);
+			} else {
+				drawWorldPoly([this.points[4], this.points[5], this.points[6], this.points[7]], color);
+			}
+
+			//left / right switch
+			if (relCPos[0] > 0) {
+				drawWorldPoly([this.points[3], this.points[2], this.points[6], this.points[7]], color);
+			} else {
+				drawWorldPoly([this.points[0], this.points[1], this.points[5], this.points[4]], color);
+			}
+
+			//forwards / back switch
+			if (relCPos[1] > 0) {
+				drawWorldPoly([this.points[0], this.points[3], this.points[7], this.points[4]], color);
+			} else {
+				drawWorldPoly([this.points[1], this.points[2], this.points[6], this.points[5]], color);
+			}
+		} else {
+			//simple circle for far away
+			if (!isClipped([this.x, this.y, this.z])) {
+				var pos = spaceToScreen([this.x, this.y, this.z]);
+				drawCircle(this.getColor(), pos[0], pos[1], (this.size / this.cameraDist) * world_camera.scale * 0.8);
+			}
+		}
 	}
 
 	collideWithPlayer() {
-		//only collide if close enough
-		if (this.playerDist < (this.size * 1.75) + player.r) {
-			this.children.forEach(c => {
-				c.collideWithPlayer();
-			});
+		//only collide if within a certain distance of the player
+		if (this.playerDist < this.size * 2) {
+			//transforming player coordinates to self
+			var playerCoords = spaceToRelative([player.x, player.y, player.z], [this.x, this.y, this.z], [this.normal[0], this.normal[1], 0]);
+
+			//second check for collision, only collide if all 3 coordinates are under threshold
+			if (Math.abs(playerCoords[0]) - player.r < this.size / 2 && Math.abs(playerCoords[1]) - player.r < this.size / 2 && Math.abs(playerCoords[2]) - player.r < this.size / 2) {
+				var distX = Math.abs(playerCoords[0]);
+				var distY = Math.abs(playerCoords[1]);
+				var distZ = Math.abs(playerCoords[2]);
+				//if x is the greatest (forwards / back in the tunnel) slow player down and push out
+				if (distX > distY && distX > distZ) {
+					player.dz = 0;
+					if (playerCoords[0] > 0) {
+						playerCoords[0] = 0.5 * this.size + player.r;
+					} else {
+						playerCoords[0] = (-0.5 * this.size) - player.r;
+					}
+				} else if (distZ > distY && distZ > distX) {
+					//if z is the greatest, do rotation effects normally
+					player.dy = 0;
+					if (playerCoords[2] > 0) {
+						playerCoords[2] =  0.5 * this.size + player.r;
+					} else {
+						playerCoords[2] = -0.5 * this.size - player.r;
+					}
+					this.doCollisionEffects();
+					this.doRotationEffects();
+				} else {
+					//if y is the greatest, then it's the sides of the box.
+					//this solution is sort of hacky, but the box is already ridiculously laggy so I don't particularly care
+					if (playerCoords[1] > 0) {
+						this.rightTile.doRotationEffects();
+						playerCoords[1] = 0.5 * this.size + player.r;
+					} else {
+						this.leftTile.doRotationEffects();
+						playerCoords[1] = -0.5 * this.size - player.r;
+					}
+					this.doCollisionEffects();
+				}
+			}
+
+			//transform player coords back and assign to player
+			[player.x, player.y, player.z] = relativeToSpace(playerCoords, [this.x, this.y, this.z], [this.normal[0], this.normal[1], 0]);
 		}
 	}
 
 	tick() {
-		this.getCameraDist();
-		if (world_time % 3 == 2) {
-			this.children = orderObjects(this.children, 4);
-		}
+		super.getCameraDist();
 		this.collideWithPlayer();
+	}
+}
+
+class Tile_Box_Spun extends Tile_Box {
+	constructor(x, y, z, size, normal, parent, tilePosition) {
+		super(x, y, z, size, [normal[0], normal[1] + (Math.PI * 0.25)], parent, tilePosition);
+	}
+
+	calculatePointsAndNormal() {
+		var len = 1 / Math.sqrt(2);
+		var points = [	[-1, len, -len], [-1, len, len], [1, len, len], [1, len, -len],
+						[-1, -len, -len], [-1, -len, len], [1, -len, len], [1, -len, -len]];
+		
+		var rPoint = [0, 0, -10];
+		rPoint = transformPoint(rPoint, [0, 0, 0], this.normal, 1);
+
+		for (var p=0; p<points.length; p++) {
+			points[p] = transformPoint(points[p], [this.x, this.y, this.z], this.normal, this.size + 0.5);
+		}
+		
+		this.points = points;
+		this.rPoint = [rPoint[0] + this.x, rPoint[1] + this.y, rPoint[2] + this.z];
+		this.dir_right = cartToPol(rPoint[0], rPoint[1], rPoint[2]);
+		this.dir_down = this.normal;
+		this.size -= player.r * 0.6;
 	}
 }
 
@@ -333,6 +448,10 @@ class Tile_Ramp extends Tile {
 		//push player up a bit
 		player.dy = 3;
 		player.onground = physics_graceTimeRamp;
+	}
+
+	playerIsOnTop() {
+		return (super.playerIsOnTop || spaceToRelative([player.x, player.y, player.z], [this.x, this.y, this.z], [this.parent.theta, 0, 0]));
 	}
 }
 

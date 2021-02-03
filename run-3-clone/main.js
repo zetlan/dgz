@@ -81,9 +81,10 @@ var render_clipDistance = 0.1;
 var render_maxColorDistance = 1000;
 var render_minTileSize = 9;
 var render_identicalPointTolerance = 0.0001;
-var render_tunnelTextTime = 30;
+var render_tunnelTextTime = 50;
 
-var render_times = [];
+var times_current = {};
+var times_past = {};
 
 var haltCollision = false;
 
@@ -113,15 +114,6 @@ function setup() {
 	world_stars = [];
 
 	console.log("hi");
-	//placing tunnels into world
-	placeTunnelSet(levelData_mainTunnel);
-	placeTunnelSet(levelData_boxStorage);
-	placeTunnelSet(levelData_winterGames);
-	placeTunnelSet(levelData_lowPower);
-	placeTunnelSet(levelData_B);
-	placeTunnelSet(levelData_G);
-	placeTunnelSet(levelData_L);
-	placeTunnelSet(levelData_W);
 
 	//high resolution slider
 	document.getElementById("haveHighResolution").onchange = updateResolution;
@@ -162,6 +154,11 @@ function handleKeyPress(a) {
 			break;
 		case 83:
 			controls_object.az = -1 * controls_object.speed;
+			break;
+
+		//escape
+		case 27:
+			loading_state = new State_Map();
 			break;
 
 		//space
@@ -260,8 +257,7 @@ function handleMouseDown(a) {
 		var canvasArea = canvas.getBoundingClientRect();
 		
 		if (editor_selected != undefined) {
-			var selectedCoords = spaceToScreen([editor_selected.x, editor_selected.y, editor_selected.z]);
-			var knobCoords = [selectedCoords[0] + (editor_thetaCircleRadius * Math.cos(editor_selected.theta)), selectedCoords[1] - (editor_thetaCircleRadius * Math.sin(editor_selected.theta))];
+			var knobCoords = [editor_selected.map_startCoords[0] + (editor_thetaCircleRadius * Math.cos(editor_selected.theta)), editor_selected.map_startCoords[1] - (editor_thetaCircleRadius * Math.sin(editor_selected.theta))];
 
 			//if colliding with the theta change circle, do that stuff
 			if (getDistance2d(knobCoords, [Math.round(a.clientX - canvasArea.left), Math.round(a.clientY - canvasArea.top)]) < editor_thetaKnobRadius) {
@@ -283,11 +279,10 @@ function handleMouseDown(a) {
 
 			//loop through all world objects, if one is close enough, make it the selected one
 			for (var a=0; a<world_objects.length; a++) {
-				var tunnelDrawCoords = spaceToScreen([world_objects[a].x, world_objects[a].y, world_objects[a].z]);
-				if (getDistance2d(tunnelDrawCoords, [cursor_x, cursor_y]) < editor_clickTolerance) {
+				if (getDistance2d(world_objects[a].map_circleCoords, [cursor_x, cursor_y]) < editor_clickTolerance) {
 					editor_selected = world_objects[a];
-					cursor_x = tunnelDrawCoords[0];
-					cursor_y = tunnelDrawCoords[1];
+					cursor_x = world_objects[a].map_circleCoords[0];
+					cursor_y = world_objects[a].map_circleCoords[1];
 					a = world_objects.length + 1;
 				}
 			}
@@ -326,6 +321,8 @@ function handleMouseMove(a) {
 				var diffY = -1 * (Math.round(a.clientY - canvasArea.top) - cursor_y);
 				editor_selected.theta = (Math.atan2(diffY, diffX) + (Math.PI * 2)) % (Math.PI * 2);
 				editor_selected.updatePosition([editor_selected.x, editor_selected.y, editor_selected.z]);
+				cursor_x = editor_selected.map_circleCoords[0];
+				cursor_y = editor_selected.map_circleCoords[1];
 			} else {
 				//moving the tunnel
 				cursor_x = Math.round(a.clientX - canvasArea.left);
@@ -334,20 +331,25 @@ function handleMouseMove(a) {
 				var snapX = cursor_x;
 				var snapY = cursor_y;
 
-				//if a tunnel end is close enough, snap the tunnel to that position
+				//if a tunnel end is close enough to the tunnel start, snap the tunnel to that position
+				var startSelectOffset = [editor_selected.map_startCoords[0] - editor_selected.map_circleCoords[0], editor_selected.map_startCoords[1] - editor_selected.map_circleCoords[1]];
 				//calculating tunnel end pos
 				for (var a=0; a<world_objects.length; a++) {
 					if (world_objects[a] != editor_selected) {
-						var snapPos = spaceToScreen([world_objects[a].endPos[0] - (tunnel_transitionLength * Math.sin(world_objects[a].theta)), 0, world_objects[a].endPos[2] + (tunnel_transitionLength * Math.cos(world_objects[a].theta))]);
-						if (getDistance2d([snapPos[0], snapPos[1]], [snapX, snapY]) < editor_snapTolerance) {
-							[snapX, snapY] = snapPos;
+						var endPos = world_objects[a].map_endCoords;
+						if (getDistance2d([endPos[0], endPos[1]], [snapX + startSelectOffset[0], snapY + startSelectOffset[1]]) < editor_snapTolerance) {
+							//moving position of selection
+							//get difference between tunnel start coordinates and selected coordinates
+							snapX = endPos[0] - startSelectOffset[0];
+							snapY = endPos[1] - startSelectOffset[1];
 						}
 					}
 				}
 
 				//update selected tunnel position
 				if (editor_selected != undefined) {
-					var newCoords = screenToSpace([snapX, snapY], map_cameraHeight);
+					var offset = [editor_selected.map_startCoords[0] - editor_selected.map_circleCoords[0], editor_selected.map_startCoords[1] - editor_selected.map_circleCoords[1]];
+					var newCoords = screenToSpace([snapX + offset[0], snapY + offset[1]], map_cameraHeight);
 					editor_selected.updatePosition(newCoords);
 				}
 			}
@@ -366,7 +368,7 @@ function handleMouseMove(a) {
 			//calculating tunnel end pos
 			for (var a=0; a<world_objects.length; a++) {
 				if (world_objects[a] != editor_selected) {
-					var tunnelPos = spaceToScreen([world_objects[a].x, 0, world_objects[a].z]);
+					var tunnelPos = world_objects[a].map_circleCoords;
 					if (getDistance2d([tunnelPos[0], tunnelPos[1]], [testX, testY]) < editor_snapTolerance) {
 						loading_state.cursorPos = tunnelPos;
 						loading_state.levelSelected = world_objects[a];
