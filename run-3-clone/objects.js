@@ -38,7 +38,7 @@ class Camera {
 	}
 
 	tick() {
-		if (editor_active || !(loading_state instanceof State_Game)) {
+		if (editor_active || !(loading_state instanceof State_Game || loading_state instanceof State_Infinite)) {
 			//handling velocity
 
 			//adding
@@ -109,13 +109,14 @@ class Camera {
 
 
 class Character {
-	constructor(x, y, z) {
+	constructor(x, y, z, walkForwardsTexture, walkLeftTexture, walkRightTexture, jumpForwardsTexture, jumpLeftTexture, jumpRightTexture) {
 		this.dir_down = [0, Math.PI / 2];
 		this.dir_side = [0, 0];
 		this.dir_front = [Math.PI / 2, 0];
 		this.gravStrength = 0.12;
-		this.speed = 0.15;
-		this.dMax = 3.6;
+		this.speed = 0.11;
+		this.dMax = 3.4;
+		this.fallMax = this.dMax;
 
 		this.onGround = 0;
 		this.jumpTime = physics_jumpTime;
@@ -133,23 +134,32 @@ class Character {
 
 		this.ax = 0;
 		this.az = 0;
-		this.friction = 0.85;
-		this.naturalFriction = 0.97;
+		this.friction = 0.9;
+		this.naturalFriction = 0.999;
 
-		this.r = 10;
+		this.r = player_radius;
 		this.cameraDist = 1000;
 		this.drawR = this.r / getDistance(this, world_camera);
 		this.color = color_character;
+
+		this.texture_walkF = walkForwardsTexture;
+		this.texture_walkL = walkLeftTexture;
+		this.texture_walkR = walkRightTexture;
+		this.texture_jumpF = jumpForwardsTexture;
+		this.texture_jumpL = jumpLeftTexture;
+		this.texture_jumpR = jumpRightTexture;
+
+		this.texture_current = undefined;
 
 	}
 
 	modifyDerivitives(activeGravity, activeFriction, naturalFriction, activeAX, activeAZ) {
 		//decreasing the time to jump
 		this.onGround -= 1;
-		//modifying forces
+
+		//if player has a parent, change gravity based on parent power
 		if (this.parent != undefined) {
-			//if in the void, half gravity
-			this.dy -= linterp(activeGravity * 0.7, activeGravity, this.parent.power);
+			this.dy -= linterp(activeGravity * 0.8, activeGravity, this.parent.power);
 		} else {
 			this.dy -= activeGravity;
 		}
@@ -157,12 +167,11 @@ class Character {
 			this.dy += physics_jumpBoost;
 			this.jumpTime -= 1;
 		}
-		if (Math.abs(this.dy) > this.dMax) {
-			this.dy = clamp(this.dy, -1 * this.dMax, 1.5 * this.dMax);
-		}
+		
+		this.dy = clamp(this.dy, -1 * this.fallMax, 1.5 * this.dMax);
 
 		this.dx += activeAX;
-		if (this.ax == 0) {
+		if (this.ax == 0 || this.ax * this.dx < 0) {
 			this.dx *= activeFriction;
 		}
 		
@@ -170,18 +179,19 @@ class Character {
 			this.dx = clamp(this.dx, -1 * this.dMax, this.dMax);
 		}
 
-		this.dz += activeAZ;
-		//natural friction
-		this.dz *= naturalFriction;
-		if (Math.abs(this.dz) > this.dMax) {
-			this.dz = clamp(this.dz, -1.2 * this.dMax, 1.2 * this.dMax);
+		if (Math.abs(this.dz) < this.dMax) {
+			this.dz += activeAZ;
+		} else {
+			//natural friction
+			this.dz *= naturalFriction;
 		}
+		
 	}
 
 	tick() {
 		//setting camera position
-		var vertOffset = polToCart(this.dir_down[0], this.dir_down[1], 100);
-		var horizOffset = polToCart(this.dir_front[0], this.dir_front[1], -150);
+		var vertOffset = polToCart(this.dir_down[0], this.dir_down[1], 70);
+		var horizOffset = polToCart(this.dir_front[0], this.dir_front[1], -95);
 		world_camera.targetX = this.x + vertOffset[0] + horizOffset[0];
 		world_camera.targetY = this.y + vertOffset[1] + horizOffset[1];
 		world_camera.targetZ = this.z + vertOffset[2] + horizOffset[2];
@@ -194,12 +204,12 @@ class Character {
 
 		//only do the other tick stuff if camera is close enough
 		if (this.cameraDist < 1000 && !editor_active) {
-			//if in the void, change around variables
 			if (this.parent != undefined && !this.parent.playerIsInTunnel()) {
-				this.modifyDerivitives(this.gravStrength / 7, this.friction / 2, this.naturalFriction, this.ax / 2, this.speed / 2);
+				//if in the void, change physics
+				this.modifyDerivitives(this.gravStrength * 0.7 * (spaceToRelative(this.parent.centerPos, [this.x, this.y, this.z], [this.dir_down[0], this.dir_down[1], 0])[2] / this.parent.r), this.friction / 2, this.naturalFriction, this.ax / 2, this.speed / 2);
 			} else if (this.onIce) {
 				//ice also affects physics
-				this.modifyDerivitives(this.gravStrength, Math.min(1, this.friction * 1.1), this.naturalFriction + 0.01, this.ax * 0.8, this.speed);
+				this.modifyDerivitives(this.gravStrength, Math.min(0.995, this.friction * 1.05), this.naturalFriction, this.ax * 0.8, this.speed);
 			} else {
 				//don't accelerate if dz is too great
 				if (Math.abs(this.dz) > this.dMax * 1.1) {
@@ -223,8 +233,7 @@ class Character {
 	beDrawn() {
 		if (!isClipped([this.x, this.y, this.z])) {
 			var [tX, tY] = spaceToScreen([this.x, this.y, this.z]);
-			drawCircle("#000", tX, tY, this.drawR);
-			drawCircle(this.color, tX, tY, this.drawR - 4);
+			this.tetxure_current.draw(tX, tY, this.drawR * 2);
 			
 			if (editor_active) {
 				var cartX = polToCart(this.dir_side[0], this.dir_side[1], 10);
@@ -260,5 +269,57 @@ class Character {
 			this.jumpTime = physics_jumpTime;
 			this.onGround = 0;
 		}
+	}
+}
+
+/*
+spriteSheet - the image source of the texture
+imageSize - how large each individual image is
+coordinates - an array, the coordinates of each frame (EX: [[1, 1], [0, 1], [0, 0]])
+*/
+class Texture {
+	constructor(spriteSheet, imageSize, drawsBeforeImageChange, loopBOOLEAN, coordinates) {
+		this.looping = loopBOOLEAN;
+		this.sheet = spriteSheet;
+		this.size = imageSize;
+		this.frames = coordinates;
+		this.currentFrame = 0;
+		this.amount = 1 / drawsBeforeImageChange;
+	}
+
+	draw(x, y, size) {
+		ctx.drawImage(this.sheet, this.size * this.frames[Math.floor(this.currentFrame)][0], this.size * this.frames[Math.floor(this.currentFrame)][1], this.size, this.size, 
+			x - (size / 2), y - (size / 2), size, size);
+
+		
+		if (this.looping) {
+			this.currentFrame = (this.currentFrame + this.amount) % this.frames.length;
+		} else {
+			this.currentFrame += this.amount;
+			if (this.currentFrame > this.frames.length - 1) {
+				this.currentFrame = this.frames.length - 1;
+			}
+		}
+	}
+
+	reset() {
+		this.currentFrame = 0;
+	}
+}
+
+
+
+
+
+
+
+
+//characters
+class Runner extends Character {
+	constructor(x, y, z) {
+		super(x, y, z, new Texture(getImage(data_sprites.runner.sheet), data_sprites.spriteSize, data_sprites.runner.frameTime, true, data_sprites.runner.walkForwards),
+					new Texture(getImage(data_sprites.runner.sheet), data_sprites.spriteSize, data_sprites.runner.frameTime, true, data_sprites.runner.walkSideways),
+					new Texture(getImage(data_sprites.runner.sheet), data_sprites.spriteSize, data_sprites.runner.frameTime, false, data_sprites.runner.jumpForwards),
+					new Texture(getImage(data_sprites.runner.sheet), data_sprites.spriteSize, data_sprites.runner.frameTime, false, data_sprites.runner.jumpSideways),);
 	}
 }
