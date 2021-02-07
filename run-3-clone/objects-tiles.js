@@ -59,7 +59,6 @@ class Tile extends FreePoly {
 
 		
 		if (!editor_active && world_camera.targetRot != (this.cameraRot + (Math.PI * 1.5)) % (Math.PI * 2)) {
-			//console.log(world_camera.targetRot, (this.cameraRot + (Math.PI * 1.5)) % (Math.PI * 2));
 			world_camera.targetRot = (this.cameraRot + (Math.PI * 1.5)) % (Math.PI * 2);
 
 			//if the rotation difference is too great, fix that
@@ -253,6 +252,115 @@ class Tile_Bright extends Tile {
 	}
 }
 
+class Tile_Conveyor extends Tile {
+	constructor(x, y, z, size, normal, parent, tilePosition) {
+		super(x, y, z, size, normal, parent, tilePosition, RGBtoHSV("#69beff"));
+		this.secondaryColor = RGBtoHSV("#616bff");
+	}
+
+	doCollisionEffects() {
+		super.doCollisionEffects();
+		this.doSpeedEffects();
+	}
+
+	doSpeedEffects() {
+		if (player.dz < player.dMax * 2) {
+			player.dz += physics_conveyorStrength;
+		}
+	}
+
+	calculatePointsAndNormal() {
+		super.calculatePointsAndNormal();
+		var points = [	[-1, 0, -1], [-1, 0, 1], [1, 0, 0.1], [1, 0, -0.1]];
+		for (var p=0; p<points.length; p++) {
+			points[p] = transformPoint(points[p], [this.x, this.y, this.z], this.normal, this.size + 0.5);
+		}
+		this.triPoints = points;
+	}
+
+	getSecondaryColor() {
+		return `hsl(${this.secondaryColor.h}, ${linterp(this.secondaryColor.s, 0, clamp((this.playerDist / render_maxColorDistance) * (1 / (this.parent.power + 0.001)), 0.1, 1))}%, ${linterp(70, 0, clamp((this.playerDist / render_maxColorDistance) * (1 / (this.parent.power + 0.001)), 0.1, 1))}%)`;
+	}
+	
+	beDrawn() {
+		drawWorldPoly(this.points, this.getColor());
+		drawWorldPoly(this.triPoints, this.getSecondaryColor());
+		if (editor_active) {
+			//draw self's normal as well
+			var cXYZ = polToCart(this.normal[0], this.normal[1], 5);
+			cXYZ = [this.x + cXYZ[0], this.y + cXYZ[1], this.z + cXYZ[2]];
+			ctx.beginPath();
+			ctx.lineWidth = 2;
+			ctx.strokeStyle = "#AFF";
+			drawWorldLine([this.x, this.y, this.z], cXYZ);
+		}
+	}
+}
+
+class Tile_Conveyor_Slow extends Tile_Conveyor {
+	constructor(x, y, z, size, normal, parent, tilePosition) {
+		super(x, y, z, size, normal, parent, tilePosition);
+	}
+
+	calculatePointsAndNormal() {
+		super.calculatePointsAndNormal();
+		var points = [[-1, 0, -0.1], [-1, 0, 0.1], [1, 0, 1], [1, 0, -1]];
+		for (var p=0; p<points.length; p++) {
+			points[p] = transformPoint(points[p], [this.x, this.y, this.z], this.normal, this.size + 0.5);
+		}
+		this.triPoints = points;
+	}
+
+	doSpeedEffects() {
+		if (player.dz > player.dMax * 0.4) {
+			player.dz -= physics_conveyorStrength * 3;
+		}
+	}
+}
+
+class Tile_Conveyor_Left extends Tile_Conveyor {
+	constructor(x, y, z, size, normal, parent, tilePosition) {
+		super(x, y, z, size, normal, parent, tilePosition);
+	}
+
+	calculatePointsAndNormal() {
+		super.calculatePointsAndNormal();
+		var points = [[-0.1, 0, -1], [-1, 0, 1], [1, 0, 1], [0.1, 0, -1]];
+		for (var p=0; p<points.length; p++) {
+			points[p] = transformPoint(points[p], [this.x, this.y, this.z], this.normal, this.size + 0.5);
+		}
+		this.triPoints = points;
+		//rotate by 18.5° the other way
+		this.dir_down = [this.normal[0], this.normal[1] - ((Math.PI * 2) / 19.459)];
+		this.cameraRot = this.dir_down[1];
+	}
+
+	doSpeedEffects() {
+		player.dx += physics_conveyorStrength * 3;
+	}
+}
+
+class Tile_Conveyor_Right extends Tile_Conveyor {
+	constructor(x, y, z, size, normal, parent, tilePosition) {
+		super(x, y, z, size, normal, parent, tilePosition);
+	}
+
+	calculatePointsAndNormal() {
+		super.calculatePointsAndNormal();
+		var points = [[-1, 0, -1], [-0.1, 0, 1], [0.1, 0, 1], [1, 0, -1]];
+		for (var p=0; p<points.length; p++) {
+			points[p] = transformPoint(points[p], [this.x, this.y, this.z], this.normal, this.size + 0.5);
+		}
+		this.triPoints = points;
+		//rotate by 18.5°
+		this.dir_down = [this.normal[0], this.normal[1] + ((Math.PI * 2) / 19.459)];
+		this.cameraRot = this.dir_down[1];
+	}
+
+	doSpeedEffects() {
+		player.dx -= physics_conveyorStrength * 3;
+	}
+}
 
 class Tile_Crumbling extends Tile {
 	constructor(x, y, z, size, normal, parent, tilePosition) {
