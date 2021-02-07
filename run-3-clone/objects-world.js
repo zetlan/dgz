@@ -77,7 +77,7 @@ class FreePoly {
 				//inside the tunnel
 				playerCoords[2] = this.tolerance;
 				//special collision effects for inside the tunnel
-				if (!haltCollision && (player.dir_down[0] != this.normal[0] || player.dir_down[1] != this.normal[1])) {
+				if (!haltCollision && (player.dir_down[0] != this.dir_down[0] || player.dir_down[1] != this.dir_down[1])) {
 					this.doRotationEffects();
 				}
 			}
@@ -187,7 +187,7 @@ class FreePoly {
 class Star {
 	constructor(x, y, z) {
 		this.color = color_stars;
-		this.r = 2000;
+		this.r = 20;
 		this.drawR;
 		
 		this.dx = 0;
@@ -199,7 +199,7 @@ class Star {
 		this.z = z;
 		
 
-		this.drawR = this.r / getDistance(this, {x:0, y:0, z:0});
+		this.drawR = (this.r / getDistance(this, {x:0, y:0, z:0})) * world_camera.scale;
 	}
 
 	tick() {
@@ -228,7 +228,7 @@ class Star {
 			tX += canvas.width / 2;
 			tY += canvas.height / 2;
 	
-			drawCircle(this.color, tX, tY, this.drawR * (world_camera.scale / 200));
+			drawCircle(this.color, tX, tY, this.drawR);
 		}
 	}
 }
@@ -250,6 +250,8 @@ class Tunnel {
 
 		this.color = color;
 		this.cameraDist = 1000;
+
+		this.discovered = false;
 
 		this.playerTilePos = 0;
 		this.power = power;
@@ -283,7 +285,7 @@ class Tunnel {
 
 		this.generateTiles();
 		//stop rendering individual tiles when they're less than 10 units per tile
-		this.maxTileRenderDist = (this.tileSize / 2) * world_camera.scale;
+		this.maxTileRenderDist = Math.min(render_maxDistance, (this.tileSize / 2) * world_camera.scale);
 
 		//map stuffies
 		this.map_startCoords = spaceToScreen([this.x, this.y, this.z]);
@@ -310,17 +312,20 @@ class Tunnel {
 	}
 
 	beDrawnOnMap() {
-		this.map_startCoords = spaceToScreen([this.x, this.y, this.z]);
-		this.map_circleCoords = spaceToScreen([this.centerPos[0], this.centerPos[1], this.centerPos[2]]);
-		this.map_endCoords = spaceToScreen([this.endPos[0] - (tunnel_transitionLength * Math.sin(this.theta)), this.endPos[1], this.endPos[2] + (tunnel_transitionLength * Math.cos(this.theta))]);
+		//draw self if discovered
+		if (this.discovered || editor_active) {
+			this.map_startCoords = spaceToScreen([this.x, this.y, this.z]);
+			this.map_circleCoords = spaceToScreen([this.centerPos[0], this.centerPos[1], this.centerPos[2]]);
+			this.map_endCoords = spaceToScreen([this.endPos[0] - (tunnel_transitionLength * Math.sin(this.theta)), this.endPos[1], this.endPos[2] + (tunnel_transitionLength * Math.cos(this.theta))]);
 
-		//circle + line
-		drawCircle(color_map_writing, this.map_circleCoords[0], this.map_circleCoords[1], canvas.height / 320);
+			//circle + line
+			drawCircle(color_map_writing, this.map_circleCoords[0], this.map_circleCoords[1], canvas.height / 320);
 
-		ctx.beginPath();
-		ctx.moveTo(this.map_startCoords[0], this.map_startCoords[1]);
-		ctx.lineTo(this.map_endCoords[0], this.map_endCoords[1]);
-		ctx.stroke();
+			ctx.beginPath();
+			ctx.moveTo(this.map_startCoords[0], this.map_startCoords[1]);
+			ctx.lineTo(this.map_endCoords[0], this.map_endCoords[1]);
+			ctx.stroke();
+		}
 	}
 
 	//I apologize in advance for any headaches this function causes.
@@ -386,6 +391,14 @@ class Tunnel {
 				return new Tile_Crumbling(x, y, z, size, normal, this, position);
 			case 4:
 				return new Tile_Ice(x, y, z, size, normal, this, position);
+			case 5:
+				return new Tile_Conveyor_Slow(x, y, z, size, normal, this, position);
+			case 6:
+				return new Tile_Conveyor(x, y, z, size, normal, this, position);
+			case 7:
+				return new Tile_Conveyor_Left(x, y, z, size, normal, this, position);
+			case 8:
+				return new Tile_Conveyor_Right(x, y, z, size, normal, this, position);
 			case 9: 
 				return new Tile_Box(x, y, z, size, normal, this, position);
 			case 10:
@@ -397,7 +410,6 @@ class Tunnel {
 			default:
 				return new Tile(x, y, z, size, normal, this, position, color);
 		}
-		
 	}
 
 	getCameraDist() {
@@ -440,6 +452,7 @@ class Tunnel {
 
 		//determining whether the player is in self's bounds using transformed coordinates
 		if (getDistance2d([newCoords[0], newCoords[1]], [0, 0]) < this.r + tunnel_voidWidth && newCoords[2] > 0 && newCoords[2] < (this.len * this.tileSize) + tunnel_transitionLength * 2) {
+			this.discovered = true;
 			return true;
 		}
 		return false;
@@ -603,7 +616,7 @@ class Tunnel_Strip {
 
 	beDrawn() {
 		this.realTiles.forEach(t => {
-			if ((t.size / t.cameraDist) * world_camera.scale > render_minTileSize) {
+			if ((t.size / t.cameraDist) * world_camera.scale > render_minTileSize && t.cameraDist <= render_maxDistance) {
 				t.beDrawn();
 			}
 		});
@@ -616,7 +629,7 @@ class Tunnel_Strip {
 			//if it's a tile
 			if (t != undefined) {
 				//if it's small enough to not be drawn, start the line™
-				if ((t.size / t.cameraDist) * world_camera.scale <= render_minTileSize) {
+				if ((t.size / t.cameraDist) * world_camera.scale <= render_minTileSize || t.cameraDist > render_maxDistance) {
 					if (!lineDown) {
 						lineDown = true;
 						lineStart = [t.x, t.y, t.z];
