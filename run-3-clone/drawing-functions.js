@@ -82,6 +82,44 @@ function drawCircle(color, x, y, radius) {
 	ctx.fill();
 }
 
+function drawPlayerWithParent() {
+	//sorting player in with the parent tunnel to be drawn
+	var stripStorage = orderObjects(player.parent.strips, 4);
+			
+	//if the player is in the middle of the strips (on top of some but not all) do the special
+	if (stripStorage[0].playerIsOnTop() != stripStorage[stripStorage.length-1].playerIsOnTop()) {
+		var drawPlayer = true;
+		stripStorage.forEach(t => {
+			if (drawPlayer && t.playerIsOnTop()) {
+				t.beDrawn();
+			} else if (drawPlayer) {
+				drawPlayer = false;
+				player.beDrawn();
+				t.beDrawn();
+			} else {
+				t.beDrawn();
+			}
+		});
+		if (drawPlayer) {
+			player.beDrawn();
+		}
+	} else {
+		//case where player is below all
+		if (!stripStorage[0].playerIsOnTop()) {
+			player.beDrawn();
+			stripStorage.forEach(t => {
+				t.beDrawn();
+			});
+		} else {
+			//case where player is above all
+			stripStorage.forEach(t => {
+				t.beDrawn();
+			});
+			player.beDrawn();
+		}
+	} 
+}
+
 function drawQuad(color, p1, p2, p3, p4) {
 	ctx.fillStyle = color;
 	ctx.beginPath();
@@ -90,6 +128,21 @@ function drawQuad(color, p1, p2, p3, p4) {
 	ctx.lineTo(p3[0], p3[1]);
 	ctx.lineTo(p4[0], p4[1]);
 	ctx.lineTo(p1[0], p1[1]);
+	ctx.fill();
+}
+
+function drawRoundedRectangle(x, y, width, height, arcRadius) {
+	ctx.beginPath();
+	ctx.moveTo(x + arcRadius, y);
+	ctx.lineTo(x + width - arcRadius, y);
+	ctx.quadraticCurveTo(x + width, y, x + width, y + arcRadius);
+	ctx.lineTo(x + width, y + height - arcRadius);
+	ctx.quadraticCurveTo(x + width, y + height, x + width - arcRadius, y + height);
+	ctx.lineTo(x + arcRadius, y + height);
+	ctx.quadraticCurveTo(x, y + height, x, y + height - arcRadius);
+	ctx.lineTo(x, y + arcRadius);
+	ctx.quadraticCurveTo(x, y, x + arcRadius, y);
+	ctx.stroke();
 	ctx.fill();
 }
 
