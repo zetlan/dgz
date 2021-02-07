@@ -15,6 +15,7 @@ var controls_sensitivity = 100;
 var controls_object;
 var controls_spacePressed = false;
 
+var physics_conveyorStrength = 0.05;
 var physics_jumpTime = 30;
 var physics_jumpInitial = 2.9;
 var physics_jumpBoost = 0.1;
@@ -26,6 +27,8 @@ const color_bg = "#100026";
 const color_character = "#888";
 const color_editor_border = "#F8F";
 const color_editor_cursor = "#0FF";
+const color_grey_dark = "#888";
+const color_grey_light = "#CCC";
 const color_ice = "#EFF";
 const color_keyPress = "#8FC";
 const color_keyUp = "#666";
@@ -39,6 +42,25 @@ var cursor_x = 0;
 var cursor_y = 0;
 var cursor_down = false;
 
+var data_levelSets = [`mainTunnel`, `boxStorage`, `winterGames`, `lowPower`, 
+						`A`, `B`, `D`, `F`, `G`, `L`, `M`, `N`, `T`, `U`, `W`];
+
+var data_sprites = {
+	spriteSize: 144,
+
+	runner: {
+		sheet: 'images/RunnerSprites.png',
+		frameTime: 2.3,
+		jumpForwards: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [7, 0], [8, 0], [9, 0], [10, 0]],
+		walkForwards: [[0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [5, 2], [6, 2], [7, 2],
+					   [0, 3], [1, 3], [2, 3], [3, 3], [4, 3], [5, 3], [6, 3], [7, 3]]
+	}
+};
+
+var data_persistent = {
+	discovered: []
+};
+
 var editor_active = false;
 var editor_changingTheta = false;
 var editor_selected = undefined;
@@ -47,11 +69,25 @@ var editor_snapTolerance = 5;
 var editor_thetaCircleRadius = 60;
 var editor_thetaKnobRadius = 10;
 
+var infinite_levelRange = 40;
+
 let loading_state = new State_Loading();
 
 var map_cameraHeight = 175000;
 
+var menu_buttonWidth = 0.2;
+var menu_buttonHeight = 0.05;
+var menu_buttons = [
+	[`Infinite Mode`, `new State_Infinite()`],
+	[`Explore Mode`, `new State_Map()`],
+	[`nyaa nyaa nyaa`]
+];
+
 let page_animation;
+
+let player;
+var player_radius = 15;
+
 
 var tunnel_transitionLength = 200;
 var tunnel_voidWidth = 200;
@@ -70,7 +106,7 @@ var tunnel_powerFunctions = {
 
 let world_camera;
 var world_pRandValue = 1.2532;
-var world_starDistance = 1500;
+var world_starDistance = 2300;
 var world_starNumber = 500;
 var world_time = 0;
 let world_objects = [];
@@ -78,7 +114,8 @@ let active_objects = [];
 
 var render_crosshairSize = 10;
 var render_clipDistance = 0.1;
-var render_maxColorDistance = 1000;
+var render_maxColorDistance = 950;
+var render_maxDistance = 15000;
 var render_minTileSize = 9;
 var render_identicalPointTolerance = 0.0001;
 var render_tunnelTextTime = 50;
@@ -104,7 +141,7 @@ function setup() {
 	document.addEventListener("mouseup", handleMouseUp, false);
 
 	world_camera = new Camera(0, 8, 0, 0, 0);
-	player = new Character(-60, 0, 0);
+	player = new Runner(-60, 0, 0);
 
 	controls_object = player;
 
@@ -112,8 +149,6 @@ function setup() {
 	//as a reminder, tunnels are (x, y, z, angle, tile size, sides, tiles per sides, color, length, data)
 	world_objects = []; 
 	world_stars = [];
-
-	console.log("hi");
 
 	//high resolution slider
 	document.getElementById("haveHighResolution").onchange = updateResolution;
@@ -132,8 +167,14 @@ function setup() {
 function main() {
 	loading_state.execute();
 
+	//save data every once in a while
+	if (world_time % 204 == 203) {
+		localStorage_write();
+	}
+
 	//call self
-	world_time += 1;
+	//modulo so that time never gets stuck
+	world_time = (world_time + 1) % 9e15;
 	page_animation = window.requestAnimationFrame(main);
 }
 
@@ -158,7 +199,11 @@ function handleKeyPress(a) {
 
 		//escape
 		case 27:
-			loading_state = new State_Map();
+			try {
+				loading_state.handleEscape();
+			} catch (er) {
+				console.log(`No escape function defined for the current game state peko`);
+			}
 			break;
 
 		//space
@@ -251,59 +296,8 @@ function handleKeyNegate(a) {
 }
 
 function handleMouseDown(a) {
-	if (editor_active) {
-		cursor_down = true;
-
-		var canvasArea = canvas.getBoundingClientRect();
-		
-		if (editor_selected != undefined) {
-			var knobCoords = [editor_selected.map_startCoords[0] + (editor_thetaCircleRadius * Math.cos(editor_selected.theta)), editor_selected.map_startCoords[1] - (editor_thetaCircleRadius * Math.sin(editor_selected.theta))];
-
-			//if colliding with the theta change circle, do that stuff
-			if (getDistance2d(knobCoords, [Math.round(a.clientX - canvasArea.left), Math.round(a.clientY - canvasArea.top)]) < editor_thetaKnobRadius) {
-				editor_changingTheta = true;
-				var diffX = Math.round(a.clientX - canvasArea.left) - cursor_x;
-				var diffY = -1 * (Math.round(a.clientY - canvasArea.top) - cursor_y);
-				editor_selected.theta = (Math.atan2(diffY, diffX) + (Math.PI * 2)) % (Math.PI * 2);
-				editor_selected.updatePosition([editor_selected.x, editor_selected.y, editor_selected.z]);
-			} else {
-				editor_changingTheta = false;
-				editor_selected = undefined;
-			}
-		} else {
-			//update cursor position
-			cursor_x = Math.round(a.clientX - canvasArea.left);
-			cursor_y = Math.round(a.clientY - canvasArea.top);
-
-			//modifying regular tunnels
-
-			//loop through all world objects, if one is close enough, make it the selected one
-			for (var a=0; a<world_objects.length; a++) {
-				if (getDistance2d(world_objects[a].map_circleCoords, [cursor_x, cursor_y]) < editor_clickTolerance) {
-					editor_selected = world_objects[a];
-					cursor_x = world_objects[a].map_circleCoords[0];
-					cursor_y = world_objects[a].map_circleCoords[1];
-					a = world_objects.length + 1;
-				}
-			}
-		}
-	} else {
-		//going into the level that's selected
-		if (loading_state instanceof State_Map && loading_state.levelSelected != undefined) {
-			//ordering all the objects
-			world_objects.forEach(u => {
-				u.getCameraDist();
-			});
-			world_objects = orderObjects(world_objects, 8);
-			player.parentPrev = loading_state.levelSelected;
-			loading_state = new State_Game();
-			player.parentPrev.reset();
-
-			//displaying text
-			loading_state.text = player.parentPrev.id;
-			loading_state.time = render_tunnelTextTime;
-		}
-	}
+	cursor_down = true;
+	loading_state.handleMouseDown(a);
 }
 
 function handleMouseUp(a) {
@@ -311,73 +305,7 @@ function handleMouseUp(a) {
 }
 
 function handleMouseMove(a) {
-	var canvasArea = canvas.getBoundingClientRect();
-
-	if (editor_active) {
-		if (cursor_down && editor_selected != undefined) {
-			if (editor_changingTheta) {
-				//update selected tunnel direction
-				var diffX = Math.round(a.clientX - canvasArea.left) - cursor_x;
-				var diffY = -1 * (Math.round(a.clientY - canvasArea.top) - cursor_y);
-				editor_selected.theta = (Math.atan2(diffY, diffX) + (Math.PI * 2)) % (Math.PI * 2);
-				editor_selected.updatePosition([editor_selected.x, editor_selected.y, editor_selected.z]);
-				cursor_x = editor_selected.map_circleCoords[0];
-				cursor_y = editor_selected.map_circleCoords[1];
-			} else {
-				//moving the tunnel
-				cursor_x = Math.round(a.clientX - canvasArea.left);
-				cursor_y = Math.round(a.clientY - canvasArea.top);
-
-				var snapX = cursor_x;
-				var snapY = cursor_y;
-
-				//if a tunnel end is close enough to the tunnel start, snap the tunnel to that position
-				var startSelectOffset = [editor_selected.map_startCoords[0] - editor_selected.map_circleCoords[0], editor_selected.map_startCoords[1] - editor_selected.map_circleCoords[1]];
-				//calculating tunnel end pos
-				for (var a=0; a<world_objects.length; a++) {
-					if (world_objects[a] != editor_selected) {
-						var endPos = world_objects[a].map_endCoords;
-						if (getDistance2d([endPos[0], endPos[1]], [snapX + startSelectOffset[0], snapY + startSelectOffset[1]]) < editor_snapTolerance) {
-							//moving position of selection
-							//get difference between tunnel start coordinates and selected coordinates
-							snapX = endPos[0] - startSelectOffset[0];
-							snapY = endPos[1] - startSelectOffset[1];
-						}
-					}
-				}
-
-				//update selected tunnel position
-				if (editor_selected != undefined) {
-					var offset = [editor_selected.map_startCoords[0] - editor_selected.map_circleCoords[0], editor_selected.map_startCoords[1] - editor_selected.map_circleCoords[1]];
-					var newCoords = screenToSpace([snapX + offset[0], snapY + offset[1]], map_cameraHeight);
-					editor_selected.updatePosition(newCoords);
-				}
-			}
-		}
-	} else {
-		if (loading_state instanceof State_Map) {
-			//if mousing over a level, set the ID to the display text
-			var testX = Math.round(a.clientX - canvasArea.left);
-			var testY = Math.round(a.clientY - canvasArea.top);
-
-			//resetting both text and position
-			loading_state.levelSelected = undefined;
-			loading_state.cursorPos = [-100, -100];
-
-			//if a tunnel end is close enough, snap the tunnel to that position
-			//calculating tunnel end pos
-			for (var a=0; a<world_objects.length; a++) {
-				if (world_objects[a] != editor_selected) {
-					var tunnelPos = world_objects[a].map_circleCoords;
-					if (getDistance2d([tunnelPos[0], tunnelPos[1]], [testX, testY]) < editor_snapTolerance) {
-						loading_state.cursorPos = tunnelPos;
-						loading_state.levelSelected = world_objects[a];
-						a = world_objects.length + 1;
-					}
-				}
-			}
-		}
-	}
+	loading_state.handleMouseMove(a);
 }
 
 function updateResolution() {
@@ -398,26 +326,27 @@ function updateResolution() {
 
 	performing 100,000 spaceToRelative functions with a variable declaration took 218 - 228 ms
 	performing the same number of spaceToRelative functions with the variable declaration removed took 210-211 ms,
+
+	performing (10,000,000) a clamp operation on a variable when the condition for that clamp was met took between 48-50 ms. 
+	Removing the conditional took between 50-56 ms.
 	
 
 	TL;DR-
 	square roots are slow, but faster than trig functions
 	variable declarations take time, but aren't the end of the world
+	running an if statement on a variable to check for clamping is faster than doing clamping all the time
 
 
 */
 function performanceTest() {
 	var perfTime = [performance.now(), 0];
 
-	for (var a=0;a<100000;a++) {
-		//part to test performance
-		var value = spaceToRelative([Math.random() * 60, Math.random() * 60, Math.random() * 60], [8, 8, 8], [1, 0.4, 0]);
-
-		//constant part
-		value *= 2;
-		if (value > 0) {
-			value /= 2;
-		}
+	var val = 0;
+	for (var a=0;a<10000000;a++) {
+		val += Math.random() - 0.5;
+		//if (Math.abs(val) > 2) {
+			val = clamp(val, -2, 2);
+		//}
 	}
 
 
