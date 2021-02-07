@@ -2,14 +2,17 @@
 
 /* 
 generation functions:
-	generateBinTree();
 	generateStarSphere();
-
-utility:
 	avgArray();
 	clamp();
+	getImage();
+	getObjectFromID();
 	getPercentage();
 	linterp();
+	localStorage_read();
+	localStorage_write();
+	logTime();
+	logTimeEnd();
 
 	power_falseAlarm();
 	power_fast();
@@ -20,16 +23,18 @@ utility:
 	power_slowSmooth();
 	power_smooth();
 
-	randomCustom();
+	randomBounded();
 	randomSeeded();
 	RGBtoHSV();
 	rotate();
 	runCrash();
 	spliceIn();
 	spliceOut();
+
 	tunnelData_handle();
 	tunnelData_parseData();
 	tunnelData_subdivide();
+
 	worldOutput();
 
 2d collision:
@@ -90,6 +95,20 @@ function clamp(num, min, max) {
 	return num <= min ? min : num >= max ? max : num;
 }
 
+function getImage(url) {
+	var image = new Image();
+	image.src = url;
+	return image;
+}
+
+function getObjectFromID(id) {
+	for (var a=0; a<world_objects.length; a++) {
+		if (world_objects[a].id == id) {
+			return world_objects[a];
+		}
+	}
+}
+
 //returns the percentage from val1 to val2 that the checkVal is in
 //example: 0, 10, 5, returns 0.5)
 function getPercentage(val1, val2, checkVal) {
@@ -101,6 +120,40 @@ function getPercentage(val1, val2, checkVal) {
 //performs a linear interpolation between 2 values
 function linterp(a, b, percentage) {
 	return a + ((b - a) * percentage);
+}
+
+function localStorage_read() {
+	//turn the things in the messages section of local storage into a string that can be read into gameFlags
+	var toRead = window.localStorage["run3_data"];
+	try {
+		toRead = JSON.parse(toRead);
+	} catch (error) {
+		console.log(`ERROR: could not parse ${toRead}, using default`);
+	}
+	
+
+	//make sure it's somewhat safe, and then make it into the game flags
+	if (typeof(toRead) == "object") {
+		data_persistent = toRead;
+	} else {
+		console.log("ERROR: invalid type specified in save data, using default");
+	}
+
+	//change the visited tags for all levels
+	data_persistent.discovered.forEach(a => {
+		getObjectFromID(a).discovered = true;
+	});
+}
+
+function localStorage_write() {
+	//loop through all levels. If it's discovered, add it to the discovered array
+	data_persistent.discovered = [];
+	for (var a=0; a<world_objects.length; a++) {
+		if (world_objects[a].discovered == true) {
+			data_persistent.discovered.push(world_objects[a].id);
+		}
+	}
+	window.localStorage["run3_data"] = JSON.stringify(data_persistent);
 }
 
 function logTime(logName) {
@@ -253,9 +306,8 @@ function power_smooth(powStart, powEnd, time) {
 
 
 
-
 //returns a random value between the min value and max values, using the default javascript randomizer
-function randomCustom(min, max) {
+function randomBounded(min, max) {
 	return (Math.random() * (max - min)) + min;
 }
 
@@ -441,7 +493,7 @@ function tunnelData_subdivide(data) {
 		"~slow": 5, "~fast": 6, "~left": 7, "~right": 8,
 		"~box": 9, "~rotatedZBox": 10, "~steepRamp": 11, "~ramp": 12, //ice ramp
 		"~movable": 13, "~battery": 14
-	 };
+	};
 
 	 
 
