@@ -111,14 +111,7 @@ class State_Game {
 		}
 		
 
-		//drawing background
-		ctx.fillStyle = color_bg;
-		ctx.fillRect(0, 0, canvas.width, canvas.height);
-		
-		//draw stars
-		world_stars.forEach(c => {
-			c.beDrawn();
-		});
+		drawSky(color_bg);
 
 		//drawing all tunnels
 		this.farObjs.forEach(f => {
@@ -195,6 +188,8 @@ class State_Infinite {
 		this.data = levelData_infinite.split("\n");
 		this.difficulty = 0;
 
+		this.endingScreen = false;
+
 		this.objs = [];
 		this.sortedObjs = [];
 		for (var a=0; a<5; a++) {
@@ -209,7 +204,7 @@ class State_Infinite {
 		var [sX, sZ, sT] = [0, 0, 0, 0];
 		if (this.objs.length > 0) {
 			sT = this.objs[this.objs.length - 1].theta;
-			sX = this.objs[this.objs.length - 1].endPos[0] + (tunnel_transitionLength * Math.sin(sT));
+			sX = this.objs[this.objs.length - 1].endPos[0] - (tunnel_transitionLength * Math.sin(sT));
 			sZ = this.objs[this.objs.length - 1].endPos[2] + (tunnel_transitionLength * Math.cos(sT));
 			
 		}
@@ -240,125 +235,100 @@ class State_Infinite {
 	}
 
 	execute() {
-		//logTime("total");
 
-		//add to meter count, 30 pixels in a meter
-		this.meters += player.dz / 30;
+		if (!this.endingScreen) {
+			//add to meter count, 30 pixels in a meter
+			this.meters += player.dz / 30;
 
-		//handling entities
-		world_camera.tick();
-		player.tick();
+			//regular stuff, similar to explore mode
+			world_camera.tick();
+			player.tick();
 
-		//if the player isn't in a tunnel, try to get them in one
-		if (player.parent == undefined) {
-			this.orderWorld();
-
-			//try the player in the closest few tunnels
-			for (var v=this.sortedObjs.length-1; v>=0; v--) {
-				if (this.sortedObjs[v].playerIsInBounds()) {
-					player.parent = this.sortedObjs[v];
-					v = -1;
-				}
-			}
-			//if they're still undefined, kill them
 			if (player.parent == undefined) {
-				if (this.meters > 20) {
-					loading_state = new State_Menu();
-				} else {
-					player.parentPrev.reset();
-					player.parent = player.parentPrev;
-					this.meters = 0;
-				}
-				
-			} else {
-				if (player.parent != player.parentPrev) {
-					//display text
-					this.text = player.parent.id;
-					this.time = render_tunnelTextTime;
-
-					//remove first level and add new level
-					this.objs.splice(0, 1);
-					this.addTunnel();
-				}
-			}
-		} else { 
-			//if the player's left their parent tunnel, change their parent
-			if (!player.parent.playerIsInBounds()) {
-				player.parentPrev = player.parent;
-				player.parent = undefined;
-			} else if (!player.parent.playerIsInTunnel()) {
-				
-				//if the player is in the void, try to change parent without reordering objects
+				this.orderWorld();
 				for (var v=this.sortedObjs.length-1; v>=0; v--) {
-					if (this.sortedObjs[v].playerIsInTunnel()) {
-						player.parentPrev = player.parent;
+					if (this.sortedObjs[v].playerIsInBounds()) {
 						player.parent = this.sortedObjs[v];
 						v = -1;
-
-						//reorder objects anyways if found a new tunnel
-						this.orderWorld();
-
-						//text / level stuffies
+					}
+				}
+				if (player.parent == undefined) {
+					if (this.meters > 20) {
+						this.endingScreen = true;
+					} else {
+						player.parentPrev.reset();
+						player.parent = player.parentPrev;
+						this.meters = 0;
+					}
+				} else {
+					if (player.parent != player.parentPrev) {
 						this.text = player.parent.id;
 						this.time = render_tunnelTextTime;
 						this.objs.splice(0, 1);
 						this.addTunnel();
 					}
 				}
+			} else { 
+				if (!player.parent.playerIsInBounds()) {
+					player.parentPrev = player.parent;
+					player.parent = undefined;
+				} else if (!player.parent.playerIsInTunnel()) {
+					for (var v=this.sortedObjs.length-1; v>=0; v--) {
+						if (this.sortedObjs[v].playerIsInTunnel()) {
+							player.parentPrev = player.parent;
+							player.parent = this.sortedObjs[v];
+							v = -1;
+							this.orderWorld();
+							this.text = player.parent.id;
+							this.time = render_tunnelTextTime;
+							this.objs.splice(0, 1);
+							this.addTunnel();
+						}
+					}
+				}
 			}
-		}
+			this.sortedObjs.forEach(v => {
+				v.tick();
+			});
 
-		
-		//tick tunnels
-		this.sortedObjs.forEach(v => {
-			v.tick();
-		});
-		
-
-		//drawing background
-		ctx.fillStyle = color_bg;
-		ctx.fillRect(0, 0, canvas.width, canvas.height);
-		
-		//draw stars
-		world_stars.forEach(c => {
-			c.beDrawn();
-		});
-
-		//drawing all tunnels
-		this.sortedObjs.forEach(f => {
-			if (f != player.parent) {
-				f.beDrawn();
+			//drawing
+			drawSky(color_bg);
+			this.sortedObjs.forEach(f => {
+				if (f != player.parent) {
+					f.beDrawn();
+				}
+			});
+			if (player.parent == undefined) {
+				player.beDrawn();
+			} else {
+				drawPlayerWithParent();
 			}
-		});
+			if (editor_active) {
+				drawCrosshair();
+			}
+			drawKeys();
 
-		if (player.parent == undefined) {
-			player.beDrawn();
-		} else {
-			drawPlayerWithParent();
-		}
-
-		//crosshair
-		if (editor_active) {
-			drawCrosshair();
-		}
-
-
-		//drawing pressed keys
-		drawKeys();
-
-		//drawing meter text
-		ctx.fillStyle = color_text_bright;
-		ctx.font = `${canvas.height / 22}px Century Gothic`;
-		ctx.fillText(this.meters.toFixed(2), canvas.width * 0.1, canvas.height * 0.05);
-
-		//drawing new tunnel text
-		if (this.time > 0) {
+			//drawing meter text
+			ctx.fillStyle = color_text_bright;
+			ctx.textAlign = "left";
 			ctx.font = `${canvas.height / 22}px Century Gothic`;
-			ctx.fillText(this.text, canvas.width * 0.5, canvas.height * 0.5);
-			this.time -= 1;
+			ctx.fillText(`${this.meters.toFixed(0)} m`, canvas.width * 0.02, canvas.height * 0.05);
+			ctx.textAlign = "center";
+
+			//drawing new tunnel text
+			if (this.time > 0) {
+				ctx.font = `${canvas.height / 22}px Century Gothic`;
+				ctx.fillText(this.text, canvas.width * 0.5, canvas.height * 0.5);
+				this.time -= 1;
+			}
+		} else {
+			//main box
+			ctx.fillStyle = color_grey_lightest;
+			ctx.strokeStyle = color_grey_light;
+			ctx.lineWidth = canvas.height / 50;
+			drawRoundedRectangle(canvas.width * 0.1, canvas.height * 0.1, canvas.width * 0.8, canvas.height * 0.8, canvas.width * 0.04);
 		}
-		
-		//logTimeEnd("total", "avg. frame time");
+
 	}
 
 	orderWorld() {
@@ -462,15 +432,7 @@ class State_Map {
 
 	execute() {
 		world_camera.tick();
-		//draw background
-		ctx.fillStyle = color_map_bg;
-		ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-		
-		//handling stars
-		for (var c=0;c<world_stars.length;c++) {
-			world_stars[c].beDrawn();
-		}
+		drawSky(color_map_bg);
 
 		//draw world objects
 		ctx.lineWidth = canvas.height / 480;
@@ -506,8 +468,6 @@ class State_Map {
 				ctx.fillText(`selected-id: undefined`, canvas.width * 0.5, canvas.height * 0.1);
 				ctx.fillText(`θ: undefined`, canvas.width * 0.5, (canvas.height * 0.1) + fontSize);
 			}
-			
-
 
 			//border around screen
 			ctx.strokeStyle = color_editor_border;
@@ -524,7 +484,6 @@ class State_Map {
 				ctx.fillStyle = color_text;
 				ctx.fillText(this.levelSelected.id, canvas.width * 0.5, canvas.height * 0.1);
 			}
-			
 		}
 	}
 
@@ -662,9 +621,27 @@ class State_Menu {
 
 		this.overButton = -1;
 		this.buttons = menu_buttons;
-	}
 
+		this.selectionTextures = [];
+		for (var t=0; t<data_characters.length; t++) {
+			this.selectionTextures.push(new Texture(getImage(eval(`data_sprites.${data_characters[t]}.sheet`)), data_sprites.spriteSize, 2, false, false, eval(`data_sprites.${data_characters[t]}.back`)));
+		}
+
+		this.characterSelected = 0;
+		this.displayCharacterSelected = 0;
+
+		//switch character selected
+		for (var t=0; t<data_characters.length; t++) {
+			if (player.constructor.name == data_characters[t]) {
+				this.characterSelected = t;
+				this.displayCharacterSelected = t;
+			}
+		}
+	}
 	execute() {
+		//swivel display character
+		this.displayCharacterSelected = ((this.displayCharacterSelected * 6) + this.characterSelected) / 7;
+		menu_characterSize = canvas.height / 16;
 		//bege
 		ctx.fillStyle = color_bg;
 		ctx.strokeStyle = color_grey_dark;
@@ -682,27 +659,67 @@ class State_Menu {
 		//drawing buttons
 		var trueButtonWidth = (canvas.width * menu_buttonWidth * 0.5);
 		var trueButtonHeight = (canvas.height * menu_buttonHeight * 0.5);
+		var startHeight = (canvas.height * 0.5) - (trueButtonHeight * this.buttons.length * 1.5);
 
 		ctx.lineWidth = canvas.height / 96;
 		ctx.font = `${canvas.height / 30}px Century Gothic`;
 		for (var y=0; y<this.buttons.length; y++) {
-			var yOffset = ((this.buttons.length - 1) * trueButtonHeight * 2) * y;
+			var yOffset = startHeight + (trueButtonHeight * 4 * y);
 			if (this.overButton == y) {
 				ctx.fillStyle = color_grey_dark;
 			} else {
 				ctx.fillStyle = color_grey_light;
 			}
-			drawRoundedRectangle((canvas.width * 0.5) - trueButtonWidth, (canvas.height * 0.5) - (canvas.height * menu_buttonHeight * 0.5) + yOffset, trueButtonWidth * 2, trueButtonHeight * 2, canvas.height / 48);
+			drawRoundedRectangle((canvas.width * 0.5) - trueButtonWidth, yOffset, trueButtonWidth * 2, trueButtonHeight * 2, canvas.height / 48);
 			
 			//text
 			ctx.fillStyle = color_text;
-			ctx.fillText(this.buttons[y][0], canvas.width * 0.5, (canvas.height * 0.5) + yOffset + (canvas.height / 90))
+			ctx.fillText(this.buttons[y][0], canvas.width * 0.5, yOffset + trueButtonHeight + (canvas.height / 90));
+		}
+
+		//drawing characters
+
+		//selection box
+		var offX = menu_characterCircleRadius * canvas.height * Math.cos((Math.PI * 2 * (1 / data_characters.length) * this.displayCharacterSelected) - (Math.PI * 0.5));
+		var offY = menu_characterCircleRadius * canvas.height * Math.sin((Math.PI * 2 * (1 / data_characters.length) * this.displayCharacterSelected) - (Math.PI * 0.5));
+		ctx.globalAlpha = 0.3;
+		ctx.fillStyle = color_grey_light;
+		ctx.strokeStyle = color_menuSelectionOutline;
+		drawRoundedRectangle((canvas.width * 0.5) + offX - menu_characterSize, (canvas.height * 0.5) + offY, menu_characterSize * 2, menu_characterSize * 2, canvas.height / 48);
+		ctx.globalAlpha = 1;
+
+		for (var h=0; h<data_characters.length; h++) {
+			offX = menu_characterCircleRadius * canvas.height * Math.cos((Math.PI * 2 * (1 / data_characters.length) * h) - (Math.PI * 0.5));
+			offY = menu_characterCircleRadius * canvas.height * Math.sin((Math.PI * 2 * (1 / data_characters.length) * h) - (Math.PI * 0.5));
+			//character texture
+			this.selectionTextures[h].beDrawn((canvas.width * 0.5) + offX, (canvas.height * 0.5) + offY + menu_characterSize, 0, menu_characterSize * 1.7);
 		}
 	}
 
 	handleMouseDown(a) {
 		if (this.overButton > -1) {
 			loading_state = eval(this.buttons[this.overButton][1]);
+		} else {
+			//checking for collision with charatcers. This is done here instead of the mouseMove function because hovering over characters doesn't do anything.
+			for (var h=0; h<data_characters.length; h++) {
+				var posX = (canvas.width * 0.5) + (menu_characterCircleRadius * canvas.height * Math.cos((Math.PI * 2 * (1 / data_characters.length) * h) - (Math.PI * 0.5)));
+				var posY = (canvas.height * 0.5) + menu_characterSize + (menu_characterCircleRadius * canvas.height * Math.sin((Math.PI * 2 * (1 / data_characters.length) * h) - (Math.PI * 0.5)));
+	
+				//selection box
+				if (cursor_x > posX - menu_characterSize && cursor_x < posX + menu_characterSize &&
+				cursor_y > posY - menu_characterSize && cursor_y < posY + menu_characterSize) {
+					this.characterSelected = h;
+					player = eval(`new ${data_characters[h]}(0, 0, 0)`);
+					controls_object = player;
+					if (Math.abs(this.characterSelected - this.displayCharacterSelected) > data_characters.length / 2) {
+						if (this.characterSelected < this.displayCharacterSelected) {
+							this.displayCharacterSelected -= data_characters.length;
+						} else {
+							this.displayCharacterSelected += data_characters.length;
+						}
+					}
+				}
+			}
 		}
 	}
 
@@ -716,11 +733,12 @@ class State_Menu {
 		//check for collision with center buttons
 		var trueButtonWidth = (canvas.width * menu_buttonWidth * 0.5);
 		var trueButtonHeight = (canvas.height * menu_buttonHeight * 0.5);
+		var startHeight = (canvas.height * 0.5) - (trueButtonHeight * this.buttons.length * 1.5);
 		for (var y=0; y<this.buttons.length; y++) {
-			var yOffset = ((this.buttons.length - 1) * trueButtonHeight * 2) * y;
+			var yOffset = startHeight + (trueButtonHeight * 4 * y) + trueButtonHeight;
 
 			if (cursor_x > (canvas.width * 0.5) - trueButtonWidth && cursor_x < (canvas.width * 0.5) + trueButtonWidth &&
-				cursor_y > (canvas.height * 0.5) + yOffset - trueButtonHeight && cursor_y < (canvas.height * 0.5) + yOffset + trueButtonHeight) {
+				cursor_y > yOffset - trueButtonHeight && cursor_y < yOffset + trueButtonHeight) {
 					this.overButton = y;
 			}
 		}
