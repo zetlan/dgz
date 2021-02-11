@@ -16,9 +16,10 @@ var controls_object;
 var controls_spacePressed = false;
 
 var physics_conveyorStrength = 0.05;
+var physics_crumblingShrinkStart = 50;
+var physics_crumblingShrinkTime = 150;
+var physics_gravity = 0.13;
 var physics_jumpTime = 30;
-var physics_jumpInitial = 2.9;
-var physics_jumpBoost = 0.1;
 var physics_graceTime = 5;
 var physics_graceTimeRamp = 15;
 
@@ -29,11 +30,13 @@ const color_editor_border = "#F8F";
 const color_editor_cursor = "#0FF";
 const color_grey_dark = "#888";
 const color_grey_light = "#CCC";
+const color_grey_lightest = "#FEF";
 const color_ice = "#EFF";
 const color_keyPress = "#8FC";
 const color_keyUp = "#666";
 const color_map_bg = "#FEA";
 const color_map_writing = "#010";
+const color_menuSelectionOutline = "#88F";
 const color_stars = "#44A";
 const color_text = "#424";
 const color_text_bright = "#FAF";
@@ -42,18 +45,66 @@ var cursor_x = 0;
 var cursor_y = 0;
 var cursor_down = false;
 
-var data_levelSets = [`mainTunnel`, `boxStorage`, `winterGames`, `lowPower`, 
-						`A`, `B`, `D`, `F`, `G`, `L`, `M`, `N`, `T`, `U`, `W`];
+//var data_possibleCharacters = [`Runner`, `Skater`, `Lizard`, `Bunny`, `Gentleman`, `Duplicator`, `Child`, `Pastafarian`, `Student`, `Angel`];
+var data_characters = [`Runner`,`Bunny`, `Child`, `Angel`];
+var data_;
+
+
+var data_levelSets = [`mainTunnel`, `boxStorage`, `wayBack`, `winterGames`, `lowPower`, 
+						`A`, `B`, `D`, `F`, `G`, `I`, `L`, `M`, `N`, `T`, `U`, `W`];
 
 var data_sprites = {
 	spriteSize: 144,
 
-	runner: {
-		sheet: 'images/RunnerSprites.png',
-		frameTime: 2.3,
-		jumpForwards: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [7, 0], [8, 0], [9, 0], [10, 0]],
+	Angel: {
+		sheet: 'images/angelSprites.png',
+		frameTime: 2.2,
+		back: [[0, 2]],
+		front: [[]],
+		jumpForwards: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0]],
+		jumpSideways: [[0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [5, 1], [6, 1]],
 		walkForwards: [[0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [5, 2], [6, 2], [7, 2],
-					   [0, 3], [1, 3], [2, 3], [3, 3], [4, 3], [5, 3], [6, 3], [7, 3]]
+					   [0, 3], [1, 3], [2, 3], [3, 3], [4, 3], [5, 3], [6, 3], [7, 3]],
+		walkSideways: [[0, 4], [1, 4], [2, 4], [3, 4], [4, 4], [5, 4], [6, 4], [7, 4],
+						[0, 5], [1, 5], [2, 5], [3, 5], [4, 5], [5, 5], [6, 5], [7, 5]],
+	},
+
+	Bunny: {
+		sheet: 'images/bunnySprites.png',
+		frameTime: 2.2,
+		back: [[0, 0]],
+		front: [[10, 0]],
+		jumpForwards: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0]],
+		jumpSideways: [[0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [5, 1], [6, 1]]
+	},
+
+	Child: {
+		sheet: 'images/childSprites.png',
+		frameTime: 2.1,
+		back: [[0, 3]],
+		front: [[]],
+		jumpForwards: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0]],
+		jumpLeft: [[0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [5, 1], [6, 1]],
+		jumpRight: [[0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [5, 2], [6, 2]],
+		walkForwards: [[0, 3], [1, 3], [2, 3], [3, 3], [4, 3], [5, 3], [6, 3], [7, 3],
+					   [0, 4], [1, 4], [2, 4], [3, 4], [4, 4], [5, 4], [6, 4], [7, 4]],
+		walkLeft: [[0, 5], [1, 5], [2, 5], [3, 5], [4, 5], [5, 5], [6, 5], [7, 5],
+						[0, 6], [1, 6], [2, 6], [3, 6], [4, 6], [5, 6], [6, 6], [7, 6]],
+		walkRight: [[0, 7], [1, 7], [2, 7], [3, 7], [4, 7], [5, 7], [6, 7], [7, 7],
+						[0, 8], [1, 8], [2, 8], [3, 8], [4, 8], [5, 8], [6, 8], [7, 8]],
+	},
+
+	Runner: {
+		sheet: 'images/runnerSprites.png',
+		frameTime: 2.3,
+		back: [[0, 2]],
+		front: [[]],
+		jumpForwards: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0]],
+		jumpSideways: [[0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [5, 1], [6, 1]],
+		walkForwards: [[0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [5, 2], [6, 2], [7, 2],
+					   [0, 3], [1, 3], [2, 3], [3, 3], [4, 3], [5, 3], [6, 3], [7, 3]],
+		walkSideways: [[0, 4], [1, 4], [2, 4], [3, 4], [4, 4], [5, 4], [6, 4], [7, 4],
+						[0, 5], [1, 5], [2, 5], [3, 5], [4, 5], [5, 5], [6, 5], [7, 5]],
 	}
 };
 
@@ -80,8 +131,9 @@ var menu_buttonHeight = 0.05;
 var menu_buttons = [
 	[`Infinite Mode`, `new State_Infinite()`],
 	[`Explore Mode`, `new State_Map()`],
-	[`nyaa nyaa nyaa`]
 ];
+var menu_characterCircleRadius = 0.3;
+var menu_characterSize = 60;
 
 let page_animation;
 
@@ -119,6 +171,7 @@ var render_maxDistance = 15000;
 var render_minTileSize = 9;
 var render_identicalPointTolerance = 0.0001;
 var render_tunnelTextTime = 50;
+var render_voidSpinSpeed = 0.04;
 
 var times_current = {};
 var times_past = {};
