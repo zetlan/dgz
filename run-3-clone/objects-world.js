@@ -76,16 +76,14 @@ class FreePoly {
 			} else {
 				//inside the tunnel
 				playerCoords[2] = this.tolerance;
-				//special collision effects for inside the tunnel
+				//R O T A T E   P D F
 				if (!haltCollision && (player.dir_down[0] != this.dir_down[0] || player.dir_down[1] != this.dir_down[1])) {
 					this.doRotationEffects();
 				}
+
+				//special collision effects in general
+				this.doCollisionEffects();
 			}
-
-			
-
-			//special collision effects in general
-			this.doCollisionEffects();
 
 			//transforming back to regular coordinates
 			[player.x, player.y, player.z] = relativeToSpace(playerCoords, [this.x, this.y, this.z], this.normal);
