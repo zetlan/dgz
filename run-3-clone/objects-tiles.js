@@ -366,13 +366,40 @@ class Tile_Crumbling extends Tile {
 	constructor(x, y, z, size, normal, parent, tilePosition) {
 		super(x, y, z, size, normal, parent, tilePosition, {h: 0, s: 0});
 		this.requiresOrdering = true;
-		this.line1 = [transformPoint([0.5, 0, 0.5], [x, y, z], this.normal, size), transformPoint([-0.5, 0, -0.5], [x, y, z], this.normal, size)];
-		this.line2 = [transformPoint([-0.5, 0, 0.5], [x, y, z], this.normal, size), transformPoint([0.5, 0, -0.5], [x, y, z], this.normal, size)];
+		this.activeSize = this.size;
 
 		this.home = [this.x, this.y, this.z];
 
 		this.fallStatus = undefined;
 		this.fallRate = -0.5;
+	}
+
+	calculatePointsAndNormal() {
+		if (this.activeSize == undefined) {
+			this.activeSize = this.size;
+		}
+		this.points = [[-1, 0, -1], [-1, 0, 1], [1, 0, 1], [1, 0, -1]];
+		
+		var rPoint = [0, 0, -10];
+		rPoint = transformPoint(rPoint, [0, 0, 0], this.normal, 1);
+
+		for (var p=0; p<this.points.length; p++) {
+			this.points[p] = transformPoint(this.points[p], [this.x, this.y, this.z], this.normal, this.activeSize + 0.5);
+		}
+
+		this.line1 = [transformPoint([0.5, 0, 0.5], [this.x, this.y, this.z], this.normal, this.activeSize), transformPoint([-0.5, 0, -0.5], [this.x, this.y, this.z], this.normal, this.activeSize)];
+		this.line2 = [transformPoint([-0.5, 0, 0.5], [this.x, this.y, this.z], this.normal, this.activeSize), transformPoint([0.5, 0, -0.5], [this.x, this.y, this.z], this.normal, this.activeSize)];
+		this.rPoint = [rPoint[0] + this.x, rPoint[1] + this.y, rPoint[2] + this.z];
+
+		this.dir_right = cartToPol(rPoint[0], rPoint[1], rPoint[2]);
+		this.dir_down = this.normal;
+	}
+
+	collideWithPlayer() {
+		//only do if large enough
+		if (this.activeSize > 0.01) {
+			super.collideWithPlayer();
+		}
 	}
 
 	tick() {
@@ -381,30 +408,23 @@ class Tile_Crumbling extends Tile {
 			this.fallStatus += 1;
 
 			if (this.fallStatus > 0) {
-				//fall downward
-				var changeBy = polToCart(this.normal[0], this.normal[1], this.fallRate);
-				this.x += changeBy[0];
-				this.y += changeBy[1];
-				this.z += changeBy[2];
+				//only continue falling if large enough
+				if (this.activeSize > 0.01) {
+					//fall downward
+					var changeBy = polToCart(this.normal[0], this.normal[1], this.fallRate);
+					this.x += changeBy[0];
+					this.y += changeBy[1];
+					this.z += changeBy[2];
 
-				//recalculate points
-				this.points.forEach(p => {
-					p[0] += changeBy[0];
-					p[1] += changeBy[1];
-					p[2] += changeBy[2];
-				});
+					//get smaller
+					if (this.fallStatus > physics_crumblingShrinkStart) {
+						this.activeSize = linterp(this.size, 0, (this.fallStatus - physics_crumblingShrinkStart) / physics_crumblingShrinkTime);
+					}
 
-				this.line1.forEach(p => {
-					p[0] += changeBy[0];
-					p[1] += changeBy[1];
-					p[2] += changeBy[2];
-				});
 
-				this.line2.forEach(p => {
-					p[0] += changeBy[0];
-					p[1] += changeBy[1];
-					p[2] += changeBy[2];
-				});
+					//recalculate points
+					this.calculatePointsAndNormal();
+				}
 
 				//if in a tunnel that the player is not in, reset self
 				if (this.parent != player.parent) {
@@ -417,45 +437,35 @@ class Tile_Crumbling extends Tile {
 	reset() {
 		//return to home
 		this.fallStatus = undefined;
+		this.activeSize = this.size;
 
 		//recalculating points
-		var difference = [this.home[0] - this.x, this.home[1] - this.y, this.home[2] - this.z];
 		[this.x, this.y, this.z] = this.home;
-
-		//recalculate points
-		this.points.forEach(p => {
-			p[0] += difference[0];
-			p[1] += difference[1];
-			p[2] += difference[2];
-		});
-
-		this.line1.forEach(p => {
-			p[0] += difference[0];
-			p[1] += difference[1];
-			p[2] += difference[2];
-		});
-
-		this.line2.forEach(p => {
-			p[0] += difference[0];
-			p[1] += difference[1];
-			p[2] += difference[2];
-		});
+		this.calculatePointsAndNormal();
 	}
 
 	beDrawn() {
-		super.beDrawn();
-		if (this.playerDist / render_maxColorDistance < 0.95) {
-			ctx.strokeStyle = `hsl(0, 0%, ${linterp(50, 0, this.playerDist / render_maxColorDistance)}%)`;
-			drawWorldLine(this.line1[0], this.line1[1]);
-			drawWorldLine(this.line2[0], this.line2[1]);
+		
+		//only be drawn if large enough
+		if (this.activeSize > 0.01) {
+			super.beDrawn();
+			if (this.playerDist / render_maxColorDistance < 0.95) {
+				ctx.strokeStyle = `hsl(0, 0%, ${linterp(50, 0, this.playerDist / render_maxColorDistance)}%)`;
+				drawWorldLine(this.line1[0], this.line1[1]);
+				drawWorldLine(this.line2[0], this.line2[1]);
+			}
 		}
 	}
 
 	//yes I have three functions for this one behavior. No I'm not proud of it. But it works (:
 	doCollisionEffects() {
 		super.doCollisionEffects();
-		this.fallStatus = 0;
-		this.propogateCrumble();
+		//only crumble if not a child
+		if (!(player instanceof Child) || player.jumpBuffer > 0) {
+			this.fallStatus = 0;
+			this.propogateCrumble();
+		}
+		
 	}
 
 	propogateCrumble() {
