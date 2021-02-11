@@ -36,29 +36,20 @@ function drawCrosshair() {
 
 function drawKeys() {
 	ctx.fillStyle = color_keyUp;
-	ctx.fillRect(0 + 10, canvas.height - 60, 20, 20);
-	ctx.fillRect(0 + 40, canvas.height - 60, 20, 20);
-	ctx.fillRect(0 + 70, canvas.height - 60, 20, 20);
-	ctx.fillRect(0 + 40, canvas.height - 90, 20, 20);
-	ctx.fillRect(0 + 10, canvas.height - 30, 80, 20);
+	ctx.fillRect(0 + 20, canvas.height - 40, 10, 20);
+	ctx.fillRect(0 + 70, canvas.height - 40, 10, 20);
+	ctx.fillRect(0 + 40, canvas.height - 40, 20, 20);
 
 	ctx.fillStyle = color_keyPress;
 	if (controls_object.ax < 0) {
-		ctx.fillRect(0 + 10, canvas.height - 60, 20, 20);
+		ctx.fillRect(0 + 20, canvas.height - 40, 10, 20);
 	}
 	if (controls_object.ax > 0) {
-		ctx.fillRect(0 + 70, canvas.height - 60, 20, 20);
-	}
-
-	if (controls_object.az > 0) {
-		ctx.fillRect(0 + 40, canvas.height - 90, 20, 20);
-	}
-	if (controls_object.az < 0) {
-		ctx.fillRect(0 + 40, canvas.height - 60, 20, 20);
+		ctx.fillRect(0 + 70, canvas.height - 40, 10, 20);
 	}
 
 	if (controls_spacePressed) {
-		ctx.fillRect(0 + 10, canvas.height - 30, 80, 20);
+		ctx.fillRect(0 + 40, canvas.height - 40, 20, 20);
 	}
 }
 
@@ -132,6 +123,10 @@ function drawQuad(color, p1, p2, p3, p4) {
 }
 
 function drawRoundedRectangle(x, y, width, height, arcRadius) {
+	y += ctx.lineWidth * 0.5;
+	x += ctx.lineWidth * 0.5;
+	height -= ctx.lineWidth;
+	width -= ctx.lineWidth;
 	ctx.beginPath();
 	ctx.moveTo(x + arcRadius, y);
 	ctx.lineTo(x + width - arcRadius, y);
@@ -144,6 +139,17 @@ function drawRoundedRectangle(x, y, width, height, arcRadius) {
 	ctx.quadraticCurveTo(x, y, x + arcRadius, y);
 	ctx.stroke();
 	ctx.fill();
+}
+
+function drawSky(bgColor) {
+	//background
+	ctx.fillStyle = bgColor;
+	ctx.fillRect(0, 0, canvas.width, canvas.height);
+	
+	//stars
+	world_stars.forEach(c => {
+		c.beDrawn();
+	});
 }
 
 function drawWorldLine(worldPoint1, worldPoint2) {
