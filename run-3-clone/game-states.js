@@ -37,17 +37,13 @@ class State_Cutscene {
 
 
 
-
-
-
-
-class State_Game {
+//state world is never used, but it's here so that State_Game, State_Infinite, and State_Cutscene can share code
+class State_World {
 	constructor() {
-		this.text = ``;
-		this.time = 0;
-
 		this.nearObjs = [];
 		this.farObjs = [];
+		this.readFrom = [];
+		this.substate = 0;
 
 		this.orderWorld();
 	}
@@ -67,12 +63,14 @@ class State_Game {
 				if (this.nearObjs[v].playerIsInBounds()) {
 					player.parent = this.nearObjs[v];
 					v = -1;
+
+					//reset player's new tunnel
+					player.parent.resetWithoutPlayer();
 				}
 			}
 			//if they're still undefined, kill them
 			if (player.parent == undefined) {
-				player.parentPrev.reset();
-				player.parent = player.parentPrev;
+				this.handlePlayerDeath();
 			} else {
 				//display text
 				this.text = player.parent.id;
@@ -92,6 +90,8 @@ class State_Game {
 						player.parentPrev = player.parent;
 						player.parent = this.nearObjs[v];
 						v = -1;
+
+						player.parent.resetWithoutPlayer();
 
 						//reorder objects anyways if found a new tunnel
 						this.orderWorld();
@@ -148,32 +148,77 @@ class State_Game {
 		//logTimeEnd("total", "avg. frame time");
 	}
 
+	handlePlayerDeath() {
+		player.parentPrev.reset();
+		player.parent = player.parentPrev;
+	}
+
+	handleMouseDown(a) {
+		//if in menu, go back to regular
+		if (this.substate == 1) {
+			var canvasArea = canvas.getBoundingClientRect();
+			cursor_x = Math.round(a.clientX - canvasArea.left);
+			cursor_y = Math.round(a.clientY - canvasArea.top);
+			if (cursor_x > canvas.width * 0.35 && cursor_x < canvas.width * 0.6 && cursor_y > canvas.height * 0.2 && cursor_y < canvas.height * 0.8) {
+				this.substate = 0;
+			}
+		}
+	}
+
 	orderWorld() {
 		//ordering all the objects
-		world_objects.forEach(u => {
+		this.readFrom.forEach(u => {
 			u.getCameraDist();
 		});
 
 		//if the camera distance is more than 5 digits (100,000), just put it in a seperate bin
 		this.farObjs = [];
 		this.nearObjs = [];
-		for (var v=0; v<world_objects.length; v++) {
-			if (world_objects[v].cameraDist > 99999) {
-				this.farObjs.push(world_objects[v]);
+		for (var v=0; v<this.readFrom.length; v++) {
+			if (this.readFrom[v].cameraDist > 99999) {
+				this.farObjs.push(this.readFrom[v]);
 			} else {
-				this.nearObjs.push(world_objects[v]);
+				this.nearObjs.push(this.readFrom[v]);
 			}
 		}
 
 		this.nearObjs = orderObjects(this.nearObjs, 5);
 	}
+}
 
-	handleEscape() {
-		loading_state = new State_Map();
+
+class State_Game extends State_World {
+	constructor() {
+		super();
+		this.text = ``;
+		this.time = 0;
+
+		this.readFrom = world_objects;
+
+		this.orderWorld();
 	}
 
-	handleMouseDown(a) {
+	execute() {
+		if (this.substate == 0) {
+			super.execute();
+		} else {
+			//pause screen
+			ctx.fillStyle = color_grey_light;
+			ctx.strokeStyle = color_grey_dark;
+			ctx.lineWidth = canvas.height / 50;
+			drawRoundedRectangle(canvas.width * 0.35, canvas.height * 0.2, canvas.width * 0.1, canvas.height * 0.6, canvas.height * 0.03);
+			drawRoundedRectangle(canvas.width * 0.55, canvas.height * 0.2, canvas.width * 0.1, canvas.height * 0.6, canvas.height * 0.03);
+			ctx.lineWidth = 2;
+		}
+	}
 
+	handleEscape() {
+		if (this.substate == 0) {
+			this.substate = 1;
+		} else {
+			loading_state = new State_Map();
+		}
+		
 	}
 
 	handleMouseMove(a) {
@@ -181,22 +226,33 @@ class State_Game {
 	}
 }
 
-class State_Infinite {
+class State_Infinite extends State_World {
 	constructor() {
+		super();
+
 		this.time = 0;
 		this.meters = 0;
 		this.data = levelData_infinite.split("\n");
 		this.difficulty = 0;
-
-		this.endingScreen = false;
+		this.lastTunnelLine = -1;
 
 		this.objs = [];
-		this.sortedObjs = [];
+		this.readFrom = this.objs;
 		for (var a=0; a<5; a++) {
 			this.addTunnel();
 		}
 		this.placePlayer();
+		this.orderWorld();
 		ctx.lineWidth = 2;
+
+		this.drawEnding = true;
+
+
+		//textures for characters
+		this.selectionTextures = [];
+		for (var t=0; t<data_characters.length; t++) {
+			this.selectionTextures.push(new Texture(getImage(eval(`data_sprites.${data_characters[t]}.sheet`)), data_sprites.spriteSize, 2, false, false, eval(`data_sprites.${data_characters[t]}.back`)));
+		}
 	}
 
 	addTunnel() {
@@ -212,14 +268,19 @@ class State_Infinite {
 		//randomly change theta a bit, the complication is to stay within bounds (0 - 2pi)
 		sT = (sT + (Math.random() * 0.6) + ((Math.PI * 2) - 0.3)) % (Math.PI * 2);
 
-		this.objs.push(new Tunnel_FromData(this.data[Math.floor(randomBounded(this.difficulty, this.difficulty + infinite_levelRange))]));
+		var value = Math.floor(randomBounded(this.difficulty, this.difficulty + infinite_levelRange));
+		while (value == this.lastTunnelLine) {
+			value = Math.floor(randomBounded(this.difficulty, this.difficulty + infinite_levelRange));
+		}
+		this.lastTunnelLine = value;
+		this.objs.push(new Tunnel_FromData(this.data[value]));
 		this.objs[this.objs.length-1].theta = sT;
 		this.objs[this.objs.length-1].updatePosition([sX, 0, sZ]);
 		
 		//updating difficulty
-		this.difficulty += 1;
+		this.difficulty += 1.5;
 		if (this.difficulty + infinite_levelRange > this.data.length-1) {
-			this.difficulty -= 1;
+			this.difficulty -= 1.5;
 		}
 		this.orderWorld();
 	}
@@ -229,126 +290,123 @@ class State_Infinite {
 		player.parentPrev = this.objs[0];
 		player.parent = player.parentPrev;
 		player.parentPrev.reset();
-		
-		loading_state.text = player.parentPrev.id;
-		loading_state.time = render_tunnelTextTime;
+		player.dz = 0;
+
+		player.parent.strips.forEach(s => {
+			s.collideWithEntity(player);
+		});
 	}
 
 	execute() {
+		switch (this.substate) {
+			case 0:
+				//add to meter count, 30 pixels in a meter
+				this.meters += player.dz / 30;
 
-		if (!this.endingScreen) {
-			//add to meter count, 30 pixels in a meter
-			this.meters += player.dz / 30;
+				super.execute();
+				//drawing meter text
+				ctx.fillStyle = color_text_bright;
+				ctx.textAlign = "left";
+				ctx.font = `${canvas.height / 22}px Century Gothic`;
+				ctx.fillText(`${this.meters.toFixed(0)} m`, canvas.width * 0.02, canvas.height * 0.05);
+				ctx.textAlign = "center";
 
-			//regular stuff, similar to explore mode
-			world_camera.tick();
-			player.tick();
-
-			if (player.parent == undefined) {
-				this.orderWorld();
-				for (var v=this.sortedObjs.length-1; v>=0; v--) {
-					if (this.sortedObjs[v].playerIsInBounds()) {
-						player.parent = this.sortedObjs[v];
-						v = -1;
-					}
-				}
-				if (player.parent == undefined) {
-					if (this.meters > 20) {
-						this.endingScreen = true;
-					} else {
-						player.parentPrev.reset();
-						player.parent = player.parentPrev;
-						this.meters = 0;
-					}
-				} else {
-					if (player.parent != player.parentPrev) {
-						this.text = player.parent.id;
-						this.time = render_tunnelTextTime;
-						this.objs.splice(0, 1);
+				//drawing new tunnel text
+				if (this.time > 0) {
+					ctx.font = `${canvas.height / 22}px Century Gothic`;
+					ctx.fillText(this.text, canvas.width * 0.5, canvas.height * 0.5);
+					this.time -= 1;
+					//add new tunnel / remove previous tunnel after displaying the text
+					if (this.time == 0) {
+						if (this.objs[0] != player.parent) {
+							this.objs.splice(0, 1);
+						} else {
+						}
 						this.addTunnel();
 					}
 				}
-			} else { 
-				if (!player.parent.playerIsInBounds()) {
-					player.parentPrev = player.parent;
-					player.parent = undefined;
-				} else if (!player.parent.playerIsInTunnel()) {
-					for (var v=this.sortedObjs.length-1; v>=0; v--) {
-						if (this.sortedObjs[v].playerIsInTunnel()) {
-							player.parentPrev = player.parent;
-							player.parent = this.sortedObjs[v];
-							v = -1;
-							this.orderWorld();
-							this.text = player.parent.id;
-							this.time = render_tunnelTextTime;
-							this.objs.splice(0, 1);
-							this.addTunnel();
+				break;
+			case 1:
+				//pause screen
+				ctx.fillStyle = color_grey_light;
+				ctx.strokeStyle = color_grey_dark;
+				ctx.lineWidth = canvas.height / 50;
+				drawRoundedRectangle(canvas.width * 0.35, canvas.height * 0.2, canvas.width * 0.1, canvas.height * 0.6, canvas.height * 0.03);
+				drawRoundedRectangle(canvas.width * 0.55, canvas.height * 0.2, canvas.width * 0.1, canvas.height * 0.6, canvas.height * 0.03);
+				ctx.lineWidth = 2;
+				break;
+			case 2:
+				if (this.drawEnding) {
+					//main box
+					ctx.fillStyle = color_grey_lightest;
+					ctx.strokeStyle = color_grey_light;
+					ctx.lineWidth = canvas.height / 50;
+					drawRoundedRectangle(canvas.width * 0.1, canvas.height * 0.1, canvas.width * 0.8, canvas.height * 0.8, canvas.width * 0.04);
+
+					//character availability boxes
+					
+					ctx.fillStyle = color_grey_light;
+					ctx.strokeStyle = color_menuSelectionOutline;
+					ctx.lineWidth = canvas.height / 96;
+					
+					var characterNum = 0;
+					for (var a=0; a<2; a++) {
+						var offY = canvas.width * 0.35 * (a / 2);
+						for (var b=0; b<5; b++) {
+							var offX = canvas.width * 0.6 * (b / 5);
+							ctx.globalAlpha = 0.3;
+							drawRoundedRectangle((canvas.width * 0.3) + offX - menu_characterSize, (canvas.height * 0.2) + offY, menu_characterSize * 2, menu_characterSize * 2, canvas.height / 48);
+							//draw character
+							ctx.globalAlpha = 1;
+							if (this.selectionTextures[characterNum] != undefined) {
+								this.selectionTextures[characterNum].beDrawn((canvas.width * 0.3) + offX, (canvas.height * 0.2) + offY + menu_characterSize, 0, menu_characterSize * 1.4);
+							}
+							characterNum += 1;
 						}
 					}
+					this.drawEnding = false;
 				}
-			}
-			this.sortedObjs.forEach(v => {
-				v.tick();
-			});
 
-			//drawing
-			drawSky(color_bg);
-			this.sortedObjs.forEach(f => {
-				if (f != player.parent) {
-					f.beDrawn();
-				}
-			});
-			if (player.parent == undefined) {
-				player.beDrawn();
-			} else {
-				drawPlayerWithParent();
-			}
-			if (editor_active) {
-				drawCrosshair();
-			}
-			drawKeys();
-
-			//drawing meter text
-			ctx.fillStyle = color_text_bright;
-			ctx.textAlign = "left";
-			ctx.font = `${canvas.height / 22}px Century Gothic`;
-			ctx.fillText(`${this.meters.toFixed(0)} m`, canvas.width * 0.02, canvas.height * 0.05);
-			ctx.textAlign = "center";
-
-			//drawing new tunnel text
-			if (this.time > 0) {
-				ctx.font = `${canvas.height / 22}px Century Gothic`;
-				ctx.fillText(this.text, canvas.width * 0.5, canvas.height * 0.5);
-				this.time -= 1;
-			}
-		} else {
-			//main box
-			ctx.fillStyle = color_grey_lightest;
-			ctx.strokeStyle = color_grey_light;
-			ctx.lineWidth = canvas.height / 50;
-			drawRoundedRectangle(canvas.width * 0.1, canvas.height * 0.1, canvas.width * 0.8, canvas.height * 0.8, canvas.width * 0.04);
 		}
-
 	}
 
-	orderWorld() {
-		//ordering all the objects
-		this.objs.forEach(u => {
-			u.getCameraDist();
-		});
-		this.sortedObjs = orderObjects(this.objs, 5);
+	handlePlayerDeath() {
+		if (this.meters > 20) {
+			this.substate = 2;
+		} else {
+			player.parentPrev.reset();
+			player.parent = player.parentPrev;
+			this.meters = 0;
+		}
 	}
+
 
 	handleEscape() {
-		loading_state = new State_Menu();
-	}
-
-	handleMouseDown(a) {
-		
+		switch (this.substate) {
+			case 0:
+				this.substate = 1;
+				break;
+			case 1:
+				loading_state = new State_Menu();
+				break;
+			case 2:
+				loading_state = new State_Infinite();
+				break;
+		}
 	}
 
 	handleMouseMove(a) {
 
+	}
+
+	//don't bother with the near / far thing, there aren't going to be any tunnels far enough to qualify
+	orderWorld() {
+		//ordering all the objects
+		this.readFrom.forEach(u => {
+			u.getCameraDist();
+		});
+
+		this.nearObjs = orderObjects(this.readFrom, 5);
 	}
 }
 
@@ -357,7 +415,7 @@ class State_Loading {
 		this.time = 10;
 		this.levelSets = data_levelSets;
 
-		//this.levelSets = [`M`, `D`, `F`];
+		//this.levelSets = [`lowPower`, `new`];
 	}
 
 	execute() {
@@ -419,6 +477,10 @@ class State_Map {
 		world_camera.targetRot = world_camera.rot;
 		world_camera.targetTheta = world_camera.theta;
 
+		world_camera.targetX = world_camera.x;
+		world_camera.targetY = world_camera.y;
+		world_camera.targetZ = world_camera.z;
+
 		this.levelSelected = undefined;
 		this.cursorPos = [-100, -100];
 
@@ -428,9 +490,22 @@ class State_Map {
 		player.x = 1e10;
 		player.y = 1e10;
 		player.z = 1e10;
+
+		this.dir_held = false;
 	}
 
 	execute() {
+		//turn player movement into camera movement
+		if (player.ax != 0) {
+			if (!this.dir_held) {
+				world_camera.targetZ += map_cameraShift * (player.ax / Math.abs(player.ax));
+				world_camera.targetZ = clamp(world_camera.targetZ, -2 * map_cameraShift, 2 * map_cameraShift);
+				this.cursorPos = [-100, -100];
+				this.dir_held = true;
+			}
+		} else {
+			this.dir_held = false;
+		}
 		world_camera.tick();
 		drawSky(color_map_bg);
 
@@ -641,7 +716,6 @@ class State_Menu {
 	execute() {
 		//swivel display character
 		this.displayCharacterSelected = ((this.displayCharacterSelected * 6) + this.characterSelected) / 7;
-		menu_characterSize = canvas.height / 16;
 		//bege
 		ctx.fillStyle = color_bg;
 		ctx.strokeStyle = color_grey_dark;
@@ -651,8 +725,6 @@ class State_Menu {
 		ctx.textAlign = `center`;
 		ctx.fillStyle = color_text_bright;
 		ctx.fillText(`Run 3`, canvas.width * 0.5, canvas.height * 0.1);
-
-		//character circle
 		
 		//mode select
 
@@ -664,7 +736,7 @@ class State_Menu {
 		ctx.lineWidth = canvas.height / 96;
 		ctx.font = `${canvas.height / 30}px Century Gothic`;
 		for (var y=0; y<this.buttons.length; y++) {
-			var yOffset = startHeight + (trueButtonHeight * 4 * y);
+			var yOffset = startHeight + (trueButtonHeight * 4 * y) + menu_characterSize;
 			if (this.overButton == y) {
 				ctx.fillStyle = color_grey_dark;
 			} else {
@@ -700,7 +772,7 @@ class State_Menu {
 		if (this.overButton > -1) {
 			loading_state = eval(this.buttons[this.overButton][1]);
 		} else {
-			//checking for collision with charatcers. This is done here instead of the mouseMove function because hovering over characters doesn't do anything.
+			//checking for collision with characters. This is done here instead of the mouseMove function because hovering over characters doesn't do anything.
 			for (var h=0; h<data_characters.length; h++) {
 				var posX = (canvas.width * 0.5) + (menu_characterCircleRadius * canvas.height * Math.cos((Math.PI * 2 * (1 / data_characters.length) * h) - (Math.PI * 0.5)));
 				var posY = (canvas.height * 0.5) + menu_characterSize + (menu_characterCircleRadius * canvas.height * Math.sin((Math.PI * 2 * (1 / data_characters.length) * h) - (Math.PI * 0.5)));
@@ -710,7 +782,6 @@ class State_Menu {
 				cursor_y > posY - menu_characterSize && cursor_y < posY + menu_characterSize) {
 					this.characterSelected = h;
 					player = eval(`new ${data_characters[h]}(0, 0, 0)`);
-					controls_object = player;
 					if (Math.abs(this.characterSelected - this.displayCharacterSelected) > data_characters.length / 2) {
 						if (this.characterSelected < this.displayCharacterSelected) {
 							this.displayCharacterSelected -= data_characters.length;
@@ -735,7 +806,7 @@ class State_Menu {
 		var trueButtonHeight = (canvas.height * menu_buttonHeight * 0.5);
 		var startHeight = (canvas.height * 0.5) - (trueButtonHeight * this.buttons.length * 1.5);
 		for (var y=0; y<this.buttons.length; y++) {
-			var yOffset = startHeight + (trueButtonHeight * 4 * y) + trueButtonHeight;
+			var yOffset = startHeight + (trueButtonHeight * 4 * y) + trueButtonHeight + (canvas.height / 16);
 
 			if (cursor_x > (canvas.width * 0.5) - trueButtonWidth && cursor_x < (canvas.width * 0.5) + trueButtonWidth &&
 				cursor_y > yOffset - trueButtonHeight && cursor_y < yOffset + trueButtonHeight) {
