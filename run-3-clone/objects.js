@@ -140,6 +140,7 @@ class Character {
 		this.friction = 0.9;
 		this.naturalFriction = 0.999;
 
+		this.backwards = false;
 		this.r = player_radius;
 		this.cameraDist = 1000;
 		this.drawR = this.r / getDistance(this, world_camera);
@@ -152,9 +153,26 @@ class Character {
 		this.texture_jumpL = jumpLeftTexture;
 		this.texture_jumpR = jumpRightTexture;
 
-		this.texture_current = undefined;
+		this.texture_current = this.texture_jumpF;
 		this.textureRot = 1;
 
+	}
+
+	collide() {
+		//get closest tunnel strip
+		var tunnelStrip = 0;
+
+		//get the closest strip
+		for (var a=0; a<this.parent.strips.length; a++) {
+			if (this.parent.strips[a].playerDist < this.parent.strips[tunnelStrip].playerDist) {
+				tunnelStrip = a;
+			}
+		}
+
+		//add in side by side strips and collide with them
+		this.parent.strips[tunnelStrip].collideWithEntity(this);
+		this.parent.strips[(tunnelStrip - 1 + this.parent.strips.length) % this.parent.strips.length].collideWithEntity(this);
+		this.parent.strips[(tunnelStrip + 1) % this.parent.strips.length].collideWithEntity(this);
 	}
 
 	modifyDerivitives(activeGravity, activeFriction, naturalFriction, activeAX, activeAZ) {
@@ -162,10 +180,12 @@ class Character {
 		this.onGround -= 1;
 
 		//if player has a parent, change gravity based on parent power
-		if (this.parent != undefined) {
-			this.dy -= linterp(activeGravity * 0.8, activeGravity, this.parent.power);
-		} else {
-			this.dy -= activeGravity;
+		if (this.onGround < physics_graceTime - 1) { 
+			if (this.parent != undefined) {
+				this.dy -= linterp(activeGravity * 0.8, activeGravity, this.parent.power);
+			} else {
+				this.dy -= activeGravity;
+			}
 		}
 
 		//jump boost
@@ -174,7 +194,7 @@ class Character {
 			this.jumpTime -= 1;
 		}
 		
-		this.dy = clamp(this.dy, -1 * this.fallMax, 1.5 * this.dMax);
+		this.dy = clamp(this.dy, -1 * this.fallMax, 3 * this.fallMax);
 
 		this.dx += activeAX;
 		if (this.ax == 0 || this.ax * this.dx < 0) {
@@ -199,26 +219,29 @@ class Character {
 	}
 
 	tick() {
-		//setting camera position
-		var vertOffset = polToCart(this.dir_down[0], this.dir_down[1], 70);
-		var horizOffset = polToCart(this.dir_front[0], this.dir_front[1], -95);
-		world_camera.targetX = this.x + vertOffset[0] + horizOffset[0];
-		world_camera.targetY = this.y + vertOffset[1] + horizOffset[1];
-		world_camera.targetZ = this.z + vertOffset[2] + horizOffset[2];
-
-
-
 		//getting camera distance
 		this.cameraDist = Math.max(1, getDistance(this, world_camera) - 20);
 		this.drawR = (this.r / this.cameraDist) * world_camera.scale;
 
+		//setting camera position
+		this.setCameraPosition();
+
 		//only do the other tick stuff if camera is close enough
 		if (this.cameraDist < 1000 && !editor_active) {
+			//colliding with tiles
+			if (this.parent != undefined) {
+				this.collide();
+			}
+
 			if (this.parent != undefined && !this.parent.playerIsInTunnel()) {
 				//if in the void, change physics
 				var voidStrength = spaceToRelative(this.parent.centerPos, [this.x, this.y, this.z], [this.dir_down[0], this.dir_down[1], 0])[2] / this.parent.r;
-				if (this.parent.playerTilePos > this.parent.len) {
+				if (this.parent.playerTilePos > this.parent.len - 0.5) {
 					voidStrength *= -0.6;
+					//if the player is above the midpoint, make them go down faster
+					if (voidStrength > 0) {
+						voidStrength *= 1.6;
+					}
 				}
 				this.modifyDerivitives(this.gravStrength * 0.7 * (voidStrength), this.friction / 2, this.naturalFriction, this.ax / 2, this.speed / 2);
 				//void spin
@@ -259,12 +282,8 @@ class Character {
 			var [tX, tY] = spaceToScreen([this.x, this.y, this.z]);
 			this.texture_current.beDrawn(tX, tY, this.textureRot - (Math.PI * 0.5) - world_camera.rot, this.drawR * 2);
 
-
 			this.syncTextures();
-			
-			
 
-			
 			if (editor_active) {
 				var cartX = polToCart(this.dir_side[0], this.dir_side[1], 10);
 				var cartY = polToCart(this.dir_down[0], this.dir_down[1], 10);
@@ -330,11 +349,19 @@ class Character {
 		}
 	}
 
+	setCameraPosition() {
+		var vertOffset = polToCart(this.dir_down[0], this.dir_down[1], 70);
+		var horizOffset = polToCart(this.dir_front[0], this.dir_front[1], -95);
+		world_camera.targetX = this.x + vertOffset[0] + horizOffset[0];
+		world_camera.targetY = this.y + vertOffset[1] + horizOffset[1];
+		world_camera.targetZ = this.z + vertOffset[2] + horizOffset[2];
+	}
+
 	syncTextures() {
 		//if on the ground, sync all walking animations
 		if (this.onGround > 0) {
 			//decrement current frame if not moving forwards
-			if (this.dz == 0 && Math.abs(this.ax) < 0.02) {
+			if (Math.abs(this.dz) <= this.speed && Math.abs(this.ax) < 0.02) {
 				this.texture_current.currentFrame = 0;
 			}
 			this.textureRot = this.dir_down[1];
@@ -419,6 +446,7 @@ class Texture {
 //characters
 //but why are you changing all these properties instead of having them be constructor arguments?
 //well, my friendo, mainly readability and I'm lazy. I don't want to have 37 constructor arguments I have to keep track of, I want to know what each individual property is set to.
+//TODO: refactor the texture getting
 class Angel extends Character {
 	constructor(x, y, z) {
 		super(x, y, z, new Texture(getImage(data_sprites.Angel.sheet), data_sprites.spriteSize, data_sprites.Angel.frameTime, true, false, data_sprites.Angel.walkForwards),
@@ -428,7 +456,7 @@ class Angel extends Character {
 					new Texture(getImage(data_sprites.Angel.sheet), data_sprites.spriteSize, data_sprites.Angel.frameTime, false, false, data_sprites.Angel.jumpSideways),
 					new Texture(getImage(data_sprites.Angel.sheet), data_sprites.spriteSize, data_sprites.Angel.frameTime, false, true, data_sprites.Angel.jumpSideways));
 
-		this.speed = 0.06;
+		this.speed = 0.07;
 		this.dMax = 3.6;
 		this.dMaxTrue = 8.5;
 		this.naturalFriction = 0.9975;
@@ -436,7 +464,7 @@ class Angel extends Character {
 		this.jumpBoostStrength = 0.09;
 
 		this.boost = true;
-		this.boostStrength = 1.5;
+		this.boostStrength = 1.35;
 		this.glide = true;
 		this.haltGlide = true;
 		this.glideStrength = 0.2;
@@ -474,7 +502,11 @@ class Angel extends Character {
 		} else if (this.boost == true) {
 			this.boost = false;
 			this.dy = this.jumpStrength;
-			this.dz *= this.boostStrength;
+			if (this.parent != undefined) {
+				this.dz *= linterp(0.98, this.boostStrength, this.parent.power);
+			} else {
+				this.dz *= this.boostStrength;
+			} 
 			this.dz = clamp(this.dz, -1 * this.dMaxTrue, this.dMaxTrue);
 			this.jumpTime = 0;
 		} else {
@@ -491,10 +523,10 @@ class Bunny extends Character {
 					new Texture(getImage(data_sprites.Bunny.sheet), data_sprites.spriteSize, data_sprites.Bunny.frameTime, false, true, data_sprites.Bunny.jumpSideways));
 
 		this.jumpStrength = 3;
-		this.jumpBoostStrength = 0.12;
+		this.jumpBoostStrength = 0.13;
 		this.boostFriction = 0.995;
-		this.speed = 0.08;
-		this.trueSpeed = 0.6;
+		this.speed = 0.12;
+		this.trueSpeed = 0.8;
 		this.dMax = 9.2;
 		this.dMin = 2;
 	}
@@ -554,11 +586,11 @@ class Child extends Character {
 					new Texture(getImage(data_sprites.Child.sheet), data_sprites.spriteSize, data_sprites.Child.frameTime, false, false, data_sprites.Child.jumpRight));
 
 		this.gravStrength *= 0.8;
-		this.jumpStrength = 2.6;
-		this.jumpBoostStrength = 0.06;
-		this.speed = 0.03;
+		this.jumpStrength = 2.67;
+		this.jumpBoostStrength = 0.07;
+		this.speed = 0.04;
 		this.dMax = 2.9;
-		this.fallMax = 1;
+		this.fallMax = 1.1;
 
 		this.jumpBuffer = 0;
 	}
@@ -583,6 +615,252 @@ class Child extends Character {
 	}
 }
 
+
+class Duplicator extends Character {
+	constructor(x, y, z) {
+		super(x, y, z, new Texture(getImage(data_sprites.Duplicator.sheet), data_sprites.spriteSize, data_sprites.Duplicator.frameTime, true, false, data_sprites.Duplicator.walkForwards),
+					new Texture(getImage(data_sprites.Duplicator.sheet), data_sprites.spriteSize, data_sprites.Duplicator.frameTime, true, false, data_sprites.Duplicator.walkSideways),
+					new Texture(getImage(data_sprites.Duplicator.sheet), data_sprites.spriteSize, data_sprites.Duplicator.frameTime, true, true, data_sprites.Duplicator.walkSideways),
+					new Texture(getImage(data_sprites.Duplicator.sheet), data_sprites.spriteSize, data_sprites.Duplicator.frameTime, false, false, data_sprites.Duplicator.jumpForwards),
+					new Texture(getImage(data_sprites.Duplicator.sheet), data_sprites.spriteSize, data_sprites.Duplicator.frameTime, false, false, data_sprites.Duplicator.jumpSideways),
+					new Texture(getImage(data_sprites.Duplicator.sheet), data_sprites.spriteSize, data_sprites.Duplicator.frameTime, false, true, data_sprites.Duplicator.jumpSideways));
+
+		this.jumpStrength = 2.85;
+		this.jumpBoostStrength = 0.09;
+		this.speed = 0.1;
+		this.dMax = 3.4;
+
+		this.duplicates = [];
+		this.duplicatesMax = 10;
+		this.duplicatesMaxDistance = 900;
+		this.duplicateGenerationTime = 150;
+		this.duplicateGenerationCountup = 0;
+
+		this.addSelfToDuplicateArray();
+	}
+
+	//this function exists because constructors are scary
+	addSelfToDuplicateArray() {
+		this.duplicates.push(this);
+	}
+
+	beDrawn() {
+		//drawing duplicates, they have a lesser opacity, those fakers >:(
+		this.duplicates.forEach(d => {
+			if (d == this) {
+				ctx.globalAlpha = 1;
+				super.beDrawn();
+			} else {
+				ctx.globalAlpha = linterp(0.5, 0, (getDistance(this, d) / this.duplicatesMaxDistance) + 0.05);
+				d.beDrawn();
+			}
+		});
+
+		ctx.globalAlpha = 1;
+	}
+
+	createDuplicate() {
+		var friend = new DuplicatorDuplicate(this.x, this.y, this.z);
+		//updating properties to function
+		friend.parent = this.parent;
+		friend.parentPrev = this.parentPrev;
+		friend.dx = this.dx + randomBounded(-0.3, 0.3);
+		friend.dy = this.dy + randomBounded(0.1, 0.7);
+		friend.dz = this.dz + randomBounded(-0.3, 0.3);
+
+		friend.dir_down = this.dir_down;
+		friend.dir_side = this.dir_side;
+		friend.dir_front = this.dir_front;
+		this.duplicates.push(friend);
+	}
+
+	tick() {
+		if (this.duplicates.length == 0) {
+			this.duplicates = [this];
+		}
+		//only do tick if close enough
+		if (this.cameraDist < 1000 && !editor_active) {
+			this.duplicateGenerationCountup += 1;
+
+			//if self has fallen out of the world, replace self with a duplicate
+			if (this.parent == undefined) {
+				var replacement = -1;
+				for (var g=this.duplicates.length-1; g>=0; g--) {
+					if (replacement == -1 || this.duplicates[g].parent != undefined) {
+						replacement = g;
+					}
+				}
+
+				//only replace if not the placeholder
+				if (replacement != -1) {
+					replacement = this.duplicates[replacement];
+					this.x = replacement.x;
+					this.y = replacement.y;
+					this.z = replacement.z;
+
+					this.dx = replacement.dx;
+					this.dy = replacement.dy;
+					this.dz = replacement.dz;
+
+					this.onGround = replacement.onGround;
+					this.parent = replacement.parent;
+
+					//kill replaced duplicate
+					this.duplicates.splice(replacement, 1);
+				}
+			}
+
+			//ordering duplicates
+			if (world_time % 6 == 0) {
+				this.duplicates = orderObjects(this.duplicates, 4);
+			}
+
+			//killing duplicates / ticking duplicates
+			for (var d=0; d<this.duplicates.length; d++) {
+				//only apply to non-self
+				if (this.duplicates[d] != this) {
+					//kill a duplicate if they fall out of the world and self is also not out of the world
+					if (this.duplicates[d].parent == undefined || getDistance(this.duplicates[d], this) > this.duplicatesMaxDistance) {
+						this.duplicates.splice(d, 1);
+						d -= 1;
+					} else {
+						//make sure duplicates have the same strafing as self and they're transferring tunnels as well
+						if (this.parent != undefined) {
+							this.duplicates[d].parent = this.parent;
+						}
+						this.duplicates[d].ax = this.ax;
+						this.duplicates[d].tick();
+					}
+				}
+			}
+
+			
+			//creating new duplicates
+			if (this.duplicates.length < this.duplicatesMax && this.duplicateGenerationCountup % Math.floor(this.duplicateGenerationTime / this.parentPrev.power) == 10) {
+				this.createDuplicate();
+			}
+		}
+
+		super.tick();
+	}
+
+	handleSpace() {
+		//if a duplicate is close enough to self, change whether it can jump
+		this.duplicates.forEach(d => {
+			if (getDistance(this, d) < this.r * 2 && d != this) {
+				//if the duplicate is above self, give the duplicate jump ability. If not, give self the jump ability
+				if (spaceToRelative([d.x, d.y, d.z], [this.x, this.y, this.z], [this.dir_down[0], this.dir_down[1], 0])[2] > 0) {
+					//the jump ability comes with a penalty to self
+					d.onGround = 1;
+					this.dy -= 0.4;
+				} else {
+					this.onGround = 1;
+					d.dy -= 0.4;
+				}
+			}
+		});
+		super.handleSpace();
+		this.duplicates.forEach(d => {
+			if (d != this) {
+				d.handleSpace();
+			}
+		})
+	}
+}
+
+//no thoughts in this brian
+class DuplicatorDuplicate extends Character {
+	constructor(x, y, z) {
+		super(x, y, z, new Texture(getImage(data_sprites.Duplicator.sheet), data_sprites.spriteSize, data_sprites.Duplicator.frameTime, true, false, data_sprites.Duplicator.walkForwards),
+					new Texture(getImage(data_sprites.Duplicator.sheet), data_sprites.spriteSize, data_sprites.Duplicator.frameTime, true, false, data_sprites.Duplicator.walkSideways),
+					new Texture(getImage(data_sprites.Duplicator.sheet), data_sprites.spriteSize, data_sprites.Duplicator.frameTime, true, true, data_sprites.Duplicator.walkSideways),
+					new Texture(getImage(data_sprites.Duplicator.sheet), data_sprites.spriteSize, data_sprites.Duplicator.frameTime, false, false, data_sprites.Duplicator.jumpForwards),
+					new Texture(getImage(data_sprites.Duplicator.sheet), data_sprites.spriteSize, data_sprites.Duplicator.frameTime, false, false, data_sprites.Duplicator.jumpSideways),
+					new Texture(getImage(data_sprites.Duplicator.sheet), data_sprites.spriteSize, data_sprites.Duplicator.frameTime, false, true, data_sprites.Duplicator.jumpSideways));
+
+		this.jumpStrength = 3;
+		this.jumpBoostStrength = 0.095;
+		this.speed = 0.14;
+		this.dMax = 3.41;
+	}
+
+	collide() {
+		//get closest tunnel strip
+		var tunnelStrip = 0;
+
+		//get the closest strip
+		for (var a=0; a<this.parent.strips.length; a++) {
+			if (getDistance(this.parent.strips[a], this) < getDistance(this.parent.strips[tunnelStrip], this)) {
+				tunnelStrip = a;
+			}
+		}
+
+		//add in side by side strips and collide with them
+		this.parent.strips[tunnelStrip].collideWithEntity(this);
+		this.parent.strips[(tunnelStrip - 1 + this.parent.strips.length) % this.parent.strips.length].collideWithEntity(this);
+		this.parent.strips[(tunnelStrip + 1) % this.parent.strips.length].collideWithEntity(this);
+	}
+}
+
+
+class Lizard extends Character {
+	constructor(x, y, z) {
+		super(x, y, z, new Texture(getImage(data_sprites.Lizard.sheet), data_sprites.spriteSize, data_sprites.Lizard.frameTime, true, false, data_sprites.Lizard.walkForwards),
+					new Texture(getImage(data_sprites.Lizard.sheet), data_sprites.spriteSize, data_sprites.Lizard.frameTime, true, false, data_sprites.Lizard.walkSideways),
+					new Texture(getImage(data_sprites.Lizard.sheet), data_sprites.spriteSize, data_sprites.Lizard.frameTime, true, true, data_sprites.Lizard.walkSideways),
+					new Texture(getImage(data_sprites.Lizard.sheet), data_sprites.spriteSize, data_sprites.Lizard.frameTime, false, false, data_sprites.Lizard.jumpForwards),
+					new Texture(getImage(data_sprites.Lizard.sheet), data_sprites.spriteSize, data_sprites.Lizard.frameTime, false, false, data_sprites.Lizard.jumpSideways),
+					new Texture(getImage(data_sprites.Lizard.sheet), data_sprites.spriteSize, data_sprites.Lizard.frameTime, false, true, data_sprites.Lizard.jumpSideways));
+
+		this.jumpStrength = 4.3;
+		this.jumpBoostStrength = 0.13;
+		this.speed = 0.08;
+		this.dMax = 2.6;
+	}
+}
+
+class Pastafarian extends Character {
+	constructor(x, y, z) {
+		super(x, y, z, new Texture(getImage(data_sprites.Pastafarian.sheet), data_sprites.spriteSize, data_sprites.Pastafarian.frameTime, true, false, data_sprites.Pastafarian.walkForwards),
+					new Texture(getImage(data_sprites.Pastafarian.sheet), data_sprites.spriteSize, data_sprites.Pastafarian.frameTime, true, false, data_sprites.Pastafarian.walkLeft),
+					new Texture(getImage(data_sprites.Pastafarian.sheet), data_sprites.spriteSize, data_sprites.Pastafarian.frameTime, true, false, data_sprites.Pastafarian.walkRight),
+					new Texture(getImage(data_sprites.Pastafarian.sheet), data_sprites.spriteSize, data_sprites.Pastafarian.frameTime, false, false, data_sprites.Pastafarian.jumpForwards),
+					new Texture(getImage(data_sprites.Pastafarian.sheet), data_sprites.spriteSize, data_sprites.Pastafarian.frameTime, false, false, data_sprites.Pastafarian.jumpLeft),
+					new Texture(getImage(data_sprites.Pastafarian.sheet), data_sprites.spriteSize, data_sprites.Pastafarian.frameTime, false, false, data_sprites.Pastafarian.jumpRight));
+
+		this.jumpStrength = 4.5;
+		this.jumpBoostStrength = 0;
+		this.speed = 0.12;
+		this.dMax = 3.3;
+		this.fallMax = 4.5;
+
+		this.personalBridgeStrength = 1;
+		this.bridgeMultiplier = 0.985;
+		this.bridgeBoost = 0.6;
+	}
+
+	modifyDerivitives(activeGravity, activeFriction, naturalFriction, activeAX, activeAZ) {
+		if (this.parent != undefined) {
+			this.personalBridgeStrength *= this.bridgeMultiplier - ((1 - this.parent.power) * 0.002);
+		} else {
+			this.personalBridgeStrength *= this.bridgeMultiplier;
+		}
+		super.modifyDerivitives(activeGravity, activeFriction, naturalFriction, activeAX, activeAZ);
+	}
+
+	handleSpace() {
+		if (this.onGround > 0) {
+			this.personalBridgeStrength += this.bridgeBoost;
+			if (this.personalBridgeStrength > 1) {
+				this.personalBridgeStrength = 1;
+			}
+		}
+		super.handleSpace();
+	}
+}
+
+
+
 class Runner extends Character {
 	constructor(x, y, z) {
 		super(x, y, z, new Texture(getImage(data_sprites.Runner.sheet), data_sprites.spriteSize, data_sprites.Runner.frameTime, true, false, data_sprites.Runner.walkForwards),
@@ -596,5 +874,121 @@ class Runner extends Character {
 		this.jumpBoostStrength = 0.09;
 		this.speed = 0.11;
 		this.dMax = 3.4;
+	}
+}
+
+
+class Skater extends Character {
+	constructor(x, y, z) {
+		super(x, y, z, new Texture(getImage(data_sprites.Skater.sheet), data_sprites.spriteSize, data_sprites.Skater.frameTime, true, false, data_sprites.Skater.walkForwards),
+					new Texture(getImage(data_sprites.Skater.sheet), data_sprites.spriteSize, data_sprites.Skater.frameTime, true, false, data_sprites.Skater.walkSideways),
+					new Texture(getImage(data_sprites.Skater.sheet), data_sprites.spriteSize, data_sprites.Skater.frameTime, true, true, data_sprites.Skater.walkSideways),
+					new Texture(getImage(data_sprites.Skater.sheet), data_sprites.spriteSize, data_sprites.Skater.frameTime, false, false, data_sprites.Skater.jumpForwards),
+					new Texture(getImage(data_sprites.Skater.sheet), data_sprites.spriteSize, data_sprites.Skater.frameTime, false, false, data_sprites.Skater.jumpSideways),
+					new Texture(getImage(data_sprites.Skater.sheet), data_sprites.spriteSize, data_sprites.Skater.frameTime, false, true, data_sprites.Skater.jumpSideways));
+
+		this.jumpStrength = 2.5;
+		this.jumpBoostStrength = 0.06;
+		this.speed = 0.07;
+		this.dMax = 10;
+		this.fallMax = this.dMax;
+	}
+}
+
+class Student extends Character {
+	constructor(x, y, z) {
+		super(x, y, z, new Texture(getImage(data_sprites.Student.sheet), data_sprites.spriteSize, data_sprites.Student.frameTime, true, false, data_sprites.Student.walkForwards),
+					new Texture(getImage(data_sprites.Student.sheet), data_sprites.spriteSize, data_sprites.Student.frameTime, true, false, data_sprites.Student.walkSideways),
+					new Texture(getImage(data_sprites.Student.sheet), data_sprites.spriteSize, data_sprites.Student.frameTime, true, true, data_sprites.Student.walkSideways),
+					new Texture(getImage(data_sprites.Student.sheet), data_sprites.spriteSize, data_sprites.Student.frameTime, false, false, data_sprites.Student.jumpForwards),
+					new Texture(getImage(data_sprites.Student.sheet), data_sprites.spriteSize, data_sprites.Student.frameTime, false, false, data_sprites.Student.jumpSideways),
+					new Texture(getImage(data_sprites.Student.sheet), data_sprites.spriteSize, data_sprites.Student.frameTime, false, true, data_sprites.Student.jumpSideways));
+
+		this.jumpStrength = 2.2;
+		this.jumpBoostStrength = 0.05;
+		this.speed = 0.1;
+		this.dMax = 2.7;
+		this.r -= 2;
+		this.fallMax = 5;
+
+		this.abilityTransformTime = 7;
+		this.abilityTimeLimit = 40;
+		this.currentAbilityTime = 0;
+		this.doAbility = true;
+
+		this.dir_trueDown = this.dir_down;
+	}
+
+	modifyDerivitives(activeGravity, activeFriction, naturalFriction, activeAX, activeAZ) {
+		//reset ability variables
+		if (this.onGround > 0) {
+			this.currentAbilityTime = 0;
+			this.doAbility = true;
+			this.dir_trueDown = [this.dir_down[0], this.dir_down[1]];
+		}
+
+		//perform ability
+		if (this.currentAbilityTime > 0) {
+			//controlling ability timing
+			if (controls_spacePressed && this.doAbility) {
+				//increase time up to the maximum
+				if (this.currentAbilityTime < this.abilityTimeLimit) {
+					this.currentAbilityTime += 1;
+				} else {
+					//if held the ability for too long, force the player to commit to it
+					this.currentAbilityTime = 0;
+					this.doAbility = false;
+					this.dir_trueDown = this.dir_down;
+					this.dir_side[1] += Math.PI;
+
+
+					//changing camera target rotation
+					world_camera.targetRot = (this.dir_down[1] + (Math.PI * 1.5)) % (Math.PI * 2);
+					//if the rotation difference is too great, fix that
+					if (Math.abs(world_camera.rot - world_camera.targetRot) > Math.PI) {
+						if (world_camera.rot > Math.PI) {
+							world_camera.rot -= Math.PI * 2;
+						} else {
+							world_camera.rot += Math.PI * 2;
+						}
+					}
+				}
+			} else {
+				if (this.doAbility && this.currentAbilityTime < this.abilityTimeLimit) {
+					this.doAbility = false;
+					this.currentAbilityTime = 0;
+					this.dy *= -1;
+				}
+			}
+
+			//controlling actual gravity
+			this.dir_down = [this.dir_trueDown[0], this.dir_trueDown[1] + Math.PI + 0.01];
+
+			//there's a little fade in to the start of the ability
+			if (this.currentAbilityTime < this.abilityTransformTime) {
+				this.dir_down[1] = linterp(this.dir_trueDown[1], this.dir_trueDown[1] + Math.PI + 0.01, this.currentAbilityTime / 7);
+			}
+		}
+		super.modifyDerivitives(activeGravity, activeFriction, naturalFriction, activeAX, activeAZ);
+	}
+
+	setCameraPosition() {
+		var vertOffset = polToCart(this.dir_trueDown[0], this.dir_trueDown[1], 70);
+		var horizOffset = polToCart(this.dir_front[0], this.dir_front[1], -95);
+		world_camera.targetX = this.x + vertOffset[0] + horizOffset[0];
+		world_camera.targetY = this.y + vertOffset[1] + horizOffset[1];
+		world_camera.targetZ = this.z + vertOffset[2] + horizOffset[2];
+	}
+
+	handleSpace() {
+		if (this.onGround > 0) {
+			super.handleSpace();
+			return;
+		}
+
+		if (this.doAbility && this.currentAbilityTime == 0) {
+			this.currentAbilityTime = 1;
+			this.dy *= -1;
+		}
 	}
 }
