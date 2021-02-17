@@ -41,10 +41,10 @@ function drawKeys() {
 	ctx.fillRect(0 + 40, canvas.height - 40, 20, 20);
 
 	ctx.fillStyle = color_keyPress;
-	if (controls_object.ax < 0) {
+	if (player.ax < 0) {
 		ctx.fillRect(0 + 20, canvas.height - 40, 10, 20);
 	}
-	if (controls_object.ax > 0) {
+	if (player.ax > 0) {
 		ctx.fillRect(0 + 70, canvas.height - 40, 10, 20);
 	}
 
@@ -73,7 +73,7 @@ function drawCircle(color, x, y, radius) {
 	ctx.fill();
 }
 
-function drawPlayerWithParent() {
+function drawPlayerWithParentOLD() {
 	//sorting player in with the parent tunnel to be drawn
 	var stripStorage = orderObjects(player.parent.strips, 4);
 			
@@ -120,6 +120,80 @@ function drawQuad(color, p1, p2, p3, p4) {
 	ctx.lineTo(p4[0], p4[1]);
 	ctx.lineTo(p1[0], p1[1]);
 	ctx.fill();
+}
+
+function drawPlayerWithParent() {
+	var tunnelStrip = 0;
+	var tunnelSize = player.parent.strips.length;
+
+	//get the closest strip
+	for (var a=0; a<tunnelSize; a++) {
+		if (player.parent.strips[a].cameraDist < player.parent.strips[tunnelStrip].cameraDist) {
+			tunnelStrip = a;
+		}
+	}
+
+	//organize strips based around that
+	var trackL = tunnelStrip - 1;
+	var trackR = tunnelStrip + 1;
+	var stripStorage = [];
+	
+	//if the size is even, trackL has to be one less than trackR
+	if (tunnelSize % 2 == 0) {
+		stripStorage.push(player.parent.strips[(tunnelStrip + (tunnelSize / 2)) % tunnelSize]);
+		trackL = tunnelStrip - ((tunnelSize / 2) - 1);
+		trackR = tunnelStrip + (tunnelSize / 2) - 1;
+	} else {
+		trackL = tunnelStrip - Math.floor(tunnelSize / 2);
+		trackR = tunnelStrip + Math.floor(tunnelSize / 2);
+	}
+	
+	//while loops bad but I'm lazy and don't want to do the proper computation
+	while (trackR > tunnelStrip && trackL < tunnelStrip) {
+		stripStorage.push(player.parent.strips[trackR % tunnelSize]);
+		stripStorage.push(player.parent.strips[(trackL + tunnelSize) % tunnelSize]);
+		trackR -= 1;
+		trackL += 1;
+	}
+	stripStorage.push(player.parent.strips[tunnelStrip]);
+
+	//if the player is in the middle of the strips (on top of some but not all) do the special
+	if (stripStorage[0].playerIsOnTop() != stripStorage[stripStorage.length-1].playerIsOnTop()) {
+		var drawPlayer = true;
+		stripStorage.forEach(t => {
+			if (drawPlayer && t.playerIsOnTop()) {
+				t.beDrawn();
+			} else if (drawPlayer) {
+				drawPlayer = false;
+				player.beDrawn();
+				t.beDrawn();
+			} else {
+				t.beDrawn();
+			}
+		});
+		if (drawPlayer) {
+			player.beDrawn();
+		}
+	} else {
+		//case where player is below all
+		if (!stripStorage[0].playerIsOnTop()) {
+			player.beDrawn();
+			stripStorage.forEach(t => {
+				t.beDrawn();
+			});
+		} else {
+			//case where player is above all
+			stripStorage.forEach(t => {
+				t.beDrawn();
+			});
+			player.beDrawn();
+		}
+	}
+
+	if (editor_active) {
+		var [tX, tY] = spaceToScreen([player.parent.strips[tunnelStrip].x, player.parent.strips[tunnelStrip].y, player.parent.strips[tunnelStrip].z]);
+		drawCircle("#FFF", tX, tY, 10);
+	}
 }
 
 function drawRoundedRectangle(x, y, width, height, arcRadius) {
