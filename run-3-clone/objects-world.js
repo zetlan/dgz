@@ -63,36 +63,42 @@ class FreePoly {
 		this.normal = [cross[0], cross[1]];
 	}
 
-	collideWithPlayer() {
+	collideWithEntity(entity) {
 		//transform player to self's coordinates
-		var playerCoords = spaceToRelative([player.x, player.y, player.z], [this.x, this.y, this.z], [this.normal[0], this.normal[1], 0]);
+		var entityCoords = spaceToRelative([entity.x, entity.y, entity.z], [this.x, this.y, this.z], [this.normal[0], this.normal[1], 0]);
 
 		//if the player is colliding, do collision stuffies
-		if (Math.abs(playerCoords[2]) < this.tolerance && Math.abs(playerCoords[0]) < (this.size / 2) + this.tolerance && Math.abs(playerCoords[1]) < (this.size / 2) + this.tolerance) {
+		if (Math.abs(entityCoords[2]) < this.tolerance && Math.abs(entityCoords[0]) < (this.size / 2) + this.tolerance && Math.abs(entityCoords[1]) < (this.size / 2) + this.tolerance) {
+			var temp = entityCoords[2];
 			//different behavior depending on side
-			if (playerCoords[2] < 0) {
+			if (entityCoords[2] < 0) {
 				//outside the tunnel
-				playerCoords[2] = -1 * this.tolerance;
+				entityCoords[2] = -1 * this.tolerance;
 			} else {
 				//inside the tunnel
-				playerCoords[2] = this.tolerance;
+				entityCoords[2] = this.tolerance;
 				//R O T A T E   P D F
-				if (!haltCollision && (player.dir_down[0] != this.dir_down[0] || player.dir_down[1] != this.dir_down[1])) {
-					this.doRotationEffects();
+				if (!haltCollision && (entity.dir_down[0] != this.dir_down[0] || entity.dir_down[1] != this.dir_down[1])) {
+					this.doRotationEffects(entity);
 				}
 
 				//special collision effects in general
-				this.doCollisionEffects();
+				this.doCollisionEffects(entity);
+
+				//slow entity down if the movement has jumped them too far
+				if (Math.abs(temp - entityCoords[2]) >= entity.r * 0.3 && Math.abs(entityCoords[0]) > this.size / 4 && Math.abs(entityCoords[1] > this.size / 4)) {
+					entity.dz *= 1 - (Math.abs(temp - entityCoords[2]) / player.r);
+				}
 			}
 
 			//transforming back to regular coordinates
-			[player.x, player.y, player.z] = relativeToSpace(playerCoords, [this.x, this.y, this.z], this.normal);
+			[entity.x, entity.y, entity.z] = relativeToSpace(entityCoords, [this.x, this.y, this.z], this.normal);
 		}
 	}
 
-	doCollisionEffects() {
-		player.onGround = physics_graceTime;
-		player.onIce = false;
+	doCollisionEffects(entity) {
+		entity.onGround = physics_graceTime;
+		entity.onIce = false;
 	}
 
 	//clips self and returns an array with two polygons, clipped at the input plane.
@@ -156,16 +162,11 @@ class FreePoly {
 
 	tick() {
 		this.getCameraDist();
-		this.collideWithPlayer();
 	}
 
 	getCameraDist() {
 		this.cameraDist = getDistance(this, world_camera);
 		this.playerDist = getDistance(this, player);
-	}
-
-	getColor() {
-		return `hsl(${this.color.h}, ${linterp(this.color.s, 0, clamp((this.playerDist / render_maxColorDistance) * (1 / (this.parent.power + 0.001)), 0.1, 1))}%, ${linterp(70, 0, clamp((this.playerDist / render_maxColorDistance) * (1 / (this.parent.power + 0.001)), 0.1, 1))}%)`;
 	}
 
 	beDrawn() {
@@ -327,43 +328,18 @@ class Tunnel {
 	}
 
 	//I apologize in advance for any headaches this function causes.
+	//TODO: refactor this, create worldPositionOfTile([x, y]) function perhaps?
 	generateTiles() {
 		this.strips = [];
 		//split array into strips, with each strip being its own data structure
-		//generating tiles
-		var l = this.tilesPerSide * this.tileSize;
-		var apothemLength = l / (2 * Math.tan(Math.PI / this.sides));
-
 		for (var t=0; t<this.sides*this.tilesPerSide; t++) {
-			//finding apothem rotation / offset parameters
-			var apothemAngle = ((Math.PI * 2) / this.sides) * Math.floor(t / this.tilesPerSide);
-			var additionAngle = apothemAngle + (Math.PI / 2);
-			var additionLength = (this.tileSize) + ((this.tileSize * (t % this.tilesPerSide)) - (this.tileSize / 2)) - (l / 2);
-
 			//normal
-			var stripNormal = [(Math.PI * 1.5) - this.theta, ((apothemAngle * -1) + (Math.PI * 2)) % (Math.PI * 2)];
-
-			var stripPos = [apothemLength * Math.cos(apothemAngle), apothemLength * Math.sin(apothemAngle), 0];
-			[stripPos[0], stripPos[1]] = [stripPos[0] + additionLength * Math.cos(additionAngle), stripPos[1] + additionLength * Math.sin(additionAngle)];
-			[stripPos[0], stripPos[2]] = rotate(stripPos[0], stripPos[2], this.theta);
-			stripPos = [stripPos[0] + this.x, stripPos[1] + this.y, stripPos[2] + this.z];
-
+			var stripNormal = [(Math.PI * 1.5) - this.theta, ((((Math.PI * 2) / this.sides) * Math.floor(t / this.tilesPerSide) * -1) + (Math.PI * 2)) % (Math.PI * 2)];
+			var stripPos = this.worldPositionOfTile(t, 0);
 			var loadingStrip = new Tunnel_Strip(stripPos[0], stripPos[1], stripPos[2], stripNormal, this.tileSize, this.theta);
 
 			//run through every tile in the strip
 			for (var a=0; a<this.len; a++) {
-				//z position is l, x / y are determined by position on side
-				var tileX = apothemLength * Math.cos(apothemAngle);
-				var tileY = apothemLength * Math.sin(apothemAngle);
-				var tileZ = 0 + (a * this.tileSize);
-				
-				//modifying coordinate
-				tileX += additionLength * Math.cos(additionAngle);
-				tileY += additionLength * Math.sin(additionAngle);
-
-				//rotate final coordinates
-				[tileX, tileZ] = rotate(tileX, tileZ, this.theta);
-
 				//creating tile
 				var value = 0;
 				try {
@@ -371,10 +347,82 @@ class Tunnel {
 				} catch(e) {
 					//I really don't care if there's no data. If I start to care later I'll change this
 				}
-				loadingStrip.tiles.push(this.generateTile(value, this.x + tileX, this.y + tileY, this.z + tileZ, this.tileSize, stripNormal, [t, a], this.color));
+				var tileCoordinates = this.worldPositionOfTile(t, a);
+				loadingStrip.tiles.push(this.generateTile(value, tileCoordinates[0], tileCoordinates[1], tileCoordinates[2], this.tileSize, stripNormal, [t, a], this.color));
 			}
 			loadingStrip.establishReals();
 			this.strips.push(loadingStrip);
+		}
+		//generate plexiglass tiles afterwords
+		this.generatePlexies();
+	}
+
+	//tunnelPos is [strip number, tile number]
+	worldPositionOfTile(stripNum, tileNum) {
+		//get offset from center of tunnel cylinder
+		var l = this.tilesPerSide * this.tileSize;
+		var apothemLength = l / (2 * Math.tan(Math.PI / this.sides));
+		var apothemAngle = ((Math.PI * 2) / this.sides) * Math.floor(stripNum / this.tilesPerSide);
+
+		//get offset from apothem
+		var additionAngle = apothemAngle + (Math.PI / 2);
+		var additionLength = (this.tileSize) + ((this.tileSize * (stripNum % this.tilesPerSide)) - (this.tileSize / 2)) - (l / 2);
+
+		//initial coordinates
+		var tileX = apothemLength * Math.cos(apothemAngle);
+		var tileY = apothemLength * Math.sin(apothemAngle);
+		var tileZ = (tileNum * this.tileSize);
+		
+		//modifying coordinates
+		tileX += additionLength * Math.cos(additionAngle);
+		tileY += additionLength * Math.sin(additionAngle);
+
+		//rotate final coordinates
+		[tileX, tileZ] = rotate(tileX, tileZ, this.theta);
+
+		return [this.x + tileX, this.y + tileY, this.z + tileZ];
+	}
+
+	//generates the plexiglass tiles, to go along the edges of the regular tiles
+	generatePlexies() {
+		//run through every strip
+		for (var s=0; s<this.strips.length; s++) {
+			
+			//run through every tile in the strip
+			for (var t=0; t<this.strips[s].tiles.length; t++) {
+				//if it's undefined the plexiglass algorithm can be run
+				if (this.strips[s].tiles[t] == undefined) {
+					//determining strength
+
+					var tileOffset = Math.floor(physics_maxBridgeDistance / this.tileSize);
+					var tileStrength = 0;
+
+					for (var x=s-tileOffset; x<s+tileOffset; x++) {
+						for (var y=t-tileOffset; y<t+tileOffset; y++) {
+							var realStrip = (x + (4 * this.strips.length)) % this.strips.length;
+							//first convert coordinates into true coordinates, then check if there's a tile there
+							if (y > -1 && y < this.strips[realStrip].tiles.length) {
+								//other bridge tiles cannot give strength
+								if (this.strips[realStrip].tiles[y] instanceof Tile && !(this.strips[realStrip].tiles[y] instanceof Tile_Plexiglass)) {
+									//if there's a tile there, the strength that tile gives is proportional to the distance to that tile
+									var distance = (Math.abs(x - s) + Math.abs(y - t)) * this.tileSize;
+
+									//upgrade strength is necessary
+									tileStrength = Math.max(tileStrength, 1 - (distance / physics_maxBridgeDistance));
+								}
+							}
+						}
+					}
+
+					tileStrength = tileStrength * tileStrength;
+					//only create tile if strength is great enough
+					if (tileStrength > 0.01) {
+						var tileCoords = this.worldPositionOfTile(s, t);
+						this.strips[s].tiles[t] = new Tile_Plexiglass(tileCoords[0], tileCoords[1], tileCoords[2], this.tileSize, this.strips[s].normal, this, [s, t], this.color, tileStrength);
+					}
+				}
+			}
+			this.strips[s].establishReals();
 		}
 	}
 
@@ -386,7 +434,7 @@ class Tunnel {
 			case 2:
 				return new Tile_Bright(x, y, z, size, normal, this, position, color);
 			case 3:
-				return new Tile_Crumbling(x, y, z, size, normal, this, position);
+				return new Tile_Crumbling(x, y, z, size, normal, this, position, color);
 			case 4:
 				return new Tile_Ice(x, y, z, size, normal, this, position);
 			case 5:
@@ -417,14 +465,27 @@ class Tunnel {
 								getDistance({x:this.endPos[0], y:this.endPos[1], z:this.endPos[2]}, {x:world_camera.targetX, y:world_camera.targetY, z:world_camera.targetZ}));
 	}
 
+	coordinateIsInTunnel(x, y, z) {
+		//rotate by tunnel theta
+		x -= this.x;
+		y -= this.y;
+		z -= this.z;
+		[x, z] = rotate(x, z, this.theta * -1);
+
+		//actually making a polygon and checking that is faster than checking with the 3d strips
+		var polyPoints = [];
+		for (var a=0; a<this.sides; a++) {
+			polyPoints.push([this.r * Math.cos(((Math.PI * 2) / this.sides) * (a - 0.5)), this.r * Math.sin(((Math.PI * 2) / this.sides) * (a - 0.5))]);
+		}
+
+		return inPoly([x, y], polyPoints);
+	}
+
 	//returns true if the player is inside the tunnel, and false if the player is not
 	playerIsInTunnel() {
 		//rotate by tunnel theta
 		var newCoords = [player.x - this.x, player.y - this.y, player.z - this.z];
 		[newCoords[0], newCoords[2]] = rotate(newCoords[0], newCoords[2], this.theta * -1);
-
-		//update where the player is
-		this.playerTilePos = newCoords[2] / this.tileSize;
 		if (newCoords[2] < 0 || newCoords[2] > (this.len * this.tileSize)) {
 			//if the player is out of the tunnel in the z direction
 			return false;
@@ -467,7 +528,19 @@ class Tunnel {
 
 		//placing player on that tile
 		var spawnObj = this.strips[spawnChoice].tiles[0];
-		spawnObj.doRotationEffects();
+		spawnObj.doRotationEffects(player);
+
+		//if player is using duplicator, make sure to remove all duplicates
+		if (player.duplicates != undefined) {
+			player.duplicates = [player];
+			player.duplicateGenerationCountup = 0;
+		} else if (player.personalBridgeStrength != undefined) {
+			//if player is using pastafarian, reset their bridge strength
+			player.personalBridgeStrength = 1;
+		}
+
+		
+		
 
 		var offsetCoords = polToCart(spawnObj.normal[0], spawnObj.normal[1], 10);
 		player.x = spawnObj.x + offsetCoords[0];
@@ -475,6 +548,10 @@ class Tunnel {
 		player.z = spawnObj.z + offsetCoords[2];
 		player.dz = 0;
 
+		this.resetWithoutPlayer();
+	}
+
+	resetWithoutPlayer() {
 		//misc tunnel things
 		this.playerTilePos = 0;
 		this.powerExecuting = -1;
@@ -484,11 +561,7 @@ class Tunnel {
 
 		//reset all crumbling tiles
 		this.strips.forEach(a => {
-			a.realTiles.forEach(t => {
-				if (t instanceof Tile_Crumbling) {
-					t.reset();
-				}
-			});
+			a.reset();
 		});
 	}
 
@@ -496,6 +569,11 @@ class Tunnel {
 		this.getCameraDist();
 		//only bother with collision and all that jazz if it's close enough to matter
 		if (this.cameraDist < this.maxTileRenderDist) {
+			//update where player is
+			var newCoords = [player.x - this.x, player.y - this.y, player.z - this.z];
+			[newCoords[0], newCoords[2]] = rotate(newCoords[0], newCoords[2], this.theta * -1);
+			this.playerTilePos = newCoords[2] / this.tileSize;
+
 			this.strips.forEach(s => {
 				s.tick();
 			});
@@ -586,6 +664,7 @@ class Tunnel_Strip {
 		this.y = y;
 		this.z = z;
 		this.cameraDist = 1000;
+		this.playerDist = 1000;
 		this.normal = normal;
 		this.tunnelTheta = tunnelTheta;
 		this.tileSize = tileSize;
@@ -668,14 +747,21 @@ class Tunnel_Strip {
 		}
 	}
 
+	collideWithEntity(entity) {
+		this.realTiles.forEach(r => {
+			r.collideWithEntity(entity);
+		});
+	}
+
 	//makes drawing / ticking self tiles slightly faster
 	establishReals() {
 		this.requiresOrdering = false;
 		this.realTiles = [];
 		this.tiles.forEach(t => {
-			if (t != undefined) {
+			//if the tile isn't undefined and it's not a plexiglass tile (or it is a plexiglass tile and the player's a pastafarian)
+			if (t != undefined && (t.minStrength == undefined || player.personalBridgeStrength != undefined)) {
 				this.requiresOrdering = this.requiresOrdering || t.requiresOrdering;
-				this.realTiles.push(t)
+				this.realTiles.push(t);
 			}
 		});
 		if (this.realTiles.length > 0) {
@@ -684,15 +770,26 @@ class Tunnel_Strip {
 		}
 	}
 
+	reset() {
+		this.establishReals();
+		//reset all tiles
+		this.realTiles.forEach(t => {
+			if (t instanceof Tile_Crumbling) {
+				t.reset();
+			}
+		});
+	}
+
 	tick() {
 		//setting camera distance
 		this.cameraDist = getDistance(this, world_camera);
+		this.playerDist = getDistance(this, player);
 		this.realTiles.forEach(t => {
 			t.tick();
 		});
 		
 		//ordering objects
-		if (this.requiresOrdering && world_time % 4 == 3) {
+		if (this.requiresOrdering && world_time % 8 == 7) {
 			var unordered = [];
 			//don't order tiles that are far enough away
 			for (var a=0; a<this.realTiles.length-1; a++) {
