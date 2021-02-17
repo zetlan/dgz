@@ -41,10 +41,10 @@ class Tile extends FreePoly {
 		this.dir_down = this.normal;
 	}
 
-	doRotationEffects() {
-		player.dir_down = this.dir_down;
-		player.dir_front = [(Math.PI * 2) - this.parent.theta, 0];
-		player.dir_side = this.dir_right;
+	doRotationEffects(entity) {
+		entity.dir_down = this.dir_down;
+		entity.dir_front = [(Math.PI * 2) - this.parent.theta, 0];
+		entity.dir_side = this.dir_right;
 
 		world_camera.phi = 0;
 		world_camera.targetTheta = (Math.PI * 2) - this.parent.theta;
@@ -71,14 +71,18 @@ class Tile extends FreePoly {
 			}
 			haltCollision = true;
 		}
-		player.dy = 0;
+		entity.dy = 0;
 	}
 
-	collideWithPlayer() {
+	collideWithEntity(entity) {
 		//only collide if player is within certain distance
-		if (Math.abs(this.x - player.x) + Math.abs(this.y - player.y) + Math.abs(this.z - player.z) < (this.size * 2) + player.r) {
-			super.collideWithPlayer();
+		if (Math.abs(this.x - entity.x) + Math.abs(this.y - entity.y) + Math.abs(this.z - entity.z) < (this.size * 2) + entity.r) {
+			super.collideWithEntity(entity);
 		}
+	}
+
+	getColor() {
+		return `hsl(${this.color.h}, ${this.color.s}%, ${linterp(40 * (this.parent.power + 0.5), 0, clamp((this.playerDist / render_maxColorDistance) * (1 / (this.parent.power + 0.001)), 0.1, 1))}%)`;
 	}
 
 	playerIsOnTop() {
@@ -158,62 +162,66 @@ class Tile_Box extends Tile {
 			//simple circle for far away
 			if (!isClipped([this.x, this.y, this.z])) {
 				var pos = spaceToScreen([this.x, this.y, this.z]);
-				drawCircle(this.getColor(), pos[0], pos[1], (this.size / this.cameraDist) * world_camera.scale * 0.8);
+				drawCircle(this.getColor(), pos[0], pos[1], (this.size / this.cameraDist) * world_camera.scale * 0.6);
 			}
 		}
 	}
 
-	collideWithPlayer() {
+	collideWithEntity(entity) {
 		//only collide if within a certain distance of the player
-		if (this.playerDist < this.size * 2) {
+		if (this.playerDist < this.size * 3) {
 			//transforming player coordinates to self
-			var playerCoords = spaceToRelative([player.x, player.y, player.z], [this.x, this.y, this.z], [this.normal[0], this.normal[1], 0]);
+			var entityCoords = spaceToRelative([entity.x, entity.y, entity.z], [this.x, this.y, this.z], [this.normal[0], this.normal[1], 0]);
 
 			//second check for collision, only collide if all 3 coordinates are under threshold
-			if (Math.abs(playerCoords[0]) - player.r < this.size / 2 && Math.abs(playerCoords[1]) - player.r < this.size / 2 && Math.abs(playerCoords[2]) - player.r < this.size / 2) {
-				var distX = Math.abs(playerCoords[0]);
-				var distY = Math.abs(playerCoords[1]);
-				var distZ = Math.abs(playerCoords[2]);
+			if (Math.abs(entityCoords[0]) - entity.r < this.size / 2 && Math.abs(entityCoords[1]) - entity.r < this.size / 2 && Math.abs(entityCoords[2]) - entity.r < this.size / 2) {
+				var distX = Math.abs(entityCoords[0]);
+				var distY = Math.abs(entityCoords[1]);
+				var distZ = Math.abs(entityCoords[2]);
 				//if x is the greatest (forwards / back in the tunnel) slow player down and push out
-				if (distX > distY && distX > distZ) {
-					player.dz = 0;
-					if (playerCoords[0] > 0) {
-						playerCoords[0] = 0.5 * this.size + player.r;
+				if (distX - player.r > distY && distX - player.r> distZ) {
+					entity.dz = 0;
+					if (entityCoords[0] > 0) {
+						entityCoords[0] = 0.5 * this.size + entity.r;
 					} else {
-						playerCoords[0] = (-0.5 * this.size) - player.r;
+						entityCoords[0] = (-0.5 * this.size) - entity.r;
 					}
-				} else if (distZ > distY && distZ > distX) {
+				} else if (distZ > distY - player.r && distZ > distX - player.r) {
 					//if z is the greatest, do rotation effects normally
-					player.dy = 0;
-					if (playerCoords[2] > 0) {
-						playerCoords[2] =  0.5 * this.size + player.r;
+					if (entityCoords[2] > 0) {
+						entityCoords[2] =  0.5 * this.size + entity.r;
 					} else {
-						playerCoords[2] = -0.5 * this.size - player.r;
+						entityCoords[2] = -0.5 * this.size - entity.r;
 					}
-					this.doCollisionEffects();
-					this.doRotationEffects();
+					this.doCollisionEffects(entity);
+					if (!haltCollision && (entity.dir_down[0] != this.dir_down[0] || entity.dir_down[1] != this.dir_down[1])) {
+						this.doRotationEffects(entity);
+					}
 				} else {
 					//if y is the greatest, then it's the sides of the box.
 					//this solution is sort of hacky, but the box is already ridiculously laggy so I don't particularly care
-					if (playerCoords[1] > 0) {
-						this.rightTile.doRotationEffects();
-						playerCoords[1] = 0.5 * this.size + player.r;
+					if (entityCoords[1] > 0) {
+						if (!haltCollision && (entity.dir_down[0] != this.rightTile.dir_down[0] || entity.dir_down[1] != this.rightTile.dir_down[1])) {
+							this.rightTile.doRotationEffects(entity);
+						}
+						entityCoords[1] = 0.5 * this.size + entity.r;
 					} else {
-						this.leftTile.doRotationEffects();
-						playerCoords[1] = -0.5 * this.size - player.r;
+						if (!haltCollision && (entity.dir_down[0] != this.leftTile.dir_down[0] || entity.dir_down[1] != this.leftTile.dir_down[1])) {
+							this.leftTile.doRotationEffects(entity);
+						}
+						entityCoords[1] = -0.5 * this.size - entity.r;
 					}
-					this.doCollisionEffects();
+					this.doCollisionEffects(entity);
 				}
 			}
 
 			//transform player coords back and assign to player
-			[player.x, player.y, player.z] = relativeToSpace(playerCoords, [this.x, this.y, this.z], [this.normal[0], this.normal[1], 0]);
+			[entity.x, entity.y, entity.z] = relativeToSpace(entityCoords, [this.x, this.y, this.z], [this.normal[0], this.normal[1], 0]);
 		}
 	}
 
 	tick() {
 		super.getCameraDist();
-		this.collideWithPlayer();
 	}
 }
 
@@ -248,7 +256,7 @@ class Tile_Bright extends Tile {
 	}
 
 	getColor() {
-		return `hsl(${this.color.h}, ${this.color.s}%, ${linterp(70, 25, clamp((this.playerDist / render_maxColorDistance) * 0.5, 0.1, 1))}%)`
+		return `hsl(${this.color.h}, ${this.color.s}%, ${linterp(60, 15, clamp((this.playerDist / render_maxColorDistance) * 0.5, 0, 1))}%)`
 	}
 }
 
@@ -256,33 +264,47 @@ class Tile_Conveyor extends Tile {
 	constructor(x, y, z, size, normal, parent, tilePosition) {
 		super(x, y, z, size, normal, parent, tilePosition, RGBtoHSV("#69beff"));
 		this.secondaryColor = RGBtoHSV("#616bff");
+		this.time = 0;
+		this.conveyTime = 60;
 	}
 
-	doCollisionEffects() {
-		super.doCollisionEffects();
-		this.doSpeedEffects();
+	doCollisionEffects(entity) {
+		super.doCollisionEffects(entity);
+		this.doSpeedEffects(entity);
 	}
 
-	doSpeedEffects() {
-		if (player.dz < player.dMax * 2) {
-			player.dz += physics_conveyorStrength;
+	doSpeedEffects(entity) {
+		if (entity.dz < entity.dMax * 2) {
+			entity.dz += physics_conveyorStrength;
 		}
 	}
 
 	calculatePointsAndNormal() {
 		super.calculatePointsAndNormal();
-		var points = [	[-1, 0, -1], [-1, 0, 1], [1, 0, 0.1], [1, 0, -0.1]];
-		for (var p=0; p<points.length; p++) {
-			points[p] = transformPoint(points[p], [this.x, this.y, this.z], this.normal, this.size + 0.5);
+		this.calculateTriPoints();
+	}
+
+	calculateTriPoints() {
+		this.triPoints = [[-1 + (this.time * 2), 0, -1], [-1 + (this.time * 2), 0, 0], [-1, 0, -1 * this.time], [-1, 0, this.time], [-1 + (this.time * 2), 0, 0], 
+					[-1 + (this.time * 2), 0, 1], [1, 0, this.time], [1, 0, -1 * this.time]];
+		for (var p=0; p<this.triPoints.length; p++) {
+			this.triPoints[p] = transformPoint(this.triPoints[p], [this.x, this.y, this.z], this.normal, this.size + 0.5);
 		}
-		this.triPoints = points;
 	}
 
 	getSecondaryColor() {
-		return `hsl(${this.secondaryColor.h}, ${linterp(this.secondaryColor.s, 0, clamp((this.playerDist / render_maxColorDistance) * (1 / (this.parent.power + 0.001)), 0.1, 1))}%, ${linterp(70, 0, clamp((this.playerDist / render_maxColorDistance) * (1 / (this.parent.power + 0.001)), 0.1, 1))}%)`;
+		return `hsl(${this.secondaryColor.h}, ${this.secondaryColor.s}%, ${linterp(60, 0, clamp((this.playerDist / render_maxColorDistance) * (1 / (this.parent.power + 0.001)), 0.1, 1))}%)`;
+	}
+
+	tick() {
+		super.tick();
+		this.time = (this.time + (1 / this.conveyTime)) % 1;
 	}
 	
 	beDrawn() {
+		//calculate triangle points
+		this.calculateTriPoints();
+
 		drawWorldPoly(this.points, this.getColor());
 		drawWorldPoly(this.triPoints, this.getSecondaryColor());
 		if (editor_active) {
@@ -302,18 +324,17 @@ class Tile_Conveyor_Slow extends Tile_Conveyor {
 		super(x, y, z, size, normal, parent, tilePosition);
 	}
 
-	calculatePointsAndNormal() {
-		super.calculatePointsAndNormal();
-		var points = [[-1, 0, -0.1], [-1, 0, 0.1], [1, 0, 1], [1, 0, -1]];
-		for (var p=0; p<points.length; p++) {
-			points[p] = transformPoint(points[p], [this.x, this.y, this.z], this.normal, this.size + 0.5);
+	calculateTriPoints() {
+		this.triPoints = [[1 - (this.time * 2), 0, -1], [1 - (this.time * 2), 0, 0], [1, 0, -1 * this.time], [1, 0, this.time], [1 - (this.time * 2), 0, 0], 
+					[1 - (this.time * 2), 0, 1], [-1, 0, this.time], [-1, 0, -1 * this.time]];
+		for (var p=0; p<this.triPoints.length; p++) {
+			this.triPoints[p] = transformPoint(this.triPoints[p], [this.x, this.y, this.z], this.normal, this.size + 0.5);
 		}
-		this.triPoints = points;
 	}
 
-	doSpeedEffects() {
-		if (player.dz > player.dMax * 0.4) {
-			player.dz -= physics_conveyorStrength * 3;
+	doSpeedEffects(entity) {
+		if (entity.dz > entity.dMax * 0.4) {
+			entity.dz -= physics_conveyorStrength * 3;
 		}
 	}
 }
@@ -325,18 +346,22 @@ class Tile_Conveyor_Left extends Tile_Conveyor {
 
 	calculatePointsAndNormal() {
 		super.calculatePointsAndNormal();
-		var points = [[-0.1, 0, -1], [-1, 0, 1], [1, 0, 1], [0.1, 0, -1]];
-		for (var p=0; p<points.length; p++) {
-			points[p] = transformPoint(points[p], [this.x, this.y, this.z], this.normal, this.size + 0.5);
-		}
-		this.triPoints = points;
-		//rotate by 18.5° the other way
+		
+		//rotate by 18.5° the other way, 2pi / 19.459 is 18.5° trust me
 		this.dir_down = [this.normal[0], this.normal[1] - ((Math.PI * 2) / 19.459)];
 		this.cameraRot = this.dir_down[1];
 	}
 
-	doSpeedEffects() {
-		player.dx += physics_conveyorStrength * 3;
+	calculateTriPoints() {
+		this.triPoints = [[-1, 0, 1 - (this.time * 2)], [0, 0, 1 - (this.time * 2)], [-1 * this.time, 0, 1], [this.time, 0, 1], [0, 0, 1 - (this.time * 2)], 
+					[1, 0, 1 - (this.time * 2)], [this.time, 0, -1], [-1 * this.time, 0, -1]];
+		for (var p=0; p<this.triPoints.length; p++) {
+			this.triPoints[p] = transformPoint(this.triPoints[p], [this.x, this.y, this.z], this.normal, this.size + 0.5);
+		}
+	}
+
+	doSpeedEffects(entity) {
+		entity.dx += physics_conveyorStrength * 3;
 	}
 }
 
@@ -347,23 +372,26 @@ class Tile_Conveyor_Right extends Tile_Conveyor {
 
 	calculatePointsAndNormal() {
 		super.calculatePointsAndNormal();
-		var points = [[-1, 0, -1], [-0.1, 0, 1], [0.1, 0, 1], [1, 0, -1]];
-		for (var p=0; p<points.length; p++) {
-			points[p] = transformPoint(points[p], [this.x, this.y, this.z], this.normal, this.size + 0.5);
-		}
-		this.triPoints = points;
 		//rotate by 18.5°
 		this.dir_down = [this.normal[0], this.normal[1] + ((Math.PI * 2) / 19.459)];
 		this.cameraRot = this.dir_down[1];
 	}
 
-	doSpeedEffects() {
-		player.dx -= physics_conveyorStrength * 3;
+	calculateTriPoints() {
+		this.triPoints = [[-1, 0, -1 + (this.time * 2)], [0, 0, -1 + (this.time * 2)], [-1 * this.time, 0, -1], [this.time, 0, -1], [0, 0, -1 + (this.time * 2)], 
+					[1, 0, -1 + (this.time * 2)], [this.time, 0, 1], [-1 * this.time, 0, 1]];
+		for (var p=0; p<this.triPoints.length; p++) {
+			this.triPoints[p] = transformPoint(this.triPoints[p], [this.x, this.y, this.z], this.normal, this.size + 0.5);
+		}
+	}
+
+	doSpeedEffects(entity) {
+		entity.dx -= physics_conveyorStrength * 3;
 	}
 }
 
 class Tile_Crumbling extends Tile {
-	constructor(x, y, z, size, normal, parent, tilePosition) {
+	constructor(x, y, z, size, normal, parent, tilePosition, color) {
 		super(x, y, z, size, normal, parent, tilePosition, {h: 0, s: 0});
 		this.requiresOrdering = true;
 		this.activeSize = this.size;
@@ -371,7 +399,10 @@ class Tile_Crumbling extends Tile {
 		this.home = [this.x, this.y, this.z];
 
 		this.fallStatus = undefined;
-		this.fallRate = -0.5;
+		this.fallRate = -0.52;
+
+		//all crumbling tiles have a plexiglass tile hidden on top of them
+		this.plexiTile = new Tile_Plexiglass(x, y, z, size, normal, parent, tilePosition, color, 0.95);
 	}
 
 	calculatePointsAndNormal() {
@@ -395,11 +426,14 @@ class Tile_Crumbling extends Tile {
 		this.dir_down = this.normal;
 	}
 
-	collideWithPlayer() {
+	collideWithEntity(entity) {
 		//only do if large enough
 		if (this.activeSize > 0.01) {
-			super.collideWithPlayer();
+			super.collideWithEntity(entity);
 		}
+
+		//tick plexiglass
+		this.plexiTile.collideWithEntity(entity);
 	}
 
 	tick() {
@@ -432,6 +466,8 @@ class Tile_Crumbling extends Tile {
 				}
 			}
 		}
+		//tick plexiglass
+		this.plexiTile.tick();
 	}
 
 	reset() {
@@ -445,7 +481,6 @@ class Tile_Crumbling extends Tile {
 	}
 
 	beDrawn() {
-		
 		//only be drawn if large enough
 		if (this.activeSize > 0.01) {
 			super.beDrawn();
@@ -455,13 +490,18 @@ class Tile_Crumbling extends Tile {
 				drawWorldLine(this.line2[0], this.line2[1]);
 			}
 		}
+
+		//draw plexiglass if falling
+		if (this.fallStatus != undefined) {
+			this.plexiTile.beDrawn();
+		}
 	}
 
 	//yes I have three functions for this one behavior. No I'm not proud of it. But it works (:
-	doCollisionEffects() {
-		super.doCollisionEffects();
+	doCollisionEffects(entity) {
+		super.doCollisionEffects(entity);
 		//only crumble if not a child
-		if (!(player instanceof Child) || player.jumpBuffer > 0) {
+		if (entity.jumpBuffer == undefined || entity.jumpBuffer > 0) {
 			this.fallStatus = 0;
 			this.propogateCrumble();
 		}
@@ -496,12 +536,12 @@ class Tile_Ice extends Tile {
 	}
 
 	getColor() {
-		return `hsl(${this.color.h}, ${linterp(this.color.s, 0, clamp((this.playerDist / render_maxColorDistance) * (1 / (this.parent.power + 0.001)), 0.1, 1))}%, ${linterp(100, 10, clamp((this.playerDist / render_maxColorDistance) * (1 / (this.parent.power + 0.001)), 0.1, 1))}%)`;
+		return `hsl(${this.color.h}, ${this.color.s}%, ${linterp(100, 10, clamp((this.playerDist / render_maxColorDistance) * (1 / (this.parent.power + 0.001)), 0.1, 1))}%)`;
 	}
 
-	doCollisionEffects() {
-		super.doCollisionEffects();
-		player.onIce = true;
+	doCollisionEffects(entity) {
+		super.doCollisionEffects(entity);
+		entity.onIce = true;
 	}
 }
 
@@ -529,11 +569,54 @@ class Tile_Ice_Ramp extends Tile_Ice {
 		this.dir_right = cartToPol(rPoint[0], rPoint[1], rPoint[2]);
 	}
 
-	doCollisionEffects() {
-		super.doCollisionEffects();
+	doCollisionEffects(entity) {
+		super.doCollisionEffects(entity);
 		//push player up a bit
-		player.dy = 1.2;
-		player.onground = physics_graceTimeRamp;
+		if (entity.dy < entity.dz * 0.1) {
+			entity.dy = entity.dz * 0.1;
+		}
+		entity.onGround = physics_graceTimeRamp;
+	}
+}
+
+//this is called a plexiglass tile because I thought it looked a bit like plexiglass. It's not actually made of plexiglass. don't get confused ;)
+class Tile_Plexiglass extends Tile {
+	constructor(x, y, z, size, normal, parent, tilePosition, color, strength) {
+		super(x, y, z, size, normal, parent, tilePosition, color);
+		this.strength = strength;
+		this.minStrength = 0.05;
+	}
+
+	getAlpha() {
+		return (linterp(this.strength, 0, clamp((this.playerDist / physics_maxBridgeDistance) * (1.2 / (this.parent.power + 0.2)), 0.1, 1)) * player.personalBridgeStrength);
+	}
+
+	getColor() {
+		return `hsl(${this.color.h}, ${this.color.s}%, ${linterp(70, 25, clamp((this.playerDist / render_maxColorDistance) * 0.5, 0.1, 1))}%)`
+	}
+
+	beDrawn() {
+		if (player.personalBridgeStrength != undefined) {
+			if (this.getAlpha() > this.minStrength) {
+				ctx.globalAlpha = this.getAlpha();
+				super.beDrawn();
+				ctx.globalAlpha = 1;
+			}
+		}
+	}
+
+	tick() {
+		if (player.personalBridgeStrength != undefined) {
+			super.tick();
+		}
+	}
+
+	collideWithEntity(entity) {
+		if (player.personalBridgeStrength != undefined) {
+			if (this.getAlpha() > this.minStrength) {
+				super.collideWithEntity(entity);
+			}
+		}
 	}
 }
 
@@ -561,11 +644,11 @@ class Tile_Ramp extends Tile {
 		this.dir_right = cartToPol(rPoint[0], rPoint[1], rPoint[2]);
 	}
 
-	doCollisionEffects() {
-		super.doCollisionEffects();
+	doCollisionEffects(entity) {
+		super.doCollisionEffects(entity);
 		//push player up a bit
-		player.dy = 3;
-		player.onground = physics_graceTimeRamp;
+		entity.dy = entity.dz * 0.7;
+		entity.onground = physics_graceTimeRamp;
 	}
 
 	playerIsOnTop() {
