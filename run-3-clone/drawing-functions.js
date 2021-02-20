@@ -34,6 +34,100 @@ function drawCrosshair() {
 	drawWorldLine(center, zPlus);
 }
 
+function drawInfiniteEndScreen() {
+	//main box
+	ctx.fillStyle = color_grey_lightest;
+	ctx.strokeStyle = color_grey_light;
+	ctx.lineWidth = canvas.height / 50;
+	drawRoundedRectangle(canvas.width * 0.1, canvas.height * 0.1, canvas.width * 0.8, canvas.height * 0.8, canvas.width * 0.04);
+
+	//getting character order to draw them
+	var drawingCharacters = [];
+	loading_state.charactersUsed.forEach(c => {
+		drawingCharacters.push(c);
+	});
+
+	data_characters.forEach(c => {
+		if (!drawingCharacters.includes(c)) {
+			drawingCharacters.push(c);
+		}
+	});
+
+
+	//labels to the side as final labels
+	ctx.fillStyle = color_text;
+	ctx.font = `${canvas.height / 16}px Century Gothic`;
+	ctx.textAlign = "left";
+
+	ctx.fillText(`Total`, canvas.width * 0.35 + (canvas.width * 0.18), canvas.height * 0.7);
+
+	//character availability boxes
+	ctx.fillStyle = color_grey_light;
+	ctx.strokeStyle = color_menuSelectionOutline;
+	ctx.lineWidth = canvas.height / 96;
+	
+	ctx.font = `${canvas.height / 42}px Century Gothic`;
+
+	var characterNum = 0;
+	for (var a=0; a<11; a++) {
+		var offY = canvas.height * 0.25 * Math.floor(a / 5);
+		var offX = canvas.width * 0.6 * ((a % 5) / 5);
+
+		var textOffset = canvas.height / 40;
+		var textOffset2 = menu_characterSize * 2.3;
+
+		ctx.fillStyle = color_text;
+		
+		
+
+		//labels for every line
+		if (a % 5 == 0) {
+			ctx.textAlign = "left";
+			ctx.fillText(`distance:`, canvas.width * 0.12, (canvas.height * 0.13) + offY + textOffset2);
+			ctx.fillText(`time:`, canvas.width * 0.12, (canvas.height * 0.13) + offY + textOffset2 + textOffset);
+			ctx.fillText(`avg. speed:`, canvas.width * 0.12, (canvas.height * 0.13) + offY + textOffset2 + (2 * textOffset));
+			ctx.fillText(`power cells:`, canvas.width * 0.12, (canvas.height * 0.13) + offY + textOffset2 + (3 * textOffset));
+			ctx.fillText(`power cells / min:`, canvas.width * 0.12, (canvas.height * 0.13) + offY + textOffset2 + (4 * textOffset));
+		}
+		var index = data_characters.indexOf(drawingCharacters[characterNum]);
+
+		if (loading_state.selectionTextures[index] != undefined) {
+			//if the character hasn't been used, display the selection box
+			if (characterNum >= loading_state.charactersUsed.length) {
+				ctx.globalAlpha = 0.3;
+				ctx.fillStyle = color_grey_light;
+				ctx.strokeStyle = color_menuSelectionOutline;
+				drawRoundedRectangle((canvas.width * 0.35) + offX - menu_characterSize, (canvas.height * 0.13) + offY, menu_characterSize * 2, menu_characterSize * 2, canvas.height / 48);
+				ctx.globalAlpha = 1;
+			} else {
+				
+				//displaying data about their run
+				ctx.textAlign = "center";
+				var charInfo = loading_state.characterData[drawingCharacters[characterNum]];
+				ctx.fillText(`${charInfo.distance.toFixed(0)} m`, (canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + textOffset2);
+				ctx.fillText(`${getTimeFromFrames(charInfo.time)}`, (canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + textOffset2 + textOffset);
+				ctx.fillText(`${((charInfo.distance / charInfo.time) * 60).toFixed(2)} m/s`, (canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + textOffset2 + (2 * textOffset));
+				ctx.fillText(`${charInfo.powercells}`, (canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + textOffset2 + (3 * textOffset));
+				ctx.fillText(`${((charInfo.powercells / charInfo.time) * 3600).toFixed(2)}`, (canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + textOffset2 + (4 * textOffset));
+			}
+			
+			//draw character
+			loading_state.selectionTextures[index].beDrawn((canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + menu_characterSize, 0, menu_characterSize * 1.4);
+		}
+		characterNum += 1;
+		//at the end display totals
+		if (a == 10) {
+			ctx.textAlign = "center";
+			offX = canvas.width * 0.24;
+			ctx.fillText(`${loading_state.distance.toFixed(0)} m`, (canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + textOffset2);
+			ctx.fillText(`${getTimeFromFrames(loading_state.time)}`, (canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + textOffset2 + textOffset);
+			ctx.fillText(`${((loading_state.distance / loading_state.time) * 60).toFixed(2)} m/s`, (canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + textOffset2 + (2 * textOffset));
+			ctx.fillText(`${loading_state.powercells}`, (canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + textOffset2 + (3 * textOffset));
+			ctx.fillText(`${((loading_state.powercells / loading_state.time) * 3600).toFixed(2)}`, (canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + textOffset2 + (4 * textOffset));
+		}
+	}
+}
+
 function drawKeys() {
 	ctx.fillStyle = color_keyUp;
 	ctx.fillRect(0 + 20, canvas.height - 40, 10, 20);
@@ -66,7 +160,6 @@ function drawPoly(color, xyPointsArr) {
 }
 
 function drawCircle(color, x, y, radius) {
-	radius = clamp(radius, 0, 1000);
 	ctx.beginPath();
 	ctx.fillStyle = color;
 	ctx.ellipse(x, y, radius, radius, 0, 0, Math.PI * 2);
@@ -147,52 +240,70 @@ function drawPlayerWithParent() {
 		trackL = tunnelStrip - Math.floor(tunnelSize / 2);
 		trackR = tunnelStrip + Math.floor(tunnelSize / 2);
 	}
-	
-	//while loops bad but I'm lazy and don't want to do the proper computation
+
 	while (trackR > tunnelStrip && trackL < tunnelStrip) {
 		stripStorage.push(player.parent.strips[trackR % tunnelSize]);
 		stripStorage.push(player.parent.strips[(trackL + tunnelSize) % tunnelSize]);
 		trackR -= 1;
 		trackL += 1;
+		
 	}
+
 	stripStorage.push(player.parent.strips[tunnelStrip]);
 
-	//if the player is in the middle of the strips (on top of some but not all) do the special
-	if (stripStorage[0].playerIsOnTop() != stripStorage[stripStorage.length-1].playerIsOnTop()) {
-		var drawPlayer = true;
-		stripStorage.forEach(t => {
-			if (drawPlayer && t.playerIsOnTop()) {
-				t.beDrawn();
-			} else if (drawPlayer) {
+	//actual drawing here
+	var drawPlayer = true;
+	var stripsDrawn = 0;
+	stripStorage.forEach(t => {
+		if (drawPlayer) {
+			if (!t.playerIsOnTop()) {
 				drawPlayer = false;
 				player.beDrawn();
-				t.beDrawn();
-			} else {
-				t.beDrawn();
 			}
+		}
+		t.beDrawn();
+		stripsDrawn += 1;
+		//if at the correct point in the tunnel, draw the free objects
+		if (stripsDrawn == Math.floor(player.parent.strips.length / 2)) {
+			//if the camera is outside the tunnel do the hybrid approach. If not, do the normal way.
+			if (!player.parent.coordinateIsInTunnel(world_camera.x, world_camera.y, world_camera.z)) {
+				player.parent.freeObjs.forEach(f => {
+					f.beDrawn();
+				});
+				stripsDrawn += 100;
+			}
+		}
+	});
+
+	//if the free objects still aren't drawn, draw them
+	if (stripsDrawn == player.parent.strips.length) {
+		player.parent.freeObjs.forEach(f => {
+			f.beDrawn();
 		});
-		if (drawPlayer) {
-			player.beDrawn();
-		}
-	} else {
-		//case where player is below all
-		if (!stripStorage[0].playerIsOnTop()) {
-			player.beDrawn();
-			stripStorage.forEach(t => {
-				t.beDrawn();
-			});
-		} else {
-			//case where player is above all
-			stripStorage.forEach(t => {
-				t.beDrawn();
-			});
-			player.beDrawn();
-		}
+	}
+
+	//if the player's still not drawn, draw the player
+	if (drawPlayer) {
+		player.beDrawn();
 	}
 
 	if (editor_active) {
-		var [tX, tY] = spaceToScreen([player.parent.strips[tunnelStrip].x, player.parent.strips[tunnelStrip].y, player.parent.strips[tunnelStrip].z]);
-		drawCircle("#FFF", tX, tY, 10);
+		//numbering strips
+		ctx.font = `${canvas.height / 48}px Century Gothic`;
+		ctx.fillStyle = color_text_bright;
+		var [tX, tY] = [0, 0];
+		for (var v=0; v<player.parent.strips.length; v++) {
+			if (!isClipped([player.parent.strips[v].x, player.parent.strips[v].y, player.parent.strips[v].z])) {
+				[tX, tY] = spaceToScreen([player.parent.strips[v].x, player.parent.strips[v].y, player.parent.strips[v].z]);
+				ctx.fillText(v, tX + 5, tY);
+			}
+			
+		}
+		//dot for closest spot
+		if (!isClipped([player.parent.strips[tunnelStrip].x, player.parent.strips[tunnelStrip].y, player.parent.strips[tunnelStrip].z])) {
+			[tX, tY] = spaceToScreen([player.parent.strips[tunnelStrip].x, player.parent.strips[tunnelStrip].y, player.parent.strips[tunnelStrip].z]);
+			drawCircle("#FFF", tX, tY, 10);
+		}
 	}
 }
 
