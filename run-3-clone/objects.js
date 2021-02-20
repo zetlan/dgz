@@ -38,7 +38,7 @@ class Camera {
 	}
 
 	tick() {
-		if (editor_active || !(loading_state instanceof State_Game || loading_state instanceof State_Infinite)) {
+		if (editor_active) {
 			//handling velocity
 
 			//adding
@@ -109,7 +109,7 @@ class Camera {
 
 
 class Character {
-	constructor(x, y, z, walkForwardsTexture, walkLeftTexture, walkRightTexture, jumpForwardsTexture, jumpLeftTexture, jumpRightTexture) {
+	constructor(x, y, z, spriteDataName) {
 		this.dir_down = [0, Math.PI / 2];
 		this.dir_side = [0, 0];
 		this.dir_front = [Math.PI / 2, 0];
@@ -117,7 +117,7 @@ class Character {
 		this.gravStrength = physics_gravity;
 		this.speed = 0.11;
 		this.dMax = 3.4;
-		this.fallMax = this.dMax;
+		this.fallMax = this.dMax * 1.3;
 		this.jumpStrength = 2;
 		this.jumpBoostStrength = 0.1;
 
@@ -146,12 +146,13 @@ class Character {
 		this.drawR = this.r / getDistance(this, world_camera);
 		this.color = color_character;
 
-		this.texture_walkF = walkForwardsTexture;
-		this.texture_walkL = walkLeftTexture;
-		this.texture_walkR = walkRightTexture;
-		this.texture_jumpF = jumpForwardsTexture;
-		this.texture_jumpL = jumpLeftTexture;
-		this.texture_jumpR = jumpRightTexture;
+		var source = data_sprites[spriteDataName];
+		this.texture_walkF = new Texture(getImage(source.sheet), data_sprites.spriteSize, source.frameTime, true, false, source.walkForwards);
+		this.texture_walkL = new Texture(getImage(source.sheet), data_sprites.spriteSize, source.frameTime, true, false, source.walkSideways);
+		this.texture_walkR = new Texture(getImage(source.sheet), data_sprites.spriteSize, source.frameTime, true, true, source.walkSideways);
+		this.texture_jumpF = new Texture(getImage(source.sheet), data_sprites.spriteSize, source.frameTime, false, false, source.jumpForwards);
+		this.texture_jumpL = new Texture(getImage(source.sheet), data_sprites.spriteSize, source.frameTime, false, false, source.jumpSideways);
+		this.texture_jumpR = new Texture(getImage(source.sheet), data_sprites.spriteSize, source.frameTime, false, true, source.jumpSideways);
 
 		this.texture_current = this.texture_jumpF;
 		this.textureRot = 1;
@@ -178,14 +179,16 @@ class Character {
 	modifyDerivitives(activeGravity, activeFriction, naturalFriction, activeAX, activeAZ) {
 		//decreasing the time to jump
 		this.onGround -= 1;
-
+		
 		//if player has a parent, change gravity based on parent power
-		if (this.onGround < physics_graceTime - 1) { 
+		if (this.onGround < physics_graceTime - 2) { 
 			if (this.parent != undefined) {
 				this.dy -= linterp(activeGravity * 0.8, activeGravity, this.parent.power);
 			} else {
 				this.dy -= activeGravity;
 			}
+		} else {
+			//if firmly on the ground, reduce y velocity
 		}
 
 		//jump boost
@@ -368,12 +371,13 @@ class Character {
 			this.texture_walkF.currentFrame = this.texture_current.currentFrame;
 			this.texture_walkL.currentFrame = this.texture_current.currentFrame;
 			this.texture_walkR.currentFrame = this.texture_current.currentFrame;
-		} else {
-			//syncing all jumping animations as well
-			this.texture_jumpF.currentFrame = this.texture_current.currentFrame;
-			this.texture_jumpL.currentFrame = this.texture_current.currentFrame;
-			this.texture_jumpR.currentFrame = this.texture_current.currentFrame;
+			return;
 		}
+		
+		//syncing all jumping animations if not walking
+		this.texture_jumpF.currentFrame = this.texture_current.currentFrame;
+		this.texture_jumpL.currentFrame = this.texture_current.currentFrame;
+		this.texture_jumpR.currentFrame = this.texture_current.currentFrame;
 	}
 
 	handleSpace() {
@@ -402,6 +406,18 @@ class Texture {
 	}
 
 	beDrawn(x, y, rotation, size) {
+		//change current frame
+		if (this.looping) {
+			this.currentFrame = (this.currentFrame + this.amount) % this.frames.length;
+		} else {
+			this.currentFrame += this.amount;
+			if (this.currentFrame > this.frames.length - 1) {
+				this.currentFrame = this.frames.length - 1;
+			}
+		}
+
+
+		//actually draw self
 		var xOff = size * 0.7071 * Math.cos(rotation - (Math.PI * 0.75));
 		var yOff = size * 0.7071 * Math.sin(rotation - (Math.PI * 0.75));
 		//transforming
@@ -414,21 +430,15 @@ class Texture {
 			ctx.scale(-1, 1);
 			
 		} else {
+			try {
 			ctx.drawImage(this.sheet, this.size * this.frames[Math.floor(this.currentFrame)][0], this.size * this.frames[Math.floor(this.currentFrame)][1], this.size, this.size, 
 							0, 0, size, size);
+			} catch (error) {
+				console.log(error, `problem trying to draw frame ${Math.floor(this.currentFrame)}, with frames ${JSON.stringify(this.frames)}`);
+			}
 		}
 		ctx.rotate(-1 * rotation);
 		ctx.translate(-1 * (x + xOff), -1 * (y + yOff));
-
-		
-		if (this.looping) {
-			this.currentFrame = (this.currentFrame + this.amount) % this.frames.length;
-		} else {
-			this.currentFrame += this.amount;
-			if (this.currentFrame > this.frames.length - 1) {
-				this.currentFrame = this.frames.length - 1;
-			}
-		}
 	}
 
 	reset() {
@@ -449,15 +459,11 @@ class Texture {
 //TODO: refactor the texture getting
 class Angel extends Character {
 	constructor(x, y, z) {
-		super(x, y, z, new Texture(getImage(data_sprites.Angel.sheet), data_sprites.spriteSize, data_sprites.Angel.frameTime, true, false, data_sprites.Angel.walkForwards),
-					new Texture(getImage(data_sprites.Angel.sheet), data_sprites.spriteSize, data_sprites.Angel.frameTime, true, false, data_sprites.Angel.walkSideways),
-					new Texture(getImage(data_sprites.Angel.sheet), data_sprites.spriteSize, data_sprites.Angel.frameTime, true, true, data_sprites.Angel.walkSideways),
-					new Texture(getImage(data_sprites.Angel.sheet), data_sprites.spriteSize, data_sprites.Angel.frameTime, false, false, data_sprites.Angel.jumpForwards),
-					new Texture(getImage(data_sprites.Angel.sheet), data_sprites.spriteSize, data_sprites.Angel.frameTime, false, false, data_sprites.Angel.jumpSideways),
-					new Texture(getImage(data_sprites.Angel.sheet), data_sprites.spriteSize, data_sprites.Angel.frameTime, false, true, data_sprites.Angel.jumpSideways));
+		super(x, y, z, `Angel`);
 
 		this.speed = 0.07;
 		this.dMax = 3.6;
+		this.fallMax = 3.4;
 		this.dMaxTrue = 8.5;
 		this.naturalFriction = 0.9975;
 		this.jumpStrength = 2.6;
@@ -517,10 +523,11 @@ class Angel extends Character {
 
 class Bunny extends Character {
 	constructor(x, y, z) {
-		super(x, y, z, undefined, undefined, undefined,
-					new Texture(getImage(data_sprites.Bunny.sheet), data_sprites.spriteSize, data_sprites.Bunny.frameTime, false, false, data_sprites.Bunny.jumpForwards),
-					new Texture(getImage(data_sprites.Bunny.sheet), data_sprites.spriteSize, data_sprites.Bunny.frameTime, false, false, data_sprites.Bunny.jumpSideways),
-					new Texture(getImage(data_sprites.Bunny.sheet), data_sprites.spriteSize, data_sprites.Bunny.frameTime, false, true, data_sprites.Bunny.jumpSideways));
+		super(x, y, z, `Bunny`);
+
+		this.texture_walkF = undefined;
+		this.texture_walkL = undefined;
+		this.texture_walkR = undefined;
 
 		this.jumpStrength = 3;
 		this.jumpBoostStrength = 0.13;
@@ -578,12 +585,12 @@ class Bunny extends Character {
 
 class Child extends Character {
 	constructor(x, y, z) {
-		super(x, y, z, new Texture(getImage(data_sprites.Child.sheet), data_sprites.spriteSize, data_sprites.Child.frameTime, true, false, data_sprites.Child.walkForwards),
-					new Texture(getImage(data_sprites.Child.sheet), data_sprites.spriteSize, data_sprites.Child.frameTime, true, false, data_sprites.Child.walkLeft),
-					new Texture(getImage(data_sprites.Child.sheet), data_sprites.spriteSize, data_sprites.Child.frameTime, true, false, data_sprites.Child.walkRight),
-					new Texture(getImage(data_sprites.Child.sheet), data_sprites.spriteSize, data_sprites.Child.frameTime, false, false, data_sprites.Child.jumpForwards),
-					new Texture(getImage(data_sprites.Child.sheet), data_sprites.spriteSize, data_sprites.Child.frameTime, false, false, data_sprites.Child.jumpLeft),
-					new Texture(getImage(data_sprites.Child.sheet), data_sprites.spriteSize, data_sprites.Child.frameTime, false, false, data_sprites.Child.jumpRight));
+		super(x, y, z, `Child`);
+		
+		this.texture_walkL = new Texture(getImage(data_sprites.Child.sheet), data_sprites.spriteSize, data_sprites.Child.frameTime, true, false, data_sprites.Child.walkLeft);
+		this.texture_walkR = new Texture(getImage(data_sprites.Child.sheet), data_sprites.spriteSize, data_sprites.Child.frameTime, true, false, data_sprites.Child.walkRight);
+		this.texture_jumpL = new Texture(getImage(data_sprites.Child.sheet), data_sprites.spriteSize, data_sprites.Child.frameTime, false, false, data_sprites.Child.jumpLeft);
+		this.texture_jumpR = new Texture(getImage(data_sprites.Child.sheet), data_sprites.spriteSize, data_sprites.Child.frameTime, false, false, data_sprites.Child.jumpRight);
 
 		this.gravStrength *= 0.8;
 		this.jumpStrength = 2.67;
@@ -618,12 +625,7 @@ class Child extends Character {
 
 class Duplicator extends Character {
 	constructor(x, y, z) {
-		super(x, y, z, new Texture(getImage(data_sprites.Duplicator.sheet), data_sprites.spriteSize, data_sprites.Duplicator.frameTime, true, false, data_sprites.Duplicator.walkForwards),
-					new Texture(getImage(data_sprites.Duplicator.sheet), data_sprites.spriteSize, data_sprites.Duplicator.frameTime, true, false, data_sprites.Duplicator.walkSideways),
-					new Texture(getImage(data_sprites.Duplicator.sheet), data_sprites.spriteSize, data_sprites.Duplicator.frameTime, true, true, data_sprites.Duplicator.walkSideways),
-					new Texture(getImage(data_sprites.Duplicator.sheet), data_sprites.spriteSize, data_sprites.Duplicator.frameTime, false, false, data_sprites.Duplicator.jumpForwards),
-					new Texture(getImage(data_sprites.Duplicator.sheet), data_sprites.spriteSize, data_sprites.Duplicator.frameTime, false, false, data_sprites.Duplicator.jumpSideways),
-					new Texture(getImage(data_sprites.Duplicator.sheet), data_sprites.spriteSize, data_sprites.Duplicator.frameTime, false, true, data_sprites.Duplicator.jumpSideways));
+		super(x, y, z, `Duplicator`);
 
 		this.jumpStrength = 2.85;
 		this.jumpBoostStrength = 0.09;
@@ -771,12 +773,7 @@ class Duplicator extends Character {
 //no thoughts in this brian
 class DuplicatorDuplicate extends Character {
 	constructor(x, y, z) {
-		super(x, y, z, new Texture(getImage(data_sprites.Duplicator.sheet), data_sprites.spriteSize, data_sprites.Duplicator.frameTime, true, false, data_sprites.Duplicator.walkForwards),
-					new Texture(getImage(data_sprites.Duplicator.sheet), data_sprites.spriteSize, data_sprites.Duplicator.frameTime, true, false, data_sprites.Duplicator.walkSideways),
-					new Texture(getImage(data_sprites.Duplicator.sheet), data_sprites.spriteSize, data_sprites.Duplicator.frameTime, true, true, data_sprites.Duplicator.walkSideways),
-					new Texture(getImage(data_sprites.Duplicator.sheet), data_sprites.spriteSize, data_sprites.Duplicator.frameTime, false, false, data_sprites.Duplicator.jumpForwards),
-					new Texture(getImage(data_sprites.Duplicator.sheet), data_sprites.spriteSize, data_sprites.Duplicator.frameTime, false, false, data_sprites.Duplicator.jumpSideways),
-					new Texture(getImage(data_sprites.Duplicator.sheet), data_sprites.spriteSize, data_sprites.Duplicator.frameTime, false, true, data_sprites.Duplicator.jumpSideways));
+		super(x, y, z, `Duplicator`);
 
 		this.jumpStrength = 3;
 		this.jumpBoostStrength = 0.095;
@@ -803,14 +800,186 @@ class DuplicatorDuplicate extends Character {
 }
 
 
+class Gentleman extends Character {
+	constructor(x, y, z) {
+		super(x, y, z, `Gentleman`);
+
+		this.texture_flyF = new Texture(getImage(data_sprites.Gentleman.sheet), data_sprites.spriteSize, 1e1001, false, false, data_sprites.Gentleman.flyForwards);
+		this.texture_flyL = new Texture(getImage(data_sprites.Gentleman.sheet), data_sprites.spriteSize, 1e1001, false, false, data_sprites.Gentleman.flySideways);
+		this.texture_flyR = new Texture(getImage(data_sprites.Gentleman.sheet), data_sprites.spriteSize, 1e1001, false, true, data_sprites.Gentleman.flySideways);
+
+		this.jumpStrength = 3.6;
+		this.jumpBoostStrength = 0.05;
+		this.speed = 0.04;
+		this.dMax = 3;
+		this.dMaxTrue = 4.5;
+		this.naturalFriction = 0.9995;
+
+		this.attracting = undefined;
+		this.attractionForce = undefined;
+		this.airFriction = 0.46;
+		this.attractionAnimationTime = 0;
+		this.attractionAnimationBuffer = 10;
+		this.abilityDistance = 600;
+	}
+
+	modifyDerivitives(activeGravity, activeFriction, naturalFriction, activeAX, activeAZ) {
+		this.attractionAnimationTime -= 1;
+		//do ability stuff
+		if (this.attracting != undefined) {
+			this.attractionAnimationTime = this.attractionAnimationBuffer;
+			//go towards object
+			var dist = getDistance(this, this.attracting);
+
+			if (this.attractionForce != undefined) {
+				//friction with air
+				this.dx -= this.attractionForce[0] * this.airFriction;
+				this.dy -= this.attractionForce[1] * this.airFriction;
+				this.dz -= this.attractionForce[2] * this.airFriction;
+			}
+
+			//pull object slightly
+			this.attracting.pushForce[0] = ((this.x - this.attracting.x) / dist) * (this.abilityDistance / dist) * this.airFriction;
+			this.attracting.pushForce[1] = ((this.y - this.attracting.y) / dist) * (this.abilityDistance / dist) * this.airFriction;
+			this.attracting.pushForce[2] = ((this.z - this.attracting.z) / dist) * (this.abilityDistance / dist) * this.airFriction;
+
+			//getting attraction towards object in relative coordinates
+			var offset = spaceToRelative([this.attracting.x, this.attracting.y, this.attracting.z], [this.x, this.y, this.z], [this.dir_down[0], this.dir_down[1], 0]);
+			[offset[0], offset[1], offset[2]] = [offset[1], offset[2], offset[0]];
+			this.attractionForce = [(offset[0] / dist) * (this.abilityDistance / Math.max(dist, this.abilityDistance / this.dMaxTrue)),
+									(offset[1] / dist) * (this.abilityDistance / Math.max(dist, this.abilityDistance / this.dMaxTrue)),
+									(offset[2] / dist) * (this.abilityDistance / Math.max(dist, this.abilityDistance / this.dMaxTrue))];
+
+			this.dx += this.attractionForce[0] / 2;
+			this.dy += this.attractionForce[1] / 1.5;
+			this.dz += this.attractionForce[2] / 2;
+
+			//make sure self's values aren't too great
+			this.dx = clamp(this.dx, -this.dMaxTrue, this.dMaxTrue);
+			this.dy = clamp(this.dy, -this.dMaxTrue, this.dMaxTrue);
+			this.dz = clamp(this.dz, -1, this.dMaxTrue);
+
+			
+
+			//stop ability if not holding space
+			if (!controls_spacePressed) {
+				this.attracting = undefined;
+				this.attractionForce = undefined;
+			}
+		}
+		super.modifyDerivitives(activeGravity, activeFriction, naturalFriction, activeAX, activeAZ);
+	}
+
+	handleSpace() {
+		if (this.onGround < 1 && this.parent != undefined && this.attracting == undefined) {
+			//get closest free object that's also in front of self
+			var closestObj = undefined;
+			var closestObjDist = 99999;
+			for (var h=1; h<this.parent.freeObjs.length; h++) {
+				//only be attracted to power cells in front
+				if (spaceToRelative([this.parent.freeObjs[h].x, this.parent.freeObjs[h].y, this.parent.freeObjs[h].z], [this.x, this.y, this.z], [this.dir_down[0], (Math.PI * 2) - this.dir_down[1], 0])[0] > 0) {
+					var tempDist = getDistance(this, this.parent.freeObjs[h]);
+					if (tempDist < this.abilityDistance && (closestObj == undefined || tempDist < closestObjDist)) {
+					closestObj = this.parent.freeObjs[h];
+					closestObjDist = getDistance(this, this.parent.freeObjs[h]);
+				}
+				}
+				
+			}
+			this.attracting = closestObj;
+		}
+		super.handleSpace();
+	}
+
+	chooseTexture() {
+		if (this.onGround > 0) {
+			//walking texture
+			if (this.ax == 0) {
+				//center
+				this.texture_current = this.texture_walkF;
+			} else if (this.ax < 0) {
+				//left
+				this.texture_current = this.texture_walkL;
+			} else {
+				//right
+				this.texture_current = this.texture_walkR;
+			}
+			return;
+		} 
+
+		//reset ground animations when not on ground
+		this.texture_walkF.reset();
+		this.texture_walkR.reset();
+		this.texture_walkL.reset();
+		
+		//flying texture
+		if (this.attractionAnimationTime > 0) {
+			if (this.dx < 1) {
+				this.texture_current = this.texture_flyL;
+			} else if (this.dx > 1) {
+				this.texture_current = this.texture_flyR;
+			} else {
+				this.texture_current = this.texture_flyF;
+			}
+
+			//use dz / dy to determine what frame to be on
+			var rot = (Math.atan2(this.dy, -(this.dz * 0.8)) + (Math.PI / 2)) / (Math.PI * 2);
+			rot = (rot + 2) % 1;
+			rot = 1 - rot;
+
+			this.texture_current.currentFrame = Math.floor(rot * 7.99);
+			
+			//reset ground animations when jumping
+			return;
+		}
+
+
+		//jumping texture
+		if (this.ax == 0) {
+			//center
+			this.texture_current = this.texture_jumpF;
+		} else if (this.ax < 0) {
+			//left
+			this.texture_current = this.texture_jumpL;
+		} else {
+			//right
+			this.texture_current = this.texture_jumpR;
+		}
+
+		//reset if moving upwards
+		if (this.dy > 0) {
+			this.texture_current.reset();
+		}
+	}
+
+	syncTextures() {
+		//if on the ground, sync all walking animations
+		if (this.onGround > 0) {
+			//decrement current frame if not moving forwards
+			if (Math.abs(this.dz) <= this.speed && Math.abs(this.ax) < 0.02) {
+				this.texture_current.currentFrame = 0;
+			}
+			this.textureRot = this.dir_down[1];
+			this.texture_walkF.currentFrame = this.texture_current.currentFrame;
+			this.texture_walkL.currentFrame = this.texture_current.currentFrame;
+			this.texture_walkR.currentFrame = this.texture_current.currentFrame;
+		} else if (this.attracting != undefined) {
+			this.texture_flyF.currentFrame = this.texture_current.currentFrame;
+			this.texture_flyL.currentFrame = this.texture_current.currentFrame;
+			this.texture_flyR.currentFrame = this.texture_current.currentFrame;
+		} else {
+			//syncing all jumping animations
+			this.texture_jumpF.currentFrame = this.texture_current.currentFrame;
+			this.texture_jumpL.currentFrame = this.texture_current.currentFrame;
+			this.texture_jumpR.currentFrame = this.texture_current.currentFrame;
+		}
+	}
+}
+
+
 class Lizard extends Character {
 	constructor(x, y, z) {
-		super(x, y, z, new Texture(getImage(data_sprites.Lizard.sheet), data_sprites.spriteSize, data_sprites.Lizard.frameTime, true, false, data_sprites.Lizard.walkForwards),
-					new Texture(getImage(data_sprites.Lizard.sheet), data_sprites.spriteSize, data_sprites.Lizard.frameTime, true, false, data_sprites.Lizard.walkSideways),
-					new Texture(getImage(data_sprites.Lizard.sheet), data_sprites.spriteSize, data_sprites.Lizard.frameTime, true, true, data_sprites.Lizard.walkSideways),
-					new Texture(getImage(data_sprites.Lizard.sheet), data_sprites.spriteSize, data_sprites.Lizard.frameTime, false, false, data_sprites.Lizard.jumpForwards),
-					new Texture(getImage(data_sprites.Lizard.sheet), data_sprites.spriteSize, data_sprites.Lizard.frameTime, false, false, data_sprites.Lizard.jumpSideways),
-					new Texture(getImage(data_sprites.Lizard.sheet), data_sprites.spriteSize, data_sprites.Lizard.frameTime, false, true, data_sprites.Lizard.jumpSideways));
+		super(x, y, z, `Lizard`);
 
 		this.jumpStrength = 4.3;
 		this.jumpBoostStrength = 0.13;
@@ -821,12 +990,12 @@ class Lizard extends Character {
 
 class Pastafarian extends Character {
 	constructor(x, y, z) {
-		super(x, y, z, new Texture(getImage(data_sprites.Pastafarian.sheet), data_sprites.spriteSize, data_sprites.Pastafarian.frameTime, true, false, data_sprites.Pastafarian.walkForwards),
-					new Texture(getImage(data_sprites.Pastafarian.sheet), data_sprites.spriteSize, data_sprites.Pastafarian.frameTime, true, false, data_sprites.Pastafarian.walkLeft),
-					new Texture(getImage(data_sprites.Pastafarian.sheet), data_sprites.spriteSize, data_sprites.Pastafarian.frameTime, true, false, data_sprites.Pastafarian.walkRight),
-					new Texture(getImage(data_sprites.Pastafarian.sheet), data_sprites.spriteSize, data_sprites.Pastafarian.frameTime, false, false, data_sprites.Pastafarian.jumpForwards),
-					new Texture(getImage(data_sprites.Pastafarian.sheet), data_sprites.spriteSize, data_sprites.Pastafarian.frameTime, false, false, data_sprites.Pastafarian.jumpLeft),
-					new Texture(getImage(data_sprites.Pastafarian.sheet), data_sprites.spriteSize, data_sprites.Pastafarian.frameTime, false, false, data_sprites.Pastafarian.jumpRight));
+		super(x, y, z, `Pastafarian`);
+
+		this.texture_walkL = new Texture(getImage(data_sprites.Pastafarian.sheet), data_sprites.spriteSize, data_sprites.Pastafarian.frameTime, true, false, data_sprites.Pastafarian.walkLeft);
+		this.texture_walkR = new Texture(getImage(data_sprites.Pastafarian.sheet), data_sprites.spriteSize, data_sprites.Pastafarian.frameTime, true, false, data_sprites.Pastafarian.walkRight);
+		this.texture_jumpL = new Texture(getImage(data_sprites.Pastafarian.sheet), data_sprites.spriteSize, data_sprites.Pastafarian.frameTime, false, false, data_sprites.Pastafarian.jumpLeft);
+		this.texture_jumpR = new Texture(getImage(data_sprites.Pastafarian.sheet), data_sprites.spriteSize, data_sprites.Pastafarian.frameTime, false, false, data_sprites.Pastafarian.jumpRight);
 
 		this.jumpStrength = 4.5;
 		this.jumpBoostStrength = 0;
@@ -835,7 +1004,7 @@ class Pastafarian extends Character {
 		this.fallMax = 4.5;
 
 		this.personalBridgeStrength = 1;
-		this.bridgeMultiplier = 0.985;
+		this.bridgeMultiplier = 0.988;
 		this.bridgeBoost = 0.6;
 	}
 
@@ -863,12 +1032,7 @@ class Pastafarian extends Character {
 
 class Runner extends Character {
 	constructor(x, y, z) {
-		super(x, y, z, new Texture(getImage(data_sprites.Runner.sheet), data_sprites.spriteSize, data_sprites.Runner.frameTime, true, false, data_sprites.Runner.walkForwards),
-					new Texture(getImage(data_sprites.Runner.sheet), data_sprites.spriteSize, data_sprites.Runner.frameTime, true, false, data_sprites.Runner.walkSideways),
-					new Texture(getImage(data_sprites.Runner.sheet), data_sprites.spriteSize, data_sprites.Runner.frameTime, true, true, data_sprites.Runner.walkSideways),
-					new Texture(getImage(data_sprites.Runner.sheet), data_sprites.spriteSize, data_sprites.Runner.frameTime, false, false, data_sprites.Runner.jumpForwards),
-					new Texture(getImage(data_sprites.Runner.sheet), data_sprites.spriteSize, data_sprites.Runner.frameTime, false, false, data_sprites.Runner.jumpSideways),
-					new Texture(getImage(data_sprites.Runner.sheet), data_sprites.spriteSize, data_sprites.Runner.frameTime, false, true, data_sprites.Runner.jumpSideways));
+		super(x, y, z, `Runner`);
 
 		this.jumpStrength = 2.85;
 		this.jumpBoostStrength = 0.09;
@@ -880,12 +1044,7 @@ class Runner extends Character {
 
 class Skater extends Character {
 	constructor(x, y, z) {
-		super(x, y, z, new Texture(getImage(data_sprites.Skater.sheet), data_sprites.spriteSize, data_sprites.Skater.frameTime, true, false, data_sprites.Skater.walkForwards),
-					new Texture(getImage(data_sprites.Skater.sheet), data_sprites.spriteSize, data_sprites.Skater.frameTime, true, false, data_sprites.Skater.walkSideways),
-					new Texture(getImage(data_sprites.Skater.sheet), data_sprites.spriteSize, data_sprites.Skater.frameTime, true, true, data_sprites.Skater.walkSideways),
-					new Texture(getImage(data_sprites.Skater.sheet), data_sprites.spriteSize, data_sprites.Skater.frameTime, false, false, data_sprites.Skater.jumpForwards),
-					new Texture(getImage(data_sprites.Skater.sheet), data_sprites.spriteSize, data_sprites.Skater.frameTime, false, false, data_sprites.Skater.jumpSideways),
-					new Texture(getImage(data_sprites.Skater.sheet), data_sprites.spriteSize, data_sprites.Skater.frameTime, false, true, data_sprites.Skater.jumpSideways));
+		super(x, y, z, `Skater`);
 
 		this.jumpStrength = 2.5;
 		this.jumpBoostStrength = 0.06;
@@ -897,22 +1056,17 @@ class Skater extends Character {
 
 class Student extends Character {
 	constructor(x, y, z) {
-		super(x, y, z, new Texture(getImage(data_sprites.Student.sheet), data_sprites.spriteSize, data_sprites.Student.frameTime, true, false, data_sprites.Student.walkForwards),
-					new Texture(getImage(data_sprites.Student.sheet), data_sprites.spriteSize, data_sprites.Student.frameTime, true, false, data_sprites.Student.walkSideways),
-					new Texture(getImage(data_sprites.Student.sheet), data_sprites.spriteSize, data_sprites.Student.frameTime, true, true, data_sprites.Student.walkSideways),
-					new Texture(getImage(data_sprites.Student.sheet), data_sprites.spriteSize, data_sprites.Student.frameTime, false, false, data_sprites.Student.jumpForwards),
-					new Texture(getImage(data_sprites.Student.sheet), data_sprites.spriteSize, data_sprites.Student.frameTime, false, false, data_sprites.Student.jumpSideways),
-					new Texture(getImage(data_sprites.Student.sheet), data_sprites.spriteSize, data_sprites.Student.frameTime, false, true, data_sprites.Student.jumpSideways));
+		super(x, y, z, `Student`);
 
 		this.jumpStrength = 2.2;
 		this.jumpBoostStrength = 0.05;
 		this.speed = 0.1;
-		this.dMax = 2.7;
+		this.dMax = 2.74;
 		this.r -= 2;
-		this.fallMax = 5;
+		this.fallMax = 5.5;
 
-		this.abilityTransformTime = 7;
-		this.abilityTimeLimit = 40;
+		this.abilityTransformTime = 6;
+		this.abilityTimeLimit = 50;
 		this.currentAbilityTime = 0;
 		this.doAbility = true;
 
