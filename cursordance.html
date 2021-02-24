@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width">
+		<title>Cursor dance</title>
+		<style>
+
+		body {
+			background-color: slateblue;
+		}
+		#canvas {
+			border-style: double;
+			border-color: slateblue;
+		}
+		#mid {
+			text-align: center;
+			margin-right: 15%;
+		}
+
+		.slider {
+				width: 500px;
+				height: 15px;
+				border-radius: 5px;  
+				background: #d3d3d3;
+				outline: none;
+				opacity: 0.7;
+				-webkit-transition: .2s;
+				transition: opacity .2s;
+		}
+		</style>
+	</head>
+	<body>
+		<script type="text/javascript">
+			var timer;
+
+			var bgOpacity = 0.05;
+
+			var color_bg = "#FFF";
+			var color_dot = "#0FF";
+			var color_centerDot = "#888";
+			var color_cursor = "#8FF";
+
+			var centerX;
+			var centerY;
+
+			let cursors = [];
+			var cursors_max = 5;
+			var cursors_spawnChance = 0.00075;
+
+			var dt = 2;
+
+			window.onload = setup;
+
+			//main cursor class, child classes change behavior
+			class Cursor {
+				constructor(x, y, a, vel, color, changingBOOLEAN) {
+					this.x = x;
+					this.y = y;
+					this.a = a;
+					this.color = color;
+					this.changeColor = changingBOOLEAN;
+
+					this.v = vel;
+					this.maxV = 15;
+					this.minV = -15;
+					this.dv = 0;
+
+					this.switchChance = 0.001;
+				}
+
+				beDrawn() {
+					if (this.changeColor) {
+						this.color = (this.color + (1 / dt)) % 360;
+					}
+					drawCircle(`hsl(${this.color}, 50%, 77%)`, this.x, this.y, 4);
+				}
+
+				//converting angular momentum to true momentum
+				convertMomentum() {
+					var dx = this.v * Math.cos(this.a);
+					var dy = this.v * Math.sin(this.a);
+					return [dx, dy];
+				}
+
+				handleTurning() {
+					
+				}
+
+				handleVelocity() {
+
+				}
+
+				keepInBounds() {
+					//if hitting the edge of the screen, change angle
+					if (this.x < 0 || this.x > canvas.width) {
+						this.a = Math.PI - this.a;
+						if (this.x < 0) {
+							this.x = 1;
+						} else {
+							this.x = canvas.width - 1;
+						}
+					}
+
+					if (this.y < 0 || this.y > canvas.height) {
+						this.a = (Math.PI * 2) - this.a;
+						if (this.y < 0) {
+							this.y = 1;
+						} else {
+							this.y = canvas.height - 1;
+						}
+					}
+				}
+
+				switchModes() {
+					//choose random number
+					var numOfOptions = 4;
+					var rand = Math.floor(Math.random() * numOfOptions);
+					var selfIndex;
+					for (var d=0; d<cursors.length; d++) {
+						if (cursors[d] == this) {
+							selfIndex = d;
+						}
+					}
+
+					switch(rand) {
+						case 0:
+							cursors[selfIndex] = new Cursor_DVD_Curve(this.x, this.y, this.a, this.v, this.color, this.changeColor);
+							break;
+						case 1:
+							cursors[selfIndex] = new Cursor_DVD(this.x, this.y, this.a, this.v, this.color, this.changeColor);
+							break;
+						case 2:
+							cursors[selfIndex] = new Cursor_Polygon(this.x, this.y, this.a, this.v, this.color, this.changeColor);
+							break;
+						case 3:
+							cursors[selfIndex] = new Cursor_Arc(this.x, this.y, this.a, this.v, this.color, this.changeColor);
+							break;
+					}
+				}
+
+				tick() {
+					var mom = this.convertMomentum();
+					this.x += mom[0];
+					this.y += mom[1];
+
+					this.handleTurning();
+					this.handleVelocity();
+					this.keepInBounds();
+
+					//occasionally switch modes
+					if (randomChance(this.switchChance)) {
+						this.switchModes();
+					}
+				}
+			}
+
+			class Cursor_DVD extends Cursor {
+				constructor(x, y, a, vel, color, changingBOOLEAN) {
+					super(x, y, a, vel, color, changingBOOLEAN);
+					this.maxV = 15;
+					this.minV = -15;
+					this.dv = 0;
+					this.switchChance = 0.002;
+				}
+
+				handleTurning() {
+					if (this.vel < 1.5 && this.vel > -1.5) {
+						this.a += (Math.PI * 0.005) % (Math.PI * 2);
+					}
+				}
+
+				handleVelocity() {
+					//changing velocity
+					if (randomChance(0.001)) {
+						this.dv = 0.05;
+					}
+					if (randomChance(0.001)) {
+						this.dv = -0.05;
+					}
+
+
+					this.v += this.dv;
+
+					if (this.v < this.minV) {
+						this.v = this.minV;
+					}
+					if (this.v > this.maxV) {
+						this.v = this.maxV;
+					}
+				}
+			}
+
+			class Cursor_DVD_Curve extends Cursor_DVD {
+				constructor(x, y, a, vel, color, changingBOOLEAN) {
+					super(x, y, a, vel, color, changingBOOLEAN)
+				}
+
+				handleTurning() {
+					this.a += Math.PI * 0.005;
+				}
+			}
+
+			class Cursor_Polygon extends Cursor {
+				constructor(x, y, a, vel, color, changingBOOLEAN) {
+					super(x, y, a, vel, color, changingBOOLEAN);
+					this.len = randInt(50, 150);
+					this.progress = 0;
+					this.lines = 0;
+					this.sides = undefined;
+					if (randomChance(0.5)) {
+						this.sides = randInt(3, 6);
+					} else {
+						this.sides = randInt(5, 8) / 10;
+					}
+				}
+
+				handleTurning() {
+					this.progress += this.v;
+					if (this.progress >= this.len) {
+						this.progress = 0;
+						this.lines += Math.min(1, this.sides);
+
+						if (this.lines + Math.min(1, this.sides) > this.sides && randomChance(0.5)) {
+							this.a -= ((Math.PI * 2) / this.sides) % (Math.PI * 2);
+							this.lines = 0;
+						} else {
+							this.a += ((Math.PI * 2) / this.sides) % (Math.PI * 2);
+						}
+
+						if (this.a < 0) {
+							this.a += Math.PI * 2;
+						}
+					}
+				}
+			}
+
+			class Cursor_Arc extends Cursor {
+				constructor(x, y, a, vel, color, changingBOOLEAN) {
+					super(x, y, a, vel, color, changingBOOLEAN);
+					this.targetV = randInt(2, 10);
+					this.newA = 0;
+					this.tolerance = 0.01;
+					this.progress = 0;
+					this.progressLength = randInt(10, 40);
+				}
+
+				handleTurning() {
+					this.a = (this.newA + (this.a * 19)) / 20;
+					if (this.newA - this.tolerance < this.a && this.newA + this.tolerance > this.a) {
+						this.newA = Math.random() * Math.PI * 2;
+					}
+
+				}
+
+				keepInBounds() {
+					//if hitting the edge of the screen, change angle
+					if (this.x < 0 || this.x > canvas.width) {
+						this.a = Math.PI - this.a;
+						if (this.x < 0) {
+							this.x = 1;
+						} else {
+							this.x = canvas.width - 1;
+						}
+						this.newA = Math.random() * Math.PI * 2;
+					}
+
+					if (this.y < 0 || this.y > canvas.height) {
+						this.a = (Math.PI * 2) - this.a;
+						if (this.y < 0) {
+							this.y = 1;
+						} else {
+							this.y = canvas.height - 1;
+						}
+						this.newA = Math.random() * Math.PI * 2;
+					}
+				}
+
+				handleVelocity() {
+					//changing velocity with weighted average
+					this.v = ((this.v * 40) + this.targetV) / 41;
+				}
+			}
+
+
+
+
+
+
+
+
+			//functions
+			function setup() {
+				canvas = document.getElementById("canvas");
+				ctx = canvas.getContext("2d");
+				document.getElementById("fadeRange").oninput = updateFade;
+				document.getElementById("doColorChange").onchange = updateColor;
+
+				//resetting values to override potential caching
+				document.getElementById("fadeRange").value = 10;
+				document.getElementById("doColorChange").checked = false;
+
+				centerX = canvas.width / 2;
+				centerY = canvas.height / 2;
+
+				cursors.push(new Cursor_Arc(centerX, centerY, Math.PI * 0.3, 1, 240, false));
+
+				timer = window.requestAnimationFrame(draw);
+			}
+			
+			function draw() {
+				//bee g
+				ctx.globalAlpha = bgOpacity;
+				ctx.fillStyle = color_bg;
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+				ctx.globalAlpha = 1;
+
+				for (var c=0; c<cursors.length; c++) {
+					//cycle happens multiple times
+					for (var h=0; h<dt; h++) {
+						cursors[c].tick();
+						cursors[c].beDrawn();
+					}
+					//if there are less than the maximum cursors, occasionally duplicate a random cursor
+					if (cursors.length < cursors_max && randomChance(cursors_spawnChance)) {
+						cursors.push(new Cursor_DVD(cursors[0].x, cursors[0].y, cursors[0].a, cursors[0].v, cursors[0].color + 100, cursors[0].changeColor));
+					}
+
+					//if there are enough, randomly remove a cursor
+					if (cursors.length > 1 && randomChance(cursors_spawnChance * 0.8)) {
+						cursors.splice(1, 1);
+					}
+				}
+				
+
+				timer = window.requestAnimationFrame(draw);
+			}
+
+			function updateFade() {
+				bgOpacity = this.value / 200;
+				document.getElementById("fadeVal").innerHTML = (this.value / 2).toFixed(1);
+			}
+
+			function updateColor() {
+				cursors.forEach(c => {
+					c.changeColor = document.getElementById("doColorChange").checked;
+				});
+			}
+
+			function drawCircle(color, x, y, radius) {
+				ctx.beginPath();
+				ctx.fillStyle = color;
+				ctx.strokeStyle = color;
+				ctx.ellipse(x, y, radius, radius, 0, 0, Math.PI * 2);
+				ctx.stroke();
+				ctx.fill();
+			}
+
+			//takes in a chance to return true and creates a boolean
+			function randomChance(chanceToReturnTrue) {
+				return (Math.random() < chanceToReturnTrue);
+			}
+
+			//random integer return
+			function randInt(min, max) {
+				return (Math.random() * (max - min)) + min;
+			}
+
+
+			//haha this is incomprehensible but it returns a sigmoid curve!!!
+			function sigmoid(input, lowerBound, upperBound) {
+				return ((1 / (1 + Math.pow(Math.E, -1 * input))) + lowerBound) * (upperBound - lowerBound);
+			}
+
+			//linear interpolation
+			function linterp(a, b, percentage) {
+				return (a + ((b - a) * percentage));
+			}
+
+			
+
+		</script>
+		<div id="mid">
+			<canvas id="canvas" width="640" height="480"></canvas>
+			<p>Trail fade: <input type="range" min="0" max="200" value="10" class="slider" id="fadeRange"> (<span id="fadeVal">5</span>% / frame)</p>
+			<input type="checkbox" id="doColorChange" onchange="updateColor"><label for="doColorChange">Color changes over time</label><br>
+		</div>
+		
+	</body>
+</html>
