@@ -42,12 +42,20 @@ class Tile extends FreePoly {
 	}
 
 	doRotationEffects(entity) {
+		var cameraRotAttempt;
+		entity.dir_front = [(Math.PI * 2) - this.parent.theta + (Math.PI * player.backwards), 0];
+		entity.dir_side = [this.dir_right[0], this.dir_right[1] + (Math.PI * player.backwards)];
 		entity.dir_down = this.dir_down;
-		entity.dir_front = [(Math.PI * 2) - this.parent.theta, 0];
-		entity.dir_side = this.dir_right;
+
+		//TODO: find a way to refactor the if/else out of this
+		if (player.backwards) {
+			cameraRotAttempt = ((Math.PI * 2.5) - this.dir_down[1]) % (Math.PI * 2);
+		} else {
+			cameraRotAttempt = (this.dir_down[1] + (Math.PI * 1.5)) % (Math.PI * 2);
+		}
 
 		world_camera.phi = 0;
-		world_camera.targetTheta = (Math.PI * 2) - this.parent.theta;
+		world_camera.targetTheta = entity.dir_front[0];
 		//if the difference is too great, fix that
 		if (Math.abs(world_camera.theta - world_camera.targetTheta) > Math.PI) {
 			if (world_camera.theta > Math.PI) {
@@ -57,9 +65,8 @@ class Tile extends FreePoly {
 			}
 		}
 
-		
-		if (!editor_active && world_camera.targetRot != (this.cameraRot + (Math.PI * 1.5)) % (Math.PI * 2)) {
-			world_camera.targetRot = (this.cameraRot + (Math.PI * 1.5)) % (Math.PI * 2);
+		if (!editor_active && world_camera.targetRot != cameraRotAttempt) {
+			world_camera.targetRot = cameraRotAttempt;
 
 			//if the rotation difference is too great, fix that
 			if (Math.abs(world_camera.rot - world_camera.targetRot) > Math.PI) {
@@ -71,7 +78,7 @@ class Tile extends FreePoly {
 			}
 			haltCollision = true;
 		}
-		entity.dy = 0;
+		entity.dy *= 0.5;
 	}
 
 	collideWithEntity(entity) {
@@ -86,7 +93,7 @@ class Tile extends FreePoly {
 	}
 
 	playerIsOnTop() {
-		return ((spaceToRelative([player.x, player.y, player.z], [this.x, this.y, this.z], this.normal)[2] * spaceToRelative([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], this.normal)[2]) > 0)
+		return (((spaceToRelativeRotless([player.x, player.y, player.z], [this.x, this.y, this.z], this.normal)[2]) * spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], this.normal)[2]) > 0)
 	}
 }
 
@@ -135,7 +142,7 @@ class Tile_Box extends Tile {
 			*/
 
 			//getting camera position relative to self for proper ordering
-			var relCPos = spaceToRelative([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], [this.normal[0], this.normal[1], 0]);
+			var relCPos = spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], this.normal);
 			var color = this.getColor();
 			
 			//top / bottom switch
@@ -164,14 +171,14 @@ class Tile_Box extends Tile {
 				var pos = spaceToScreen([this.x, this.y, this.z]);
 				drawCircle(this.getColor(), pos[0], pos[1], (this.size / this.cameraDist) * world_camera.scale * 0.6);
 			}
-		}
+		} 
 	}
 
 	collideWithEntity(entity) {
 		//only collide if within a certain distance of the player
 		if (this.playerDist < this.size * 3) {
 			//transforming player coordinates to self
-			var entityCoords = spaceToRelative([entity.x, entity.y, entity.z], [this.x, this.y, this.z], [this.normal[0], this.normal[1], 0]);
+			var entityCoords = spaceToRelativeRotless([entity.x, entity.y, entity.z], [this.x, this.y, this.z], this.normal);
 
 			//second check for collision, only collide if all 3 coordinates are under threshold
 			if (Math.abs(entityCoords[0]) - entity.r < this.size / 2 && Math.abs(entityCoords[1]) - entity.r < this.size / 2 && Math.abs(entityCoords[2]) - entity.r < this.size / 2) {
@@ -228,6 +235,7 @@ class Tile_Box extends Tile {
 class Tile_Box_Spun extends Tile_Box {
 	constructor(x, y, z, size, normal, parent, tilePosition) {
 		super(x, y, z, size, [normal[0], normal[1] + (Math.PI * 0.25)], parent, tilePosition);
+		this.collisionMult = 1.414;
 	}
 
 	calculatePointsAndNormal() {
@@ -256,7 +264,7 @@ class Tile_Bright extends Tile {
 	}
 
 	getColor() {
-		return `hsl(${this.color.h}, ${this.color.s}%, ${linterp(60, 15, clamp((this.playerDist / render_maxColorDistance) * 0.5, 0, 1))}%)`
+		return `hsl(${this.color.h}, ${this.color.s}%, ${linterp(60, 5, clamp((this.playerDist / render_maxColorDistance) * 0.75, 0, 1))}%)`
 	}
 }
 
@@ -265,7 +273,7 @@ class Tile_Conveyor extends Tile {
 		super(x, y, z, size, normal, parent, tilePosition, RGBtoHSV("#69beff"));
 		this.secondaryColor = RGBtoHSV("#616bff");
 		this.time = 0;
-		this.conveyTime = 60;
+		this.conveyTime = 80;
 	}
 
 	doCollisionEffects(entity) {
@@ -274,8 +282,14 @@ class Tile_Conveyor extends Tile {
 	}
 
 	doSpeedEffects(entity) {
-		if (entity.dz < entity.dMax * 2) {
-			entity.dz += physics_conveyorStrength;
+		if (player.backwards) {
+			if (entity.dz > entity.dMax * 0.4) {
+				entity.dz -= physics_conveyorStrength * 3;
+			}
+		} else {
+			if (entity.dz < entity.dMax * 2) {
+				entity.dz += physics_conveyorStrength;
+			}
 		}
 	}
 
@@ -333,8 +347,14 @@ class Tile_Conveyor_Slow extends Tile_Conveyor {
 	}
 
 	doSpeedEffects(entity) {
-		if (entity.dz > entity.dMax * 0.4) {
-			entity.dz -= physics_conveyorStrength * 3;
+		if (player.backwards) {
+			if (entity.dz < entity.dMax * 2) {
+				entity.dz += physics_conveyorStrength;
+			}
+		} else {
+			if (entity.dz > entity.dMax * 0.4) {
+				entity.dz -= physics_conveyorStrength * 3;
+			}
 		}
 	}
 }
@@ -362,6 +382,9 @@ class Tile_Conveyor_Left extends Tile_Conveyor {
 
 	doSpeedEffects(entity) {
 		entity.dx += physics_conveyorStrength * 3;
+		if (player.backwards) {
+			entity.dx -= physics_conveyorStrength * 6;
+		}
 	}
 }
 
@@ -387,6 +410,9 @@ class Tile_Conveyor_Right extends Tile_Conveyor {
 
 	doSpeedEffects(entity) {
 		entity.dx -= physics_conveyorStrength * 3;
+		if (player.backwards) {
+			entity.dx += physics_conveyorStrength * 6;
+		}
 	}
 }
 
@@ -500,6 +526,8 @@ class Tile_Crumbling extends Tile {
 	//yes I have three functions for this one behavior. No I'm not proud of it. But it works (:
 	doCollisionEffects(entity) {
 		super.doCollisionEffects(entity);
+		//crumbling tiles do not place player firmly on the ground
+		entity.onGround = physics_graceTime - 1;
 		//only crumble if not a child
 		if (entity.jumpBuffer == undefined || entity.jumpBuffer > 0) {
 			this.fallStatus = 0;
@@ -536,7 +564,7 @@ class Tile_Ice extends Tile {
 	}
 
 	getColor() {
-		return `hsl(${this.color.h}, ${this.color.s}%, ${linterp(100, 10, clamp((this.playerDist / render_maxColorDistance) * (1 / (this.parent.power + 0.001)), 0.1, 1))}%)`;
+		return `hsl(${this.color.h}, ${this.color.s}%, ${linterp(90, 0, clamp((this.playerDist / render_maxColorDistance) * (1 / (this.parent.power + 0.001)), 0, 1))}%)`;
 	}
 
 	doCollisionEffects(entity) {
@@ -652,7 +680,7 @@ class Tile_Ramp extends Tile {
 	}
 
 	playerIsOnTop() {
-		return (super.playerIsOnTop || spaceToRelative([player.x, player.y, player.z], [this.x, this.y, this.z], [this.parent.theta, 0, 0]));
+		return (super.playerIsOnTop || spaceToRelativeRotless([player.x, player.y, player.z], [this.x, this.y, this.z], [this.parent.theta, 0]));
 	}
 }
 

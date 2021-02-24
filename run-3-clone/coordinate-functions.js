@@ -26,11 +26,7 @@ function calculateNormal(points) {
 	var cross = [(v1[1] * v2[2]) - (v1[2] * v2[1]), (v1[2] * v2[0]) - (v1[0] * v2[2]), (v1[0] * v2[1]) - (v1[1] * v2[0])];
 	
 	cross = cartToPol(cross[0], cross[1], cross[2]);
-	
-	//checking for alignment with camera
-	//if (spaceToRelative([world_camera.x, world_camera.y, world_camera.z], [x, y, z], [cross[0], cross[1]])[2] < 0) {
-	//	cross[0] = (cross[0] + Math.PI) % (Math.PI * 2);
-	//}
+
 	return [cross[0], cross[1]];
 }
 
@@ -66,16 +62,15 @@ function cartToPol(x, y, z) {
 function clipToZ0(polyPoints, tolerance, invertClipDirection) {
 	//to save time, inverting the clip direction just means inverting all the points, then inverting back
 	if (invertClipDirection) {
-		for (var a=0;a<polyPoints.length;a++) {
-			polyPoints[a][2] *= -1;
-		}
+		polyPoints.forEach(p => {
+			p[2] *= -1;
+		});
 	}
 	//make all the polypoints have a boolean that says whether they're clipped or not, this is used for number of neighbors
-	for (var x=0;x<polyPoints.length;x++) {
-		//this flag answers the question "will this be clipped?"
-		polyPoints[x][3] = polyPoints[x][2] < tolerance;
-	}
-	for (var y=0;y<polyPoints.length;y++) {
+	polyPoints.forEach(p => {
+		p[3] = p[2] < tolerance;
+	});
+	for (var y=0; y<polyPoints.length; y++) {
 		//if the selected point will be clipped, run the algorithm
 		if (polyPoints[y][3]) {
 			//freefriends is the number of adjacent non-clipped points
@@ -91,19 +86,17 @@ function clipToZ0(polyPoints, tolerance, invertClipDirection) {
 					//determine which one is free, then move towards it
 					var friendCoords;
 					var moveAmount;
-					var newPointCoords;
 					//lesser friend
 					if (!polyPoints[(y+(polyPoints.length-1))%polyPoints.length][3]) {
 						friendCoords = polyPoints[(y+(polyPoints.length-1))%polyPoints.length];
 						moveAmount = getPercentage(friendCoords[2], polyPoints[y][2], tolerance);
-						newPointCoords = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance, true];
+						polyPoints[y] = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance, true];
 					} else {
 						//greater friend
 						friendCoords = polyPoints[(y+1)%polyPoints.length];
 						moveAmount = getPercentage(friendCoords[2], polyPoints[y][2], tolerance);
-						newPointCoords = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance + 0.05, true];
+						polyPoints[y] = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance + 0.05, true];
 					}
-					polyPoints[y] = newPointCoords;
 					break;
 				case 2:
 					//move towards both friends
@@ -113,18 +106,16 @@ function clipToZ0(polyPoints, tolerance, invertClipDirection) {
 
 					friendCoords = polyPoints[(y+1)%polyPoints.length];
 					moveAmount = getPercentage(friendCoords[2], polyPoints[y][2], tolerance);
-					var newerPointCoords = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance + 0.05, true];
-
-					polyPoints[y] = newerPointCoords;
+					polyPoints[y] = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance + 0.05, true];
 					polyPoints.splice(y, 0, newPointCoords);
 					break;
 			}
 		}
 	}
 	if (invertClipDirection) {
-		for (var a=0;a<polyPoints.length;a++) {
-			polyPoints[a][2] *= -1;
-		}
+		polyPoints.forEach(p => {
+			p[2] *= -1;
+		});
 	}
 	return polyPoints;
 }
@@ -184,8 +175,6 @@ function screenToSpace(screenSpot, targetZ) {
 
 //turns world coordinates into 3d camera coordinates
 function spaceToRelative(pointToChange, point, normal) {
-	var [tX, tY, tZ] = pointToChange;
-
 	var tX = pointToChange[0] - point[0];
 	var tY = pointToChange[1] - point[1];
 	var tZ = pointToChange[2] - point[2];
@@ -193,6 +182,18 @@ function spaceToRelative(pointToChange, point, normal) {
 	[tX, tZ] = rotate(tX, tZ, normal[0]);
 	[tY, tZ] = rotate(tY, tZ, normal[1]);
 	[tX, tY] = rotate(tX, tY, normal[2]);
+
+	return [tX, tY, tZ];
+}
+
+//like spaceToRelative, but without the rotation that a lot of objects don't need
+function spaceToRelativeRotless(pointToChange, point, normal) {
+	var tX = pointToChange[0] - point[0];
+	var tY = pointToChange[1] - point[1];
+	var tZ = pointToChange[2] - point[2];
+
+	[tX, tZ] = rotate(tX, tZ, normal[0]);
+	[tY, tZ] = rotate(tY, tZ, normal[1]);
 
 	return [tX, tY, tZ];
 }

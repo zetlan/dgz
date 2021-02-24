@@ -1,10 +1,13 @@
 /*
 INDEX:
+	drawArrow();
 	drawCrosshair();
+	drawInfiniteEndScreen();
 	drawKeys();
 	drawPoly();
 	drawCircle();
 	drawQuad();
+	drawSky();
 	drawWorldLine();
 
 */
@@ -12,6 +15,27 @@ INDEX:
 
 
 //drawing functions
+function drawArrow(x, y, color, rotationInRADIANS, bodyLength, headLength, bodyWidth, headWidth) {
+	bodyWidth /= 2;
+	headWidth /= 2;
+	//it's easier to just define the points and then do a transformation on all of them
+	var points = [	[0, -bodyWidth], [bodyLength, -bodyWidth], [bodyLength, -headWidth], [bodyLength + headLength, 0], 
+					[bodyLength, headWidth], [bodyLength, bodyWidth], [0, bodyWidth], 
+					[0, -bodyWidth], [bodyLength, -bodyWidth]];
+
+	for (var i=0; i<points.length; i++) {
+		points[i] = rotate(points[i][0], points[i][1], rotationInRADIANS);
+	}
+
+	for (var i=0; i<points.length; i++) {
+		points[i] = [points[i][0] + x, points[i][1] + y];
+	}
+
+	drawPoly(color, points);
+	ctx.stroke();
+}
+
+
 function drawCrosshair() {
 	ctx.strokeStyle = "#FFF";
 	//starting pos
@@ -149,13 +173,11 @@ function drawKeys() {
 
 function drawPoly(color, xyPointsArr) {
 	ctx.fillStyle = color;
-	
-	var xypa = xyPointsArr;
 	ctx.beginPath();
-	ctx.moveTo(xypa[0][0], xypa[0][1]);
-	for (var i=1;i<xypa.length;i++) {
-		ctx.lineTo(xypa[i][0], xypa[i][1]);
-	}
+	//ctx.moveTo(xyPointsArr[0][0], xyPointsArr[0][1]);
+	xyPointsArr.forEach(p => {
+		ctx.lineTo(p[0], p[1]);
+	});
 	ctx.fill();
 }
 
@@ -164,44 +186,6 @@ function drawCircle(color, x, y, radius) {
 	ctx.fillStyle = color;
 	ctx.ellipse(x, y, radius, radius, 0, 0, Math.PI * 2);
 	ctx.fill();
-}
-
-function drawPlayerWithParentOLD() {
-	//sorting player in with the parent tunnel to be drawn
-	var stripStorage = orderObjects(player.parent.strips, 4);
-			
-	//if the player is in the middle of the strips (on top of some but not all) do the special
-	if (stripStorage[0].playerIsOnTop() != stripStorage[stripStorage.length-1].playerIsOnTop()) {
-		var drawPlayer = true;
-		stripStorage.forEach(t => {
-			if (drawPlayer && t.playerIsOnTop()) {
-				t.beDrawn();
-			} else if (drawPlayer) {
-				drawPlayer = false;
-				player.beDrawn();
-				t.beDrawn();
-			} else {
-				t.beDrawn();
-			}
-		});
-		if (drawPlayer) {
-			player.beDrawn();
-		}
-	} else {
-		//case where player is below all
-		if (!stripStorage[0].playerIsOnTop()) {
-			player.beDrawn();
-			stripStorage.forEach(t => {
-				t.beDrawn();
-			});
-		} else {
-			//case where player is above all
-			stripStorage.forEach(t => {
-				t.beDrawn();
-			});
-			player.beDrawn();
-		}
-	} 
 }
 
 function drawQuad(color, p1, p2, p3, p4) {
@@ -216,24 +200,25 @@ function drawQuad(color, p1, p2, p3, p4) {
 }
 
 function drawPlayerWithParent() {
-	var tunnelStrip = 0;
 	var tunnelSize = player.parent.strips.length;
-
-	//get the closest strip
-	for (var a=0; a<tunnelSize; a++) {
-		if (player.parent.strips[a].cameraDist < player.parent.strips[tunnelStrip].cameraDist) {
-			tunnelStrip = a;
-		}
-	}
+	var tunnelStrip = getClosestObject(player.parent.strips);
 
 	//organize strips based around that
 	var trackL = tunnelStrip - 1;
 	var trackR = tunnelStrip + 1;
-	var stripStorage = [];
+	var drawPlayer = true;
+	var stripsDrawn = 0;
+	var stripToDraw = undefined;
 	
 	//if the size is even, trackL has to be one less than trackR
+	//farthest strip + setting variables
 	if (tunnelSize % 2 == 0) {
-		stripStorage.push(player.parent.strips[(tunnelStrip + (tunnelSize / 2)) % tunnelSize]);
+		if (!player.parent.strips[(tunnelStrip + (tunnelSize / 2)) % tunnelSize]) {
+			drawPlayer = false;
+			player.beDrawn();
+		}
+		player.parent.strips[(tunnelStrip + (tunnelSize / 2)) % tunnelSize].beDrawn();
+		stripsDrawn += 1;
 		trackL = tunnelStrip - ((tunnelSize / 2) - 1);
 		trackR = tunnelStrip + (tunnelSize / 2) - 1;
 	} else {
@@ -241,29 +226,26 @@ function drawPlayerWithParent() {
 		trackR = tunnelStrip + Math.floor(tunnelSize / 2);
 	}
 
-	while (trackR > tunnelStrip && trackL < tunnelStrip) {
-		stripStorage.push(player.parent.strips[trackR % tunnelSize]);
-		stripStorage.push(player.parent.strips[(trackL + tunnelSize) % tunnelSize]);
-		trackR -= 1;
-		trackL += 1;
-		
-	}
 
-	stripStorage.push(player.parent.strips[tunnelStrip]);
+	//main draw loop
+	while (stripsDrawn < tunnelSize - 1 || (stripsDrawn > 99 && stripsDrawn < tunnelSize + 99)) {
+		if (stripsDrawn % 2 == 0) {
+			stripToDraw = player.parent.strips[trackR % tunnelSize];
+			trackR -= 1;
+		} else {
+			stripToDraw = player.parent.strips[(trackL + tunnelSize) % tunnelSize];
+			trackL += 1;
+		}
 
-	//actual drawing here
-	var drawPlayer = true;
-	var stripsDrawn = 0;
-	stripStorage.forEach(t => {
 		if (drawPlayer) {
-			if (!t.playerIsOnTop()) {
+			if (!stripToDraw.playerIsOnTop()) {
 				drawPlayer = false;
 				player.beDrawn();
 			}
 		}
-		t.beDrawn();
+		stripToDraw.beDrawn();
 		stripsDrawn += 1;
-		//if at the correct point in the tunnel, draw the free objects
+
 		if (stripsDrawn == Math.floor(player.parent.strips.length / 2)) {
 			//if the camera is outside the tunnel do the hybrid approach. If not, do the normal way.
 			if (!player.parent.coordinateIsInTunnel(world_camera.x, world_camera.y, world_camera.z)) {
@@ -273,7 +255,15 @@ function drawPlayerWithParent() {
 				stripsDrawn += 100;
 			}
 		}
-	});
+	}
+
+	//final strip
+	if (!player.parent.strips[tunnelStrip].playerIsOnTop()) {
+		drawPlayer = false;
+		player.beDrawn();
+	}
+	player.parent.strips[tunnelStrip].beDrawn();
+	stripsDrawn += 1;
 
 	//if the free objects still aren't drawn, draw them
 	if (stripsDrawn == player.parent.strips.length) {
@@ -282,7 +272,7 @@ function drawPlayerWithParent() {
 		});
 	}
 
-	//if the player's still not drawn, draw the player
+	//if the player's still not drawn, finally draw them
 	if (drawPlayer) {
 		player.beDrawn();
 	}
@@ -297,7 +287,6 @@ function drawPlayerWithParent() {
 				[tX, tY] = spaceToScreen([player.parent.strips[v].x, player.parent.strips[v].y, player.parent.strips[v].z]);
 				ctx.fillText(v, tX + 5, tY);
 			}
-			
 		}
 		//dot for closest spot
 		if (!isClipped([player.parent.strips[tunnelStrip].x, player.parent.strips[tunnelStrip].y, player.parent.strips[tunnelStrip].z])) {
@@ -332,9 +321,11 @@ function drawSky(bgColor) {
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 	
 	//stars
+	ctx.globalAlpha = render_starOpacity;
 	world_stars.forEach(c => {
 		c.beDrawn();
 	});
+	ctx.globalAlpha = 1;
 }
 
 function drawWorldLine(worldPoint1, worldPoint2) {
@@ -359,19 +350,21 @@ function drawWorldLine(worldPoint1, worldPoint2) {
 function drawWorldPoly(points, color) {
 	//first get camera coordinate points
 	var tempPoints = [];
+	tempPoints[points.length-1] = undefined;
 	for (var p=0; p<points.length; p++) {
-		tempPoints.push(spaceToRelative(points[p], [world_camera.x, world_camera.y, world_camera.z], [world_camera.theta, world_camera.phi, world_camera.rot]));
+		tempPoints[p] = spaceToRelative(points[p], [world_camera.x, world_camera.y, world_camera.z], [world_camera.theta, world_camera.phi, world_camera.rot]);
 	}
 
 	tempPoints = clipToZ0(tempPoints, render_clipDistance, false);
 	
 	//turn points into screen coordinates
 	var screenPoints = [];
-	for (var a=0;a<tempPoints.length;a++) {
-		screenPoints.push(cameraToScreen(tempPoints[a]));
+	screenPoints[tempPoints.length-1] = undefined;
+	for (var a=0; a<tempPoints.length; a++) {
+		screenPoints[a] = cameraToScreen(tempPoints[a]);
 	}
 
-	if (screenPoints.length > 0) {
+	if (screenPoints.length > 2) {
 		drawPoly(color, screenPoints);
 	}
 }

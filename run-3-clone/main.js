@@ -9,6 +9,7 @@ window.addEventListener("keyup", handleKeyNegate, false);
 	combine code blocks used multiple times into functions
 	avoid else
 	avoid nesting too far
+	when using if else, put most likely condition first
 */
 //global variables
 var canvas;
@@ -37,17 +38,18 @@ const color_menuSelectionOutline = "#88F";
 const color_stars = "#44A";
 const color_text = "#424";
 const color_text_bright = "#FAF";
+const colors_powerCells = ["#888888", "#8888FF", "#88FF88", "#88FFFF", "#FF8888", "#FF88FF", "#FFFF88", "#FFFFFF"];
 
 var cursor_x = 0;
 var cursor_y = 0;
 var cursor_down = false;
 
 //var data_possibleCharacters = [`Runner`, `Skater`, `Lizard`, `Bunny`, `Gentleman`, `Duplicator`, `Child`, `Pastafarian`, `Student`, `Angel`];
-var data_characters = [`Runner`, `Skater`, `Lizard`, `Bunny`, `Duplicator`, `Child`, `Pastafarian`, `Student`, `Angel`];
+var data_characters = [`Runner`, `Skater`, `Lizard`, `Bunny`, `Gentleman`, `Duplicator`, `Child`, `Pastafarian`, `Student`, `Angel`];
 
 
-var data_levelSets = [`main`, `boxStorage`, `wayBack`, `winterGames`, `lowPower`, `new`,
-						`A`, `B`, `D`, `F`, `G`, `I`, `L`, `M`, `N`, `T`, `U`, `W`];
+var data_levelSets = [`main`, `boxStorage`, `coordination`, `planA`, `planC`, `memory`, `wayBack`, `wayBack2`, `wayBackNot`, `winterGames`, `lowPower`, `new`,
+						`A`, `B`, `C`, `D`, `F`, `G`, `H`, `I`, `L`, `M`, `N`, `T`, `U`, `W`];
 
 var data_sprites = {
 	spriteSize: 144,
@@ -101,6 +103,21 @@ var data_sprites = {
 					   [0, 3], [1, 3], [2, 3], [3, 3], [4, 3], [5, 3], [6, 3], [7, 3]],
 		walkSideways: [[0, 4], [1, 4], [2, 4], [3, 4], [4, 4], [5, 4], [6, 4], [7, 4],
 						[0, 5], [1, 5], [2, 5], [3, 5], [4, 5], [5, 5], [6, 5], [7, 5]],
+	},
+
+	Gentleman: {
+		sheet: 'images/gentlemanSprites.png',
+		frameTime: 2.3,
+		back: [[0, 2]],
+		front: [],
+		jumpForwards: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0]],
+		jumpSideways: [[0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [5, 1], [6, 1]],
+		walkForwards: [[0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [5, 2], [6, 2], [7, 2],
+					   [0, 3], [1, 3], [2, 3], [3, 3], [4, 3], [5, 3], [6, 3], [7, 3]],
+		walkSideways: [[0, 4], [1, 4], [2, 4], [3, 4], [4, 4], [5, 4], [6, 4], [7, 4],
+						[0, 5], [1, 5], [2, 5], [3, 5], [4, 5], [5, 5], [6, 5], [7, 5]],
+		flyForwards: [[0, 7], [1, 7], [2, 7], [3, 7], [4, 7], [5, 7], [6, 7], [7, 7]],
+		flySideways: [[0, 8], [1, 8], [2, 8], [3, 8], [4, 8], [5, 8], [6, 8], [7, 8]]
 	},
 
 	Lizard: {
@@ -173,7 +190,7 @@ var data_sprites = {
 };
 
 var data_persistent = {
-	forceReload: true,
+	powercells: 0,
 	discovered: []
 };
 
@@ -189,13 +206,9 @@ var infinite_levelRange = 40;
 
 let loading_state = new State_Loading();
 
-var map_cameraHeight = 175000;
-var map_cameraBounds = {
-	xMin:0,
-	xMax:0,
-	zMin:0,
-	zMax:0
-};
+var map_height = 135000;
+var map_shift = 56000;
+var map_zOffset
 
 var menu_buttonWidth = 0.2;
 var menu_buttonHeight = 0.05;
@@ -204,7 +217,7 @@ var menu_buttons = [
 	[`Explore Mode`, `new State_Map()`],
 ];
 var menu_characterCircleRadius = 0.3;
-var menu_characterSize = 60;
+var menu_characterSize = 30;
 
 let page_animation;
 
@@ -214,12 +227,17 @@ var physics_crumblingShrinkStart = 50;
 var physics_crumblingShrinkTime = 150;
 var physics_gravity = 0.13;
 var physics_jumpTime = 30;
-var physics_graceTime = 3;
+var physics_graceTime = 6;
 var physics_graceTimeRamp = 10;
 
 let player;
 var player_radius = 15;
 
+var powercells_acquireDistance = player_radius * 6;
+var powercells_gentlemanMultiplier = 0.5;
+var powercells_perTunnel = 10;
+var powercells_spinSpeed = 0.05;
+var powercells_size = 30;
 
 var tunnel_transitionLength = 200;
 var tunnel_voidWidth = 200;
@@ -246,10 +264,11 @@ let active_objects = [];
 
 var render_crosshairSize = 10;
 var render_clipDistance = 0.1;
+var render_identicalPointTolerance = 0.0001;
 var render_maxColorDistance = 950;
 var render_maxDistance = 15000;
-var render_minTileSize = 9;
-var render_identicalPointTolerance = 0.0001;
+var render_minTileSize = 15;
+var render_starOpacity = 0.6;
 var render_tunnelTextTime = 50;
 var render_voidSpinSpeed = 0.04;
 
@@ -317,7 +336,47 @@ function main() {
 
 //input handling
 function handleKeyPress(a) {
-	if (editor_active) {
+	if (!editor_active) {
+		switch(a.keyCode) {
+			//direction controls
+			// a / <
+			case 65:
+			case 37:
+				player.ax = -1 * player.speed;
+				break;
+			//d / >
+			case 68:
+			case 39:
+				player.ax = player.speed;
+				break;
+			// w / ^ / space
+			case 87:
+			case 38:
+			case 32:
+				if (!controls_spacePressed) {
+					//if it's infinite mode, restart
+					if (loading_state instanceof State_Infinite && loading_state.substate == 2) {
+						loading_state = new State_Infinite();
+					}
+					player.handleSpace();
+				}
+				controls_spacePressed = true;
+				break;
+
+			//editor / noclip
+			case 221:
+				ctx.lineWidth = 2;
+				editor_active = true;
+				break;
+			case 27:
+				try {
+					loading_state.handleEscape();
+				} catch (er) {
+					console.log(`No escape function defined for the current game state peko`);
+				}
+				break;
+		}
+	} else {
 		switch(a.keyCode) {
 			//movement controls
 			// a/d
@@ -361,54 +420,41 @@ function handleKeyPress(a) {
 				ctx.lineWidth = 2;
 				editor_active = false;
 				break;
-		}
-	} else {
-		switch(a.keyCode) {
-			//direction controls
-			// a / <
-			case 65:
-			case 37:
-				player.ax = -1 * player.speed;
-				break;
-			//d / >
-			case 68:
-			case 39:
-				player.ax = player.speed;
-				break;
-			// w / ^ / space
-			case 87:
-			case 38:
-			case 32:
-				if (!controls_spacePressed) {
-					//if it's infinite mode, restart
-					if (loading_state instanceof State_Infinite && loading_state.substate == 2) {
-						loading_state = new State_Infinite();
-					}
-					player.handleSpace();
+			case 27:
+				try {
+					loading_state.handleEscape();
+				} catch (er) {
+					console.log(`No escape function defined for the current game state peko`);
 				}
-				controls_spacePressed = true;
 				break;
-
-			//editor / noclip
-			case 221:
-				ctx.lineWidth = 2;
-				editor_active = true;
-				break;
-		}
-
-		//controls regardless of editor, if I get 3+ keys here I'll just make it another switch statement
-		if (a.keyCode == 27) {
-			try {
-				loading_state.handleEscape();
-			} catch (er) {
-				console.log(`No escape function defined for the current game state peko`);
-			}
 		}
 	}
 }
 
 function handleKeyNegate(a) {
-	if (editor_active) {
+	if (!editor_active) {
+		switch(a.keyCode) {
+			//direction controls
+			case 65:
+			case 37:
+				if (player.ax < 0) {
+					player.ax = 0;
+				}
+				break;
+			case 68:
+			case 39:
+				if (player.ax > 0) {
+					player.ax = 0;
+				}
+				break;
+			// w / ^ / space
+			case 87:
+			case 38:
+			case 32:
+				controls_spacePressed = false;
+				break;
+		}
+	} else {
 		switch(a.keyCode) {
 			//direction controls
 			case 65:
@@ -454,28 +500,6 @@ function handleKeyNegate(a) {
 				}
 				break;
 		}
-	} else {
-		switch(a.keyCode) {
-			//direction controls
-			case 65:
-			case 37:
-				if (player.ax < 0) {
-					player.ax = 0;
-				}
-				break;
-			case 68:
-			case 39:
-				if (player.ax > 0) {
-					player.ax = 0;
-				}
-				break;
-			// w / ^ / space
-			case 87:
-			case 38:
-			case 32:
-				controls_spacePressed = false;
-				break;
-		}
 	}
 }
 
@@ -499,10 +523,21 @@ function updateResolution() {
 	}
 
 	//all things necessary for switching between resolutions
+
+	
 	canvas.width *= multiplier;
 	canvas.height *= multiplier;
 	world_camera.scale *= multiplier;
 	menu_characterSize = canvas.height / 16;
+
+	if (loading_state.drawEnding == false) {
+		loading_state.drawEnding = true;
+	}
+
+	//updating star size
+	world_stars.forEach(w => {
+		w.tick();
+	});
 }
 
 /* results:
@@ -516,6 +551,8 @@ function updateResolution() {
 	Removing the conditional took between 50-56 ms.
 
 	performing 1,000,000 instanceof tests took 10 ms, while performing 1,000,000 checks for a variable only a certain class has took 1-2 ms.
+
+	run 10,000 times, setting an array of 1000 elements took 50 ms normally (push()) but was cut down to 35 ms when setting the last element of the array to undefined
 	
 
 	TL;DR-
@@ -523,19 +560,21 @@ function updateResolution() {
 	variable declarations take time, but aren't the end of the world
 	running an if statement on a variable to check for clamping is faster than doing clamping all the time
 	instanceof tests are SLOW! avoid them
+	increasing the length of an array is slow
+	forEach loops are approximately 3 times faster than for loops (107 ms vs 315 ms)
 
 
 */
 function performanceTest() {
 	var perfTime = [performance.now(), 0];
-
-	var val = 0;
-	for (var a=0;a<1000000;a++) {
-		if (player.personalBridgeStrength != undefined) {
-			val += 1;
+	var variableName = 0;
+	for (var a=0;a<100000;a++) {
+		if (spaceToRelativeRotless([Math.random(), Math.random(), Math.random()], [Math.random(), Math.random(), Math.random()], [Math.random(), Math.random()])[2] > 0.5) {
+			variableName = 0;
 		} else {
-			val -= 1;
+			variableName = 1;
 		}
+		variableName = Math.random();
 	}
 
 

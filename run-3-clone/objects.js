@@ -38,7 +38,13 @@ class Camera {
 	}
 
 	tick() {
-		if (editor_active) {
+		if (!editor_active) {
+			//changing with average
+			this.x = (this.targetX + (this.x * (this.animSteps - 1))) / this.animSteps;
+			this.y = (this.targetY + (this.y * (this.animSteps - 1))) / this.animSteps;
+			this.z = (this.targetZ + (this.z * (this.animSteps - 1))) / this.animSteps;
+			this.theta = (this.targetTheta + (this.theta * (this.animSteps - 1))) / this.animSteps;
+		} else {
 			//handling velocity
 
 			//adding
@@ -81,12 +87,6 @@ class Camera {
 			this.y += moveCoords[1];
 			this.z += moveCoords[2];
 			this.theta += this.dt;
-		} else {
-			//changing with average
-			this.x = (this.targetX + (this.x * (this.animSteps - 1))) / this.animSteps;
-			this.y = (this.targetY + (this.y * (this.animSteps - 1))) / this.animSteps;
-			this.z = (this.targetZ + (this.z * (this.animSteps - 1))) / this.animSteps;
-			this.theta = (this.targetTheta + (this.theta * (this.animSteps - 1))) / this.animSteps;
 		}
 
 
@@ -120,6 +120,7 @@ class Character {
 		this.fallMax = this.dMax * 1.3;
 		this.jumpStrength = 2;
 		this.jumpBoostStrength = 0.1;
+		this.coyote = 0;
 
 		this.onGround = 0;
 		this.jumpTime = physics_jumpTime;
@@ -223,7 +224,7 @@ class Character {
 
 	tick() {
 		//getting camera distance
-		this.cameraDist = Math.max(1, getDistance(this, world_camera) - 20);
+		this.cameraDist = getDistance(this, world_camera);
 		this.drawR = (this.r / this.cameraDist) * world_camera.scale;
 
 		//setting camera position
@@ -231,38 +232,46 @@ class Character {
 
 		//only do the other tick stuff if camera is close enough
 		if (this.cameraDist < 1000 && !editor_active) {
-			//colliding with tiles
-			if (this.parent != undefined) {
-				this.collide();
+			//ticking coyote frames / jumping
+			if (this.coyote > 0) {
+				this.handleSpace();
+				this.coyote -= 1;
 			}
 
-			if (this.parent != undefined && !this.parent.playerIsInTunnel()) {
-				//if in the void, change physics
-				var voidStrength = spaceToRelative(this.parent.centerPos, [this.x, this.y, this.z], [this.dir_down[0], this.dir_down[1], 0])[2] / this.parent.r;
-				if (this.parent.playerTilePos > this.parent.len - 0.5) {
-					voidStrength *= -0.6;
-					//if the player is above the midpoint, make them go down faster
-					if (voidStrength > 0) {
-						voidStrength *= 1.6;
+			//TODO: this code is ugly and also probably slow. Refactor when / if possible
+			if (this.parent != undefined) {
+				//colliding with tiles
+				this.collide();
+				if (!this.parent.playerIsInTunnel()) {
+					//if in the void, change physics
+					var voidStrength = spaceToRelativeRotless(this.parent.centerPos, [this.x, this.y, this.z], this.dir_down)[2] / this.parent.r;
+					if (this.parent.playerTilePos > this.parent.len - 0.5) {
+						voidStrength *= -0.6;
+						//if the player off the end of the tunnel and is above the midpoint, make them go down faster
+						if (voidStrength > 0) {
+							voidStrength *= 1.8;
+						}
 					}
-				}
-				this.modifyDerivitives(this.gravStrength * 0.7 * (voidStrength), this.friction / 2, this.naturalFriction, this.ax / 2, this.speed / 2);
-				//void spin
-				this.textureRot += render_voidSpinSpeed;
-			} else if (this.onIce) {
-				//ice also affects physics
-				this.modifyDerivitives(this.gravStrength, Math.min(0.995, this.friction * 1.05), this.naturalFriction, this.ax * 0.8, this.speed);
-			} else {
-				//restoring proper spin if in tunnel
-				if (Math.abs(this.textureRot - this.dir_down[1]) > render_voidSpinSpeed * 3) {
-					this.textureRot = (this.textureRot + (render_voidSpinSpeed * 3)) % (Math.PI * 2);
-				}
-				
-				//don't accelerate if dz is too great
-				if (Math.abs(this.dz) > this.dMax * 1.1) {
-					this.modifyDerivitives(this.gravStrength, this.friction, this.naturalFriction, this.ax, 0);
+					this.modifyDerivitives(this.gravStrength * 0.7 * (voidStrength), this.friction / 2, this.naturalFriction, this.ax / 2, this.speed / 2);
+					//void spin
+					this.textureRot += render_voidSpinSpeed;
 				} else {
-					this.modifyDerivitives(this.gravStrength, this.friction, this.naturalFriction, this.ax, this.speed);
+					//restore proper spin if in tunnel
+					if (Math.abs(this.textureRot - this.dir_down[1]) > render_voidSpinSpeed * 3) {
+						this.textureRot = (this.textureRot + (render_voidSpinSpeed * 3)) % (Math.PI * 2);
+					}
+					if (!this.onIce) {
+						//regular tiles
+						//don't accelerate if dz is too great
+						if (Math.abs(this.dz) > this.dMax * 1.1) {
+							this.modifyDerivitives(this.gravStrength, this.friction, this.naturalFriction, this.ax, 0);
+						} else {
+							this.modifyDerivitives(this.gravStrength, this.friction, this.naturalFriction, this.ax, this.speed);
+						}
+					} else {
+						//ice tiles
+						this.modifyDerivitives(this.gravStrength, Math.min(0.995, this.friction * 1.05), this.naturalFriction, this.ax * 0.8, this.speed);
+					}
 				}
 			}
 
@@ -283,7 +292,11 @@ class Character {
 	beDrawn() {
 		if (!isClipped([this.x, this.y, this.z])) {
 			var [tX, tY] = spaceToScreen([this.x, this.y, this.z]);
-			this.texture_current.beDrawn(tX, tY, this.textureRot - (Math.PI * 0.5) - world_camera.rot, this.drawR * 2);
+			if (this.backwards) {
+				this.texture_current.beDrawn(tX, tY, ((Math.PI * 0.5) - this.textureRot) - world_camera.rot, this.drawR * 2);
+			} else {
+				this.texture_current.beDrawn(tX, tY, this.textureRot - (Math.PI * 0.5) - world_camera.rot, this.drawR * 2);
+			}
 
 			this.syncTextures();
 
@@ -321,34 +334,37 @@ class Character {
 			if (this.ax == 0) {
 				//center
 				this.texture_current = this.texture_walkF;
-			} else if (this.ax < 0) {
+				return;
+			}
+			if (this.ax < 0) {
 				//left
 				this.texture_current = this.texture_walkL;
-			} else {
-				//right
-				this.texture_current = this.texture_walkR;
+				return;
 			}
-		} else {
-			//jumping texture
-			if (this.ax == 0) {
-				//center
-				this.texture_current = this.texture_jumpF;
-			} else if (this.ax < 0) {
-				//left
-				this.texture_current = this.texture_jumpL;
-			} else {
-				//right
-				this.texture_current = this.texture_jumpR;
-			}
-			//reset ground animations when jumping
-			this.texture_walkF.reset();
-			this.texture_walkR.reset();
-			this.texture_walkL.reset();
+			
+			this.texture_current = this.texture_walkR;
+			return;
+		}
 
-			//reset if moving upwards
-			if (this.dy > 0) {
-				this.texture_current.reset();
-			}
+		//jumping texture
+		if (this.ax == 0) {
+			//center
+			this.texture_current = this.texture_jumpF;
+		} else if (this.ax < 0) {
+			//left
+			this.texture_current = this.texture_jumpL;
+		} else {
+			//right
+			this.texture_current = this.texture_jumpR;
+		}
+		//reset ground animations when jumping
+		this.texture_walkF.reset();
+		this.texture_walkR.reset();
+		this.texture_walkL.reset();
+
+		//reset if moving upwards
+		if (this.dy > 0) {
+			this.texture_current.reset();
 		}
 	}
 
@@ -380,8 +396,20 @@ class Character {
 		this.texture_jumpR.currentFrame = this.texture_current.currentFrame;
 	}
 
+	turnAround() {
+		//switch direction and change down angle so the tiles are a w a r e
+		this.backwards = !this.backwards;
+		haltCollision = false;
+		this.dir_down = [this.dir_down[0], this.dir_down[1] + 0.02];
+	}
+
 	handleSpace() {
+		if (this.coyote == 0) {
+			this.coyote = physics_graceTime;
+		}
+
 		if (this.onGround > 0) {
+			this.coyote = 0;
 			this.dy = this.jumpStrength;
 			this.jumpTime = physics_jumpTime;
 			this.onGround = 0;
@@ -751,7 +779,7 @@ class Duplicator extends Character {
 		this.duplicates.forEach(d => {
 			if (getDistance(this, d) < this.r * 2 && d != this) {
 				//if the duplicate is above self, give the duplicate jump ability. If not, give self the jump ability
-				if (spaceToRelative([d.x, d.y, d.z], [this.x, this.y, this.z], [this.dir_down[0], this.dir_down[1], 0])[2] > 0) {
+				if (spaceToRelativeRotless([d.x, d.y, d.z], [this.x, this.y, this.z], this.dir_down)[2] > 0) {
 					//the jump ability comes with a penalty to self
 					d.onGround = 1;
 					this.dy -= 0.4;
@@ -844,7 +872,7 @@ class Gentleman extends Character {
 			this.attracting.pushForce[2] = ((this.z - this.attracting.z) / dist) * (this.abilityDistance / dist) * this.airFriction;
 
 			//getting attraction towards object in relative coordinates
-			var offset = spaceToRelative([this.attracting.x, this.attracting.y, this.attracting.z], [this.x, this.y, this.z], [this.dir_down[0], this.dir_down[1], 0]);
+			var offset = spaceToRelativeRotless([this.attracting.x, this.attracting.y, this.attracting.z], [this.x, this.y, this.z], this.dir_down);
 			[offset[0], offset[1], offset[2]] = [offset[1], offset[2], offset[0]];
 			this.attractionForce = [(offset[0] / dist) * (this.abilityDistance / Math.max(dist, this.abilityDistance / this.dMaxTrue)),
 									(offset[1] / dist) * (this.abilityDistance / Math.max(dist, this.abilityDistance / this.dMaxTrue)),
@@ -877,7 +905,7 @@ class Gentleman extends Character {
 			var closestObjDist = 99999;
 			for (var h=1; h<this.parent.freeObjs.length; h++) {
 				//only be attracted to power cells in front
-				if (spaceToRelative([this.parent.freeObjs[h].x, this.parent.freeObjs[h].y, this.parent.freeObjs[h].z], [this.x, this.y, this.z], [this.dir_down[0], (Math.PI * 2) - this.dir_down[1], 0])[0] > 0) {
+				if (spaceToRelativeRotless([this.parent.freeObjs[h].x, this.parent.freeObjs[h].y, this.parent.freeObjs[h].z], [this.x, this.y, this.z], [this.dir_down[0], (Math.PI * 2) - this.dir_down[1]])[0] > 0) {
 					var tempDist = getDistance(this, this.parent.freeObjs[h]);
 					if (tempDist < this.abilityDistance && (closestObj == undefined || tempDist < closestObjDist)) {
 					closestObj = this.parent.freeObjs[h];

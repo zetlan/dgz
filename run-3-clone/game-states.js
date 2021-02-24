@@ -44,24 +44,55 @@ class State_World {
 		this.farObjs = [];
 		this.readFrom = [];
 		this.substate = 0;
+		this.text = ``;
+		this.textTime = 0;
 
 		this.orderWorld();
 	}
 
 	execute() {
-		//logTime("total");
+		logTime("total");
 		//handling entities
 		world_camera.tick();
 		player.tick();
 
-		//if the player isn't in a tunnel, try to get them in one
-		if (player.parent == undefined) {
-			this.orderWorld();
+		
+		if (player.parent != undefined) {
+			//if the player's left their parent tunnel, change their parent
+			if (!player.parent.playerIsInBounds()) {
+				player.parentPrev = player.parent;
+				player.parent = undefined;
+			} else if (!player.parent.playerIsInTunnel()) {
+				
+				//if the player is in the void, try to change parent without the whole jazzy reshuffling
+				//try the player in the closest few tunnels
+				for (var v=this.nearObjs.length-1; v>Math.max(-1, this.nearObjs.length-10); v--) {
+					if (this.nearObjs[v].playerIsInTunnel()) {
+						player.parentPrev = player.parent;
+						player.parent = this.nearObjs[v];
+						this.nearObjs.splice(v, 1);
+						v = -1;
 
+						player.parent.resetWithoutPlayer();
+
+						//reorder objects anyways if found a new tunnel
+						this.orderWorld();
+
+						//display text
+						this.text = player.parent.id;
+						this.textTime = render_tunnelTextTime;
+					}
+				}
+			}
+		} else {
+			//if the player isn't in a tunnel, try to get them in one
+			this.orderWorld();
 			//try the player in the closest few tunnels
 			for (var v=this.nearObjs.length-1; v>Math.max(-1, this.nearObjs.length-6); v--) {
 				if (this.nearObjs[v].playerIsInBounds()) {
 					player.parent = this.nearObjs[v];
+					//splice out parent's tunnel from near objects
+					this.nearObjs.splice(v, 1);
 					v = -1;
 
 					//reset player's new tunnel
@@ -74,60 +105,39 @@ class State_World {
 			} else {
 				//display text
 				this.text = player.parent.id;
-				this.time = render_tunnelTextTime;
-			}
-		} else {
-			//if the player's left their parent tunnel, change their parent
-			if (!player.parent.playerIsInBounds()) {
-				player.parentPrev = player.parent;
-				player.parent = undefined;
-			} else if (!player.parent.playerIsInTunnel()) {
-				
-				//if the player is in the void, try to change parent without reordering objects
-				//try the player in the closest few tunnels
-				for (var v=this.nearObjs.length-1; v>Math.max(-1, this.nearObjs.length-10); v--) {
-					if (this.nearObjs[v].playerIsInTunnel()) {
-						player.parentPrev = player.parent;
-						player.parent = this.nearObjs[v];
-						v = -1;
-
-						player.parent.resetWithoutPlayer();
-
-						//reorder objects anyways if found a new tunnel
-						this.orderWorld();
-
-						//display text
-						this.text = player.parent.id;
-						this.time = render_tunnelTextTime;
-					}
-				}
+				this.textTime = render_tunnelTextTime;
 			}
 		}
 
-		
-		//just tick the closest few tunnels
+		//tick player parent
+		if (player.parent != undefined) {
+			player.parent.tick();
+		}
+
+		//get the camera distance for the closest few tunnels, just to be safe
 		for (var v=this.nearObjs.length-1; v>Math.max(-1, this.nearObjs.length-20); v--) {
 			this.nearObjs[v].tick();
 		}
-		
 
+		//drawing!
+		//'background' objects
 		drawSky(color_bg);
-
-		//drawing all tunnels
 		this.farObjs.forEach(f => {
+			f.beDrawn_LowDetail();
+		});
+
+		
+		this.nearObjs.forEach(f => {
 			f.beDrawn();
 		});
-		this.nearObjs.forEach(f => {
-			if (f != player.parent) {
-				f.beDrawn();
-			}
-		});
-
-		if (player.parent == undefined) {
-			player.beDrawn();
-		} else {
+		
+		
+		if (player.parent != undefined) {
 			drawPlayerWithParent();
+		} else {
+			player.beDrawn();
 		}
+		
 
 		//crosshair
 		if (editor_active) {
@@ -139,13 +149,13 @@ class State_World {
 		drawKeys();
 
 		//drawing new tunnel text
-		if (this.time > 0) {
+		if (this.textTime > 0) {
 			ctx.fillStyle = color_text_bright;
 			ctx.font = `${canvas.height / 22}px Century Gothic`;
 			ctx.fillText(this.text, canvas.width * 0.5, canvas.height * 0.5);
-			this.time -= 1;
+			this.textTime -= 1;
 		}
-		//logTimeEnd("total", "avg. frame time");
+		logTimeEnd("total", "avg. frame time");
 	}
 
 	handlePlayerDeath() {
@@ -166,21 +176,19 @@ class State_World {
 	}
 
 	orderWorld() {
-		//ordering all the objects
-		this.readFrom.forEach(u => {
-			u.getCameraDist();
-		});
-
 		//if the camera distance is more than 5 digits (100,000), just put it in a seperate bin
 		this.farObjs = [];
 		this.nearObjs = [];
-		for (var v=0; v<this.readFrom.length; v++) {
-			if (this.readFrom[v].cameraDist > 99999) {
-				this.farObjs.push(this.readFrom[v]);
+
+		this.readFrom.forEach(v => {
+			//get camera distance, then sort
+			v.getCameraDist();
+			if (v.cameraDist > render_maxDistance * 1.05) {
+				this.farObjs.push(v);
 			} else {
-				this.nearObjs.push(this.readFrom[v]);
+				this.nearObjs.push(v);
 			}
-		}
+		});
 
 		this.nearObjs = orderObjects(this.nearObjs, 5);
 	}
@@ -190,9 +198,6 @@ class State_World {
 class State_Game extends State_World {
 	constructor() {
 		super();
-		this.text = ``;
-		this.time = 0;
-
 		this.readFrom = world_objects;
 
 		this.orderWorld();
@@ -208,6 +213,10 @@ class State_Game extends State_World {
 			ctx.lineWidth = canvas.height / 50;
 			drawRoundedRectangle(canvas.width * 0.35, canvas.height * 0.2, canvas.width * 0.1, canvas.height * 0.6, canvas.height * 0.03);
 			drawRoundedRectangle(canvas.width * 0.55, canvas.height * 0.2, canvas.width * 0.1, canvas.height * 0.6, canvas.height * 0.03);
+			ctx.lineWidth = canvas.height / 100;
+
+			//backwards toggle
+			drawArrow((canvas.width * 0.5) - (canvas.width * 0.04) + (canvas.width * 0.08 * player.backwards), canvas.height * 0.94, color_grey_light, Math.PI * player.backwards, canvas.width * 0.045, canvas.width * 0.025, canvas.height * 0.03, canvas.height * 0.06);
 			ctx.lineWidth = 2;
 		}
 	}
@@ -221,6 +230,30 @@ class State_Game extends State_World {
 		
 	}
 
+	handleMouseDown(a) {
+		//if in menu, go back to regular
+		if (this.substate == 1) {
+			var canvasArea = canvas.getBoundingClientRect();
+			cursor_x = Math.round(a.clientX - canvasArea.left);
+			cursor_y = Math.round(a.clientY - canvasArea.top);
+			//pause button interact
+			if (cursor_x > canvas.width * 0.35 && cursor_x < canvas.width * 0.6 && cursor_y > canvas.height * 0.2 && cursor_y < canvas.height * 0.8) {
+				this.substate = 0;
+				return;
+			}
+
+			//backwards toggle interact
+			if (player.parent != undefined && cursor_x > canvas.width * 0.45 && cursor_x < canvas.width * 0.55 && cursor_y > canvas.height * 0.9 && cursor_y < canvas.height * 0.99) {
+				player.turnAround();
+				player.parent.reset();
+				this.substate = 0;
+				this.execute();
+				this.substate = 1;
+				return;
+			}
+		}
+	}
+
 	handleMouseMove(a) {
 
 	}
@@ -230,12 +263,34 @@ class State_Infinite extends State_World {
 	constructor() {
 		super();
 
-		this.time = 0;
-		this.meters = 0;
-		this.data = levelData_infinite.split("\n");
-		this.difficulty = 0;
-		this.lastTunnelLine = -1;
+		//move camera to start so objects are ordered properly, but I also want that nice zoom in effect, so the camera is far away
+		world_camera.x = -100;
+		world_camera.y = 400;
+		world_camera.z = -2000;
 
+		//data for each individual run
+		this.time = 0;
+		this.distance = 0;
+		this.powercells = 0;
+		this.difficulty = 0;
+
+		this.characterData = {
+		};
+
+		this.charactersUsed = [];
+
+		this.drawEnding = true;
+
+		//textures for characters
+		this.selectionTextures = [];
+		for (var t=0; t<data_characters.length; t++) {
+			this.selectionTextures.push(new Texture(getImage(eval(`data_sprites.${data_characters[t]}.sheet`)), data_sprites.spriteSize, 2, false, false, eval(`data_sprites.${data_characters[t]}.back`)));
+		}
+
+
+		//game stuff
+		this.data = levelData_infinite.split("\n");
+		this.lastTunnelLine = -1;
 		this.objs = [];
 		this.readFrom = this.objs;
 		for (var a=0; a<5; a++) {
@@ -243,16 +298,6 @@ class State_Infinite extends State_World {
 		}
 		this.placePlayer();
 		this.orderWorld();
-		ctx.lineWidth = 2;
-
-		this.drawEnding = true;
-
-
-		//textures for characters
-		this.selectionTextures = [];
-		for (var t=0; t<data_characters.length; t++) {
-			this.selectionTextures.push(new Texture(getImage(eval(`data_sprites.${data_characters[t]}.sheet`)), data_sprites.spriteSize, 2, false, false, eval(`data_sprites.${data_characters[t]}.back`)));
-		}
 	}
 
 	addTunnel() {
@@ -274,8 +319,29 @@ class State_Infinite extends State_World {
 		}
 		this.lastTunnelLine = value;
 		this.objs.push(new Tunnel_FromData(this.data[value]));
-		this.objs[this.objs.length-1].theta = sT;
-		this.objs[this.objs.length-1].updatePosition([sX, 0, sZ]);
+		var refObj = this.objs[this.objs.length-1];
+		refObj.theta = sT;
+		refObj.updatePosition(sX, 0, sZ);
+
+		//placing power cells
+		var apothemLength = (refObj.tilesPerSide * refObj.tileSize) / (2 * Math.tan(Math.PI / refObj.sides));
+		var truePowercells = powercells_perTunnel;
+		if (player instanceof Gentleman) {
+			truePowercells = Math.round(truePowercells * powercells_gentlemanMultiplier);
+		}
+		for (var a=0; a<truePowercells; a++) {
+			var rotation = randomBounded(0, Math.PI * 2);
+
+			//get offset
+			var offset = polToCart(Math.PI / 2, rotation, apothemLength * randomBounded(0.3, 0.9));
+			offset[2] = ((a + 0.5) / truePowercells) * refObj.len * refObj.tileSize;
+
+			//rotate offset for true position
+			[offset[0], offset[2]] = rotate(offset[0], offset[2], refObj.theta);
+			
+			refObj.freeObjs.push(new Powercell(refObj.x + offset[0], refObj.y + offset[1], refObj.z + offset[2], refObj));
+		}
+		
 		
 		//updating difficulty
 		this.difficulty += 1.5;
@@ -286,11 +352,23 @@ class State_Infinite extends State_World {
 	}
 
 	placePlayer() {
+		this.substate = 0;
+		ctx.lineWidth = 2;
+
 		//putting player into world officially
 		player.parentPrev = this.objs[0];
 		player.parent = player.parentPrev;
 		player.parentPrev.reset();
 		player.dz = 0;
+		player.dy = 0;
+
+		//add player's type to data object
+		this.characterData[player.constructor.name] = {
+			distance: 0,
+			powercells: 0,
+			time: 0
+		};
+		this.charactersUsed.push(player.constructor.name);
 
 		player.parent.strips.forEach(s => {
 			s.collideWithEntity(player);
@@ -300,30 +378,31 @@ class State_Infinite extends State_World {
 	execute() {
 		switch (this.substate) {
 			case 0:
-				//add to meter count, 30 pixels in a meter
-				this.meters += player.dz / 30;
+				//update run data
+				this.distance += player.dz / 30;
+				this.time += 1;
+				this.characterData[player.constructor.name].distance += player.dz / 30;
+				this.characterData[player.constructor.name].time += 1;
 
 				super.execute();
-				//drawing meter text
+				//drawing stats text
 				ctx.fillStyle = color_text_bright;
 				ctx.textAlign = "left";
 				ctx.font = `${canvas.height / 22}px Century Gothic`;
-				ctx.fillText(`${this.meters.toFixed(0)} m`, canvas.width * 0.02, canvas.height * 0.05);
+				ctx.fillText(`${this.distance.toFixed(0)} m`, canvas.width * 0.02, canvas.height * 0.05);
+				var add = "";
+				if (this.powercells != 1) {
+					add = "s";
+				}
+				ctx.fillText(`${this.powercells} power cell${add}`, canvas.width * 0.02, (canvas.height * 0.05) + (canvas.height / 21));
 				ctx.textAlign = "center";
 
-				//drawing new tunnel text
-				if (this.time > 0) {
-					ctx.font = `${canvas.height / 22}px Century Gothic`;
-					ctx.fillText(this.text, canvas.width * 0.5, canvas.height * 0.5);
-					this.time -= 1;
-					//add new tunnel / remove previous tunnel after displaying the text
-					if (this.time == 0) {
-						if (this.objs[0] != player.parent) {
-							this.objs.splice(0, 1);
-						} else {
-						}
-						this.addTunnel();
+				//add tunnel and remove previous tunnel after displaying text
+				if (this.textTime == 1) {
+					if (this.objs[0] != player.parent) {
+						this.objs.splice(0, 1);
 					}
+					this.addTunnel();
 				}
 				break;
 			case 1:
@@ -337,33 +416,7 @@ class State_Infinite extends State_World {
 				break;
 			case 2:
 				if (this.drawEnding) {
-					//main box
-					ctx.fillStyle = color_grey_lightest;
-					ctx.strokeStyle = color_grey_light;
-					ctx.lineWidth = canvas.height / 50;
-					drawRoundedRectangle(canvas.width * 0.1, canvas.height * 0.1, canvas.width * 0.8, canvas.height * 0.8, canvas.width * 0.04);
-
-					//character availability boxes
-					
-					ctx.fillStyle = color_grey_light;
-					ctx.strokeStyle = color_menuSelectionOutline;
-					ctx.lineWidth = canvas.height / 96;
-					
-					var characterNum = 0;
-					for (var a=0; a<2; a++) {
-						var offY = canvas.width * 0.35 * (a / 2);
-						for (var b=0; b<5; b++) {
-							var offX = canvas.width * 0.6 * (b / 5);
-							ctx.globalAlpha = 0.3;
-							drawRoundedRectangle((canvas.width * 0.3) + offX - menu_characterSize, (canvas.height * 0.2) + offY, menu_characterSize * 2, menu_characterSize * 2, canvas.height / 48);
-							//draw character
-							ctx.globalAlpha = 1;
-							if (this.selectionTextures[characterNum] != undefined) {
-								this.selectionTextures[characterNum].beDrawn((canvas.width * 0.3) + offX, (canvas.height * 0.2) + offY + menu_characterSize, 0, menu_characterSize * 1.4);
-							}
-							characterNum += 1;
-						}
-					}
+					drawInfiniteEndScreen();
 					this.drawEnding = false;
 				}
 
@@ -371,12 +424,14 @@ class State_Infinite extends State_World {
 	}
 
 	handlePlayerDeath() {
-		if (this.meters > 20) {
+		if (this.distance > 20) {
 			this.substate = 2;
+			data_persistent.powercells += this.characterData[player.constructor.name].powercells;
 		} else {
 			player.parentPrev.reset();
 			player.parent = player.parentPrev;
-			this.meters = 0;
+			this.distance = 0;
+			this.characterData[player.constructor.name].distance = 0;
 		}
 	}
 
@@ -397,6 +452,46 @@ class State_Infinite extends State_World {
 
 	handleMouseMove(a) {
 
+	}
+
+	handleMouseDown(a) {
+		//if in the menu, attempt to pick a new character
+		if (this.substate == 2) {
+			//updating cursor position
+			var canvasArea = canvas.getBoundingClientRect();
+			cursor_x = Math.round(a.clientX - canvasArea.left);
+			cursor_y = Math.round(a.clientY - canvasArea.top);
+
+			//getting character order to choose from them
+			var characterList = [];
+			loading_state.charactersUsed.forEach(c => {
+				characterList.push(c);
+			});
+
+			data_characters.forEach(c => {
+				if (!characterList.includes(c)) {
+					characterList.push(c);
+				}
+			});
+
+			for (var a=loading_state.charactersUsed.length; a<11; a++) {
+				var offY = canvas.height * 0.25 * Math.floor(a / 5);
+				var offX = canvas.width * 0.6 * ((a % 5) / 5);
+
+				//only continue if the character at the specified index is real
+				if (loading_state.selectionTextures[data_characters.indexOf(characterList[a])] != undefined) {
+					//if the player has clicked on the box for the character, send them into the infinite mode thingy again
+					if (cursor_x > (canvas.width * 0.35) + offX - menu_characterSize && cursor_x < (canvas.width * 0.35) + offX + menu_characterSize && 
+						cursor_y > (canvas.height * 0.13) + offY && cursor_y < (canvas.height * 0.13) + offY + (menu_characterSize * 2)) {
+						this.drawEnding = true;
+						player = eval(`new ${characterList[a]}(${player.x}, ${player.y}, ${player.z})`); 
+						this.placePlayer();
+					}
+				}
+			}
+		} else {
+			super.handleMouseDown(a);
+		}
 	}
 
 	//don't bother with the near / far thing, there aren't going to be any tunnels far enough to qualify
@@ -432,8 +527,8 @@ class State_Loading {
 			drawCircle(color_stars, (canvas.width * 0.5) + xAdd, (canvas.height * 0.5) + yAdd, randomSeeded(3, 7));
 
 			//loading tunnels at certain times
-			if (this.time % 20 == 0) {
-				var index = (this.time / 20) - 1;
+			if (this.time % 15 == 0) {
+				var index = (this.time / 15) - 1;
 				
 				if (index < this.levelSets.length) {
 					//loading in a level set
@@ -466,8 +561,8 @@ class State_Loading {
 class State_Map {
 	constructor() {
 		world_camera.x = 0;
-		world_camera.y = map_cameraHeight;
-		world_camera.z = 0;
+		world_camera.y = map_height;
+		world_camera.z = map_zOffset;
 
 		world_camera.phi = -0.5 * Math.PI;
 		world_camera.theta = -0.5 * Math.PI;
@@ -498,15 +593,17 @@ class State_Map {
 		//turn player movement into camera movement
 		if (player.ax != 0) {
 			if (!this.dir_held) {
-				world_camera.targetZ += map_cameraShift * (player.ax / Math.abs(player.ax));
-				world_camera.targetZ = clamp(world_camera.targetZ, -2 * map_cameraShift, 2 * map_cameraShift);
+				world_camera.targetZ += map_shift * (player.ax / Math.abs(player.ax));
+				world_camera.targetZ = clamp(world_camera.targetZ, (-2 * map_shift) + map_zOffset, (2 * map_shift) + map_zOffset);
 				this.cursorPos = [-100, -100];
 				this.dir_held = true;
 			}
 		} else {
 			this.dir_held = false;
 		}
+
 		world_camera.tick();
+		//draw sky
 		drawSky(color_map_bg);
 
 		//draw world objects
@@ -515,6 +612,7 @@ class State_Map {
 		world_objects.forEach(w => {
 			w.beDrawnOnMap();
 		});
+		
 
 		var fontSize = Math.floor(canvas.height / 24);
 		ctx.font = `${fontSize}px Century Gothic`;
@@ -580,7 +678,7 @@ class State_Map {
 					var diffX = Math.round(a.clientX - canvasArea.left) - cursor_x;
 					var diffY = -1 * (Math.round(a.clientY - canvasArea.top) - cursor_y);
 					editor_selected.theta = (Math.atan2(diffY, diffX) + (Math.PI * 2)) % (Math.PI * 2);
-					editor_selected.updatePosition([editor_selected.x, editor_selected.y, editor_selected.z]);
+					editor_selected.updatePosition(editor_selected.x, editor_selected.y, editor_selected.z);
 				} else {
 					editor_changingTheta = false;
 					editor_selected = undefined;
@@ -631,7 +729,7 @@ class State_Map {
 					var diffX = Math.round(a.clientX - canvasArea.left) - cursor_x;
 					var diffY = -1 * (Math.round(a.clientY - canvasArea.top) - cursor_y);
 					editor_selected.theta = (Math.atan2(diffY, diffX) + (Math.PI * 2)) % (Math.PI * 2);
-					editor_selected.updatePosition([editor_selected.x, editor_selected.y, editor_selected.z]);
+					editor_selected.updatePosition(editor_selected.x, editor_selected.y, editor_selected.z);
 					cursor_x = editor_selected.map_circleCoords[0];
 					cursor_y = editor_selected.map_circleCoords[1];
 				} else {
@@ -660,8 +758,8 @@ class State_Map {
 					//update selected tunnel position
 					if (editor_selected != undefined) {
 						var offset = [editor_selected.map_startCoords[0] - editor_selected.map_circleCoords[0], editor_selected.map_startCoords[1] - editor_selected.map_circleCoords[1]];
-						var newCoords = screenToSpace([snapX + offset[0], snapY + offset[1]], map_cameraHeight);
-						editor_selected.updatePosition(newCoords);
+						var newCoords = screenToSpace([snapX + offset[0], snapY + offset[1]], world_camera.y);
+						editor_selected.updatePosition(newCoords[0], newCoords[1], newCoords[2]);
 					}
 				}
 			}
@@ -721,10 +819,17 @@ class State_Menu {
 		ctx.strokeStyle = color_grey_dark;
 		ctx.fillRect(0, 0, canvas.width, canvas.height);
 		//title card
-		ctx.font = `${canvas.height / 10}px Century Gothic`;
+		ctx.font = `${canvas.height / 8}px Century Gothic`;
 		ctx.textAlign = `center`;
 		ctx.fillStyle = color_text_bright;
-		ctx.fillText(`Run 3`, canvas.width * 0.5, canvas.height * 0.1);
+		ctx.fillText(`Run 3`, canvas.width * 0.5, canvas.height * 0.13);
+
+		//powercell readout
+		ctx.font = `${canvas.height / 24}px Century Gothic`;
+		ctx.textAlign = `left`;
+		ctx.fillText(`${data_persistent.powercells} power cells`, canvas.width * 0.02, canvas.height * 0.05);
+		ctx.textAlign = `center`;
+
 		
 		//mode select
 

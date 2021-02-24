@@ -1,5 +1,5 @@
 //houses functions of various utility, from 3d rendering to 2d drawing to misc. object manipulation
-
+//TODO: change spaceToRelativeRotless() to spaceToRelative, and rename spaceToRelative() to spaceToRelativeRot()
 /* 
 generation functions:
 	generateStarSphere();
@@ -95,6 +95,16 @@ function clamp(num, min, max) {
 	return num <= min ? min : num >= max ? max : num;
 }
 
+function getClosestObject(arr) {
+	var item = 0;
+	for (var a=1; a<arr.length; a++) {
+		if (arr[a].cameraDist < arr[item].cameraDist) {
+			item = a;
+		}
+	}
+	return item;
+}
+
 function getImage(url) {
 	var image = new Image();
 	image.src = url;
@@ -115,6 +125,31 @@ function getPercentage(val1, val2, checkVal) {
 	val2 -= val1;
 	checkVal -= val1;
 	return checkVal / val2;
+}
+
+function getTimeFromFrames(intFrames) {
+	var timeText = ` s`;
+	//seconds
+	timeText = Math.floor((intFrames % 3600) / 60) + timeText;
+	
+
+	//minutes
+	if (intFrames >= 3600) {
+		//add 0 to seconds
+		if (Math.floor((intFrames % 3600) / 60) < 10) {
+			timeText = "0" + timeText;
+		}
+		timeText = `${Math.floor((intFrames % 216000) / 3600)}:` + timeText.substring(0, timeText.length-2);
+	}
+	//hours
+	if (intFrames >= 216000) {
+		//add 0 to minutes
+		if (Math.floor((intFrames % 216000) / 3600) < 10) {
+			timeText = "0" + timeText;
+		}
+		timeText = `${Math.floor(intFrames / 216000)}:` + timeText;
+	}
+	return timeText;
 }
 
 //performs a linear interpolation between 2 values
@@ -156,6 +191,20 @@ function localStorage_write() {
 	window.localStorage["run3_data"] = JSON.stringify(data_persistent);
 }
 
+function trueReset() {
+	//give user a warning
+	if (confirm("This action cannot be undone. Would you like to reset completely? \n(Press OK to reset, Cancel to not)")) {
+		//reset game flags
+		data_persistent = undefined;
+
+		//push to local storage
+		window.localStorage["run3_data"] = undefined;
+
+		//refresh page
+		window.location.reload();
+	}
+}
+
 function logTime(logName) {
 	times_current[logName] = [performance.now(), 0];
 	if (times_past[logName] == undefined) {
@@ -183,32 +232,40 @@ function orderObjects(array, places) {
 	let unsorted_objects = [];
 	let ordered = [];
 	let buckets = [[], [], [], [], [], [], [], [], [], []];
-	array.forEach(e => {
-		unsorted_objects.push(e);
-	});
+	var end = array.length-1;
+	unsorted_objects[end] = undefined;
+
+	for (var a=0; a<array.length; a++) {
+		unsorted_objects[a] = array[a];
+	}
 
 	//running a radix sort
 	for (var pos=1; pos<places+1; pos++) {
+		//empty buckets
+		for (var g=0; g<buckets.length; g++) {
+			buckets[g] = [];
+		}
 		//push objects to buckets
-		while (unsorted_objects.length > 0) {
+		for (var m=0; m<unsorted_objects.length; m++) {
 			//formula determines which bucket to push into
-			buckets[Math.floor(((unsorted_objects[0].cameraDist) % Math.pow(10, pos) / Math.pow(10, pos-1)))].push(unsorted_objects[0]);
-			unsorted_objects.splice(0, 1);
+			buckets[Math.floor(((unsorted_objects[m].cameraDist) % Math.pow(10, pos) / Math.pow(10, pos-1)))].push(unsorted_objects[m]);
 		}
 
-		//empty buckets
+		//clear unsorted
+		unsorted_objects = [];
+
+		//put bucket results into unsorted array
 		for (var k=0;k<buckets.length;k++) {
-			while (buckets[k].length > 0) {
-				unsorted_objects.push(buckets[k][0]);
-				buckets[k].splice(0, 1);
+			for (var m=0; m<buckets[k].length; m++) {
+				unsorted_objects.push(buckets[k][m]);
 			}
 		}
 	}
 
 	//push now ordered list to final array
-	while (unsorted_objects.length > 0) {
-		ordered.push(unsorted_objects[unsorted_objects.length-1]);
-		unsorted_objects.splice(unsorted_objects.length-1, 1);
+	ordered[end] = undefined;
+	for (var m=0; m<unsorted_objects.length; m++) {
+		ordered[m] = unsorted_objects[end - m];
 	}
 
 	return ordered;
@@ -368,7 +425,7 @@ function RGBtoHSV(sixDigitRGBHexCode) {
 		saturation = diff / val_max;
 	}
 
-	return {h: hue, s: saturation * 100, v: value};
+	return {h: hue, s: saturation * 80, v: value};
 }
 
 function rotate(x, z, radians) {
@@ -616,11 +673,23 @@ function tunnelData_subdivide(data) {
 
 
 //outputs every tunnel in the world as a string
-function worldOutput() {
+function outputWorld() {
 	var output = ``;
 	world_objects.forEach(w => {
 		output += w.giveStringData() + "\n";
 	});
+
+	return output;
+}
+
+//outputs every tunnel with a prefix as a string
+function outputTunnel(prefix) {
+	var output = ``;
+	var num = 1;
+	while (getObjectFromID(prefix + num) != undefined) {
+		output += getObjectFromID(prefix + num).giveStringData() + "\n";
+		num += 1;
+	}
 
 	return output;
 }
