@@ -208,7 +208,7 @@ let loading_state = new State_Loading();
 
 var map_height = 135000;
 var map_shift = 56000;
-var map_zOffset
+var map_zOffset = -25000;
 
 var menu_buttonWidth = 0.2;
 var menu_buttonHeight = 0.05;
@@ -567,14 +567,10 @@ function updateResolution() {
 */
 function performanceTest() {
 	var perfTime = [performance.now(), 0];
-	var variableName = 0;
-	for (var a=0;a<100000;a++) {
-		if (spaceToRelativeRotless([Math.random(), Math.random(), Math.random()], [Math.random(), Math.random(), Math.random()], [Math.random(), Math.random()])[2] > 0.5) {
-			variableName = 0;
-		} else {
-			variableName = 1;
-		}
-		variableName = Math.random();
+	var variableName = [0, 0, 0];
+	for (var a=0;a<1000000;a++) {
+		transformPoint(variableName, [Math.random(), Math.random(), Math.random()], [Math.random(), Math.random()], randomBounded(3, 6));
+		variableName = [0, 0, 0];
 	}
 
 
