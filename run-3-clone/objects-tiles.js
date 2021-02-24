@@ -16,13 +16,8 @@ class Tile extends FreePoly {
 
 		this.calculatePointsAndNormal();
 
-		
-
 		this.parent = parent;
 		this.parentPosition = tilePosition;
-
-		//for things like crumbling tiles and boxes, that stick out from the strip and need to be ordered specially
-		this.requiresOrdering = false;
 	}
 
 	calculatePointsAndNormal() {
@@ -102,8 +97,6 @@ class Tile_Box extends Tile {
 	constructor(x, y, z, size, normal, parent, tilePosition) {
 		super(x, y, z, size, normal, parent, tilePosition, {h: 300, s: 10});
 
-		this.requiresOrdering = true;
-
 		//all boxes have a left / right tile, for changing rotation
 		this.leftTile = new Tile(x, y, z, size, [normal[0], (normal[1] + (Math.PI * 1.5)) % (Math.PI * 2)], parent, tilePosition, this.color);
 		this.rightTile = new Tile(x, y, z, size, [normal[0], (normal[1] + (Math.PI * 0.5)) % (Math.PI * 2)], parent, tilePosition, this.color);
@@ -181,50 +174,75 @@ class Tile_Box extends Tile {
 			var entityCoords = spaceToRelativeRotless([entity.x, entity.y, entity.z], [this.x, this.y, this.z], this.normal);
 
 			//second check for collision, only collide if all 3 coordinates are under threshold
-			if (Math.abs(entityCoords[0]) - entity.r < this.size / 2 && Math.abs(entityCoords[1]) - entity.r < this.size / 2 && Math.abs(entityCoords[2]) - entity.r < this.size / 2) {
-				var distX = Math.abs(entityCoords[0]);
+			if (Math.abs(entityCoords[0]) - this.tolerance < this.size / 2 && Math.abs(entityCoords[1]) - this.tolerance < this.size / 2 && Math.abs(entityCoords[2]) - this.tolerance < this.size / 2) {
+				var distX = Math.abs(entityCoords[0]) - entity.r;
 				var distY = Math.abs(entityCoords[1]);
-				var distZ = Math.abs(entityCoords[2]);
+				var distZ = Math.abs(entityCoords[2]); 
+				//x = forwards / back
+				//y = left / right
+				//z = up / down
+
+
 				//if x is the greatest (forwards / back in the tunnel) slow player down and push out
-				if (distX - player.r > distY && distX - player.r> distZ) {
-					entity.dz = 0;
-					if (entityCoords[0] > 0) {
-						entityCoords[0] = 0.5 * this.size + entity.r;
-					} else {
-						entityCoords[0] = (-0.5 * this.size) - entity.r;
-					}
-				} else if (distZ > distY - player.r && distZ > distX - player.r) {
-					//if z is the greatest, do rotation effects normally
-					if (entityCoords[2] > 0) {
-						entityCoords[2] =  0.5 * this.size + entity.r;
-					} else {
-						entityCoords[2] = -0.5 * this.size - entity.r;
-					}
-					this.doCollisionEffects(entity);
-					if (!haltCollision && (entity.dir_down[0] != this.dir_down[0] || entity.dir_down[1] != this.dir_down[1])) {
-						this.doRotationEffects(entity);
-					}
+				if (distZ > distX && distZ > distY) {
+					//top
+					this.collide_upDown(entity, entityCoords);
+				} else if (distY > distX && distY > distZ) {
+					//sides
+					this.collide_leftRight(entity, entityCoords);
 				} else {
-					//if y is the greatest, then it's the sides of the box.
-					//this solution is sort of hacky, but the box is already ridiculously laggy so I don't particularly care
-					if (entityCoords[1] > 0) {
-						if (!haltCollision && (entity.dir_down[0] != this.rightTile.dir_down[0] || entity.dir_down[1] != this.rightTile.dir_down[1])) {
-							this.rightTile.doRotationEffects(entity);
-						}
-						entityCoords[1] = 0.5 * this.size + entity.r;
-					} else {
-						if (!haltCollision && (entity.dir_down[0] != this.leftTile.dir_down[0] || entity.dir_down[1] != this.leftTile.dir_down[1])) {
-							this.leftTile.doRotationEffects(entity);
-						}
-						entityCoords[1] = -0.5 * this.size - entity.r;
-					}
-					this.doCollisionEffects(entity);
+					//front / back
+					this.collide_forwardsBackwards(entity, entityCoords);
 				}
 			}
 
 			//transform player coords back and assign to player
 			[entity.x, entity.y, entity.z] = relativeToSpace(entityCoords, [this.x, this.y, this.z], [this.normal[0], this.normal[1], 0]);
 		}
+	}
+
+	collide_forwardsBackwards(entity, entityCoords) {
+		//if x is the greatest
+		entity.dz = 0;
+		if (entityCoords[0] > 0) {
+			entityCoords[0] = 0.5 * this.size + this.tolerance;
+		} else {
+			entityCoords[0] = (-0.5 * this.size) - this.tolerance;
+		}
+	}
+
+	collide_upDown(entity, entityCoords) {
+		//if z is the greatest
+		this.doCollisionEffects(entity);
+
+		if (entityCoords[2] > 0) {
+			entityCoords[2] =  0.5 * this.size + this.tolerance;
+			if (Math.abs(entityCoords[2]) < this.size * 0.95 && !haltCollision && (entity.dir_down[0] != this.dir_down[0] || entity.dir_down[1] != this.dir_down[1])) {
+				this.doRotationEffects(entity);
+			}
+		} else {
+			entityCoords[2] = -0.5 * this.size - this.tolerance;
+			//rotation for upside down
+		}
+	}
+
+	collide_leftRight(entity, entityCoords) {
+		//if y is the greatest
+		this.doCollisionEffects(entity);
+
+		//this solution is sort of hacky, but the box is already ridiculously laggy so I don't particularly care
+		if (entityCoords[1] > 0) {
+			if (Math.abs(entityCoords[1]) < this.size * 0.95 && !haltCollision && (entity.dir_down[0] != this.rightTile.dir_down[0] || entity.dir_down[1] != this.rightTile.dir_down[1])) {
+				this.rightTile.doRotationEffects(entity);
+			}
+			entityCoords[1] = 0.5 * this.size + this.tolerance;
+			return;
+		} 
+
+		if (Math.abs(entityCoords[1]) < this.size * 0.95 && !haltCollision && (entity.dir_down[0] != this.leftTile.dir_down[0] || entity.dir_down[1] != this.leftTile.dir_down[1])) {
+			this.leftTile.doRotationEffects(entity);
+		}
+		entityCoords[1] = -0.5 * this.size - this.tolerance;
 	}
 
 	tick() {
@@ -301,9 +319,9 @@ class Tile_Conveyor extends Tile {
 	calculateTriPoints() {
 		this.triPoints = [[-1 + (this.time * 2), 0, -1], [-1 + (this.time * 2), 0, 0], [-1, 0, -1 * this.time], [-1, 0, this.time], [-1 + (this.time * 2), 0, 0], 
 					[-1 + (this.time * 2), 0, 1], [1, 0, this.time], [1, 0, -1 * this.time]];
-		for (var p=0; p<this.triPoints.length; p++) {
-			this.triPoints[p] = transformPoint(this.triPoints[p], [this.x, this.y, this.z], this.normal, this.size + 0.5);
-		}
+		this.triPoints.forEach(p => {
+			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 0.5);
+		});
 	}
 
 	getSecondaryColor() {
@@ -341,9 +359,9 @@ class Tile_Conveyor_Slow extends Tile_Conveyor {
 	calculateTriPoints() {
 		this.triPoints = [[1 - (this.time * 2), 0, -1], [1 - (this.time * 2), 0, 0], [1, 0, -1 * this.time], [1, 0, this.time], [1 - (this.time * 2), 0, 0], 
 					[1 - (this.time * 2), 0, 1], [-1, 0, this.time], [-1, 0, -1 * this.time]];
-		for (var p=0; p<this.triPoints.length; p++) {
-			this.triPoints[p] = transformPoint(this.triPoints[p], [this.x, this.y, this.z], this.normal, this.size + 0.5);
-		}
+		this.triPoints.forEach(p => {
+			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 0.5);
+		});
 	}
 
 	doSpeedEffects(entity) {
@@ -375,9 +393,9 @@ class Tile_Conveyor_Left extends Tile_Conveyor {
 	calculateTriPoints() {
 		this.triPoints = [[-1, 0, 1 - (this.time * 2)], [0, 0, 1 - (this.time * 2)], [-1 * this.time, 0, 1], [this.time, 0, 1], [0, 0, 1 - (this.time * 2)], 
 					[1, 0, 1 - (this.time * 2)], [this.time, 0, -1], [-1 * this.time, 0, -1]];
-		for (var p=0; p<this.triPoints.length; p++) {
-			this.triPoints[p] = transformPoint(this.triPoints[p], [this.x, this.y, this.z], this.normal, this.size + 0.5);
-		}
+		this.triPoints.forEach(p => {
+			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 0.5);
+		});
 	}
 
 	doSpeedEffects(entity) {
@@ -403,9 +421,9 @@ class Tile_Conveyor_Right extends Tile_Conveyor {
 	calculateTriPoints() {
 		this.triPoints = [[-1, 0, -1 + (this.time * 2)], [0, 0, -1 + (this.time * 2)], [-1 * this.time, 0, -1], [this.time, 0, -1], [0, 0, -1 + (this.time * 2)], 
 					[1, 0, -1 + (this.time * 2)], [this.time, 0, 1], [-1 * this.time, 0, 1]];
-		for (var p=0; p<this.triPoints.length; p++) {
-			this.triPoints[p] = transformPoint(this.triPoints[p], [this.x, this.y, this.z], this.normal, this.size + 0.5);
-		}
+		this.triPoints.forEach(p => {
+			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 0.5);
+		});
 	}
 
 	doSpeedEffects(entity) {
@@ -419,7 +437,6 @@ class Tile_Conveyor_Right extends Tile_Conveyor {
 class Tile_Crumbling extends Tile {
 	constructor(x, y, z, size, normal, parent, tilePosition, color) {
 		super(x, y, z, size, normal, parent, tilePosition, {h: 0, s: 0});
-		this.requiresOrdering = true;
 		this.activeSize = this.size;
 
 		this.home = [this.x, this.y, this.z];
@@ -438,11 +455,11 @@ class Tile_Crumbling extends Tile {
 		this.points = [[-1, 0, -1], [-1, 0, 1], [1, 0, 1], [1, 0, -1]];
 		
 		var rPoint = [0, 0, -10];
-		rPoint = transformPoint(rPoint, [0, 0, 0], this.normal, 1);
+		transformPoint(rPoint, [0, 0, 0], this.normal, 1);
 
-		for (var p=0; p<this.points.length; p++) {
-			this.points[p] = transformPoint(this.points[p], [this.x, this.y, this.z], this.normal, this.activeSize + 0.5);
-		}
+		this.points.forEach(p => {
+			transformPoint(p, [this.x, this.y, this.z], this.normal, this.activeSize);
+		});
 
 		this.line1 = [transformPoint([0.5, 0, 0.5], [this.x, this.y, this.z], this.normal, this.activeSize), transformPoint([-0.5, 0, -0.5], [this.x, this.y, this.z], this.normal, this.activeSize)];
 		this.line2 = [transformPoint([-0.5, 0, 0.5], [this.x, this.y, this.z], this.normal, this.activeSize), transformPoint([0.5, 0, -0.5], [this.x, this.y, this.z], this.normal, this.activeSize)];
@@ -528,8 +545,8 @@ class Tile_Crumbling extends Tile {
 		super.doCollisionEffects(entity);
 		//crumbling tiles do not place player firmly on the ground
 		entity.onGround = physics_graceTime - 1;
-		//only crumble if not a child
-		if (entity.jumpBuffer == undefined || entity.jumpBuffer > 0) {
+		//only crumble if not a child and if not already crumbling
+		if (this.fallStatus == undefined && entity.jumpBuffer == undefined || entity.jumpBuffer > 0) {
 			this.fallStatus = 0;
 			this.propogateCrumble();
 		}
@@ -576,20 +593,18 @@ class Tile_Ice extends Tile {
 class Tile_Ice_Ramp extends Tile_Ice {
 	constructor(x, y, z, size, normal, parent, tilePosition) {
 		super(x, y, z, size, normal, parent, tilePosition);
-		this.requiresOrdering = true;
 	}
 
 	calculatePointsAndNormal() {
-		var points = [[-1, 0, -1], [-1, 0, 1], [-1 + Math.sqrt(3), 0.5, 1], [-1 + Math.sqrt(3), 0.5, -1]];
+		this.points = [[-1, 0, -1], [-1, 0, 1], [-1 + Math.sqrt(3), 0.5, 1], [-1 + Math.sqrt(3), 0.5, -1]];
 		
 		var rPoint = [0, 0, -10];
-		rPoint = transformPoint(rPoint, [0, 0, 0], this.normal, 1);
+		transformPoint(rPoint, [0, 0, 0], this.normal, 1);
 
-		for (var p=0; p<points.length; p++) {
-			points[p] = transformPoint(points[p], [this.x, this.y, this.z], this.normal, this.size + 0.5);
-		}
+		this.points.forEach(p => {
+			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 0.5);
+		});
 		
-		this.points = points;
 		[this.x, this.y, this.z] = avgArray(this.points);
 		this.dir_down = this.normal;
 		this.normal = calculateNormal(this.points);
@@ -651,20 +666,18 @@ class Tile_Plexiglass extends Tile {
 class Tile_Ramp extends Tile {
 	constructor(x, y, z, size, normal, parent, tilePosition, color) {
 		super(x, y, z, size, normal, parent, tilePosition, color);
-		this.requiresOrdering = true;
 	}
 
 	calculatePointsAndNormal() {
-		var points = [[-1, 0, -1], [-1, 0, 1], [-1 + (2 / Math.sqrt(2)), (2 / Math.sqrt(2)), 1], [-1 + (2 / Math.sqrt(2)), (2 / Math.sqrt(2)), -1]];
+		this.points = [[-1, 0, -1], [-1, 0, 1], [-1 + (2 / Math.sqrt(2)), (2 / Math.sqrt(2)), 1], [-1 + (2 / Math.sqrt(2)), (2 / Math.sqrt(2)), -1]];
 		
 		var rPoint = [0, 0, -10];
-		rPoint = transformPoint(rPoint, [0, 0, 0], this.normal, 1);
+		transformPoint(rPoint, [0, 0, 0], this.normal, 1);
 
-		for (var p=0; p<points.length; p++) {
-			points[p] = transformPoint(points[p], [this.x, this.y, this.z], this.normal, this.size + 0.5);
-		}
-		
-		this.points = points;
+		this.points.forEach(p => {
+			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 0.5);
+		});
+
 		[this.x, this.y, this.z] = avgArray(this.points);
 		this.dir_down = this.normal;
 		this.normal = calculateNormal(this.points);
@@ -688,4 +701,8 @@ class Tile_Vertical extends Tile {
 	constructor(x, y, z, size, normal, parent, tilePosition, color) {
 		super(x, y, z, size, normal, parent, tilePosition, color);
 	}
+}
+
+class Tile_Warning extends Tile {
+	
 }
