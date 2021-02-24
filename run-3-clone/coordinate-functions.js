@@ -254,7 +254,9 @@ function transformPoint(pointToTransform, addPoint, normal, size) {
 	[pointToTransform[0], pointToTransform[2]] = rotate(pointToTransform[0], pointToTransform[2], -1 * normal[0]); 
 
 	//adjusting for coordinates
-	pointToTransform = [pointToTransform[0] + addPoint[0], pointToTransform[1] + addPoint[1], pointToTransform[2] + addPoint[2]];
+	pointToTransform[0] += addPoint[0];
+	pointToTransform[1] += addPoint[1];
+	pointToTransform[2] += addPoint[2];
 
 	return pointToTransform;
 }
