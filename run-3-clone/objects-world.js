@@ -878,7 +878,7 @@ class Tunnel_Strip {
 
 		this.tiles = [];
 		this.realTiles = [];
-		this.requiresOrdering = false;
+		this.realsBackwards = [];
 	}
 
 	//returns true if the player should be drawn on top of the strip
@@ -889,7 +889,7 @@ class Tunnel_Strip {
 		//if player is within self's intersection possibility, continue
 		if (Math.abs(playerRelPos[1]) < (this.tileSize * 0.5) + player.r) { 
 			//if no tile there, ignore the player
-			if (this.tiles[Math.floor(this.parent.playerTilePos - 0.5)] == undefined) {
+			if (this.tiles[Math.floor(this.parent.playerTilePos - 0.5)] == undefined || this.tiles[Math.floor(this.parent.playerTilePos - 0.5)].leftTile != undefined) {
 				return true;
 			}
 
@@ -995,11 +995,11 @@ class Tunnel_Strip {
 	}
 
 	beDrawn_TilesReversed() {
-		for (var a=this.realTiles.length-1; a>=0; a--) {
-			if ((this.realTiles[a].size / this.realTiles[a].cameraDist) * world_camera.scale > render_minTileSize) {
-				this.realTiles[a].beDrawn();
+		this.realsBackwards.forEach(t => {
+			if ((t.size / t.cameraDist) * world_camera.scale > render_minTileSize) {
+				t.beDrawn();
 			}
-		}
+		});
 	}
 
 	collideWithEntity(entity) {
@@ -1011,10 +1011,12 @@ class Tunnel_Strip {
 	//makes drawing / ticking self tiles slightly faster
 	establishReals() {
 		this.realTiles = [];
+		this.realsBackwards = [];
 		this.tiles.forEach(t => {
 			//if the tile isn't undefined and it's not a plexiglass tile (or it is a plexiglass tile and the player's a pastafarian)
 			if (t != undefined && (t.minStrength == undefined || player.personalBridgeStrength != undefined)) {
 				this.realTiles.push(t);
+				this.realsBackwards.splice(0, 0, t);
 			}
 		});
 	}
