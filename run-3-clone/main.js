@@ -267,7 +267,7 @@ var render_clipDistance = 0.1;
 var render_identicalPointTolerance = 0.0001;
 var render_maxColorDistance = 950;
 var render_maxDistance = 15000;
-var render_minTileSize = 15;
+var render_minTileSize = 8;
 var render_starOpacity = 0.6;
 var render_tunnelTextTime = 50;
 var render_voidSpinSpeed = 0.04;
@@ -528,6 +528,7 @@ function updateResolution() {
 	canvas.width *= multiplier;
 	canvas.height *= multiplier;
 	world_camera.scale *= multiplier;
+	render_minTileSize *= multiplier;
 	menu_characterSize = canvas.height / 16;
 
 	if (loading_state.drawEnding == false) {
