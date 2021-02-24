@@ -51,7 +51,7 @@ class State_World {
 	}
 
 	execute() {
-		logTime("total");
+		//logTime("total");
 		//handling entities
 		world_camera.tick();
 		player.tick();
@@ -155,7 +155,7 @@ class State_World {
 			ctx.fillText(this.text, canvas.width * 0.5, canvas.height * 0.5);
 			this.textTime -= 1;
 		}
-		logTimeEnd("total", "avg. frame time");
+		//logTimeEnd("total", "avg. frame time");
 	}
 
 	handlePlayerDeath() {
