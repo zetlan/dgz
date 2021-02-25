@@ -115,9 +115,9 @@ class Character {
 		this.dir_front = [Math.PI / 2, 0];
 		
 		this.gravStrength = physics_gravity;
-		this.speed = 0.11;
-		this.dMax = 3.4;
-		this.fallMax = this.dMax * 1.3;
+		this.speed = 0.12;
+		this.dMax = 3.74;
+		this.fallMax = this.dMax * 1.4;
 		this.jumpStrength = 2;
 		this.jumpBoostStrength = 0.1;
 		this.coyote = 0;
@@ -183,13 +183,7 @@ class Character {
 		
 		//if player has a parent, change gravity based on parent power
 		if (this.onGround < physics_graceTime - 2) { 
-			if (this.parent != undefined) {
-				this.dy -= linterp(activeGravity * 0.8, activeGravity, this.parent.power);
-			} else {
-				this.dy -= activeGravity;
-			}
-		} else {
-			//if firmly on the ground, reduce y velocity
+			this.dy -= linterp(activeGravity * 0.8, activeGravity, this.parentPrev.power);
 		}
 
 		//jump boost
@@ -198,7 +192,7 @@ class Character {
 			this.jumpTime -= 1;
 		}
 		
-		this.dy = clamp(this.dy, -1 * this.fallMax, 3 * this.fallMax);
+		this.dy = clamp(this.dy, -1 * this.fallMax, 2 * this.fallMax);
 
 		this.dx += activeAX;
 		if (this.ax == 0 || this.ax * this.dx < 0) {
@@ -246,7 +240,7 @@ class Character {
 					//if in the void, change physics
 					var voidStrength = spaceToRelativeRotless(this.parent.centerPos, [this.x, this.y, this.z], this.dir_down)[2] / this.parent.r;
 					if (this.parent.playerTilePos > this.parent.len - 0.5) {
-						voidStrength *= -0.6;
+						voidStrength *= -0.7;
 						//if the player off the end of the tunnel and is above the midpoint, make them go down faster
 						if (voidStrength > 0) {
 							voidStrength *= 1.8;
@@ -489,11 +483,11 @@ class Angel extends Character {
 	constructor(x, y, z) {
 		super(x, y, z, `Angel`);
 
-		this.speed = 0.07;
-		this.dMax = 3.6;
-		this.fallMax = 3.4;
-		this.dMaxTrue = 8.5;
-		this.naturalFriction = 0.9975;
+		this.speed = 0.08;
+		this.dMax = 3.96;
+		this.fallMax = 3.6;
+		this.dMaxTrue = 9.25;
+		this.naturalFriction = 0.998;
 		this.jumpStrength = 2.6;
 		this.jumpBoostStrength = 0.09;
 
@@ -560,9 +554,9 @@ class Bunny extends Character {
 		this.jumpStrength = 3;
 		this.jumpBoostStrength = 0.13;
 		this.boostFriction = 0.995;
-		this.speed = 0.12;
-		this.trueSpeed = 0.8;
-		this.dMax = 9.2;
+		this.speed = 0.13;
+		this.trueSpeed = 0.9;
+		this.dMax = 10.12;
 		this.dMin = 2;
 	}
 
@@ -620,12 +614,12 @@ class Child extends Character {
 		this.texture_jumpL = new Texture(getImage(data_sprites.Child.sheet), data_sprites.spriteSize, data_sprites.Child.frameTime, false, false, data_sprites.Child.jumpLeft);
 		this.texture_jumpR = new Texture(getImage(data_sprites.Child.sheet), data_sprites.spriteSize, data_sprites.Child.frameTime, false, false, data_sprites.Child.jumpRight);
 
-		this.gravStrength *= 0.8;
+		this.gravStrength *= 0.85;
 		this.jumpStrength = 2.67;
 		this.jumpBoostStrength = 0.07;
-		this.speed = 0.04;
-		this.dMax = 2.9;
-		this.fallMax = 1.1;
+		this.speed = 0.05;
+		this.dMax = 3.2;
+		this.fallMax = 1.14;
 
 		this.jumpBuffer = 0;
 	}
@@ -657,8 +651,8 @@ class Duplicator extends Character {
 
 		this.jumpStrength = 2.85;
 		this.jumpBoostStrength = 0.09;
-		this.speed = 0.1;
-		this.dMax = 3.4;
+		this.speed = 0.11;
+		this.dMax = 3.74;
 
 		this.duplicates = [];
 		this.duplicatesMax = 10;
@@ -805,8 +799,8 @@ class DuplicatorDuplicate extends Character {
 
 		this.jumpStrength = 3;
 		this.jumpBoostStrength = 0.095;
-		this.speed = 0.14;
-		this.dMax = 3.41;
+		this.speed = 0.15;
+		this.dMax = 3.75;
 	}
 
 	collide() {
@@ -838,10 +832,10 @@ class Gentleman extends Character {
 
 		this.jumpStrength = 3.6;
 		this.jumpBoostStrength = 0.05;
-		this.speed = 0.04;
-		this.dMax = 3;
-		this.dMaxTrue = 4.5;
-		this.naturalFriction = 0.9995;
+		this.speed = 0.05;
+		this.dMax = 3.3;
+		this.dMaxTrue = 4.95;
+		this.naturalFriction = 0.9994;
 
 		this.attracting = undefined;
 		this.attractionForce = undefined;
@@ -1011,8 +1005,8 @@ class Lizard extends Character {
 
 		this.jumpStrength = 4.3;
 		this.jumpBoostStrength = 0.13;
-		this.speed = 0.08;
-		this.dMax = 2.6;
+		this.speed = 0.09;
+		this.dMax = 2.86;
 	}
 }
 
@@ -1027,9 +1021,9 @@ class Pastafarian extends Character {
 
 		this.jumpStrength = 4.5;
 		this.jumpBoostStrength = 0;
-		this.speed = 0.12;
-		this.dMax = 3.3;
-		this.fallMax = 4.5;
+		this.speed = 0.13;
+		this.dMax = 3.63;
+		this.fallMax *= 1.05;
 
 		this.personalBridgeStrength = 1;
 		this.bridgeMultiplier = 0.988;
@@ -1064,8 +1058,8 @@ class Runner extends Character {
 
 		this.jumpStrength = 2.85;
 		this.jumpBoostStrength = 0.09;
-		this.speed = 0.11;
-		this.dMax = 3.4;
+		this.speed = 0.12;
+		this.dMax = 3.74;
 	}
 }
 
@@ -1076,9 +1070,9 @@ class Skater extends Character {
 
 		this.jumpStrength = 2.5;
 		this.jumpBoostStrength = 0.06;
-		this.speed = 0.07;
-		this.dMax = 10;
-		this.fallMax = this.dMax;
+		this.speed = 0.08;
+		this.dMax = 11;
+		this.fallMax = this.r * 0.46;
 	}
 }
 
@@ -1088,8 +1082,8 @@ class Student extends Character {
 
 		this.jumpStrength = 2.2;
 		this.jumpBoostStrength = 0.05;
-		this.speed = 0.1;
-		this.dMax = 2.74;
+		this.speed = 0.11;
+		this.dMax = 2.96;
 		this.r -= 2;
 		this.fallMax = 5.5;
 
