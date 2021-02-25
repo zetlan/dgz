@@ -164,6 +164,7 @@ function localStorage_read() {
 		toRead = JSON.parse(toRead);
 	} catch (error) {
 		console.log(`ERROR: could not parse ${toRead}, using default`);
+		return;
 	}
 	
 
@@ -172,6 +173,7 @@ function localStorage_read() {
 		data_persistent = toRead;
 	} else {
 		console.log("ERROR: invalid type specified in save data, using default");
+		return;
 	}
 
 	//change the visited tags for all levels
@@ -318,16 +320,10 @@ function power_slow(powStart, powEnd, time) {
 	//slow is also made from other functions, I used switch because it was worth it
 	var mode = Math.floor(time / 10);
 
+	if (mode < 9) {
+		mode = 9;
+	}
 	switch (mode) {
-		case 0:
-		case 1:
-		case 2:
-		case 3:
-		case 4:
-		case 5:
-		case 6:
-		case 7:
-		case 8:
 		case 9:
 			return power_notSoFalseAlarm(powStart, powEnd, time);
 		case 10:
@@ -341,12 +337,12 @@ function power_slow(powStart, powEnd, time) {
 		case 15:
 			return linterp(powEnd, powStart, 0.4);
 		case 16:
-			return linterp(powEnd, powStart, 0);
+			return powEnd;
 		case 17:
 			return linterp(powEnd, powStart, 0.3);
 		case 18:
 		default:
-			return linterp(powEnd, powStart, 0);
+			return powEnd;
 	}
 }
 
@@ -461,18 +457,16 @@ function tunnelData_handle(data) {
 	//generate tunnel array
 	var finalTileArray = [];
 
-	tunnelTileFarthest = 0;
-	for (var g=0; g<data.tilesPerSide*data.sides; g++) {
-		finalTileArray.push([]);
+	finalTileArray[(data.tilesPerSide * data.sides) - 1] = [];
+	for (var g=0; g<data.tilesPerSide*data.sides-1; g++) {
+		finalTileArray[g] = [];
 	}
 
-	//parse the tunnel data
-	for (var j=0;j<data.tileData.length;j++) {
-		//only process the index if the data is real
-		if (data.tileData[j]) {
-			tunnelData_parseData(data.tileData[j], finalTileArray, data.tilesPerSide * data.sides, j);
-		}
-	}
+	data.tileData.forEach(j => {
+		var dataBit = j.split("~");
+		dataBit[1] = "~" + dataBit[1];
+		tunnelData_parseData(dataBit[0], finalTileArray, data.tilesPerSide * data.sides, tunnel_tileAssociation[dataBit[1]]);
+	});
 
 	data.tileData = finalTileArray;
 
@@ -487,15 +481,6 @@ function tunnelData_handle(data) {
 
 //takes in terrain data and returns the 2d array with different tunnel tile types
 function tunnelData_parseData(toParse, tileArray, tilesInLoop, tileTypeNum) {
-	var translation = {
-		"0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9,
-		":": 10, ";": 11, "<": 12, "=": 13, ">": 14, "?": 15,"@": 16, "A": 17, "B": 18, "C": 19,
-		"D": 20, "E": 21, "F": 22, "G": 23, "H": 24, "I": 25, "J": 26, "K": 27, "L": 28, "M": 29,
-		"N": 30, "O": 31, "P": 32, "Q": 33, "R": 34, "S": 35, "T": 36, "U": 37, "V": 38, "W": 39,
-		"X": 40, "Y": 41, "Z": 42, "[": 43, "/": 44, "]": 45, "^": 46, "_": 47, "!": 48, "a": 49,
-		"b": 50, "c": 51, "d": 52, "e": 53, "f": 54, "g": 55, "h": 56, "i": 57, "j": 58, "k": 59,
-		"l": 60, "m": 61, "n": 62, "o": 63,
-	};
 	//first step is to parse the stars
 	//loop through all characters of the data
 	for (var u=0;u<toParse.length;u++) {
@@ -509,7 +494,7 @@ function tunnelData_parseData(toParse, tileArray, tilesInLoop, tileTypeNum) {
 				detectorChar += 1;
 				starNum += 1;
 			}
-			var repeatTimes = translation[toParse[detectorChar]];
+			var repeatTimes = tunnel_translation[toParse[detectorChar]];
 
 			//removing the stars and indicator number from the original data
 			toParse = spliceOut(toParse, u, detectorChar+1);
@@ -525,7 +510,7 @@ function tunnelData_parseData(toParse, tileArray, tilesInLoop, tileTypeNum) {
 	//next step is converting the data to 1s/0s
 	var newData = "";
 	for (var e=0;e<toParse.length;e++) {
-		newData += ("000000" + (translation[toParse[e]]).toString(2)).substr(-6);
+		newData += ("000000" + (tunnel_translation[toParse[e]]).toString(2)).substr(-6);
 	}
 
 	//final step is to map the 1s/0s onto the tunnel array
@@ -534,8 +519,8 @@ function tunnelData_parseData(toParse, tileArray, tilesInLoop, tileTypeNum) {
 		var row = posCounter % tilesInLoop;
 		var column = Math.floor(posCounter / tilesInLoop);
 
-		//if the array is empty or has a 0 at the given position, put this data value on it
-		if (tileArray[row][column] == undefined || tileArray[row][column] == 0) {
+		//if the array doesn't already have a value, put self's value in
+		if (!(tileArray[row][column] > 0)) {
 			tileArray[row][column] = newData[posCounter] * tileTypeNum;
 		}
 
@@ -545,15 +530,6 @@ function tunnelData_parseData(toParse, tileArray, tilesInLoop, tileTypeNum) {
 
 //takes in raw tunnel data and subdivides it into its segments (id, tunnel type information, tile information, color, etc)
 function tunnelData_subdivide(data) {
-	var tileAssociation = {
-		"~undefined": 1, "~glow": 2, "~crumbling": 3, "~ice": 4,
-		"~slow": 5, "~fast": 6, "~left": 7, "~right": 8,
-		"~box": 9, "~rotatedZBox": 10, "~steepRamp": 11, "~ramp": 12, //ice ramp
-		"~movable": 13, "~battery": 14
-	};
-
-	 
-
 	var rawInput = data;
 	//remove color indicators, I don't want to deal with that
 	rawInput = rawInput.replace("~color-1", "");
@@ -562,32 +538,29 @@ function tunnelData_subdivide(data) {
 	//split input using vertical separators
 	var splitInput = rawInput.split("|");
 
+	var tunnelStructure = {
+		color: "", 
+		id: "ERROR: name not initialized", 
+		maxLen: 0, 
+		power: 1, 
+		powerFunctions: [], 
+		sides: 0, 
+		spawns: [],
+		tileData: [], 
+		tileSize: 70, 
+		tilesPerSide: 0, 
+		theta: 0, 
+		x: 0, 
+		z: 0
+	};
+
 	//looping through all indeces of the array to classify them
-	var tunnel_tileData = [];
-	var tunnel_color = "";
-	var tunnel_sides = 0;
-	var tunnel_tilesPerSide = 0;
-	var tunnel_tileSize = 70;
-	var tunnel_id = "";
-
-	var tunnel_power = 1;
-	var tunnel_powerFunctions = [];
-
-	var tunnel_spawns = [];
-
-	var tunnel_theta = 0;
-	var tunnel_x = 0;
-	var tunnel_z = 0;
-	
-
-	
-
-		//determining what to do with the input
+	//TODO: refactor this, possibly into seperate functions, or a switch statement?
 	splitInput.forEach(i => {
 		//if it's a color tag, update the color
 		if (i.indexOf("color") == 0) {
 			//take the last 6 chars as the color code
-			tunnel_color = "#" + i.substr(i.length - 6, 6);
+			tunnelStructure.color = "#" + i.substr(i.length - 6, 6);
 		}
 
 		//if it's a layout tag, update the tiles per row
@@ -598,19 +571,19 @@ function tunnelData_subdivide(data) {
 			layoutNumberBits = JSON.parse(layoutNumberBits);
 
 			//0 is sides, 1 is tiles per side
-			tunnel_sides = layoutNumberBits[0];
-			tunnel_tilesPerSide = layoutNumberBits[1];
+			tunnelStructure.sides = layoutNumberBits[0];
+			tunnelStructure.tilesPerSide = layoutNumberBits[1];
 		}
 
 		//if it's a tile size tag, update the tile size
 		else if (i.indexOf("tileWidth") == 0) {
 			//splice out the first part, multiply by 1 so it's not a string anymore
-			tunnel_tileSize = i.replace("tileWidth-", "") * 1;
+			tunnelStructure.tileSize = i.replace("tileWidth-", "") * 1;
 		}
 
 		//if it's an id tag, update the id, you know the thingy
 		else if (i.indexOf("id-") == 0) {
-			tunnel_id = i.replace("id-", "");
+			tunnelStructure.id = i.replace("id-", "");
 		}
 
 		//trigger conditionals
@@ -624,7 +597,7 @@ function tunnelData_subdivide(data) {
 				//the second box is the result power, and 
 				//the third box is the type of fade
 				//EX [10, 0.4, "slow"]
-				tunnel_powerFunctions.push([temp[0] * 1, temp[1].replace(">~result-power-", "")* 1, temp[2]]);
+				tunnelStructure.powerFunctions.push([temp[0] * 1, temp[1].replace(">~result-power-", "") * 1, temp[2]]);
 			}
 		}
 
@@ -633,42 +606,34 @@ function tunnelData_subdivide(data) {
 			//first splice out the terrain pos
 			var dataBit = i.replace("terrain-pos-", "");
 			//splice out the type definition
-
-			dataBit = dataBit.split("~");
-			dataBit[1] = "~" + dataBit[1];
-
-			//use the second part (after the tilda) to know where to place the first part (actual data)
-			var position = tileAssociation[dataBit[1]];
-
-			tunnel_tileData[position] = dataBit[0];
+			tunnelStructure.tileData.push(dataBit);
 		}
 
 		//x, z, and theta 
 		else if (i.indexOf("pos-x:") == 0) {
-			tunnel_x = i.replace("pos-x:", "") * 1;
+			tunnelStructure.x = i.replace("pos-x:", "") * 1;
 		}
 
 		else if (i.indexOf("pos-z:") == 0) {
-			tunnel_z = i.replace("pos-z:", "") * 1;
+			tunnelStructure.z = i.replace("pos-z:", "") * 1;
 		}
 
 		else if (i.indexOf("direction:") == 0) {
-			tunnel_theta = i.replace("direction:", "") * 1;
+			tunnelStructure.theta = i.replace("direction:", "") * 1;
 		}
 
 		//spawns
 		else if (i.indexOf("spawn-") == 0) {
-			tunnel_spawns.push(i.replace("spawn-", "") * 1);
+			tunnelStructure.spawns.push(i.replace("spawn-", "") * 1);
 		}
 
 		//power
 		else if (i.indexOf("power-") == 0) {
-			tunnel_power = i.replace("power-", "") * 1;
+			tunnelStructure.power = i.replace("power-", "") * 1;
 		}
 	});
 
-	return {color: tunnel_color, id: tunnel_id, maxLen: 0, power: tunnel_power, powerFunctions: tunnel_powerFunctions, sides: tunnel_sides, spawns: tunnel_spawns,
-			tileData: tunnel_tileData, tileSize: tunnel_tileSize, tilesPerSide: tunnel_tilesPerSide, theta: tunnel_theta, x: tunnel_x, z: tunnel_z};
+	return tunnelStructure;
 }
 
 

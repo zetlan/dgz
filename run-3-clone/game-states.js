@@ -35,6 +35,60 @@ class State_Cutscene {
 	}
 }
 
+class State_Editor {
+	constructor() {
+		this.substate = 0;
+		this.tunnel = new Tunnel(1, {h: 0, s: 0}, [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]], `Custom Tunnel 1`, 40, 1, [], 4, [], 4, 70, 0, 0);
+
+		world_camera.targetX = 0;
+		world_camera.targetY = 0;
+		world_camera.targetZ = 0;
+
+		world_camera.targetTheta = 1;
+		world_camera.targetRot = 0;
+
+		this.frontHeld = false;
+		this.sideHeld = false;
+	}
+
+	execute() {
+		world_camera.tick();
+		player.x = world_camera.x;
+		player.y = world_camera.y;
+		player.z = world_camera.z;
+
+		//translate player z into camera movement
+		if (player.dy == 0) {
+			this.frontHeld = false;
+		}
+		if (player.dy > 0 && this.frontHeld == false) {
+			this.frontHeld = true;
+			world_camera.targetZ += polToCart(world_camera.targetTheta, 0, 60)[2];
+		}
+
+		//translate player left / right into camera movement
+		
+
+
+		drawSky(color_bg);
+
+		this.tunnel.tick();
+		this.tunnel.beDrawn();
+	}
+
+	handleMouseMove(a) {
+
+	}
+
+	handleMouseDown(a) {
+
+	}
+
+	handleEscape() {
+		loading_state = new State_Menu();
+	}
+}
+
 
 
 //state world is never used, but it's here so that State_Game, State_Infinite, and State_Cutscene can share code
@@ -520,7 +574,7 @@ class State_Loading {
 			ctx.fillRect(0, 0, canvas.width, canvas.height);
 		}
 		
-		for (var s=0; s<12; s++) {
+		for (var s=0; s<14; s++) {
 			this.time += 1;
 			var xAdd = (this.time * (canvas.height / 480) * Math.cos((Math.PI * 0.666 * this.time) + Math.pow(randomSeeded(-0.8, 0.8), 3)));
 			var yAdd = (this.time * (canvas.height / 480) * Math.sin((Math.PI * 0.666 * this.time) + Math.pow(randomSeeded(-0.8, 0.8), 3)));
@@ -544,7 +598,7 @@ class State_Loading {
 				}
 			}
 		}
-		if (this.time > 550) {
+		if (this.time > 540) {
 			loading_state = new State_Menu();
 		}
 	}
@@ -612,6 +666,16 @@ class State_Map {
 		world_objects.forEach(w => {
 			w.beDrawnOnMap();
 		});
+
+		//if only one object has been discovered, it's the first level and should have the pointer drawn around it
+		if (data_persistent.discovered.length == 1) {
+			var orbitCoords = getObjectFromID("Level 1").map_circleCoords;
+			var multiplier = 0.5 + ((Math.sin(world_time / 35) + 1) * 0.2);
+			ctx.strokeStyle = color_editor_cursor;
+			ctx.beginPath();
+			ctx.ellipse(orbitCoords[0], orbitCoords[1], editor_thetaCircleRadius * multiplier, editor_thetaCircleRadius * multiplier, 0, 0, Math.PI * 2);
+			ctx.stroke();
+		}
 		
 
 		var fontSize = Math.floor(canvas.height / 24);

@@ -50,7 +50,11 @@ var data_characters = [`Runner`, `Skater`, `Lizard`, `Bunny`, `Gentleman`, `Dupl
 
 var data_levelSets = [`main`, `boxStorage`, `coordination`, `planA`, `planC`, `memory`, `wayBack`, `wayBack2`, `wayBackNot`, `winterGames`, `lowPower`, `new`,
 						`A`, `B`, `C`, `D`, `F`, `G`, `H`, `I`, `L`, `M`, `N`, `T`, `U`, `W`];
+//var data_levelSets = [`main`, `T`];
 
+
+//I made the executive decision to use PNGs rather than SVGs because of performance. 
+//If anyone wants the .fla file with all the character sprites, feel free to dm me on discord (Cynthia_Clementine#4109)or email me at cyClementine0@gmail.com.
 var data_sprites = {
 	spriteSize: 144,
 
@@ -194,6 +198,7 @@ var data_persistent = {
 	discovered: []
 };
 
+//for the map editor
 var editor_active = false;
 var editor_changingTheta = false;
 var editor_selected = undefined;
@@ -201,6 +206,9 @@ var editor_clickTolerance = 5;
 var editor_snapTolerance = 5;
 var editor_thetaCircleRadius = 60;
 var editor_thetaKnobRadius = 10;
+
+//for the tunnel editor, try to keep up zozzle
+var editor_cameraJumpDistance = 100;
 
 var infinite_levelRange = 40;
 
@@ -215,6 +223,7 @@ var menu_buttonHeight = 0.05;
 var menu_buttons = [
 	[`Infinite Mode`, `new State_Infinite()`],
 	[`Explore Mode`, `new State_Map()`],
+	//[`Edit Mode`, `new State_Editor()`]
 ];
 var menu_characterCircleRadius = 0.3;
 var menu_characterSize = 30;
@@ -231,7 +240,7 @@ var physics_graceTime = 6;
 var physics_graceTimeRamp = 10;
 
 let player;
-var player_radius = 15;
+var player_radius = 18;
 
 var powercells_acquireDistance = player_radius * 6;
 var powercells_gentlemanMultiplier = 0.5;
@@ -252,6 +261,32 @@ var tunnel_powerFunctions = {
 	"falseAlarm": power_falseAlarm,
 	"notSoFalseAlarm": power_notSoFalseAlarm,
 	"undefined": power_fast
+};
+var tunnel_tileAssociation = {
+	"~undefined": 1, 
+	"~glow": 2, 
+	"~crumbling": 3, 
+	"~ice": 4,
+	"~slow": 5, 
+	"~fast": 6, 
+	"~left": 7, 
+	"~right": 8,
+	"~box": 9, 
+	"~rotatedZBox": 10, 
+	"~steepRamp": 11, 
+	"~ramp": 12, //ice ramp
+	"~movable": 13, 
+	"~battery": 14
+};
+
+var tunnel_translation = {
+	"0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9,
+	":": 10, ";": 11, "<": 12, "=": 13, ">": 14, "?": 15,"@": 16, "A": 17, "B": 18, "C": 19,
+	"D": 20, "E": 21, "F": 22, "G": 23, "H": 24, "I": 25, "J": 26, "K": 27, "L": 28, "M": 29,
+	"N": 30, "O": 31, "P": 32, "Q": 33, "R": 34, "S": 35, "T": 36, "U": 37, "V": 38, "W": 39,
+	"X": 40, "Y": 41, "Z": 42, "[": 43, "/": 44, "]": 45, "^": 46, "_": 47, "!": 48, "a": 49,
+	"b": 50, "c": 51, "d": 52, "e": 53, "f": 54, "g": 55, "h": 56, "i": 57, "j": 58, "k": 59,
+	"l": 60, "m": 61, "n": 62, "o": 63,
 };
 
 let world_camera;
@@ -361,6 +396,12 @@ function handleKeyPress(a) {
 					player.handleSpace();
 				}
 				controls_spacePressed = true;
+				break;
+			//r
+			case 82:
+				if (loading_state instanceof State_Game && loading_state.substate == 0) {
+					loading_state.handlePlayerDeath();
+				}
 				break;
 
 			//editor / noclip

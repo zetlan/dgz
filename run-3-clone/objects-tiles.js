@@ -41,6 +41,7 @@ class Tile extends FreePoly {
 		entity.dir_front = [(Math.PI * 2) - this.parent.theta + (Math.PI * player.backwards), 0];
 		entity.dir_side = [this.dir_right[0], this.dir_right[1] + (Math.PI * player.backwards)];
 		entity.dir_down = this.dir_down;
+		entity.dy = 0;
 
 		//TODO: find a way to refactor the if/else out of this
 		if (player.backwards) {
@@ -73,7 +74,6 @@ class Tile extends FreePoly {
 			}
 			haltCollision = true;
 		}
-		entity.dy *= 0.5;
 	}
 
 	collideWithEntity(entity) {
@@ -704,5 +704,5 @@ class Tile_Vertical extends Tile {
 }
 
 class Tile_Warning extends Tile {
-	
+
 }
