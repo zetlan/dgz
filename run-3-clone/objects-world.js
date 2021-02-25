@@ -600,8 +600,8 @@ class Tunnel {
 	//generates a single tile from parameters
 	generateTile(type, x, y, z, size, normal, position, color) {
 		switch(type) {
-			case 0:
-				return undefined;
+			case 1:
+				return new Tile(x, y, z, size, normal, this, position, color);
 			case 2:
 				return new Tile_Bright(x, y, z, size, normal, this, position, color);
 			case 3:
@@ -625,7 +625,7 @@ class Tunnel {
 			case 12: 
 				return new Tile_Ice_Ramp(x, y, z, size, normal, this, position, color);
 			default:
-				return new Tile(x, y, z, size, normal, this, position, color);
+				return undefined;
 		}
 	}
 
@@ -675,6 +675,7 @@ class Tunnel {
 		player.y = spawnObj.y + offsetCoords[1];
 		player.z = spawnObj.z + offsetCoords[2];
 		player.dz = 0;
+		player.dy = 0;
 	}
 
 	//returns true if the player is inside the tunnel, and false if the player is not
@@ -879,6 +880,7 @@ class Tunnel_Strip {
 		this.tiles = [];
 		this.realTiles = [];
 		this.realsBackwards = [];
+		this.lineCoords = [];
 	}
 
 	//returns true if the player should be drawn on top of the strip
@@ -915,6 +917,9 @@ class Tunnel_Strip {
 			ctx.beginPath();
 			ctx.lineWidth = 4;
 			ctx.strokeStyle = "#F00";
+			if (this.parent.spawns.includes(this.parent.strips.indexOf(this))) {
+				ctx.strokeStyle = "#0F0";
+			}
 			drawWorldLine([this.x, this.y, this.z], cXYZ);
 		}
 	}
@@ -1012,6 +1017,7 @@ class Tunnel_Strip {
 	establishReals() {
 		this.realTiles = [];
 		this.realsBackwards = [];
+		this.lineCoords = [];
 		this.tiles.forEach(t => {
 			//if the tile isn't undefined and it's not a plexiglass tile (or it is a plexiglass tile and the player's a pastafarian)
 			if (t != undefined && (t.minStrength == undefined || player.personalBridgeStrength != undefined)) {
