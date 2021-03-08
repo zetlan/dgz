@@ -41,7 +41,7 @@ class Tile extends FreePoly {
 		entity.dir_front = [(Math.PI * 2) - this.parent.theta + (Math.PI * player.backwards), 0];
 		entity.dir_side = [this.dir_right[0], this.dir_right[1] + (Math.PI * player.backwards)];
 		entity.dir_down = this.dir_down;
-		entity.dy = 0;
+		entity.dy = -1;
 
 		//TODO: find a way to refactor the if/else out of this
 		if (player.backwards) {
@@ -84,7 +84,7 @@ class Tile extends FreePoly {
 	}
 
 	getColor() {
-		return `hsl(${this.color.h}, ${this.color.s}%, ${linterp(40 * (this.parent.power + 0.5), 0, clamp((this.playerDist / render_maxColorDistance) * (1 / (this.parent.power + 0.001)), 0.1, 1))}%)`;
+		return `hsl(${this.color.h}, ${this.color.s}%, ${linterp((this.color.v * 45) * (this.parent.power + 0.5), 0, clamp((this.playerDist / render_maxColorDistance) * (1 / (this.parent.power + 0.001)), 0.1, 1))}%)`;
 	}
 
 	playerIsOnTop() {
@@ -95,7 +95,7 @@ class Tile extends FreePoly {
 //I just gave up on the tile system with this one and made it its own object
 class Tile_Box extends Tile {
 	constructor(x, y, z, size, normal, parent, tilePosition) {
-		super(x, y, z, size, normal, parent, tilePosition, {h: 300, s: 10});
+		super(x, y, z, size, normal, parent, tilePosition, RGBtoHSV(color_box));
 
 		//all boxes have a left / right tile, for changing rotation
 		this.leftTile = new Tile(x, y, z, size, [normal[0], (normal[1] + (Math.PI * 1.5)) % (Math.PI * 2)], parent, tilePosition, this.color);
@@ -282,14 +282,14 @@ class Tile_Bright extends Tile {
 	}
 
 	getColor() {
-		return `hsl(${this.color.h}, ${this.color.s}%, ${linterp(60, 5, clamp((this.playerDist / render_maxColorDistance) * 0.75, 0, 1))}%)`
+		return `hsl(${this.color.h}, ${this.color.s}%, ${linterp(75, 5, clamp((this.playerDist / render_maxColorDistance) * 0.75, 0, 1))}%)`
 	}
 }
 
 class Tile_Conveyor extends Tile {
 	constructor(x, y, z, size, normal, parent, tilePosition) {
-		super(x, y, z, size, normal, parent, tilePosition, RGBtoHSV("#69beff"));
-		this.secondaryColor = RGBtoHSV("#616bff");
+		super(x, y, z, size, normal, parent, tilePosition, RGBtoHSV(color_conveyor));
+		this.secondaryColor = RGBtoHSV(color_conveyor_secondary);
 		this.time = 0;
 		this.conveyTime = 80;
 	}
@@ -330,7 +330,7 @@ class Tile_Conveyor extends Tile {
 
 	tick() {
 		super.tick();
-		this.time = (this.time + (1 / this.conveyTime)) % 1;
+		this.time = (world_time / this.conveyTime) % 1;
 	}
 	
 	beDrawn() {
@@ -436,7 +436,7 @@ class Tile_Conveyor_Right extends Tile_Conveyor {
 
 class Tile_Crumbling extends Tile {
 	constructor(x, y, z, size, normal, parent, tilePosition, color) {
-		super(x, y, z, size, normal, parent, tilePosition, {h: 0, s: 0});
+		super(x, y, z, size, normal, parent, tilePosition, RGBtoHSV(color_crumbling));
 		this.activeSize = this.size;
 
 		this.home = [this.x, this.y, this.z];
@@ -528,7 +528,7 @@ class Tile_Crumbling extends Tile {
 		if (this.activeSize > 0.01) {
 			super.beDrawn();
 			if (this.playerDist / render_maxColorDistance < 0.95) {
-				ctx.strokeStyle = `hsl(0, 0%, ${linterp(50, 0, this.playerDist / render_maxColorDistance)}%)`;
+				ctx.strokeStyle = `hsl(0, 0%, ${linterp(40, 0, this.playerDist / render_maxColorDistance)}%)`;
 				drawWorldLine(this.line1[0], this.line1[1]);
 				drawWorldLine(this.line2[0], this.line2[1]);
 			}
@@ -577,7 +577,7 @@ class Tile_Crumbling extends Tile {
 
 class Tile_Ice extends Tile {
 	constructor(x, y, z, size, normal, parent, tilePosition) {
-		super(x, y, z, size, normal, parent, tilePosition, {h: 185, s: 9});
+		super(x, y, z, size, normal, parent, tilePosition, RGBtoHSV(color_ice));
 	}
 
 	getColor() {
@@ -616,7 +616,7 @@ class Tile_Ice_Ramp extends Tile_Ice {
 		super.doCollisionEffects(entity);
 		//push player up a bit
 		if (entity.dy < entity.dz * 0.1) {
-			entity.dy = entity.dz * 0.1;
+			entity.dy = entity.dz * 0.1 * ((!player.backwards * 2) - 1);
 		}
 		entity.onGround = physics_graceTimeRamp;
 	}
@@ -627,7 +627,7 @@ class Tile_Plexiglass extends Tile {
 	constructor(x, y, z, size, normal, parent, tilePosition, color, strength) {
 		super(x, y, z, size, normal, parent, tilePosition, color);
 		this.strength = strength;
-		this.minStrength = 0.05;
+		this.minStrength = 0.02;
 	}
 
 	getAlpha() {
@@ -688,7 +688,7 @@ class Tile_Ramp extends Tile {
 	doCollisionEffects(entity) {
 		super.doCollisionEffects(entity);
 		//push player up a bit
-		entity.dy = entity.dz * 0.7;
+		entity.dy = entity.dz * 0.7 * ((!player.backwards * 2) - 1);
 		entity.onground = physics_graceTimeRamp;
 	}
 
