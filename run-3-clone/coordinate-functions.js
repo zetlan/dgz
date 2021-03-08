@@ -1,4 +1,4 @@
-//here are all the functions that tranform 3d coordinates
+//here are all the functions that deal with 3d coordinates 
 /*overview:
 	calculateNormal();
 	cameraToScreen();
@@ -6,9 +6,12 @@
 	clipToZ0();
 	getDistance();
 	isClipped();
+	orderObjects();
 	polToCart();
 	relativeToSpace();
+	rotate();
 	spaceToRelative();
+	spaceToRelativeRotless();
 	spaceToScreen();
 	transformPoint();
 */
@@ -142,6 +145,51 @@ function isClipped(pointArr) {
 	return (tZ < render_clipDistance);
 }
 
+//takes in an array of objects with cameraDist values and returns the array, ordered by distance from the camera
+function orderObjects(array, places) {
+	//addings all objects to first array
+	let unsorted_objects = [];
+	let ordered = [];
+	let buckets = [[], [], [], [], [], [], [], [], [], []];
+	var end = array.length-1;
+	unsorted_objects[end] = undefined;
+
+	for (var a=0; a<array.length; a++) {
+		unsorted_objects[a] = array[a];
+	}
+
+	//running a radix sort
+	for (var pos=1; pos<places+1; pos++) {
+		//empty buckets
+		for (var g=0; g<buckets.length; g++) {
+			buckets[g] = [];
+		}
+		//push objects to buckets
+		for (var m=0; m<unsorted_objects.length; m++) {
+			//formula determines which bucket to push into
+			buckets[Math.floor(((unsorted_objects[m].cameraDist) % Math.pow(10, pos) / Math.pow(10, pos-1)))].push(unsorted_objects[m]);
+		}
+
+		//clear unsorted
+		unsorted_objects = [];
+
+		//put bucket results into unsorted array
+		for (var k=0;k<buckets.length;k++) {
+			for (var m=0; m<buckets[k].length; m++) {
+				unsorted_objects.push(buckets[k][m]);
+			}
+		}
+	}
+
+	//push now ordered list to final array
+	ordered[end] = undefined;
+	for (var m=0; m<unsorted_objects.length; m++) {
+		ordered[m] = unsorted_objects[end - m];
+	}
+
+	return ordered;
+}
+
 function polToCart(theta, phi, radius) {
 	//theta here is horizontal angle, while phi is vertical inclination
 	return [radius * Math.sin(theta) * Math.cos(phi), 
@@ -159,6 +207,11 @@ function relativeToSpace(pointToTransform, point, normal) {
 	[tX, tY, tZ] = [tX + point[0], tY + point[1], tZ + point[2]];
 
 	return [tX, tY, tZ];
+}
+
+function rotate(x, z, radians) {
+	[x, z] = [(x * Math.cos(radians)) - (z * Math.sin(radians)), (z * Math.cos(radians)) + (x * Math.sin(radians))];
+	return [x, z];
 }
 
 //takes in a screen point, and returns the spot on the world that would get you that point at a certain Z;
@@ -220,15 +273,9 @@ function spaceToScreen(point) {
 	//around self
 	[tX, tY] = rotate(tX, tY, world_camera.rot);
 
-	//step 2.5: clipping if behind the camera
-	if (tZ < 0.1) {
-		tX = (tX * -1) / tZ;
-		tY = (tY * -1) / tZ;
-	} else {
-		//step 3: divide by axis perpendicular to camera
-		tX /= tZ;
-		tY /= tZ;
-	}
+	//step 3: divide by axis perpendicular to camera
+	tX /= tZ;
+	tY /= tZ;
 
 	//step 4: account for camera scale
 	tX *= world_camera.scale;
