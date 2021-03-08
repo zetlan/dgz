@@ -31,19 +31,19 @@ class Camera {
 		this.rot = 0;
 		this.targetTheta = 0;
 		this.targetRot = 0;
-		this.animSteps = 9;
 
 		this.dt = 0;
 		this.dp = 0;
+		this.dr = 0;
 	}
 
 	tick() {
 		if (!editor_active) {
 			//changing with average
-			this.x = (this.targetX + (this.x * (this.animSteps - 1))) / this.animSteps;
-			this.y = (this.targetY + (this.y * (this.animSteps - 1))) / this.animSteps;
-			this.z = (this.targetZ + (this.z * (this.animSteps - 1))) / this.animSteps;
-			this.theta = (this.targetTheta + (this.theta * (this.animSteps - 1))) / this.animSteps;
+			this.x = (this.targetX + (this.x * (render_animSteps - 1))) / render_animSteps;
+			this.y = (this.targetY + (this.y * (render_animSteps - 1))) / render_animSteps;
+			this.z = (this.targetZ + (this.z * (render_animSteps - 1))) / render_animSteps;
+			this.theta = (this.targetTheta + (this.theta * (render_animSteps - 1))) / render_animSteps;
 		} else {
 			//handling velocity
 
@@ -87,19 +87,30 @@ class Camera {
 			this.y += moveCoords[1];
 			this.z += moveCoords[2];
 			this.theta += this.dt;
+			this.targetRot += this.dr;
 		}
 
+		//weighted average towards target rotation
+		this.rot = (this.targetRot + (this.rot * (render_animSteps - 1))) / render_animSteps;
 
 		//camera velocity
 		this.phi += this.dp;
-		//weighted average towards target rotation
-		this.rot = (this.targetRot + (this.rot * (this.animSteps - 1))) / this.animSteps;
+		
 
 		//special case for vertical camera orientation
 		if (Math.abs(this.phi) >= Math.PI * 0.5) {
 			//if the camera angle is less than 0, set it to -1/2 pi. Otherwise, set it to 1/2 pi
 			this.phi = Math.PI * (-0.5 + (this.phi > 0));
 		}
+	}
+
+	reconcileTargets() {
+		this.targetX = this.x;
+		this.targetY = this.y;
+		this.targetZ = this.z;
+		this.targetTheta = this.theta;
+		this.targetRot = this.rot;
+		console.log("reconciling");
 	}
 
 	handleSpace() {
@@ -121,6 +132,7 @@ class Character {
 		this.jumpStrength = 2;
 		this.jumpBoostStrength = 0.1;
 		this.coyote = 0;
+		this.coyoteSet = player_coyote;
 
 		this.onGround = 0;
 		this.jumpTime = physics_jumpTime;
@@ -148,12 +160,12 @@ class Character {
 		this.color = color_character;
 
 		var source = data_sprites[spriteDataName];
-		this.texture_walkF = new Texture(getImage(source.sheet), data_sprites.spriteSize, source.frameTime, true, false, source.walkForwards);
-		this.texture_walkL = new Texture(getImage(source.sheet), data_sprites.spriteSize, source.frameTime, true, false, source.walkSideways);
-		this.texture_walkR = new Texture(getImage(source.sheet), data_sprites.spriteSize, source.frameTime, true, true, source.walkSideways);
-		this.texture_jumpF = new Texture(getImage(source.sheet), data_sprites.spriteSize, source.frameTime, false, false, source.jumpForwards);
-		this.texture_jumpL = new Texture(getImage(source.sheet), data_sprites.spriteSize, source.frameTime, false, false, source.jumpSideways);
-		this.texture_jumpR = new Texture(getImage(source.sheet), data_sprites.spriteSize, source.frameTime, false, true, source.jumpSideways);
+		this.texture_walkF = new Texture(source.sheet, data_sprites.spriteSize, source.frameTime, true, false, source.walkForwards);
+		this.texture_walkL = new Texture(source.sheet, data_sprites.spriteSize, source.frameTime, true, false, source.walkSideways);
+		this.texture_walkR = new Texture(source.sheet, data_sprites.spriteSize, source.frameTime, true, true, source.walkSideways);
+		this.texture_jumpF = new Texture(source.sheet, data_sprites.spriteSize, source.frameTime, false, false, source.jumpForwards);
+		this.texture_jumpL = new Texture(source.sheet, data_sprites.spriteSize, source.frameTime, false, false, source.jumpSideways);
+		this.texture_jumpR = new Texture(source.sheet, data_sprites.spriteSize, source.frameTime, false, true, source.jumpSideways);
 
 		this.texture_current = this.texture_jumpF;
 		this.textureRot = 1;
@@ -399,7 +411,7 @@ class Character {
 
 	handleSpace() {
 		if (this.coyote == 0) {
-			this.coyote = physics_graceTime;
+			this.coyote = this.coyoteSet;
 		}
 
 		if (this.onGround > 0) {
@@ -478,7 +490,6 @@ class Texture {
 //characters
 //but why are you changing all these properties instead of having them be constructor arguments?
 //well, my friendo, mainly readability and I'm lazy. I don't want to have 37 constructor arguments I have to keep track of, I want to know what each individual property is set to.
-//TODO: refactor the texture getting
 class Angel extends Character {
 	constructor(x, y, z) {
 		super(x, y, z, `Angel`);
@@ -609,19 +620,26 @@ class Child extends Character {
 	constructor(x, y, z) {
 		super(x, y, z, `Child`);
 		
-		this.texture_walkL = new Texture(getImage(data_sprites.Child.sheet), data_sprites.spriteSize, data_sprites.Child.frameTime, true, false, data_sprites.Child.walkLeft);
-		this.texture_walkR = new Texture(getImage(data_sprites.Child.sheet), data_sprites.spriteSize, data_sprites.Child.frameTime, true, false, data_sprites.Child.walkRight);
-		this.texture_jumpL = new Texture(getImage(data_sprites.Child.sheet), data_sprites.spriteSize, data_sprites.Child.frameTime, false, false, data_sprites.Child.jumpLeft);
-		this.texture_jumpR = new Texture(getImage(data_sprites.Child.sheet), data_sprites.spriteSize, data_sprites.Child.frameTime, false, false, data_sprites.Child.jumpRight);
+		this.texture_walkL = new Texture(data_sprites.Child.sheet, data_sprites.spriteSize, data_sprites.Child.frameTime, true, false, data_sprites.Child.walkLeft);
+		this.texture_walkR = new Texture(data_sprites.Child.sheet, data_sprites.spriteSize, data_sprites.Child.frameTime, true, false, data_sprites.Child.walkRight);
+		this.texture_jumpL = new Texture(data_sprites.Child.sheet, data_sprites.spriteSize, data_sprites.Child.frameTime, false, false, data_sprites.Child.jumpLeft);
+		this.texture_jumpR = new Texture(data_sprites.Child.sheet, data_sprites.spriteSize, data_sprites.Child.frameTime, false, false, data_sprites.Child.jumpRight);
 
-		this.gravStrength *= 0.85;
-		this.jumpStrength = 2.67;
-		this.jumpBoostStrength = 0.07;
-		this.speed = 0.05;
+		this.gravStrength *= 0.9;
+		this.jumpStrength = 3.14;
+		this.jumpBoostStrength = 0.082;
+		this.speed = 0.048;
 		this.dMax = 3.2;
-		this.fallMax = 1.14;
+		this.trueFallMax = 1.13;
 
 		this.jumpBuffer = 0;
+		this.coyoteSet = 10;
+
+		this.bunnyIncrease = 0.08;
+		this.bunnyDecrease = 0.006;
+		this.bunnyBoost = 1;
+		this.bunnyBoostMax = 1.2;
+		
 	}
 
 	//child has one buffer frame so crumbling tiles will fall
@@ -632,11 +650,45 @@ class Child extends Character {
 		super.tick();
 	}
 
+	modifyDerivitives(activeGravity, activeFriction, naturalFriction, activeAX, activeAZ) {
+		//if falling down too fast, make that not happen
+		if (this.dy < -this.trueFallMax) {
+			this.dy = -this.trueFallMax;
+		}
+
+		//decrease bunny boost
+		if (this.bunnyBoost > 1 && this.onGround > 0) {
+			this.bunnyBoost -= this.bunnyDecrease;
+			if (this.bunnyBoost < 1) {
+				this.bunnyBoost = 1;
+			}
+		}
+		
+		super.modifyDerivitives(activeGravity, activeFriction, naturalFriction, activeAX, activeAZ);
+	}
+
 	handleSpace() {
 		if (this.jumpBuffer > 0) {
 			this.jumpBuffer -= 1;
 			if (this.jumpBuffer == 0) {
-				super.handleSpace();
+				if (this.coyote == 0) {
+					this.coyote = this.coyoteSet;
+				}
+
+				if (this.onGround > 0) {
+					//regular jump effects
+					this.coyote = 0;
+					this.dy = this.jumpStrength * this.bunnyBoost;
+					this.jumpTime = physics_jumpTime;
+					this.onGround = 0;
+
+					//jump boost for jumping soon after hitting the ground
+					this.bunnyBoost += this.bunnyIncrease;
+					if (this.bunnyBoost > this.bunnyBoostMax) {
+						this.bunnyBoost = this.bunnyBoostMax;
+					}
+				}
+
 			}
 		} else {
 			this.jumpBuffer = 2;
@@ -826,9 +878,9 @@ class Gentleman extends Character {
 	constructor(x, y, z) {
 		super(x, y, z, `Gentleman`);
 
-		this.texture_flyF = new Texture(getImage(data_sprites.Gentleman.sheet), data_sprites.spriteSize, 1e1001, false, false, data_sprites.Gentleman.flyForwards);
-		this.texture_flyL = new Texture(getImage(data_sprites.Gentleman.sheet), data_sprites.spriteSize, 1e1001, false, false, data_sprites.Gentleman.flySideways);
-		this.texture_flyR = new Texture(getImage(data_sprites.Gentleman.sheet), data_sprites.spriteSize, 1e1001, false, true, data_sprites.Gentleman.flySideways);
+		this.texture_flyF = new Texture(data_sprites.Gentleman.sheet, data_sprites.spriteSize, 1e1001, false, false, data_sprites.Gentleman.flyForwards);
+		this.texture_flyL = new Texture(data_sprites.Gentleman.sheet, data_sprites.spriteSize, 1e1001, false, false, data_sprites.Gentleman.flySideways);
+		this.texture_flyR = new Texture(data_sprites.Gentleman.sheet, data_sprites.spriteSize, 1e1001, false, true, data_sprites.Gentleman.flySideways);
 
 		this.jumpStrength = 3.6;
 		this.jumpBoostStrength = 0.05;
@@ -1014,10 +1066,10 @@ class Pastafarian extends Character {
 	constructor(x, y, z) {
 		super(x, y, z, `Pastafarian`);
 
-		this.texture_walkL = new Texture(getImage(data_sprites.Pastafarian.sheet), data_sprites.spriteSize, data_sprites.Pastafarian.frameTime, true, false, data_sprites.Pastafarian.walkLeft);
-		this.texture_walkR = new Texture(getImage(data_sprites.Pastafarian.sheet), data_sprites.spriteSize, data_sprites.Pastafarian.frameTime, true, false, data_sprites.Pastafarian.walkRight);
-		this.texture_jumpL = new Texture(getImage(data_sprites.Pastafarian.sheet), data_sprites.spriteSize, data_sprites.Pastafarian.frameTime, false, false, data_sprites.Pastafarian.jumpLeft);
-		this.texture_jumpR = new Texture(getImage(data_sprites.Pastafarian.sheet), data_sprites.spriteSize, data_sprites.Pastafarian.frameTime, false, false, data_sprites.Pastafarian.jumpRight);
+		this.texture_walkL = new Texture(data_sprites.Pastafarian.sheet, data_sprites.spriteSize, data_sprites.Pastafarian.frameTime, true, false, data_sprites.Pastafarian.walkLeft);
+		this.texture_walkR = new Texture(data_sprites.Pastafarian.sheet, data_sprites.spriteSize, data_sprites.Pastafarian.frameTime, true, false, data_sprites.Pastafarian.walkRight);
+		this.texture_jumpL = new Texture(data_sprites.Pastafarian.sheet, data_sprites.spriteSize, data_sprites.Pastafarian.frameTime, false, false, data_sprites.Pastafarian.jumpLeft);
+		this.texture_jumpR = new Texture(data_sprites.Pastafarian.sheet, data_sprites.spriteSize, data_sprites.Pastafarian.frameTime, false, false, data_sprites.Pastafarian.jumpRight);
 
 		this.jumpStrength = 4.5;
 		this.jumpBoostStrength = 0;
