@@ -17,19 +17,32 @@ var ctx;
 var centerX;
 var centerY;
 
+var challenge_fadeTime = 50;
+var challenge_opacity = 0.05;
+var challenge_textTime = 280;
+
 var controls_cursorLock = false;
 var controls_sensitivity = 100;
 var controls_spacePressed = false;
 
 //bg is in 6 hex numbers for  p r e c i s i o n
 const color_bg = "#100026";
+const color_box = "#E6CCE6";
+const color_box_secondary = "#776A88";
+const color_challengeFadeout = "#000";
 const color_character = "#888";
+const color_conveyor = "#69BEFF";
+const color_conveyor_secondary = "#616BFF";
+const color_crumbling = "#CCCCCC";
+const color_crumbling_secondary = "#808080";
+const color_cutsceneBox = "#FFF";
 const color_editor_border = "#F8F";
 const color_editor_cursor = "#0FF";
+const color_editor_bg = "#335";
 const color_grey_dark = "#888";
 const color_grey_light = "#CCC";
 const color_grey_lightest = "#FEF";
-const color_ice = "#EFF";
+const color_ice = "#D1E4E6";
 const color_keyPress = "#8FC";
 const color_keyUp = "#666";
 const color_map_bg = "#FEA";
@@ -43,15 +56,23 @@ const colors_powerCells = ["#888888", "#8888FF", "#88FF88", "#88FFFF", "#FF8888"
 var cursor_x = 0;
 var cursor_y = 0;
 var cursor_down = false;
+var cursor_hoverTolerance = 10;
 
-//var data_possibleCharacters = [`Runner`, `Skater`, `Lizard`, `Bunny`, `Gentleman`, `Duplicator`, `Child`, `Pastafarian`, `Student`, `Angel`];
 var data_characters = [`Runner`, `Skater`, `Lizard`, `Bunny`, `Gentleman`, `Duplicator`, `Child`, `Pastafarian`, `Student`, `Angel`];
 
 
 var data_levelSets = [`main`, `boxStorage`, `coordination`, `planA`, `planC`, `memory`, `wayBack`, `wayBack2`, `wayBackNot`, `winterGames`, `lowPower`, `new`,
 						`A`, `B`, `C`, `D`, `F`, `G`, `H`, `I`, `L`, `M`, `N`, `T`, `U`, `W`];
-//var data_levelSets = [`main`, `T`];
+//data_levelSets = [`main`, `lowPower`, `new`, `A`, `B`];
 
+var data_persistent = {
+	powercells: 0,
+	discovered: [],
+	unlocked: [`Runner`],
+	goingHomeProgress: 1,
+	bridgeBuildingProgress: 1,
+
+};
 
 //I made the executive decision to use PNGs rather than SVGs because of performance. 
 //If anyone wants the .fla file with all the character sprites, feel free to dm me on discord (Cynthia_Clementine#4109)or email me at cyClementine0@gmail.com.
@@ -59,10 +80,10 @@ var data_sprites = {
 	spriteSize: 144,
 
 	Angel: {
-		sheet: 'images/angelSprites.png',
+		sheet: getImage('images/angelSprites.png'),
 		frameTime: 2.2,
 		back: [[0, 2]],
-		front: [[]],
+		front: [[10, 0]],
 		jumpForwards: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0]],
 		jumpSideways: [[0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [5, 1], [6, 1]],
 		walkForwards: [[0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [5, 2], [6, 2], [7, 2],
@@ -72,7 +93,7 @@ var data_sprites = {
 	},
 
 	Bunny: {
-		sheet: 'images/bunnySprites.png',
+		sheet: getImage('images/bunnySprites.png'),
 		frameTime: 2.2,
 		back: [[0, 0]],
 		front: [[10, 0]],
@@ -81,7 +102,7 @@ var data_sprites = {
 	},
 
 	Child: {
-		sheet: 'images/childSprites.png',
+		sheet: getImage('images/childSprites.png'),
 		frameTime: 2.1,
 		back: [[0, 3]],
 		front: [[]],
@@ -97,7 +118,7 @@ var data_sprites = {
 	},
 
 	Duplicator: {
-		sheet: 'images/duplicatorSprites.png',
+		sheet: getImage('images/duplicatorSprites.png'),
 		frameTime: 2.3,
 		back: [[0, 2]],
 		front: [[10, 0]],
@@ -110,10 +131,10 @@ var data_sprites = {
 	},
 
 	Gentleman: {
-		sheet: 'images/gentlemanSprites.png',
+		sheet: getImage('images/gentlemanSprites.png'),
 		frameTime: 2.3,
 		back: [[0, 2]],
-		front: [],
+		front: [[10, 0]],
 		jumpForwards: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0]],
 		jumpSideways: [[0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [5, 1], [6, 1]],
 		walkForwards: [[0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [5, 2], [6, 2], [7, 2],
@@ -125,7 +146,7 @@ var data_sprites = {
 	},
 
 	Lizard: {
-		sheet: 'images/lizardSprites.png',
+		sheet: getImage('images/lizardSprites.png'),
 		frameTime: 2.4,
 		back: [[0, 2]],
 		front: [[10, 0]],
@@ -138,7 +159,7 @@ var data_sprites = {
 	},
 
 	Pastafarian: {
-		sheet: 'images/pastaSprites.png',
+		sheet: getImage('images/pastaSprites.png'),
 		frameTime: 2.3,
 		back: [[0, 3]],
 		front: [[]],
@@ -154,7 +175,7 @@ var data_sprites = {
 	},
 
 	Runner: {
-		sheet: 'images/runnerSprites.png',
+		sheet: getImage('images/runnerSprites.png'),
 		frameTime: 2.3,
 		back: [[0, 2]],
 		front: [[]],
@@ -167,7 +188,7 @@ var data_sprites = {
 	},
 
 	Skater: {
-		sheet: 'images/skaterSprites.png',
+		sheet: getImage('images/skaterSprites.png'),
 		frameTime: 2.1,
 		back: [[0, 2]],
 		front: [[]],
@@ -180,7 +201,7 @@ var data_sprites = {
 	},
 
 	Student: {
-		sheet: 'images/studentSprites.png',
+		sheet: getImage('images/studentSprites.png'),
 		frameTime: 2.2,
 		back: [[0, 2]],
 		front: [[]],
@@ -193,11 +214,6 @@ var data_sprites = {
 	}
 };
 
-var data_persistent = {
-	powercells: 0,
-	discovered: []
-};
-
 //for the map editor
 var editor_active = false;
 var editor_changingTheta = false;
@@ -208,7 +224,25 @@ var editor_thetaCircleRadius = 60;
 var editor_thetaKnobRadius = 10;
 
 //for the tunnel editor, try to keep up zozzle
-var editor_cameraJumpDistance = 100;
+var editor_cameraJumpDistance = 120;
+var editor_colorMultiplier = 1.7;
+var editor_mapHeight = 10000;
+var editor_maxEditDistance = 1500;
+var editor_propertyMenuWidth = 0.25;
+var editor_sliderHeight = 0.05;
+var editor_sliderProportion = 0.145;
+var editor_sliderMargin = 0.008;
+var editor_topBarHeight = 0.12;
+var editor_tileSize = 0.025;
+var editor_buttons = [
+	[`Tiles`, `new State_Edit_Tiles()`],
+	[`Properties`, `new State_Edit_Properties()`],
+	[`World`, `new State_Edit_World()`]
+];
+
+//for the cutscene editor
+var editor_handleRadius = 6;
+var editor_cutsceneWidth = 0.2;
 
 var infinite_levelRange = 40;
 
@@ -223,7 +257,7 @@ var menu_buttonHeight = 0.05;
 var menu_buttons = [
 	[`Infinite Mode`, `new State_Infinite()`],
 	[`Explore Mode`, `new State_Map()`],
-	//[`Edit Mode`, `new State_Editor()`]
+	[`Edit Mode`, `new State_Edit_Tiles()`]
 ];
 var menu_characterCircleRadius = 0.3;
 var menu_characterSize = 30;
@@ -241,6 +275,7 @@ var physics_graceTimeRamp = 10;
 
 let player;
 var player_radius = 18;
+var player_coyote = 6;
 
 var powercells_acquireDistance = player_radius * 6;
 var powercells_gentlemanMultiplier = 0.5;
@@ -248,10 +283,11 @@ var powercells_perTunnel = 10;
 var powercells_spinSpeed = 0.05;
 var powercells_size = 30;
 
+var tunnel_textTime = 50;
 var tunnel_transitionLength = 200;
 var tunnel_voidWidth = 200;
 var tunnel_bufferTiles = 4;
-var tunnel_powerFunctions = {
+var tunnel_functions = {
 	"instant": power_instant,
 	"smooth": power_smooth,
 	"slowSmooth": power_slowSmooth,
@@ -260,7 +296,8 @@ var tunnel_powerFunctions = {
 	"glimpse": power_glimpse,
 	"falseAlarm": power_falseAlarm,
 	"notSoFalseAlarm": power_notSoFalseAlarm,
-	"undefined": power_fast
+	"undefined": power_fast,
+	"cutscene": activateCutsceneFromTunnel
 };
 var tunnel_tileAssociation = {
 	"~undefined": 1, 
@@ -294,9 +331,12 @@ var world_pRandValue = 1.2532;
 var world_starDistance = 2300;
 var world_starNumber = 500;
 var world_time = 0;
+let world_lightObjects = [];
 let world_objects = [];
 let active_objects = [];
 
+
+var render_animSteps = 9;
 var render_crosshairSize = 10;
 var render_clipDistance = 0.1;
 var render_identicalPointTolerance = 0.0001;
@@ -304,8 +344,8 @@ var render_maxColorDistance = 950;
 var render_maxDistance = 15000;
 var render_minTileSize = 8;
 var render_starOpacity = 0.6;
-var render_tunnelTextTime = 50;
 var render_voidSpinSpeed = 0.04;
+
 
 var times_current = {};
 var times_past = {};
@@ -350,6 +390,8 @@ function setup() {
 
 	generateStarSphere();
 
+	localStorage_read();
+
 	//setting the player in a tunnel
 
 	page_animation = window.requestAnimationFrame(main);
@@ -374,12 +416,12 @@ function handleKeyPress(a) {
 	if (!editor_active) {
 		switch(a.keyCode) {
 			//direction controls
-			// a / <
+			// a / <--
 			case 65:
 			case 37:
 				player.ax = -1 * player.speed;
 				break;
-			//d / >
+			//d / -->
 			case 68:
 			case 39:
 				player.ax = player.speed;
@@ -397,6 +439,13 @@ function handleKeyPress(a) {
 				}
 				controls_spacePressed = true;
 				break;
+			//s / ˇ, for edit mode
+			case 83:
+			case 40:
+				if (loading_state instanceof State_Edit) {
+					player.az = -1;
+				}
+				break;
 			//r
 			case 82:
 				if (loading_state instanceof State_Game && loading_state.substate == 0) {
@@ -404,7 +453,7 @@ function handleKeyPress(a) {
 				}
 				break;
 
-			//editor / noclip
+			//activating editor
 			case 221:
 				ctx.lineWidth = 2;
 				editor_active = true;
@@ -441,6 +490,25 @@ function handleKeyPress(a) {
 				}
 				controls_spacePressed = true;
 				break;
+			//shift
+			case 16:
+				world_camera.speed *= 8;
+				break;
+			//delete button
+			case 8:
+				if (loading_state instanceof State_Cutscene) {
+					if (loading_state.selected != undefined) {
+						//if space is pressed, splice out all items
+						if (controls_spacePressed) {
+							loading_state.data[loading_state.frame][1] = [];
+							return;
+						}
+						//normal case
+						var editing = loading_state.data[loading_state.frame][1];
+						editing.splice(editing.indexOf(loading_state.selected), 1);
+					}
+				}
+				break;
 
 			//direction controls
 			case 37:
@@ -455,8 +523,32 @@ function handleKeyPress(a) {
 			case 40:
 				world_camera.dp = -1 * world_camera.sens;
 				break;
+			case 81:
+				world_camera.dr = world_camera.sens / 2;
+				break;
+			case 69:
+				world_camera.dr = world_camera.sens / -2;
+				break;
 
-			//editor / noclip
+			//frame control (< / >)
+			case 188:
+				if (loading_state instanceof State_Cutscene) {
+					if (loading_state.frame > 0) {
+						loading_state.frame -= 1;
+						loading_state.updateFrame();
+					}
+				}
+				break;
+			case 190:
+				if (loading_state instanceof State_Cutscene) {
+						loading_state.frame += 1;
+						if (loading_state.frame + 1 > loading_state.data.length) {
+							loading_state.data.push([[world_camera.x, world_camera.y, world_camera.z, world_camera.theta, world_camera.phi, world_camera.rot], []]);
+						}
+						loading_state.updateFrame();
+				}
+				break;
+			//de-activating editor
 			case 221:
 				ctx.lineWidth = 2;
 				editor_active = false;
@@ -518,6 +610,14 @@ function handleKeyNegate(a) {
 					world_camera.az = 0;
 				}
 				break;
+			//shift
+			case 16:
+				world_camera.speed /= 8;
+				break;
+			//space
+			case 32:
+				controls_spacePressed = false;
+				break;
 
 			//angle controls
 			case 37:
@@ -538,6 +638,16 @@ function handleKeyNegate(a) {
 			case 40:
 				if (world_camera.dp < 0) {
 					world_camera.dp = 0;
+				}
+				break;
+			case 81:
+				if (world_camera.dr > 0) {
+					world_camera.dr = 0;
+				}
+				break;
+			case 69:
+				if (world_camera.dr < 0) {
+					world_camera.dr = 0;
 				}
 				break;
 		}
@@ -570,10 +680,16 @@ function updateResolution() {
 	canvas.height *= multiplier;
 	world_camera.scale *= multiplier;
 	render_minTileSize *= multiplier;
-	menu_characterSize = canvas.height / 16;
+	menu_characterSize *= multiplier;
+
+	cursor_hoverTolerance *= multiplier;
 
 	if (loading_state.drawEnding == false) {
 		loading_state.drawEnding = true;
+	}
+
+	if (loading_state.doDraw == false) {
+		loading_state.doDraw = true;
 	}
 
 	//updating star size
