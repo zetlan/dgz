@@ -1,18 +1,26 @@
-//houses functions of various utility, from 3d rendering to 2d drawing to misc. object manipulation
-//TODO: change spaceToRelativeRotless() to spaceToRelative, and rename spaceToRelative() to spaceToRelativeRot()
+//houses functions of various utility
 /* 
-generation functions:
 	generateStarSphere();
+
+	activateCutsceneFromTunnel();
 	avgArray();
 	clamp();
+
+	getClosestObject();
 	getImage();
 	getObjectFromID();
 	getPercentage();
+	getTimeFromFrames();
+
+	HSVtoRGB();
 	linterp();
 	localStorage_read();
 	localStorage_write();
 	logTime();
 	logTimeEnd();
+	modularDifference();
+	outputWorld();
+	outputTunnel();
 
 	power_falseAlarm();
 	power_fast();
@@ -28,14 +36,17 @@ generation functions:
 	RGBtoHSV();
 	rotate();
 	runCrash();
+	sigmoid();
 	spliceIn();
 	spliceOut();
 
+	tunnelData_applyProperty();
 	tunnelData_handle();
 	tunnelData_parseData();
-	tunnelData_subdivide();
+	
 
-	worldOutput();
+	trueReset();
+	updatePlotProgression();
 
 2d collision:
 	getOrientation();
@@ -64,6 +75,14 @@ function generateStarSphere() {
 
 
 //utility functions
+
+function activateCutsceneFromTunnel(start, end, time) {
+	//change gamemode
+	setTimeout(() => {
+		loading_state = new State_Cutscene(eval(`cutsceneData_${end}`));
+	}, 10);
+	return start;
+}
 
 //takes in a 2-dimensional array and averages the elements to output a 1d array
 function avgArray(array) {
@@ -152,6 +171,43 @@ function getTimeFromFrames(intFrames) {
 	return timeText;
 }
 
+function HSVtoRGB(hsvObject) {
+	//I don't understand most of this but it appears to work
+	var compound = (hsvObject.v / 100) * (hsvObject.s / 80);
+	var x = compound * (1 - Math.abs(((hsvObject.h / 60) % 2) - 1));
+	var mystery = (hsvObject.v / 100) - compound;
+	var RGB = [0, 0, 0];
+
+	switch(Math.floor(hsvObject.h / 60)) {
+		case 0:
+			RGB = [compound, x, 0];
+			break;
+		case 1:
+			RGB = [x, compound, 0];
+			break;
+		case 2:
+			RGB = [0, compound, x];
+			break;
+		case 3:
+			RGB = [0, x, compound];
+			break;
+		case 4:
+			RGB = [x, 0, compound];
+			break;
+		case 5:
+			RGB = [compound, 0, x];
+			break;
+	}
+
+	RGB = [
+		(RGB[0] + mystery) * 255, 
+		(RGB[1] + mystery) * 255, 
+		(RGB[2] + mystery) * 255
+	];
+
+	return RGB;
+}
+
 //performs a linear interpolation between 2 values
 function linterp(a, b, percentage) {
 	return a + ((b - a) * percentage);
@@ -175,11 +231,7 @@ function localStorage_read() {
 		console.log("ERROR: invalid type specified in save data, using default");
 		return;
 	}
-
-	//change the visited tags for all levels
-	data_persistent.discovered.forEach(a => {
-		getObjectFromID(a).discovered = true;
-	});
+	console.log("loaded save");
 }
 
 function localStorage_write() {
@@ -191,20 +243,6 @@ function localStorage_write() {
 		}
 	}
 	window.localStorage["run3_data"] = JSON.stringify(data_persistent);
-}
-
-function trueReset() {
-	//give user a warning
-	if (confirm("This action cannot be undone. Would you like to reset completely? \n(Press OK to reset, Cancel to not)")) {
-		//reset game flags
-		data_persistent = undefined;
-
-		//push to local storage
-		window.localStorage["run3_data"] = undefined;
-
-		//refresh page
-		window.location.reload();
-	}
 }
 
 function logTime(logName) {
@@ -228,49 +266,44 @@ function logTimeEnd(logName, textToDisplay) {
 	}
 }
 
-//takes in an array of objects with cameraDist values and returns the array, ordered by distance from the camera
-function orderObjects(array, places) {
-	//addings all objects to first array
-	let unsorted_objects = [];
-	let ordered = [];
-	let buckets = [[], [], [], [], [], [], [], [], [], []];
-	var end = array.length-1;
-	unsorted_objects[end] = undefined;
-
-	for (var a=0; a<array.length; a++) {
-		unsorted_objects[a] = array[a];
+function modularDifference(a, b, modulo) {
+	//first make sure they're both positive
+	while (a < 0) {
+		a += modulo;
+	}
+	while (b < 0) {
+		b += modulo;
 	}
 
-	//running a radix sort
-	for (var pos=1; pos<places+1; pos++) {
-		//empty buckets
-		for (var g=0; g<buckets.length; g++) {
-			buckets[g] = [];
-		}
-		//push objects to buckets
-		for (var m=0; m<unsorted_objects.length; m++) {
-			//formula determines which bucket to push into
-			buckets[Math.floor(((unsorted_objects[m].cameraDist) % Math.pow(10, pos) / Math.pow(10, pos-1)))].push(unsorted_objects[m]);
-		}
+	//get to be the smallest possible
+	a %= modulo;
+	b %= modulo;
 
-		//clear unsorted
-		unsorted_objects = [];
+	//check both sides
+	return Math.min(Math.abs(a - b), Math.abs((a + modulo) - b), Math.abs((a - modulo) - b));
 
-		//put bucket results into unsorted array
-		for (var k=0;k<buckets.length;k++) {
-			for (var m=0; m<buckets[k].length; m++) {
-				unsorted_objects.push(buckets[k][m]);
-			}
-		}
+}
+
+//outputs every tunnel in the world as a string
+function outputWorld() {
+	var output = ``;
+	world_objects.forEach(w => {
+		output += w.giveStringData() + "\n";
+	});
+
+	return output;
+}
+
+//outputs every tunnel with a prefix as a string
+function outputTunnel(prefix) {
+	var output = ``;
+	var num = 1;
+	while (getObjectFromID(prefix + num) != undefined) {
+		output += getObjectFromID(prefix + num).giveStringData() + "\n";
+		num += 1;
 	}
 
-	//push now ordered list to final array
-	ordered[end] = undefined;
-	for (var m=0; m<unsorted_objects.length; m++) {
-		ordered[m] = unsorted_objects[end - m];
-	}
-
-	return ordered;
+	return output;
 }
 
 function placeTunnelSet(setName) {
@@ -424,11 +457,6 @@ function RGBtoHSV(sixDigitRGBHexCode) {
 	return {h: hue, s: saturation * 80, v: value};
 }
 
-function rotate(x, z, radians) {
-	[x, z] = [(x * Math.cos(radians)) - (z * Math.sin(radians)), (z * Math.cos(radians)) + (x * Math.sin(radians))];
-	return [x, z];
-}
-
 function runCrash() {
 	ctx.fillStyle = "#F0F";
 	ctx.fillRect(0, 0, canvas.width / 2, canvas.height / 2);
@@ -441,6 +469,11 @@ function runCrash() {
 	window.cancelAnimationFrame(game_animation);
 }
 
+function sigmoid(input, lowerBound, upperBound) {
+	//haha good luck reading this ;)
+	return ((1 / (1+Math.pow(Math.E, -input))) + lowerBound) * (upperBound - lowerBound);
+  }
+
 function spliceIn(string, charStart, string2) {
 	return string.slice(0, charStart) + string2 + string.slice(charStart, string.length);
 }
@@ -449,35 +482,151 @@ function spliceOut(string, charStart, charEnd) {
 	return string.slice(0, charStart) + string.slice(charEnd, string.length);
 }
 
+
+function tunnelData_applyProperty(data, dataTagToApply, startLineIfAny, endLineIfAny) {
+	var lines = data.split("\n");
+	var newData = ``;
+	//start / end line parsing
+	var startLine = 0;
+	var endLine = lines.length - 1;
+	if (startLineIfAny != undefined) {
+		startLine = startLineIfAny;
+	}
+
+	if (endLineIfAny != undefined) {
+		endLine = endLineIfAny;
+	}
+
+	for (var a=startLine; a<endLine; a++) {
+		lines[a] = lines[a] + "|" + dataTagToApply;
+	}
+
+	//recombine data
+	for (var b=0; b<lines.length-1; b++) {
+		newData += lines[b] + "\n";
+	}
+
+	return newData;
+}
+
+//takes in raw tunnel data and subdivides it into its segments (id, tunnel type information, tile information, color, etc)
 function tunnelData_handle(data) {
-	//turn raw input into slightly more managable data by subdividing it
-	data = tunnelData_subdivide(data);
+	var rawInput = data;
+
+	//split input using vertical separators
+	var splitInput = rawInput.split("|");
+
+	var tunnelStructure = {
+		color: "", 
+		id: "ERROR: name not initialized", 
+		maxLen: 0, 
+		power: 1, 
+		functions: [], 
+		sides: 0, 
+		spawns: [],
+		endSpawns: [],
+		tileData: [], 
+		tileSize: 70, 
+		tilesPerSide: 0, 
+		theta: 0, 
+		x: 0, 
+		z: 0,
+		bannedCharacters: {}
+	};
+
+	//looping through all indeces of the array to classify them
+	splitInput.forEach(i => {
+		var splitTag = i.split("~");
+		switch (splitTag[0]) {
+			case "id":
+				tunnelStructure.id = splitTag[1];
+				break;
+			case "layout-tunnel":
+				//splice out the non-numbers
+				var layoutNumberBits = JSON.parse("[" + splitTag[1] + "]");
+
+				//0 is sides, 1 is tiles per side
+				tunnelStructure.sides = layoutNumberBits[0];
+				tunnelStructure.tilesPerSide = layoutNumberBits[1];
+				break;
+			case "color":
+				tunnelStructure.color = "#" + splitTag[1];
+				break;
+			case "tileWidth":
+				tunnelStructure.tileSize = splitTag[1] * 1;
+				break;
+			case "trigger-z":
+				
+				//for power triggers
+				if (splitTag[2] == "result-power") {
+					//split tag will be ["trigger-z", "0", "result-power", "0.1", "smooth"]
+					//the first box is the tile to trigger at, the second box is the result power, and the third box is the type of fade
+					//EX [10, 0.4, "slow"]
+					tunnelStructure.functions.push([splitTag[1] * 1, splitTag[3] * 1, splitTag[4]]);
+				}
+
+				//for cutscene triggers
+				if (splitTag[2] == "result-cutscene") {
+					//splitTag will be ["trigger-z", "number", "result-cutscene", "cutscene name"]
+					tunnelStructure.functions.push([splitTag[1] * 1, splitTag[3], "cutscene"]);
+				}
+				break;
+			case "terrain-pos":
+				tunnelStructure.tileData.push(splitTag[1] + "~" + splitTag[2]);
+				break;
+			case "pos-x":
+				tunnelStructure.x = splitTag[1] * 1;
+				break;
+			case "pos-z":
+				tunnelStructure.z = splitTag[1] * 1;
+				break;
+			case "direction":
+				tunnelStructure.theta = splitTag[1] * 1;
+				break;
+			case "spawn":
+				tunnelStructure.spawns.push(splitTag[1] * 1);
+				break;
+			case "endSpawn":
+				tunnelStructure.endSpawns.push(splitTag[1] * 1);
+				break;
+			case "power":
+				tunnelStructure.power = splitTag[1] * 1;
+				break;
+			case "charRestriction":
+				//split tag will be ["charRestriction", "[reason]", "character1", "character2"... etc]
+				for (var i=2; i<splitTag.length; i++) {
+					tunnelStructure.bannedCharacters[splitTag[i]] = splitTag[1];
+				}
+				break;
+		}
+	});
 
 	//the tile data is incomplete, so it needs to be fixed
 	//generate tunnel array
 	var finalTileArray = [];
 
-	finalTileArray[(data.tilesPerSide * data.sides) - 1] = [];
-	for (var g=0; g<data.tilesPerSide*data.sides-1; g++) {
+	finalTileArray[(tunnelStructure.tilesPerSide * tunnelStructure.sides) - 1] = [];
+	for (var g=0; g<tunnelStructure.tilesPerSide*tunnelStructure.sides-1; g++) {
 		finalTileArray[g] = [];
 	}
 
-	data.tileData.forEach(j => {
+	tunnelStructure.tileData.forEach(j => {
 		var dataBit = j.split("~");
 		dataBit[1] = "~" + dataBit[1];
-		tunnelData_parseData(dataBit[0], finalTileArray, data.tilesPerSide * data.sides, tunnel_tileAssociation[dataBit[1]]);
+		tunnelData_parseData(dataBit[0], finalTileArray, tunnelStructure.tilesPerSide * tunnelStructure.sides, tunnel_tileAssociation[dataBit[1]]);
 	});
 
-	data.tileData = finalTileArray;
+	tunnelStructure.tileData = finalTileArray;
 
 	//get the tunnel length
-	data.tileData.forEach(td => {
-		data.maxLen = Math.max(data.maxLen, td.length);
+	tunnelStructure.tileData.forEach(td => {
+		tunnelStructure.maxLen = Math.max(tunnelStructure.maxLen, td.length);
 	});
 
 	//return the final data
-	return data;
+	return tunnelStructure;
 }
+
 
 //takes in terrain data and returns the 2d array with different tunnel tile types
 function tunnelData_parseData(toParse, tileArray, tilesInLoop, tileTypeNum) {
@@ -528,135 +677,53 @@ function tunnelData_parseData(toParse, tileArray, tilesInLoop, tileTypeNum) {
 	}
 }
 
-//takes in raw tunnel data and subdivides it into its segments (id, tunnel type information, tile information, color, etc)
-function tunnelData_subdivide(data) {
-	var rawInput = data;
-	//remove color indicators, I don't want to deal with that
-	rawInput = rawInput.replace("~color-1", "");
-	rawInput = rawInput.replace("~color-0", "");
+function trueReset() {
+	//give user a warning
+	if (confirm("This action cannot be undone. Would you like to reset completely? \n(Press OK to reset, Cancel to not)")) {
+		//reset game flags
+		data_persistent = undefined;
 
-	//split input using vertical separators
-	var splitInput = rawInput.split("|");
+		//push to local storage
+		window.localStorage["run3_data"] = undefined;
 
-	var tunnelStructure = {
-		color: "", 
-		id: "ERROR: name not initialized", 
-		maxLen: 0, 
-		power: 1, 
-		powerFunctions: [], 
-		sides: 0, 
-		spawns: [],
-		tileData: [], 
-		tileSize: 70, 
-		tilesPerSide: 0, 
-		theta: 0, 
-		x: 0, 
-		z: 0
-	};
-
-	//looping through all indeces of the array to classify them
-	//TODO: refactor this, possibly into seperate functions, or a switch statement?
-	splitInput.forEach(i => {
-		//if it's a color tag, update the color
-		if (i.indexOf("color") == 0) {
-			//take the last 6 chars as the color code
-			tunnelStructure.color = "#" + i.substr(i.length - 6, 6);
-		}
-
-		//if it's a layout tag, update the tiles per row
-		else if (i.indexOf("layout") == 0) {
-			//splice out the non-numbers
-			var layoutNumberBits = i.replace("layout-tunnel", "");
-			layoutNumberBits = "[" + layoutNumberBits + "]";
-			layoutNumberBits = JSON.parse(layoutNumberBits);
-
-			//0 is sides, 1 is tiles per side
-			tunnelStructure.sides = layoutNumberBits[0];
-			tunnelStructure.tilesPerSide = layoutNumberBits[1];
-		}
-
-		//if it's a tile size tag, update the tile size
-		else if (i.indexOf("tileWidth") == 0) {
-			//splice out the first part, multiply by 1 so it's not a string anymore
-			tunnelStructure.tileSize = i.replace("tileWidth-", "") * 1;
-		}
-
-		//if it's an id tag, update the id, you know the thingy
-		else if (i.indexOf("id-") == 0) {
-			tunnelStructure.id = i.replace("id-", "");
-		}
-
-		//trigger conditionals
-		else if (i.indexOf("trigger-condition-z,") == 0) {
-			var temp = i.replace("trigger-condition-z,", "");
-			//only proceed if it's actually a power trigger
-			if (temp.indexOf("result-power-") != -1) {
-				temp = temp.split(",");
-
-				//the first box is the tile to trigger at,
-				//the second box is the result power, and 
-				//the third box is the type of fade
-				//EX [10, 0.4, "slow"]
-				tunnelStructure.powerFunctions.push([temp[0] * 1, temp[1].replace(">~result-power-", "") * 1, temp[2]]);
-			}
-		}
-
-		//data tags
-		else if (i.indexOf("terrain-pos") == 0) {
-			//first splice out the terrain pos
-			var dataBit = i.replace("terrain-pos-", "");
-			//splice out the type definition
-			tunnelStructure.tileData.push(dataBit);
-		}
-
-		//x, z, and theta 
-		else if (i.indexOf("pos-x:") == 0) {
-			tunnelStructure.x = i.replace("pos-x:", "") * 1;
-		}
-
-		else if (i.indexOf("pos-z:") == 0) {
-			tunnelStructure.z = i.replace("pos-z:", "") * 1;
-		}
-
-		else if (i.indexOf("direction:") == 0) {
-			tunnelStructure.theta = i.replace("direction:", "") * 1;
-		}
-
-		//spawns
-		else if (i.indexOf("spawn-") == 0) {
-			tunnelStructure.spawns.push(i.replace("spawn-", "") * 1);
-		}
-
-		//power
-		else if (i.indexOf("power-") == 0) {
-			tunnelStructure.power = i.replace("power-", "") * 1;
-		}
-	});
-
-	return tunnelStructure;
+		//refresh page
+		window.location.reload();
+	}
 }
 
-
-//outputs every tunnel in the world as a string
-function outputWorld() {
-	var output = ``;
-	world_objects.forEach(w => {
-		output += w.giveStringData() + "\n";
+function updatePlotProgression() {
+	//change the visited tags for all levels
+	data_persistent.discovered.forEach(a => {
+		getObjectFromID(a).discovered = true;
 	});
 
-	return output;
-}
-
-//outputs every tunnel with a prefix as a string
-function outputTunnel(prefix) {
-	var output = ``;
-	var num = 1;
-	while (getObjectFromID(prefix + num) != undefined) {
-		output += getObjectFromID(prefix + num).giveStringData() + "\n";
-		num += 1;
+	//level 1 is always discovered
+	getObjectFromID(`Level 1`).discovered = true;
+	//if no characters are unlocked, reset to the default
+	if (data_persistent.unlocked == undefined) {
+		data_persistent.unlocked = ["Runner"];
 	}
 
-	return output;
+	//if the end of the low power tunnel hasn't been discovered, move the new tunnel away
+	if (!(getObjectFromID(`Low Power Tunnel, Part 25`).discovered)) {
+		var a = 1;
+		var targetTunnel = getObjectFromID(`New Tunnel, Part ${a}`);
+		while (targetTunnel != undefined) {
+			targetTunnel.updatePosition(targetTunnel.x, targetTunnel.y, targetTunnel.z - 30000);
+			a += 1;
+			targetTunnel = getObjectFromID(`New Tunnel, Part ${a}`);
+		}
+	}
+
+	//if the end of the new tunnel has been discovered, all characters can go through it
+	if (getObjectFromID(`New Tunnel, Part 9`).discovered) {
+		for (var a=1; a<=9; a++) {
+			getObjectFromID(`New Tunnel, Part ${a}`).bannedCharacters = {};
+		}
+	}
+
+
+	console.log("applied story progression");
 }
 
 
@@ -664,7 +731,7 @@ function outputTunnel(prefix) {
 
 
 
-//2d collision functions, I've written these enough times that they don't need explanations. If you want an explanation, check rotate/2d-collision.js
+//2d collision functions, I've written these enough times that they don't need explanations. I really should turn this into a library but I'm lazy
 function getOrientation(p1, p2, p3) {
 	var value = (p2[1] - p1[1]) * (p3[0] - p2[0]) - (p2[0] - p1[0]) * (p3[1] - p2[1]); 
 	if (value > 0) {
@@ -672,39 +739,28 @@ function getOrientation(p1, p2, p3) {
 	} 
 	if (value < 0) {
 		return 1;
-	} else {
-		return 0;
 	}
+	return 0;
 }
 
 function lineIntersect(lin1p1, lin1p2, lin2p1, lin2p2) {
-	var a = getOrientation(lin1p1, lin1p2, lin2p1);
-	var b = getOrientation(lin1p1, lin1p2, lin2p2);
-	var c = getOrientation(lin2p1, lin2p2, lin1p1);
-	var d = getOrientation(lin2p1, lin2p2, lin1p2);
-	if (a != b && c != d) {
+	if (getOrientation(lin1p1, lin1p2, lin2p1) != getOrientation(lin1p1, lin1p2, lin2p2) && getOrientation(lin2p1, lin2p2, lin1p1) != getOrientation(lin2p1, lin2p2, lin1p2)) {
 		return 1;
-	} else {
-		return 0;
 	}
+	return 0;
 }
 
 
 function inPoly(xyPoint, polyPoints) {
-	var linP1 = xyPoint;
 	var linP2 = [1000000, xyPoint[1]];
 	var intersectNum = 0;
 	for (var r=0;r<polyPoints.length;r++) {
 		var p1 = polyPoints[r % polyPoints.length];
 		var p2 = polyPoints[(r+1) % polyPoints.length];
 
-		if (lineIntersect(p1, p2, linP1, linP2)) {
+		if (lineIntersect(p1, p2, xyPoint, linP2)) {
 			intersectNum += 1;
 		}
 	}
-	if (intersectNum % 2 == 1) {
-		return true;
-	} else {
-		return false;
-	}
+	return (intersectNum % 2 == 1);
 }
