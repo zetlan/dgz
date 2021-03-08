@@ -27,7 +27,28 @@ class State_Edit {
 
 		//little dot in the center of the screen
 		drawCircle(color_editor_cursor, canvas.width * 0.5, canvas.height * 0.5, 2);
-		drawEditorOverlay();
+		
+		//top bar
+		ctx.fillStyle = color_editor_bg;
+		ctx.fillRect(0, 0, canvas.width, canvas.height * editor_topBarHeight);
+
+		//buttons
+		ctx.font = `${Math.floor(canvas.height * 0.04)}px Comfortaa`;
+		ctx.textAlign = `center`;
+		ctx.fillStyle = color_grey_light;
+		ctx.strokeStyle = color_grey_dark;
+		ctx.lineWidth = canvas.height / 96;
+		for (var a=1; a<=editor_buttons.length; a++) {
+			var width = canvas.width * 1 / (editor_buttons.length * 1.5);
+			if (loading_state.substate == a) {
+				ctx.fillStyle = color_grey_dark;
+			}
+			drawRoundedRectangle((canvas.width * (a / (editor_buttons.length + 1))) - (width * 0.5), canvas.height * 0.03, width, canvas.height * 0.06, canvas.height / 40);
+
+			ctx.fillStyle = color_text;
+			ctx.fillText(editor_buttons[a-1], (canvas.width * (a / (editor_buttons.length + 1))), canvas.height * 0.075);
+			ctx.fillStyle = color_grey_light;
+		}
 	}
 
 	convertPlayerToCamera() {
