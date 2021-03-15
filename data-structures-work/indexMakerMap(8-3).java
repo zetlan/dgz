@@ -8,10 +8,8 @@ import java.util.*;
  * for all the words in the file and writes the index
  * into the output file.  The program prompts the user for the file names.
  */
-public class IndexMakerMap
-{
-   public static void main(String[] args) throws IOException
-   {
+public class IndexMakerMap {
+   public static void main(String[] args) throws IOException {
       Scanner keyboard = new Scanner(System.in);
       System.out.print("\nEnter input file name: ");
       String infileName = keyboard.nextLine().trim();
@@ -22,17 +20,15 @@ public class IndexMakerMap
       //System.out.println( index.toString() );
       PrintWriter outputFile = new PrintWriter(new FileWriter("fishIndex.txt"));
       outputFile.println(index.toString());
-      inputFile.close(); 						
+      inputFile.close();
       outputFile.close();
       System.out.println("Done.");
    }
-   
-   public static DocumentIndex makeIndex(Scanner inputFile)
-   {
+
+   public static DocumentIndex makeIndex(Scanner inputFile) {
       DocumentIndex index = new DocumentIndex(); 	
       int lineNum = 0;
-      while(inputFile.hasNextLine())
-      {
+      while(inputFile.hasNextLine()) {
          lineNum++;
          index.addAllWords(inputFile.nextLine(), lineNum);
       }
@@ -40,29 +36,54 @@ public class IndexMakerMap
    }
 }
 
-class DocumentIndex extends TreeMap<String, TreeSet<Integer>>
-{
+//why was this a treeset of integers, why why why must I suffer
+class DocumentIndex extends TreeMap<String, TreeSet<Integer>> {
+  //array for storage
   
   /** Extracts all the words from str, skipping punctuation and whitespace
    *  and for each word calls addWord(word, num).  A good way to skip punctuation
    *  and whitespace is to use String's split method, e.g., split("[., \"!?]") 
    */
-   public void addAllWords(String str, int lineNum) 
-   {
-   
+   public void addAllWords(String str, int lineNum) {
+      String[] splitWords = str.split("[,; :.\"?!]");
+
+      for (String word : splitWords) {
+         if (word.length() > 0) {
+            this.addWord(word, lineNum);
+         }
+      }
    }
 
   /** Makes the word uppercase.  If the word is already in the map, updates the lineNum.
    *  Otherwise, adds word and ArrayList to the map, and updates the lineNum   
    */
-   public void addWord(String word, int lineNum)
-   {
-   
+   public void addWord(String word, int lineNum) {
+      //part 1: make word uppercase
+      word = word.substring(0, 1).toUpperCase() + word.substring(1);
+
+      if (!this.containsKey(word)) {
+         //part 2: if the word isn't in the map, add the word
+         this.put(word, new TreeSet<Integer>());
+      }
+      
+      //part 3: add line number
+      this.get(word).add(lineNum);
    }
    
-   public String toString()
-   {
-   
+   public String toString() {
+      String output = "";
+      Set<String> words = this.keySet();
+      //output each key along with the values
+      for (String word : words) {
+         output += word + " ";
+         Iterator<Integer> lineIterator = this.get(word).iterator();
+         output += lineIterator.next();
+         while(lineIterator.hasNext()) {
+            output += ", "+lineIterator.next();
+         }
+         output += "\n";
+      }
+      return output;
    }
 }
 
