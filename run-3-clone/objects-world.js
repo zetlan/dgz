@@ -146,11 +146,53 @@ class FreePoly {
 			//draw self's normal as well
 			var cXYZ = polToCart(this.normal[0], this.normal[1], 5);
 			cXYZ = [this.x + cXYZ[0], this.y + cXYZ[1], this.z + cXYZ[2]];
-			ctx.beginPath();
 			ctx.lineWidth = 2;
 			ctx.strokeStyle = "#AFF";
 			drawWorldLine([this.x, this.y, this.z], cXYZ);
 		}
+	}
+}
+
+class OneTimeCutsceneTrigger {
+	constructor(parent, tile, flipCheckDirectionBOOLEAN, cutsceneDataSTRING) {
+		this.parent = parent;
+		this.x = this.parent.x;
+		this.y = this.parent.y;
+		this.z = this.parent.z;
+		this.tile = tile;
+		this.checkPrevious = flipCheckDirectionBOOLEAN;
+		this.temporary = false;
+
+		this.cutscene = cutsceneDataSTRING;
+		this.cameraDist = 1000;
+	}
+
+	tick() {
+		//if self's cutscene has already been activated, delete self
+		if (data_persistent.effectiveCutscenes.includes(this.cutscene)) {
+			this.parent.freeObjs.splice(this.parent.freeObjs.indexOf(this), 1);
+			return;
+		}
+
+		//if the player is close enough horizontally, go into target cutscene
+		var winCondition;
+		if (this.checkPrevious) {
+			winCondition = this.parent.playerTilePos <= this.tile;
+		} else {
+			winCondition = this.parent.playerTilePos >= this.tile;
+		}
+		winCondition = winCondition && (player.parent == this.parent);
+		if (winCondition) {
+			//put cutscene in the 'activated cutscenes' array
+			data_persistent.effectiveCutscenes.push(this.cutscene);
+			setTimeout(() => {
+				loading_state = new State_Cutscene(eval(`cutsceneData_${this.cutscene}`));
+				this.parent.resetWithoutPlayer();
+			}, 1);
+		}
+	}
+
+	beDrawn() {
 	}
 }
 
@@ -205,8 +247,12 @@ class Powercell {
 
 					//being collected
 					if (this.size < player.r || this.playerDist < player.r * 0.4) {
-						loading_state.powercells += 1;
-						loading_state.characterData[player.constructor.name].powercells += 1;
+						if (loading_state.constructor.name == "State_Infinite") {
+							loading_state.powercells += 1;
+							loading_state.characterData[player.constructor.name].powercells += 1;
+						} else {
+							data_persistent.powercells += 1;
+						}
 
 						//remove self from parent's array
 						for (var g=0; g<this.parent.freeObjs.length; g++) {
@@ -313,7 +359,32 @@ class Star {
 			//accounting for screen coordinates
 			tX += canvas.width / 2;
 			tY += canvas.height / 2;
-	
+
+
+			//if close enough to the wormhole, draw as a smear. If not, draw as a regular circle.
+			var wormDist = getDistance2d([tX, tY], world_wormhole.screenPos);
+			if (wormDist < world_wormhole.drawR * world_wormhole.maxRadiusMult) {
+				//use radius to determine amount of smearing
+				var smearAmount = world_wormhole.arcAtRadius / Math.pow((wormDist / world_wormhole.drawR), 4);
+				var angle = Math.atan2(world_wormhole.screenPos[1] - tY, world_wormhole.screenPos[0] - tX) + Math.PI;
+
+				//correcting smear amount if it's too small to display the star correctly
+				if (smearAmount < 1) {
+					//length = pi2r * (2pi / )
+				}
+
+				//modify distance to be closer to 1 if inside the wormhole
+				if (wormDist < world_wormhole.drawR) {
+					wormDist *= Math.sqrt((world_wormhole.drawR / wormDist));
+				}
+				//figure out 
+				ctx.strokeStyle = this.color;
+				ctx.lineWidth = this.drawR * 2;
+				ctx.beginPath();
+				ctx.arc(world_wormhole.screenPos[0], world_wormhole.screenPos[1], wormDist, angle - smearAmount, angle + smearAmount);
+				ctx.stroke();
+				return;
+			}
 			drawCircle(this.color, tX, tY, this.drawR);
 		}
 	}
@@ -384,6 +455,10 @@ class StaticCharacter {
 		this.cameraDist = getDistance(this, world_camera);
 		//if the player is close enough horizontally, go into target cutscene
 		if (this.parent.playerTilePos > this.tile - 3) {
+			//put cutscene in the 'activated cutscenes' array
+			if (!data_persistent.effectiveCutscenes.includes(end)) {
+				data_persistent.effectiveCutscenes.push(end);
+			}
 			setTimeout(() => {
 				loading_state = new State_Cutscene(this.cutscene);
 				this.parent.resetWithoutPlayer();
@@ -580,6 +655,15 @@ class Tunnel {
 		}
 	}
 
+	beDrawn_selected() {
+		//drawing theta circle + knob
+		ctx.beginPath();
+		ctx.strokeStyle = color_editor_cursor;
+		ctx.ellipse(this.map_startCoords[0], this.map_startCoords[1], editor_thetaCircleRadius, editor_thetaCircleRadius, 0, 0, Math.PI * 2);
+		ctx.stroke();
+		drawCircle(color_editor_cursor, this.map_startCoords[0] + (editor_thetaCircleRadius * Math.cos(this.theta)), this.map_startCoords[1] - (editor_thetaCircleRadius * Math.sin(this.theta)), editor_thetaKnobRadius);
+	}
+
 	coordinateIsInTunnel(x, y, z) {
 		//rotate by tunnel theta
 		x -= this.x;
@@ -594,6 +678,20 @@ class Tunnel {
 		}
 
 		return inPoly([x, y], polyPoints);
+	}
+
+	doComplexLighting() {
+		//loop through all tiles
+		this.strips.forEach(s => {
+			s.realTiles.forEach(t => {
+				t.playerDist = render_maxColorDistance * 2;
+
+				//set distance to the minimum distance to a light source
+				world_lightObjects.forEach(l => {
+					t.playerDist = Math.min(t.playerDist, getDistance(t, l));
+				});
+			});
+		});
 	}
 
 	//I apologize in advance for any headaches this function causes.
@@ -710,6 +808,9 @@ class Tunnel {
 				return new Tile_Ramp(x, y, z, size, normal, this, position, color);
 			case 12: 
 				return new Tile_Ice_Ramp(x, y, z, size, normal, this, position, color);
+				//movable tiles
+			case 14:
+				return new Tile_Warning(x, y, z, size, normal, this, position);
 			default:
 				return undefined;
 		}
@@ -782,6 +883,27 @@ class Tunnel {
 		player.dz = 0;
 	}
 
+	placePowercells() {
+		//placing power cells
+		var apothemLength = (this.tilesPerSide * this.tileSize) / (2 * Math.tan(Math.PI / this.sides));
+		var truePowercells = powercells_perTunnel;
+		if (player instanceof Gentleman) {
+			truePowercells = Math.round(truePowercells * powercells_gentlemanMultiplier);
+		}
+		for (var a=0; a<truePowercells; a++) {
+			var rotation = randomBounded(0, Math.PI * 2);
+
+			//get offset
+			var offset = polToCart(Math.PI / 2, rotation, apothemLength * randomBounded(0.3, 0.9));
+			offset[2] = ((a + 0.5) / truePowercells) * this.len * this.tileSize;
+
+			//rotate offset for true position
+			[offset[0], offset[2]] = rotate(offset[0], offset[2], this.theta);
+			
+			this.freeObjs.push(new Powercell(this.x + offset[0], this.y + offset[1], this.z + offset[2], this));
+		}
+	}
+
 	//returns true if the player is inside the tunnel, and false if the player is not
 	playerIsInTunnel() {
 		//rotate by tunnel theta
@@ -846,6 +968,12 @@ class Tunnel {
 				u -= 1;
 			}
 		}
+		//add powercells if gentleman exists
+		if (this.freeObjs.length == 0) {
+			if (player instanceof Gentleman) {
+				this.placePowercells();
+			}
+		}
 	}
 
 	tick() {
@@ -863,7 +991,7 @@ class Tunnel {
 
 			
 			this.reverseOrder = false;
-			//update whether strips should draw backwards or forwards
+			//if the camera direction is closely aligned with the tunnel direction, reverse the order of the tiles for proper layering
 			if (modularDifference((Math.PI * 2) - world_camera.theta, this.theta, Math.PI * 2) < Math.PI / 2) {
 				this.reverseOrder = true;
 			}
@@ -897,18 +1025,76 @@ class Tunnel {
 		}
 	}
 
-	doComplexLighting() {
-		//loop through all tiles
-		this.strips.forEach(s => {
-			s.realTiles.forEach(t => {
-				t.playerDist = render_maxColorDistance * 2;
-
-				//set distance to the minimum distance to a light source
-				world_lightObjects.forEach(l => {
-					t.playerDist = Math.min(t.playerDist, getDistance(t, l));
+	handleMouseDown() {
+		//default case, go into the level
+		if (!editor_active) {
+			setTimeout(() => {
+				//ordering all the objects
+				world_objects.forEach(u => {
+					u.getCameraDist();
 				});
-			});
-		});
+				world_objects = orderObjects(world_objects, 8);
+				player.parentPrev = this;
+				loading_state = new State_Game();
+				player.parentPrev.reset();
+
+				//displaying text
+				loading_state.text = this.id;
+				loading_state.time = tunnel_textTime;
+			}, 10);
+			return;
+		}
+
+		var knobCoords = [this.map_startCoords[0] + (editor_thetaCircleRadius * Math.cos(this.theta)), this.map_startCoords[1] - (editor_thetaCircleRadius * Math.sin(this.theta))];
+	
+		//if colliding with the theta change circle, do that stuff
+		if (getDistance2d(knobCoords, [cursor_x, cursor_y]) < editor_thetaKnobRadius) {
+			var diffX = cursor_x - this.map_startCoords[0];
+			var diffY = cursor_y - this.map_startCoords[1];
+			this.theta = (Math.atan2(diffY * -1, diffX) + (Math.PI * 2)) % (Math.PI * 2);
+			this.updatePosition(this.x, this.y, this.z);
+			loading_state.changingTheta = true;
+		} else {
+			//if not, deselect self
+			loading_state.objSelected = undefined;
+			loading_state.changingTheta = false;
+		}
+	}
+
+	handleMouseMove() {
+		if (loading_state.changingTheta) {
+			//update direction
+			this.theta = (Math.atan2(cursor_y - this.map_startCoords[1], this.map_startCoords[0] - cursor_x) + Math.PI) % (Math.PI * 2);
+			this.updatePosition(this.x, this.y, this.z);
+
+			//reset cursor pos 
+			cursor_x = this.map_circleCoords[0];
+			cursor_y = this.map_circleCoords[1];
+		} else {
+			//moving the tunnel
+			var snapX = cursor_x;
+			var snapY = cursor_y;
+
+			//if a tunnel end is close enough to the tunnel start, snap the tunnel to that position
+			var startSelectOffset = [this.map_startCoords[0] - this.map_circleCoords[0], this.map_startCoords[1] - this.map_circleCoords[1]];
+			//calculating tunnel end pos
+			for (var a=0; a<world_objects.length; a++) {
+				if (world_objects[a] != this) {
+					var endPos = world_objects[a].map_endCoords;
+					if (getDistance2d([endPos[0], endPos[1]], [snapX + startSelectOffset[0], snapY + startSelectOffset[1]]) < editor_snapTolerance) {
+						//moving position of selection
+						//get difference between tunnel start coordinates and selected coordinates
+						snapX = endPos[0] - startSelectOffset[0];
+						snapY = endPos[1] - startSelectOffset[1];
+					}
+				}
+			}
+
+			//update selected tunnel position
+			var offset = [this.map_startCoords[0] - this.map_circleCoords[0], this.map_startCoords[1] - this.map_circleCoords[1]];
+			var newCoords = screenToSpace([snapX + offset[0], snapY + offset[1]], world_camera.y);
+			this.updatePosition(newCoords[0], newCoords[1], newCoords[2]);
+		}
 	}
 
 	updatePosition(x, y, z) {
@@ -1144,10 +1330,15 @@ class Tunnel_Strip {
 		this.realTiles = [];
 		this.realsBackwards = [];
 		this.tiles.forEach(t => {
-			//if the tile isn't undefined and it's not a plexiglass tile (or it is a plexiglass tile and the player's a pastafarian)
-			if (t != undefined && (t.minStrength == undefined || player.personalBridgeStrength != undefined)) {
-				this.realTiles.push(t);
-				this.realsBackwards.splice(0, 0, t);
+			if (t != undefined) {
+				t.isReal = false;
+
+				//if the tile isn't a plexiglass tile (or it is a plexiglass tile and the player's a pastafarian)
+				if ((t.minStrength == undefined || player.personalBridgeStrength != undefined)) {
+					t.isReal = true;
+					this.realTiles.push(t);
+					this.realsBackwards.splice(0, 0, t);
+				}
 			}
 		});
 	}
@@ -1169,5 +1360,36 @@ class Tunnel_Strip {
 		this.realTiles.forEach(t => {
 			t.tick();
 		});
+	}
+}
+
+
+
+
+class Wormhole {
+	constructor(x, y, z) {
+		this.x = x;
+		this.y = y;
+		this.z = z;
+
+		//space-bending properties
+		this.r = 6000;
+		this.drawR = 1;
+		this.screenPos = [];
+		this.arcAtRadius = 0.8;
+		this.maxRadiusMult = 4;
+	}
+
+	beDrawn() {
+		drawCircle("#F0F", this.screenPos[0], this.screenPos[1], this.drawR);
+	}
+
+	tick() {
+		if (!isClipped([this.x, this.y, this.z])) {
+			this.screenPos = spaceToScreen([this.x, this.y, this.z]);
+		} else {
+			this.screenPos = [-1e7, -1e7];
+		}
+		this.drawR = (this.r / getDistance(this, world_camera)) * world_camera.scale;
 	}
 }
