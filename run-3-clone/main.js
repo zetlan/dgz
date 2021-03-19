@@ -24,8 +24,9 @@ var challenge_textTime = 280;
 var controls_cursorLock = false;
 var controls_sensitivity = 100;
 var controls_spacePressed = false;
+var controls_shiftPressed = false;
 
-//bg is in 6 hex numbers for  p r e c i s i o n
+//some of these are in 6 digits if they need to be parsed to HSV or if I want it to be very precise.
 const color_bg = "#100026";
 const color_box = "#E6CCE6";
 const color_box_secondary = "#776A88";
@@ -48,9 +49,12 @@ const color_keyUp = "#666";
 const color_map_bg = "#FEA";
 const color_map_writing = "#010";
 const color_menuSelectionOutline = "#88F";
+const color_ring = "#FEEC00";
 const color_stars = "#44A";
 const color_text = "#424";
 const color_text_bright = "#FAF";
+const color_warning = "#FFDB29";
+const color_warning_secondary = "#8C8C89";
 const colors_powerCells = ["#888888", "#8888FF", "#88FF88", "#88FFFF", "#FF8888", "#FF88FF", "#FFFF88", "#FFFFFF"];
 
 var cursor_x = 0;
@@ -63,21 +67,39 @@ var data_characters = [`Runner`, `Skater`, `Lizard`, `Bunny`, `Gentleman`, `Dupl
 
 var data_levelSets = [`main`, `boxStorage`, `coordination`, `planA`, `planC`, `memory`, `wayBack`, `wayBack2`, `wayBackNot`, `winterGames`, `lowPower`, `new`,
 						`A`, `B`, `C`, `D`, `F`, `G`, `H`, `I`, `L`, `M`, `N`, `T`, `U`, `W`];
-//data_levelSets = [`main`, `lowPower`, `new`, `A`, `B`];
+//data_levelSets = [`main`, `lowPower`, `new`];
 
 var data_persistent = {
 	powercells: 0,
 	discovered: [],
+	effectiveCutscenes: [],
 	unlocked: [`Runner`],
-	goingHomeProgress: 1,
-	bridgeBuildingProgress: 1,
+	goingHomeProgress: undefined,
+	bridgeBuildingProgress: undefined,
 
 };
 
-//I made the executive decision to use PNGs rather than SVGs because of performance. 
-//If anyone wants the .fla file with all the character sprites, feel free to dm me on discord (Cynthia_Clementine#4109)or email me at cyClementine0@gmail.com.
+/*
+I made the executive decision to use PNGs rather than SVGs because of performance. 
+However, I think the sprites should be available easily with whatever resolution people want. 
+So if you go to clementine.viridian.page/run-3-clone/images/runSprites.fla you can get 
+the .fla file I created that stores all the sprites.
+
+I hope someone finds it useful (:    */
+
 var data_sprites = {
 	spriteSize: 144,
+
+	Map: {
+		sheet: getImage('images/mapSprites.png'),
+		planet: [[0, 0]],
+		crazy: [[1, 0]],
+		battery: [[2, 0]],
+		teapot: [[3, 0]],
+		batteryName: [[4, 0]],
+		onwards: [[5, 0], [6, 0]],
+		snowflakes: [[0, 1], [1, 1], [2, 1], [3, 1], [4, 1]],
+	},
 
 	Angel: {
 		sheet: getImage('images/angelSprites.png'),
@@ -162,7 +184,7 @@ var data_sprites = {
 		sheet: getImage('images/pastaSprites.png'),
 		frameTime: 2.3,
 		back: [[0, 3]],
-		front: [[]],
+		front: [[10, 0]],
 		jumpForwards: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0]],
 		jumpLeft: [[0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [5, 1], [6, 1]],
 		jumpRight: [[0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [5, 2], [6, 2]],
@@ -178,7 +200,7 @@ var data_sprites = {
 		sheet: getImage('images/runnerSprites.png'),
 		frameTime: 2.3,
 		back: [[0, 2]],
-		front: [[]],
+		front: [[10, 0]],
 		jumpForwards: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0]],
 		jumpSideways: [[0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [5, 1], [6, 1]],
 		walkForwards: [[0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [5, 2], [6, 2], [7, 2],
@@ -191,7 +213,7 @@ var data_sprites = {
 		sheet: getImage('images/skaterSprites.png'),
 		frameTime: 2.1,
 		back: [[0, 2]],
-		front: [[]],
+		front: [[10, 0]],
 		jumpForwards: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0]],
 		jumpSideways: [[0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [5, 1], [6, 1]],
 		walkForwards: [[0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [5, 2], [6, 2], [7, 2],
@@ -248,9 +270,10 @@ var infinite_levelRange = 40;
 
 let loading_state = new State_Loading();
 
-var map_height = 135000;
-var map_shift = 56000;
-var map_zOffset = -25000;
+var map_height = 120000;
+var map_shift = 57000;
+var map_zOffset = -55200;
+var map_iconSize = 0.06;
 
 var menu_buttonWidth = 0.2;
 var menu_buttonHeight = 0.05;
@@ -313,7 +336,8 @@ var tunnel_tileAssociation = {
 	"~steepRamp": 11, 
 	"~ramp": 12, //ice ramp
 	"~movable": 13, 
-	"~battery": 14
+	"~warning": 14,
+	"~battery": 15
 };
 
 var tunnel_translation = {
@@ -334,6 +358,7 @@ var world_time = 0;
 let world_lightObjects = [];
 let world_objects = [];
 let active_objects = [];
+let world_wormhole;
 
 
 var render_animSteps = 9;
@@ -361,6 +386,7 @@ function setup() {
 	ctx = canvas.getContext("2d");
 	ctx.lineWidth = 2;
 	ctx.lineJoin = "round";
+	ctx.lineCap = "round";
 
 	//cursor movements setup
 	document.addEventListener("mousemove", handleMouseMove, false);
@@ -375,6 +401,7 @@ function setup() {
 
 	world_camera = new Camera(0, 8, 0, 0, 0);
 	player = new Runner(-60, 0, 0);
+	world_wormhole = new Wormhole(60000, 2000, 199199);
 
 	//setting up world
 	//as a reminder, tunnels are (x, y, z, angle, tile size, sides, tiles per sides, color, length, data)
@@ -492,24 +519,8 @@ function handleKeyPress(a) {
 				break;
 			//shift
 			case 16:
-				world_camera.speed *= 8;
+				controls_shiftPressed = true;
 				break;
-			//delete button
-			case 8:
-				if (loading_state instanceof State_Cutscene) {
-					if (loading_state.selected != undefined) {
-						//if space is pressed, splice out all items
-						if (controls_spacePressed) {
-							loading_state.data[loading_state.frame][1] = [];
-							return;
-						}
-						//normal case
-						var editing = loading_state.data[loading_state.frame][1];
-						editing.splice(editing.indexOf(loading_state.selected), 1);
-					}
-				}
-				break;
-
 			//direction controls
 			case 37:
 				world_camera.dt = -1 * world_camera.sens;
@@ -542,10 +553,45 @@ function handleKeyPress(a) {
 			case 190:
 				if (loading_state instanceof State_Cutscene) {
 						loading_state.frame += 1;
+						//creating new frame
 						if (loading_state.frame + 1 > loading_state.data.length) {
 							loading_state.data.push([[world_camera.x, world_camera.y, world_camera.z, world_camera.theta, world_camera.phi, world_camera.rot], []]);
+							//if space is pressed duplicate objects as well
+							if (controls_shiftPressed) {
+								console.log("shift detected while adding frame");
+								var objData = ``;
+								for (var a=0; a<loading_state.data[loading_state.data.length-2][1].length-1; a++) {
+									objData += loading_state.data[loading_state.data.length-2][1][a].giveEnglishConstructor() + ", ";
+								}
+								if (loading_state.data[loading_state.data.length-2][1].length > 0) {
+									objData += loading_state.data[loading_state.data.length-2][1][loading_state.data[loading_state.data.length-2][1].length-1].giveEnglishConstructor();
+								}
+								loading_state.data[loading_state.data.length-1][1] = eval(`[${objData}]`);
+							}
 						}
 						loading_state.updateFrame();
+				}
+				break;
+			//delete button
+			case 8:
+				if (loading_state instanceof State_Cutscene) {
+					if (loading_state.selected != undefined) {
+						//if shift is pressed, splice out all items
+						if (controls_shiftPressed) {
+							loading_state.data[loading_state.frame][1] = [];
+							return;
+						}
+						//normal case
+						var editing = loading_state.data[loading_state.frame][1];
+						editing.splice(editing.indexOf(loading_state.selected), 1);
+					} else if (loading_state.data[loading_state.frame][1].length == 0) {
+						//if there are no items, delete the frame
+						if (loading_state.frame > 0) {
+							loading_state.data.pop();
+							loading_state.frame -= 1;
+							loading_state.updateFrame();
+						}
+					}
 				}
 				break;
 			//de-activating editor
@@ -612,7 +658,7 @@ function handleKeyNegate(a) {
 				break;
 			//shift
 			case 16:
-				world_camera.speed /= 8;
+				controls_shiftPressed = false;
 				break;
 			//space
 			case 32:
