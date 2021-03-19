@@ -18,6 +18,7 @@ class Tile extends FreePoly {
 
 		this.parent = parent;
 		this.parentPosition = tilePosition;
+		this.isReal = false;
 	}
 
 	calculatePointsAndNormal() {
@@ -78,7 +79,7 @@ class Tile extends FreePoly {
 
 	collideWithEntity(entity) {
 		//only collide if player is within certain distance
-		if (Math.abs(this.x - entity.x) + Math.abs(this.y - entity.y) + Math.abs(this.z - entity.z) < (this.size * 2) + entity.r) {
+		if (this.playerDist < this.size * 2) {
 			super.collideWithEntity(entity);
 		}
 	}
@@ -121,7 +122,7 @@ class Tile_Box extends Tile {
 	
 
 	beDrawn() {
-		if (this.cameraDist < render_maxColorDistance + this.size) {
+		if ((this.size / this.cameraDist) * world_camera.scale > render_minTileSize * 0.5 && this.cameraDist < render_maxColorDistance * 2) {
 			//actual box shape
 			/*faces:
 			top - 0 1 2 3 
@@ -471,7 +472,7 @@ class Tile_Crumbling extends Tile {
 
 	collideWithEntity(entity) {
 		//only do if large enough
-		if (this.activeSize > 0.01) {
+		if (this.activeSize > 0.01 && this.playerDist < this.size * 2) {
 			super.collideWithEntity(entity);
 		}
 
@@ -656,7 +657,7 @@ class Tile_Plexiglass extends Tile {
 
 	collideWithEntity(entity) {
 		if (player.personalBridgeStrength != undefined) {
-			if (this.getAlpha() > this.minStrength) {
+			if (this.getAlpha() > this.minStrength && this.playerDist < this.size * 2) {
 				super.collideWithEntity(entity);
 			}
 		}
@@ -704,5 +705,60 @@ class Tile_Vertical extends Tile {
 }
 
 class Tile_Warning extends Tile {
+	constructor(x, y, z, size, normal, parent, tilePosition) {
+		super(x, y, z, size, normal, parent, tilePosition, RGBtoHSV(color_warning));
+		this.verticalPlayerDist = 1000;
+	}
 
+	calculatePointsAndNormal() {
+		super.calculatePointsAndNormal();
+		this.verticalPoints = [[1, 0, -1], [1, 1.25, -1], [1, 1.25, 1], [1, 0, 1]];
+		this.verticalCenter = avgArray(this.verticalPoints);
+
+		transformPoint(this.verticalCenter, [this.x, this.y, this.z], this.normal, this.size + 0.5);
+		this.verticalPoints.forEach(p => {
+			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 0.5);
+		});
+	}
+
+	tick() {
+		super.tick();
+
+		//get player distance for vertical part
+		this.verticalPlayerDist = getDistance(player, {x: this.verticalCenter[0], y: this.verticalCenter[1], z: this.verticalCenter[2]});
+	}
+
+	getVerticalColor() {
+		return `hsl(${this.color.h}, ${this.color.s}%, ${linterp((this.color.v * 45) * (this.parent.power + 0.5), 0, clamp((this.verticalPlayerDist / render_maxColorDistance) * (1 / (this.parent.power + 0.001)), 0.1, 1))}%)`;
+	}
+
+	collideWithEntity(entity) {
+		super.collideWithEntity(entity);
+
+		//also colliding with front bit
+		//transform player to self's coordinates
+		var entityCoords = spaceToRelative([entity.x, entity.y, entity.z], this.verticalCenter, [this.dir_down[0] + (Math.PI / 2), 0, this.dir_down[1]]);
+		if (Math.abs(entityCoords[2]) < this.tolerance && Math.abs(entityCoords[0] < this.size + this.tolerance) && Math.abs(entityCoords[0]) < (this.size * 0.25) + this.tolerance) {
+			//different behavior depending on side
+			if (entityCoords[2] < 0) {
+				entityCoords[2] = -this.tolerance;
+			} else {
+				entityCoords[2] = this.tolerance;
+			}
+			entity.dz = 0;
+			//transforming back to regular coordinates
+			[entity.x, entity.y, entity.z] = relativeToSpaceRot(entityCoords, this.verticalCenter, [this.dir_down[0] + (Math.PI / 2), 0, this.dir_down[1]]);
+		}
+	}
+
+	beDrawn() {
+		super.beDrawn();
+		drawWorldPoly(this.verticalPoints, this.getVerticalColor());
+		if (editor_active) {
+			//draw sideways normal
+			var cXYZ = polToCart(this.dir_down[0] + (Math.PI / 2), 0, 5);
+			cXYZ = [this.verticalCenter[0] + cXYZ[0], this.verticalCenter[1] + cXYZ[1], this.verticalCenter[2] + cXYZ[2]];
+			drawWorldLine(this.verticalCenter, cXYZ);
+		}
+	}
 }
