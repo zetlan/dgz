@@ -148,13 +148,7 @@ class SceneText {
 		this.fontSize = textSize;
 		this.rawContent = content.replace("\\'", "'");
 		this.processedContent = [];
-		//set a timeout on process so that the canvas is defined when it happens
-		var self = this;
-		setTimeout(() => {
-			self.process();
-		}, 200);
 		this.isLight = lightBOOLEAN;
-
 		this.selectedPart = undefined;
 	}
 
@@ -179,13 +173,14 @@ class SceneText {
 	}
 
 	drawSelectionCircles() {
+		var height = this.fontSize * this.processedContent.length * canvas.height;
 		//grey circles
 		drawCircle(color_grey_dark, canvas.width * this.x, canvas.height * this.y, editor_handleRadius);
-		drawCircle(color_grey_dark, canvas.width * this.x, (canvas.height * this.y) + (canvas.height * this.fontSize), editor_handleRadius);
+		drawCircle(color_grey_dark, canvas.width * this.x, (canvas.height * this.y) + height, editor_handleRadius);
 		drawCircle(color_grey_dark, (canvas.width * this.x) + (canvas.width * this.width), canvas.height * this.y, editor_handleRadius);
 
-		drawCircle(color_grey_dark, (canvas.width * this.x) - (canvas.width * this.width * 0.5), (canvas.height * this.y) + (canvas.height * this.fontSize * 0.5), editor_handleRadius);
-		drawCircle(color_grey_dark, (canvas.width * this.x) - (canvas.width * this.width * 0.5), (canvas.height * this.y) - (canvas.height * this.fontSize * 0.5), editor_handleRadius);
+		drawCircle(color_grey_dark, (canvas.width * this.x) - (canvas.width * this.width * 0.5), (canvas.height * this.y) + (height * 0.5), editor_handleRadius);
+		drawCircle(color_grey_dark, (canvas.width * this.x) - (canvas.width * this.width * 0.5), (canvas.height * this.y) - (this.fontSize * canvas.height * 0.5), editor_handleRadius);
 
 		//colored circles
 		switch (this.selectedPart) {
@@ -195,7 +190,7 @@ class SceneText {
 				break;
 			case 1:
 				//text size
-				drawCircle(color_editor_cursor, canvas.width * this.x, (canvas.height * this.y) + (canvas.height * this.fontSize), editor_handleRadius);
+				drawCircle(color_editor_cursor, canvas.width * this.x, (canvas.height * this.y) + height, editor_handleRadius);
 				this.process();
 				break;
 			case 2:
@@ -205,7 +200,7 @@ class SceneText {
 				break;
 			case 3:
 				//bright toggle
-				drawCircle(color_editor_cursor, (canvas.width * this.x) - (canvas.width * this.width * 0.5), (canvas.height * this.y) - (canvas.height * this.fontSize * 0.5), editor_handleRadius);
+				drawCircle(color_editor_cursor, (canvas.width * this.x) - (canvas.width * this.width * 0.5), (canvas.height * this.y) - (this.fontSize * canvas.height * 0.5), editor_handleRadius);
 				break;
 		}
 	}
@@ -237,7 +232,7 @@ class SceneText {
 				break;
 			case 1:
 				//font size
-				this.fontSize = Math.abs(this.y - (cursor_y / canvas.height));
+				this.fontSize = Math.abs(this.y - (cursor_y / canvas.height)) / this.processedContent.length;
 				break;
 			case 2:
 				//width
@@ -255,7 +250,7 @@ class SceneText {
 		var x = canvas.width * this.x;
 		var y = canvas.height * this.y;
 		var width = canvas.width * this.width;
-		var height = canvas.height * this.fontSize;
+		var height = canvas.height * this.fontSize * this.processedContent.length;
 
 		//only become selected if in the correct area
 		if (cursor_x > x - width - editor_snapTolerance && cursor_x < x + width + editor_snapTolerance && cursor_y > y - height - editor_snapTolerance && cursor_y < y + height + editor_snapTolerance) {
@@ -282,7 +277,7 @@ class SceneText {
 			}
 
 			//bright toggle
-			if (getDistance2d([cursor_x, cursor_y], [x - width / 2, y - height / 2]) < editor_snapTolerance) {
+			if (getDistance2d([cursor_x, cursor_y], [x - width / 2, y - (this.fontSize * canvas.height) / 2]) < editor_snapTolerance) {
 				this.selectedPart = 3;
 				this.isLight = !this.isLight;
 				return false;
@@ -296,7 +291,7 @@ class SceneText {
 	}
 
 	giveEnglishConstructor() {
-		return `new SceneText(${this.x.toFixed(4)}, ${this.y.toFixed(4)}, ${this.width.toFixed(4)}, ${this.fontSize.toFixed(4)}, '${this.rawContent.replace('\'', '\\\'')}', ${this.isLight})`;
+		return `new SceneText(${this.x.toFixed(4)}, ${this.y.toFixed(4)}, ${this.width.toFixed(4)}, ${this.fontSize.toFixed(4)}, '${this.rawContent}', ${this.isLight})`;
 	}
 }
 
@@ -418,11 +413,16 @@ class SceneBubble extends SceneBox {
 
 class SceneSprite extends SceneBox {
 	constructor(x, y, size, spriteSheetSTRING, rotation, backwardsBoolean, textureX, textureY) {
-		super(x, y, size * 0.75, size);
+		super(x, y, size, size);
 		this.textureX = textureX;
 		this.textureY = textureY;
 		this.sheet = spriteSheetSTRING;
 		this.texture = new Texture(eval(spriteSheetSTRING), data_sprites.spriteSize, 1e1001, false, backwardsBoolean, [[this.textureX, this.textureY]]);
+
+		//special case for map sprite sheet
+		if (spriteSheetSTRING == "data_sprites.Map.sheet") {
+			this.texture = new Texture(eval(spriteSheetSTRING), data_sprites.spriteSize * 2, 1e1001, false, backwardsBoolean, [[this.textureX, this.textureY]]);
+		}
 		this.rot = rotation;
 	}
 
@@ -491,14 +491,14 @@ class SceneSprite extends SceneBox {
 				var xOffset = cursor_x - ((canvas.width * this.x) - (canvas.width * this.width * 0.5));
 				var yOffset = cursor_y - ((canvas.height * this.y) + (canvas.height * this.height * 0.5));
 
-				var scale = Math.min(data_sprites.spriteSize, canvas.width * this.width * 2);
+				var scale = Math.min(this.texture.size, canvas.width * this.width * 2);
 
 				var sheetXOffset = (this.x * canvas.width) - (((this.textureX + 0.5) - (xOffset / scale)) * this.width * canvas.width * 2);
 				var sheetYOffset = (this.y * canvas.height) - (((this.textureY + 0.5) - (yOffset / scale)) * this.height * canvas.height * 2);
 
 				ctx.globalAlpha = 0.2;
 				ctx.drawImage(this.texture.sheet, sheetXOffset, sheetYOffset, 
-							(this.texture.sheet.width / data_sprites.spriteSize) * this.width * canvas.width * 2, (this.texture.sheet.height / data_sprites.spriteSize) * this.height * canvas.height * 2);
+							(this.texture.sheet.width / this.texture.size) * this.width * canvas.width * 2, (this.texture.sheet.height / this.texture.size) * this.height * canvas.height * 2);
 				ctx.globalAlpha = 1;
 
 				//if the cursor's up, snap to the nearest frame
@@ -506,8 +506,8 @@ class SceneSprite extends SceneBox {
 					this.textureX = Math.round(this.textureX - (xOffset / scale));
 					this.textureY = Math.round(this.textureY - (yOffset / scale));
 
-					this.textureX = clamp(this.textureX, 0, (this.texture.sheet.width / data_sprites.spriteSize) - 1);
-					this.textureY = clamp(this.textureY, 0, (this.texture.sheet.height / data_sprites.spriteSize) - 1);
+					this.textureX = clamp(this.textureX, 0, (this.texture.sheet.width / this.texture.size) - 1);
+					this.textureY = clamp(this.textureY, 0, (this.texture.sheet.height / this.texture.size) - 1);
 
 					this.texture.frames[0][0] = this.textureX;
 					this.texture.frames[0][1] = this.textureY;
@@ -557,7 +557,7 @@ class SceneSprite extends SceneBox {
 	}
 
 	giveEnglishConstructor() {
-		return `new SceneSprite(${this.x.toFixed(4)}, ${this.y.toFixed(4)}, ${(this.width * 2).toFixed(4)}, '${this.sheet}', ${this.rot.toFixed(4)}, ${this.texture.backwards}, ${this.textureX}, ${this.textureY})`;
+		return `new SceneSprite(${this.x.toFixed(4)}, ${this.y.toFixed(4)}, ${this.width.toFixed(4)}, '${this.sheet}', ${this.rot.toFixed(4)}, ${this.texture.backwards}, ${this.textureX}, ${this.textureY})`;
 	}
 }
 
@@ -661,6 +661,74 @@ class SceneTri {
 }
 
 
+//texture that's in the map and activates a cutscene upon viewing
+class MapTexture {
+	constructor(x, z, coordinates, cutsceneString, viewCondition) {
+		this.x = x;
+		this.y = 0;
+		this.z = z;
+		this.texture = new Texture(data_sprites["Map"].sheet, data_sprites.spriteSize * 2, 1e1001, false, false, coordinates);
+		this.map_circleCoords = [-1, -1];
+		this.cutsceneRef = `cutsceneData_${cutsceneString}`;
+		this.id = "";
+		if (this.cutsceneRef != `cutsceneData_undefined`) {
+			this.id = eval(this.cutsceneRef).id;
+		}
+		this.viewCondition = viewCondition;
+		this.visible = false;
+	}
+
+	activate() {
+		if (this.visible) {
+			activateCutsceneFromTunnel(1, this.cutsceneRef.split("_")[1], 1);
+		}
+	}
+
+	beDrawn() {
+		this.visible = eval(this.viewCondition);
+		if (editor_active || this.visible) {
+			this.map_circleCoords = spaceToScreen([this.x, this.y, this.z]);
+			this.texture.beDrawn(this.map_circleCoords[0], this.map_circleCoords[1], 0, map_iconSize * canvas.height);
+			//small circle in the middle of self for editor
+			if (editor_active) {
+				drawCircle(color_grey_light, this.map_circleCoords[0], this.map_circleCoords[1], editor_handleRadius);
+			}
+		}
+
+		//if doesn't lead to a cutscene, make sure self can't be selected
+		if (this.id == "") {
+			this.visible = false;
+		}
+	}
+
+	beDrawn_selected() {
+		this.beDrawn();
+	}
+
+	handleMouseDown() {
+		if (!editor_active) {
+			//activating cutscene if not in edit mode
+			this.activate();
+		} else {
+			//if in edit mode and the cursor is down too far away, become unselected
+			if (getDistance2d(this.map_circleCoords, [cursor_x, cursor_y]) > map_iconSize * canvas.height) {
+				loading_state.objSelected = undefined;
+			}
+		}
+	}
+
+	handleMouseMove() {
+		//move to where the cursor is
+		var newCoords = screenToSpace([cursor_x, cursor_y], world_camera.y);
+		this.x = newCoords[0];
+		this.z = newCoords[2];
+	}
+
+	giveEnglishConstructor() {
+		return `new MapTexture(${Math.round(this.x)}, ${Math.round(this.z)}, ${JSON.stringify(this.texture.frames)}, \`${this.cutsceneRef.split("_")[1]}\`, \`${this.viewCondition}\`)`;
+	}
+}
+
 
 
 
@@ -731,7 +799,7 @@ class PropertySlider {
 
 //text boxes you can click on and change in the editor
 class PropertyTextBox {
-	constructor(xPERCENTAGE, yPERCENTAGE, widthPERCENTAGE, label, propertyToModifySTRING, propertyDisplay, textBoxText, resetTunnel) {
+	constructor(xPERCENTAGE, yPERCENTAGE, widthPERCENTAGE, label, propertyToModifySTRING, propertyDisplay, textBoxText, textBoxPrefill, resetTunnel) {
 		this.x = xPERCENTAGE;
 		this.y = yPERCENTAGE;
 		this.width = widthPERCENTAGE;
@@ -740,6 +808,7 @@ class PropertyTextBox {
 		this.property = propertyDisplay;
 		this.execution = propertyToModifySTRING;
 		this.boxLabel = textBoxText;
+		this.boxContent = textBoxPrefill;
 		this.doReset = resetTunnel;
 	}
 
@@ -764,7 +833,7 @@ class PropertyTextBox {
 			//if in the area, modify value
 			if (cursor_y > (canvas.height * this.y) - cursor_hoverTolerance && cursor_y < (canvas.height * this.y) + cursor_hoverTolerance) {
 				if (cursor_x < (canvas.width * (this.x + this.width)) + cursor_hoverTolerance && cursor_x > (canvas.width * this.x) - cursor_hoverTolerance) {
-					var value = prompt(this.boxLabel, eval(this.property));
+					var value = prompt(this.boxLabel, eval(this.boxContent));
 					//sanitize input because users are evil gremlins (sorry any user that's reading this, you're not an evil gremlin, but your typing habits could cause problems)
 					if (value != undefined && value != "" && value != null) {
 						value.replace(`\'`, "");
