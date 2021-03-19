@@ -75,12 +75,12 @@ class Camera {
 			//handling position
 			var moveCoords = [0, 0, 0];
 			if (Math.abs(this.dz) > 0.05) {
-				var toAdd = polToCart(this.theta, this.phi, this.speed * 500 * this.dz);
+				var toAdd = polToCart(this.theta, this.phi, this.speed * 500 * this.dz * (1 + (controls_shiftPressed * 7)));
 				moveCoords = [moveCoords[0] + toAdd[0], moveCoords[1] + toAdd[1], moveCoords[2] + toAdd[2]];
 				
 			}
 			if (Math.abs(this.dx) > 0.05) {
-				var toAdd = polToCart(this.theta + (Math.PI / 2), 0, this.speed * 500 * this.dx);
+				var toAdd = polToCart(this.theta + (Math.PI / 2), 0, this.speed * 500 * this.dx * (1 + (controls_shiftPressed * 7)));
 				moveCoords = [moveCoords[0] + toAdd[0], moveCoords[1] + toAdd[1], moveCoords[2] + toAdd[2]];
 			}
 			this.x += moveCoords[0];
@@ -110,7 +110,6 @@ class Camera {
 		this.targetZ = this.z;
 		this.targetTheta = this.theta;
 		this.targetRot = this.rot;
-		console.log("reconciling");
 	}
 
 	handleSpace() {
@@ -258,7 +257,7 @@ class Character {
 							voidStrength *= 1.8;
 						}
 					}
-					this.modifyDerivitives(this.gravStrength * 0.7 * (voidStrength), this.friction / 2, this.naturalFriction, this.ax / 2, this.speed / 2);
+					this.modifyDerivitives(this.gravStrength * 0.7 * (voidStrength), 0.96, this.naturalFriction, this.ax * 2, this.speed / 2);
 					//void spin
 					this.textureRot += render_voidSpinSpeed;
 				} else {
@@ -951,7 +950,7 @@ class Gentleman extends Character {
 			var closestObjDist = 99999;
 			for (var h=1; h<this.parent.freeObjs.length; h++) {
 				//only be attracted to power cells in front
-				if (spaceToRelativeRotless([this.parent.freeObjs[h].x, this.parent.freeObjs[h].y, this.parent.freeObjs[h].z], [this.x, this.y, this.z], [this.dir_down[0], (Math.PI * 2) - this.dir_down[1]])[0] > 0) {
+				if (spaceToRelativeRotless([this.parent.freeObjs[h].x, this.parent.freeObjs[h].y, this.parent.freeObjs[h].z], [this.x, this.y, this.z], [this.dir_down[0], (Math.PI * 2) - this.dir_down[1]])[0] > -20) {
 					var tempDist = getDistance(this, this.parent.freeObjs[h]);
 					if (tempDist < this.abilityDistance && (closestObj == undefined || tempDist < closestObjDist)) {
 					closestObj = this.parent.freeObjs[h];
@@ -997,7 +996,7 @@ class Gentleman extends Character {
 			}
 
 			//use dz / dy to determine what frame to be on
-			var rot = (Math.atan2(this.dy, -(this.dz * 0.8)) + (Math.PI / 2)) / (Math.PI * 2);
+			var rot = (Math.atan2(-this.dy, -(this.dz * 0.8)) + (Math.PI / 2)) / (Math.PI * 2);
 			rot = (rot + 2) % 1;
 			rot = 1 - rot;
 
@@ -1110,8 +1109,9 @@ class Runner extends Character {
 
 		this.jumpStrength = 2.85;
 		this.jumpBoostStrength = 0.09;
+		this.friction = 0.92;
 		this.speed = 0.12;
-		this.dMax = 3.74;
+		this.dMax = 3.73;
 	}
 }
 
