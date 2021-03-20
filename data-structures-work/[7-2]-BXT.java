@@ -48,8 +48,7 @@ public class BXT {
       if (isOperator((String)t.getValue())) {
          return computeTerm((String)t.getValue(), evaluateNode(t.getLeft()), evaluateNode(t.getRight()));
       }
-      System.out.println("Evaluating "+t.getValue());
-      return (double)t.getValue();
+      return Double.parseDouble((String)t.getValue());
    }
    
    private double computeTerm(String s, double a, double b) {
