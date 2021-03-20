@@ -6,7 +6,7 @@ interface BSTinterface {
    public boolean contains(String obj);
    public void add(String obj);
    //public void addBalanced(String obj);
-   //public boolean remove(String obj);
+   public void remove(String obj);
    public String min();
    public String max();
    public String toString();
@@ -109,6 +109,10 @@ class BST implements BSTinterface{
          return minRight;
       }
 
+      if (minLeft.compareTo((String)t.getValue()) >= 0 && minRight.compareTo((String)t.getValue()) >= 0) {
+         return (String)t.getValue();
+      }
+      System.out.println("help!!");
       return (String)t.getValue();
       
    }
@@ -143,5 +147,40 @@ class BST implements BSTinterface{
          return "";
       }
       return toString(t.getLeft()) + t.getValue() + " " + toString(t.getRight());
+   }
+
+   public void remove(String target) {
+      root = remove(root, target);
+      size--;
+   }
+   private TreeNode remove(TreeNode current, String target) {
+      //if self is null, return null
+      if (current == null) {
+         return null;
+      }
+
+      //if current isn't the target, recurse and then return self
+      if (target.compareTo((String)current.getValue()) != 0) {
+         current.setLeft(remove(current.getLeft(), target));
+         current.setRight(remove(current.getRight(), target));
+         return current;
+      }
+
+      //if current is the target
+
+      //if self has two children take the min value of the right subtree and replace self with it
+      if ((current.getLeft() != null && current.getRight() != null)) {
+         String newVal = min(current.getRight());
+         //remove value from the tree
+         current.setRight(remove(current.getRight(), newVal));
+         current.setValue(newVal);
+         return current;
+      }
+
+      //if self has one / no children, return the right value. (will be null if no children)
+      if (current.getLeft() != null) {
+         return current.getLeft();
+      }
+      return current.getRight();
    }
 }
