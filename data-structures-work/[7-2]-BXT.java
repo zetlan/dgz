@@ -1,4 +1,4 @@
-// Name: J1-30
+// Name: REDACTED
 // Date: March-18-2021
 /*  Represents a binary expression tree.
  *  The BXT builds itself from postorder expressions. It can
