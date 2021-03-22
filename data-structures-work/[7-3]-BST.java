@@ -1,11 +1,11 @@
 //Name: J1-30
-//Date: March-18-2021
+//Date: March-22-2021
 
 interface BSTinterface {
    public int size();
    public boolean contains(String obj);
    public void add(String obj);
-   //public void addBalanced(String obj);
+   public void addBalanced(String obj);
    public void remove(String obj);
    public String min();
    public String max();
@@ -63,6 +63,90 @@ class BST implements BSTinterface{
             add(t.getRight(), s);
          }
       }
+   }
+
+   public void addBalanced(String value) {
+      if (size == 0) {
+         root = new TreeNode(value);
+      } else {
+         add(root, value);
+      }
+      size++;
+      //I have no idea what these other two arguments are supposed to do so I just deleted them
+      //root = balanceTree(null, root, true);
+      root = balanceTree(root);
+   }
+
+   //I have no idea what these other two
+   public TreeNode balanceTree(TreeNode node) {
+      if (node == null) {
+         return null;
+      }
+
+      //first balance children
+      node.setLeft(balanceTree(node.getLeft()));
+      node.setRight(balanceTree(node.getRight()));
+
+      //determining if self should balance. Self will balance if they're "critically unbalanced" (have an imbalance of -2 or 2)
+      boolean shouldBalance = (java.lang.Math.abs(getBalance(node)) == 2);
+
+      if (!shouldBalance) {
+         //if shouldn't balance, don't care
+         return node;
+      }
+
+      //determine type of balance
+      if (getBalance(node) == -2) {
+         //left-right, turn it in to left-left
+         if (getBalance(node.getLeft()) == 1) {
+            //this is wacky organizational magic just trust me
+            TreeNode l = node.getLeft();
+            TreeNode r = l.getRight();
+
+            l.setRight(r.getLeft());
+            r.setLeft(l);
+            node.setLeft(r);
+         }
+
+         //left-left balance via right rotation
+         TreeNode l = node.getLeft();
+         TreeNode t = node;
+
+         node = l;
+         t.setLeft(l.getRight());
+         l.setRight(t);
+      } else {
+         //right-left, turn it in to right-right
+         if (getBalance(node.getRight()) == -1) {
+            TreeNode r = node.getRight();
+            TreeNode l = r.getLeft();
+            r.setLeft(l.getRight());
+            l.setRight(r);
+            node.setRight(l);
+         }
+         TreeNode r = node.getRight();
+         TreeNode t = node;
+
+         node = r;
+         t.setRight(r.getLeft());
+         r.setLeft(t);
+      }
+
+      return node;
+   }
+
+   public int getBalance(TreeNode node) {
+      return depth(node.getRight()) - depth(node.getLeft());
+   }
+
+   public int depth(TreeNode node) {
+      //for empty tree, return -1
+      if (node == null) {
+         return -1;
+      }
+
+      //for a regular tree do the cool search thing I guess
+      return java.lang.Math.max(depth(node.getLeft()), depth(node.getRight())) + 1;
    }
    
    public String display() {
