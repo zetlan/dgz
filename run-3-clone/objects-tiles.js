@@ -570,7 +570,7 @@ class Tile_Crumbling extends Tile {
 
 	crumbleOtherTile(strip, num) {
 		if (this.parent.strips[strip].tiles[num] instanceof Tile_Crumbling && this.parent.strips[strip].tiles[num].fallStatus == undefined) {
-			this.parent.strips[strip].tiles[num].fallStatus = 0;
+			this.parent.strips[strip].tiles[num].fallStatus = Math.max(0, this.fallStatus);
 			this.parent.strips[strip].tiles[num].propogateCrumble();
 		}
 	}
