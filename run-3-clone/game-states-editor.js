@@ -56,6 +56,9 @@ class State_Edit {
 
 	convertPlayerToCamera() {
 		//update player properties
+		player.parent = this.tunnel;
+		player.parentPrev = player.parent;
+
 		player.x = world_camera.x;
 		player.y = world_camera.y;
 		player.z = world_camera.z;
@@ -163,7 +166,7 @@ class State_Edit_Tiles extends State_Edit {
 		//have the editor active for display purposes, but not for player control
 		editor_active = true;
 		this.tunnel.tick();
-		drawPlayerWithParent();
+		this.tunnel.beDrawn();
 		this.selectedTileExtra.beDrawn();
 		editor_active = false;
 
@@ -309,7 +312,7 @@ class State_Edit_Properties extends State_Edit {
 			new PropertySlider(0.01, 0.14 + (4 * editor_sliderHeight), editor_propertyMenuWidth - (editor_sliderMargin * 2), editor_sliderProportion, `power`, `loading_state.tunnel.powerBase = value;`, `loading_state.tunnel.powerBase`, 0, 1, 0.01, false),
 
 			//tile properties
-			new PropertySlider(0.01, 0.14 + (6 * editor_sliderHeight), editor_propertyMenuWidth - (editor_sliderMargin * 2), editor_sliderProportion, `tile size`, `loading_state.tunnel.tileSize = value; world_camera.targetY = value / 2;`, `loading_state.tunnel.tileSize`, 10, 220, 5, true),
+			new PropertySlider(0.01, 0.14 + (6 * editor_sliderHeight), editor_propertyMenuWidth - (editor_sliderMargin * 2), editor_sliderProportion, `tile size`, `loading_state.tunnel.tileSize = value; world_camera.targetY = value / 2;`, `loading_state.tunnel.tileSize`, 15, 220, 5, true),
 			new PropertySlider(0.01, 0.14 + (7 * editor_sliderHeight), editor_propertyMenuWidth - (editor_sliderMargin * 2), editor_sliderProportion / 2, `tiles / side`, `loading_state.tunnel.tilesPerSide = value;`, `loading_state.tunnel.tilesPerSide`, 1, 8, 1, true),
 			new PropertySlider(0.01, 0.14 + (8 * editor_sliderHeight), editor_propertyMenuWidth - (editor_sliderMargin * 2), editor_sliderProportion, `sides`, `loading_state.tunnel.sides = value;`, `loading_state.tunnel.sides`, 3, 50, 1, true),
 
@@ -331,7 +334,8 @@ class State_Edit_Properties extends State_Edit {
 		drawSky(color_bg);
 		editor_active = true;
 		this.tunnel.tick();
-		drawPlayerWithParent();
+		this.convertPlayerToCamera();
+		this.tunnel.beDrawn();
 		editor_active = false;
 
 		//side bar
