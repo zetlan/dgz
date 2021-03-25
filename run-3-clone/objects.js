@@ -1,4 +1,66 @@
 //houses all classes
+class AudioChannel {
+	constructor(volume) {
+		this.audio = undefined;
+		this.target = undefined;
+		this.volume = volume;
+		this.time = 0;
+	}
+
+	tick() {
+		//if the current sound isn't played, then play it. Also does looping.
+		if (this.audio != undefined) {
+			if (this.audio.paused || this.audio.currentTime + audio_tolerance >= this.audio.duration) {
+				this.time = 0;
+				this.reset();
+			}
+		}
+
+		//changing audio
+		this.change();
+
+		//set volume
+		if (this.audio != undefined) {
+			this.audio.volume = this.volume * (1 - (this.time / audio_fadeTime));
+		}
+	}
+
+	change() {
+		//if the audios are different, fade them out and then play
+		if (this.target != this.audio) {
+			this.time += 1;
+
+			//if time is up, snap volume up and change audio
+			//alternatively, a change from undefined happens instantly
+			if (this.time > audio_fadeTime || this.audio == undefined) {
+				this.time = 0;
+				this.audio = this.target;
+				if (this.audio != undefined) {
+					this.reset();
+				}
+				return;
+			}
+		} else {
+			//if the audios are the same and time is greater than 0, subtract time
+			if (this.time > 0) {
+				this.time -= 1;
+			}
+		}
+	}
+
+	//starts playing the current audio file, from the beginning
+	reset() {
+		this.audio.currentTime = 0;
+		this.audio.volume = this.volume;
+		this.audio.play();
+	}
+}
+
+
+
+
+
+
 class Camera {
 	constructor(x, y, z, xRot, yRot) {
 		this.friction = 0.85;
@@ -386,19 +448,19 @@ class Character {
 		if (this.onGround > 0) {
 			//decrement current frame if not moving forwards
 			if (Math.abs(this.dz) <= this.speed && Math.abs(this.ax) < 0.02) {
-				this.texture_current.currentFrame = 0;
+				this.texture_current.frame = 0;
 			}
 			this.textureRot = this.dir_down[1];
-			this.texture_walkF.currentFrame = this.texture_current.currentFrame;
-			this.texture_walkL.currentFrame = this.texture_current.currentFrame;
-			this.texture_walkR.currentFrame = this.texture_current.currentFrame;
+			this.texture_walkF.frame = this.texture_current.frame;
+			this.texture_walkL.frame = this.texture_current.frame;
+			this.texture_walkR.frame = this.texture_current.frame;
 			return;
 		}
 		
 		//syncing all jumping animations if not walking
-		this.texture_jumpF.currentFrame = this.texture_current.currentFrame;
-		this.texture_jumpL.currentFrame = this.texture_current.currentFrame;
-		this.texture_jumpR.currentFrame = this.texture_current.currentFrame;
+		this.texture_jumpF.frame = this.texture_current.frame;
+		this.texture_jumpL.frame = this.texture_current.frame;
+		this.texture_jumpR.frame = this.texture_current.frame;
 	}
 
 	turnAround() {
@@ -434,18 +496,18 @@ class Texture {
 		this.sheet = spriteSheet;
 		this.size = imageSize;
 		this.frames = coordinates;
-		this.currentFrame = 0;
+		this.frame = 0;
 		this.amount = 1 / drawsBeforeImageChange;
 	}
 
 	beDrawn(x, y, rotation, size) {
 		//change current frame
 		if (this.looping) {
-			this.currentFrame = (this.currentFrame + this.amount) % this.frames.length;
+			this.frame = (this.frame + this.amount) % this.frames.length;
 		} else {
-			this.currentFrame += this.amount;
-			if (this.currentFrame > this.frames.length - 1) {
-				this.currentFrame = this.frames.length - 1;
+			this.frame += this.amount;
+			if (this.frame > this.frames.length - 1) {
+				this.frame = this.frames.length - 1;
 			}
 		}
 
@@ -458,16 +520,16 @@ class Texture {
 		ctx.rotate(rotation);
 		if (this.backwards) {
 			ctx.scale(-1, 1);
-			ctx.drawImage(this.sheet, this.size * (this.frames[Math.floor(this.currentFrame)][0] + 1), this.size * this.frames[Math.floor(this.currentFrame)][1], -1 * this.size, this.size, 
+			ctx.drawImage(this.sheet, this.size * (this.frames[Math.floor(this.frame)][0] + 1), this.size * this.frames[Math.floor(this.frame)][1], -1 * this.size, this.size, 
 							0, 0, -1 * size, size);
 			ctx.scale(-1, 1);
 			
 		} else {
 			try {
-			ctx.drawImage(this.sheet, this.size * this.frames[Math.floor(this.currentFrame)][0], this.size * this.frames[Math.floor(this.currentFrame)][1], this.size, this.size, 
+			ctx.drawImage(this.sheet, this.size * this.frames[Math.floor(this.frame)][0], this.size * this.frames[Math.floor(this.frame)][1], this.size, this.size, 
 							0, 0, size, size);
 			} catch (error) {
-				console.log(error, `problem trying to draw frame ${Math.floor(this.currentFrame)}, with frames ${JSON.stringify(this.frames)}`);
+				console.log(error, `problem trying to draw frame ${Math.floor(this.frame)}, with frames ${JSON.stringify(this.frames)}`);
 			}
 		}
 		ctx.rotate(-1 * rotation);
@@ -475,7 +537,7 @@ class Texture {
 	}
 
 	reset() {
-		this.currentFrame = 0;
+		this.frame = 0;
 	}
 }
 
@@ -609,9 +671,9 @@ class Bunny extends Character {
 	}
 
 	syncTextures() {
-		this.texture_jumpF.currentFrame = this.texture_current.currentFrame;
-		this.texture_jumpL.currentFrame = this.texture_current.currentFrame;
-		this.texture_jumpR.currentFrame = this.texture_current.currentFrame;
+		this.texture_jumpF.frame = this.texture_current.frame;
+		this.texture_jumpL.frame = this.texture_current.frame;
+		this.texture_jumpR.frame = this.texture_current.frame;
 	}
 }
 
@@ -1000,7 +1062,7 @@ class Gentleman extends Character {
 			rot = (rot + 2) % 1;
 			rot = 1 - rot;
 
-			this.texture_current.currentFrame = Math.floor(rot * 7.99);
+			this.texture_current.frame = Math.floor(rot * 7.99);
 			
 			//reset ground animations when jumping
 			return;
@@ -1030,21 +1092,21 @@ class Gentleman extends Character {
 		if (this.onGround > 0) {
 			//decrement current frame if not moving forwards
 			if (Math.abs(this.dz) <= this.speed && Math.abs(this.ax) < 0.02) {
-				this.texture_current.currentFrame = 0;
+				this.texture_current.frame = 0;
 			}
 			this.textureRot = this.dir_down[1];
-			this.texture_walkF.currentFrame = this.texture_current.currentFrame;
-			this.texture_walkL.currentFrame = this.texture_current.currentFrame;
-			this.texture_walkR.currentFrame = this.texture_current.currentFrame;
+			this.texture_walkF.frame = this.texture_current.frame;
+			this.texture_walkL.frame = this.texture_current.frame;
+			this.texture_walkR.frame = this.texture_current.frame;
 		} else if (this.attracting != undefined) {
-			this.texture_flyF.currentFrame = this.texture_current.currentFrame;
-			this.texture_flyL.currentFrame = this.texture_current.currentFrame;
-			this.texture_flyR.currentFrame = this.texture_current.currentFrame;
+			this.texture_flyF.frame = this.texture_current.frame;
+			this.texture_flyL.frame = this.texture_current.frame;
+			this.texture_flyR.frame = this.texture_current.frame;
 		} else {
 			//syncing all jumping animations
-			this.texture_jumpF.currentFrame = this.texture_current.currentFrame;
-			this.texture_jumpL.currentFrame = this.texture_current.currentFrame;
-			this.texture_jumpR.currentFrame = this.texture_current.currentFrame;
+			this.texture_jumpF.frame = this.texture_current.frame;
+			this.texture_jumpL.frame = this.texture_current.frame;
+			this.texture_jumpR.frame = this.texture_current.frame;
 		}
 	}
 }
