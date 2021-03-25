@@ -7,11 +7,12 @@ class State_World {
 		this.substate = 0;
 		this.text = ``;
 		this.textTime = 0;
+		this.parentControlsAudio = true;
 
 		//textures for characters
 		this.selectionTextures = [];
 		for (var t=0; t<data_characters.length; t++) {
-			this.selectionTextures.push(new Texture(eval(`data_sprites.${data_characters[t]}.sheet`), data_sprites.spriteSize, 2, false, false, eval(`data_sprites.${data_characters[t]}.back`)));
+			this.selectionTextures.push(new Texture(eval(`data_sprites.${data_characters[t]}.sheet`), data_sprites.spriteSize, 2, false, false, eval(`[data_sprites.${data_characters[t]}.back[0], data_sprites.${data_characters[t]}.front[0]]`)));
 		}
 
 		this.orderWorld();
@@ -45,8 +46,7 @@ class State_World {
 					//if the player isn't in a tunnel, try to get them in one
 					this.changePlayerParentOfficial();
 				}
-				//ticking player parent as well as near objects
-				player.parentPrev.tick();
+				//ticking near objects
 				this.nearObjs.forEach(n => {
 					n.tick();
 				});
@@ -62,7 +62,6 @@ class State_World {
 				this.nearObjs.forEach(f => {
 					f.beDrawn();
 				});
-				drawPlayerWithParent();
 
 				//GUI
 				if (editor_active) {
@@ -198,6 +197,7 @@ class State_World {
 
 	handlePlayerDeath() {
 		player.parentPrev.reset();
+		this.orderWorld();
 		player.parent = player.parentPrev;
 	}
 
@@ -247,16 +247,13 @@ class State_World {
 		this.nearObjs = [];
 
 		this.readFrom.forEach(v => {
-			//don't add player parent to the near objects, it will be drawn seperately
-			if (v != player.parentPrev) {
-				//get camera distance, then sort
-				v.getCameraDist();
-				if (v.cameraDist > render_maxDistance * 1.01) {
-					this.farObjs.push(v);
-				} else {
-					
-					this.nearObjs.push(v);
-				}
+			//get camera distance, then sort
+			v.getCameraDist();
+			if (v.cameraDist > render_maxDistance * 1.01) {
+				this.farObjs.push(v);
+			} else {
+				
+				this.nearObjs.push(v);
 			}
 		});
 
@@ -342,10 +339,11 @@ class State_Challenge extends State_World {
 			var yPos = (canvas.height * 0.92) + (yOffset * canvas.width * 0.08);
 			ctx.fillStyle = color_grey_light;
 			ctx.strokeStyle = color_grey_dark;
-			drawRoundedRectangle(canvas.width * 0.1, yPos, canvas.width * 0.8, canvas.height * 0.06, canvas.height / 96);
-			this.texture.beDrawn(canvas.width * 0.12, yPos, 0, menu_characterSize);
+			drawRoundedRectangle(canvas.width * 0.11, yPos - (menu_characterSize * 0.15), canvas.width * 0.8, menu_characterSize * 1.3, canvas.height / 96);
+			this.texture.beDrawn(canvas.width * 0.14, yPos + (menu_characterSize / 2), 0, menu_characterSize);
 			ctx.fillStyle = color_text;
 			ctx.font = `${textSize}px Comfortaa`;
+			ctx.textAlign = "center";
 			ctx.fillText(this.textQueue[0], (canvas.width * 0.5) + menu_characterSize, yPos + (canvas.height * 0.03) + (textSize / 2));
 		}
 		
@@ -426,7 +424,7 @@ class State_Challenge extends State_World {
 class State_Cutscene extends State_World {
 	constructor(data) {
 		super();
-
+		this.parentControlsAudio = false;
 		//if there's no data, make sure there is data
 		if (data == undefined) {
 			data = {
@@ -437,7 +435,10 @@ class State_Cutscene extends State_World {
 				]
 			}
 		}
-		this.selectionTextures.push(new Texture(data_sprites["Map"].sheet, data_sprites.spriteSize * 2, 1e1001, false, false, [[0, 0]]));
+
+		//loop through frames, if it's a string convert to objects
+		
+		this.selectionTextures.push(new Texture(data_sprites["Map"].sheet, data_sprites.spriteSize * 2, 1e1001, false, false, [[0, 0], [0, 0]]));
 		this.readFrom = world_objects;
 		this.frame = 0;
 		this.id = data.id;
@@ -445,13 +446,72 @@ class State_Cutscene extends State_World {
 		//activate effects
 		eval(this.effects);
 		this.data = data.frames;
+		for (var e=0; e<this.data.length; e++) {
+			//if the data line is a string, convert it to a set of objects
+			if (this.data[e].constructor.name == "String") {
+				this.data[e] = this.convertStringData(this.data[e]);
+				console.log(this.data[e]);
+			}
+		}
 		this.doDraw = true;
+
+		//editor specific thingies
 		this.selected = undefined;
+		this.modifyCameraPos = false;
 		this.updateFrame();
 
 		editor_snapTolerance *= 2.2;
 
 		
+	}
+
+	convertStringData(line) {
+		var camData = [0, 0, 0, 0, 0, 0];
+		var objData = [];
+		/*
+		CAM - camera data		x~y~z~theta~phi~rot
+		LGT - light source		x~y~z
+		SPR - character sprite	x~y~size~sheetSource~rotation~backwards?~textureX~textureY
+		BUB - text box			x~y~width~height
+		BOX - text bubble		x~y~width~height
+		LIN - line				x1~y1~x2~y2
+		TRI - triangle line		x1~y1~x2~y2~width
+		TXT - text box			x~y~width~textSize~content~useLightColor? */
+
+		//split by vertical seperator, then parse each tag
+		var tags = line.split("|");
+		tags.forEach(t => {
+			var s = t.split("~");
+			switch (s[0]) {
+				case "CAM":
+					for (var n=0; n<s.length-1; n++) {
+						camData[n] = s[n+1] * 1;
+					}
+					break;
+				case "LGT":
+					objData.push(new SceneLight(s[1] * 1, s[2] * 1, s[3] * 1));
+					break;
+				case "SPR":
+					objData.push(new SceneSprite(s[1] * 1, s[2] * 1, s[3] * 1, s[4], s[5] * 1, JSON.parse(s[6]), s[7] * 1, s[8] * 1));
+					break;
+				case "BUB":
+					objData.push(new SceneBubble(s[1] * 1, s[2] * 1, s[3] * 1, s[4] * 1));
+					break;
+				case "BOX":
+					objData.push(new SceneBox(s[1] * 1, s[2] * 1, s[3] * 1, s[4] * 1));
+					break;
+				case "LIN":
+					objData.push(new SceneLine(s[1] * 1, s[2] * 1, s[3] * 1, s[4] * 1));
+					break;
+				case "TRI":
+					objData.push(new SceneTri(s[1] * 1, s[2] * 1, s[3] * 1, s[4] * 1, s[5] * 1));
+					break;
+				case "TXT":
+					objData.push(new SceneText(s[1] * 1, s[2] * 1, s[3] * 1, s[4] * 1, s[5], JSON.parse(s[6])));
+					break;
+			}
+		});
+		return [camData, objData];
 	}
 
 	drawSidebar() {
@@ -463,8 +523,8 @@ class State_Cutscene extends State_World {
 		var targetX = (editor_cutsceneWidth / 3) * canvas.width;
 		var targetY = 0;
 		//cutscene objects
-		for (var a=0; a<5; a++) {
-			targetY = ((canvas.height / 5) * a) + (canvas.height / 10);
+		for (var a=0; a<6; a++) {
+			targetY = ((canvas.height / 6) * a) + (canvas.height / 12);
 			drawTile2d(targetX, targetY, canvas.height / 30, 20 + a);
 		}
 
@@ -494,6 +554,18 @@ class State_Cutscene extends State_World {
 
 			//editor only things
 			if (editor_active) {
+				//border if not changing camera pos
+				if (!this.modifyCameraPos) {
+					ctx.lineWidth = canvas.height / 50;
+					ctx.strokeStyle = color_editor_border;
+					ctx.globalAlpha = 0.5;
+					ctx.beginPath();
+					ctx.rect(0, 0, canvas.width, canvas.height);
+					ctx.stroke();
+					ctx.lineWidth = 2;
+					ctx.globalAlpha = 1;
+				}
+
 				//show frame number at the top
 				ctx.fillStyle = color_text_bright;
 				ctx.font = `${canvas.height * 0.06}px Comfortaa`;
@@ -524,36 +596,20 @@ class State_Cutscene extends State_World {
 				world_camera.targetX = world_camera.x;
 				world_camera.targetY = world_camera.y;
 				world_camera.targetZ = world_camera.z;
-
-				//also update frame info
-				this.data[this.frame][0] = [world_camera.x, world_camera.y, world_camera.z, world_camera.theta, world_camera.phi, world_camera.rot];
+				if (this.modifyCameraPos) {
+					//also update frame info
+					this.data[this.frame][0] = [world_camera.x, world_camera.y, world_camera.z, world_camera.theta, world_camera.phi, world_camera.rot];
+				}
 			}
 		}
 	}
 
-	giveEnglishConstructor() {
+	giveStringData() {
 		//go through all frames
 		var frameData = ``;
-		for (var d=0; d<this.data.length; d++) {
-			var frame = this.data[d];
-
-			var camData = ``;
-			for (var a=0; a<frame[0].length-1; a++) {
-				camData += frame[0][a].toFixed(4) + ", ";
-			}
-			camData += frame[0][frame[0].length-1].toFixed(4);
-
-			var objData = ``;
-			for (var a=0; a<frame[1].length-1; a++) {
-				objData += frame[1][a].giveEnglishConstructor() + ", ";
-			}
-			if (frame[1].length > 0) {
-				objData += frame[1][frame[1].length-1].giveEnglishConstructor();
-			}
-			
-
-			frameData += `[[${camData}], [${objData}]], \n`;
-		}
+		this.data.forEach(d => {
+			frameData += this.giveStringDataForLine(d);
+		});
 
 		//apologies for the indenting here, it's so that when the string is outputted it won't have extra tabs at the start
 var outputString = `{
@@ -564,6 +620,22 @@ var outputString = `{
 }`;
 
 		return outputString;
+	}
+
+	giveStringDataForLine(arr) {
+		//camera data
+		var camData = "CAM~";
+		for (var a=0; a<arr[0].length-1; a++) {
+			camData += arr[0][a].toFixed(4) + "~";
+		}
+		camData += arr[0][arr[0].length-1].toFixed(4);
+
+		var objData = ``;
+		for (var a=0; a<arr[1].length; a++) {
+			objData += "|" + arr[1][a].giveStringData();
+		}
+
+		return `\`${camData}${objData}\`, \n`;
 	}
 
 	handlePlayerDeath() {
@@ -591,7 +663,7 @@ var outputString = `{
 		//sidebar search
 		var targetX = (editor_cutsceneWidth / 3) * canvas.width;
 		var targetY = 0;
-		var sidebarObjects = 5;
+		var sidebarObjects = 6;
 		//cutscene objects
 		//box
 		if (getDistance2d([cursor_x, cursor_y], [targetX, ((canvas.height / sidebarObjects) * 0) + (canvas.height / (sidebarObjects * 2))]) < canvas.height / 30) {
@@ -605,21 +677,27 @@ var outputString = `{
 			return;
 		}
 
-		//line
+		//tri
 		if (getDistance2d([cursor_x, cursor_y], [targetX, ((canvas.height / sidebarObjects) * 2) + (canvas.height / (sidebarObjects * 2))]) < canvas.height / 30) {
 			this.data[this.frame][1].push(new SceneTri(0.4, 0.4, 0.6, 0.6, 0.1));
 			return;
 		}
 
-		//text
+		//line
 		if (getDistance2d([cursor_x, cursor_y], [targetX, ((canvas.height / sidebarObjects) * 3) + (canvas.height / (sidebarObjects * 2))]) < canvas.height / 30) {
+			this.data[this.frame][1].push(new SceneLine(0.4, 0.4, 0.6, 0.6));
+			return;
+		}
+
+		//text
+		if (getDistance2d([cursor_x, cursor_y], [targetX, ((canvas.height / sidebarObjects) * 4) + (canvas.height / (sidebarObjects * 2))]) < canvas.height / 30) {
 			this.data[this.frame][1].push(new SceneText(0.5, 0.5, 0.1, 0.05, "lorem ipsum dolor set amet", false));
 			this.data[this.frame][1][this.data[this.frame][1].length-1].process();
 			return;
 		}
 
 		//light source
-		if (getDistance2d([cursor_x, cursor_y], [targetX, ((canvas.height / sidebarObjects) * 4) + (canvas.height / (sidebarObjects * 2))]) < canvas.height / 30) {
+		if (getDistance2d([cursor_x, cursor_y], [targetX, ((canvas.height / sidebarObjects) * 5) + (canvas.height / (sidebarObjects * 2))]) < canvas.height / 30) {
 			var offset = polToCart(world_camera.theta, world_camera.phi, 30);
 			this.data[this.frame][1].push(new SceneLight(offset[0] + world_camera.x, offset[1] + world_camera.y, offset[2] + world_camera.z));
 			return;
@@ -780,7 +858,7 @@ class State_Infinite extends State_World {
 		this.lastTunnelLine = -1;
 		this.objs = [];
 		this.readFrom = this.objs;
-		for (var a=0; a<10; a++) {
+		for (var a=0; a<9; a++) {
 			this.addTunnel();
 		}
 		this.placePlayer();
@@ -843,6 +921,29 @@ class State_Infinite extends State_World {
 		player.parent.strips.forEach(s => {
 			s.collideWithEntity(player);
 		});
+	}
+
+	pushScoreToLeaderboard() {
+		console.log("placing score on leaderboard!");
+		//format is [name, distance, powercells, characters used]
+		//go through scoreboard scores and append self if necessary
+		for (var spot=0; spot<10; spot++) {
+			//if spot is undefined, place self
+			if (data_persistent.highscores[spot] == undefined) {
+				data_persistent.highscores.push([data_persistent.name, Math.floor(this.distance), this.powercells, JSON.parse(JSON.stringify(this.charactersUsed))]);
+				return;
+			}
+
+			//if spot has less score than self, place self and then pop off the list
+			if (data_persistent.highscores[spot][1] < Math.floor(this.distance)) {
+				data_persistent.highscores.splice(spot, 0, [data_persistent.name, Math.floor(this.distance), this.powercells, JSON.parse(JSON.stringify(this.charactersUsed))]);
+				spot = 999;
+			}
+
+			if (data_persistent.highscores.length > 10) {
+				data_persistent.highscores.pop();
+			}
+		}
 	}
 
 	execute() {
@@ -909,6 +1010,7 @@ class State_Infinite extends State_World {
 				loading_state = new State_Menu();
 				break;
 			case 2:
+				this.pushScoreToLeaderboard();
 				loading_state = new State_Infinite();
 				break;
 		}
@@ -954,24 +1056,6 @@ class State_Infinite extends State_World {
 		} else {
 			super.handleMouseDown(a);
 		}
-	}
-
-	//don't bother with the near / far thing, there aren't going to be any tunnels far enough to qualify
-	orderWorld() {
-		//ordering all the objects
-		this.readFrom.forEach(u => {
-			u.getCameraDist();
-		});
-
-		//make sure to splice out player parent though
-		this.nearObjs = [];
-		this.readFrom.forEach(r => {
-			if (r != player.parentPrev) {
-				this.nearObjs.push(r);
-			}
-		});
-
-		this.nearObjs = orderObjects(this.nearObjs, 5);
 	}
 }
 
@@ -1055,10 +1139,10 @@ class State_Map {
 			new MapTexture(8775, -137381, data_sprites.Map.batteryName, 'batteries', `getObjectFromID("Winter Games, Part 2").discovered == true;`),
 			new MapTexture(-38812, 65118, [data_sprites.Map.onwards[0]], 'theGap', `(data_persistent.effectiveCutscenes.includes('wormholeInSight') && data_persistent.effectiveCutscenes.includes('boring'));`),
 			new MapTexture(-38812, 84029, [data_sprites.Map.onwards[1]], 'theGap', `(data_persistent.effectiveCutscenes.includes('wormholeInSight') && data_persistent.effectiveCutscenes.includes('boring'));`),
-			new MapTexture(78975, -177207, [data_sprites.Map.snowflakes[0]], undefined, `getObjectFromID("Winter Games, Part 7").discovered`),
+			new MapTexture(78975, -177207, [data_sprites.Map.snowflakes[0]], undefined, `getObjectFromID("Winter Games, Part 14").discovered`),
 			new MapTexture(1350, -118144, [data_sprites.Map.snowflakes[1]], undefined, `getObjectFromID("Winter Games, Part 7").discovered`),
 			new MapTexture(20925, -114769, [data_sprites.Map.snowflakes[2]], undefined, `getObjectFromID("Winter Games, Part 7").discovered`),
-			new MapTexture(63112, -149194, [data_sprites.Map.snowflakes[3]], undefined, `getObjectFromID("Winter Games, Part 7").discovered`),
+			new MapTexture(63112, -149194, [data_sprites.Map.snowflakes[3]], undefined, `getObjectFromID("Winter Games, Part 11").discovered`),
 			new MapTexture(46575, -126244, [data_sprites.Map.snowflakes[4]], undefined, `getObjectFromID("Winter Games, Part 7").discovered`),
 		];
 
@@ -1232,7 +1316,7 @@ class State_Menu {
 
 		this.selectionTextures = [];
 		for (var t=0; t<data_characters.length; t++) {
-			this.selectionTextures.push(new Texture(eval(`data_sprites.${data_characters[t]}.sheet`), data_sprites.spriteSize, 2, false, false, eval(`data_sprites.${data_characters[t]}.back`)));
+			this.selectionTextures.push(new Texture(eval(`data_sprites.${data_characters[t]}.sheet`), data_sprites.spriteSize, 2, false, false, eval(`[data_sprites.${data_characters[t]}.back[0], data_sprites.${data_characters[t]}.front[0]]`)));
 		}
 
 		this.characterSelected = 0;
@@ -1245,111 +1329,192 @@ class State_Menu {
 				this.displayCharacterSelected = t;
 			}
 		}
+		this.substate = 0;
 	}
 	execute() {
-		//swivel display character
-		this.displayCharacterSelected = ((this.displayCharacterSelected * (render_animSteps - 1)) + this.characterSelected) / render_animSteps;
-
 		//bege
 		ctx.fillStyle = color_bg;
 		ctx.strokeStyle = color_grey_dark;
 		ctx.fillRect(0, 0, canvas.width, canvas.height);
-		//title card
-		ctx.font = `${canvas.height / 8}px Comfortaa`;
-		ctx.textAlign = `center`;
-		ctx.fillStyle = color_text_bright;
-		ctx.fillText(`Run 3`, canvas.width * 0.5, canvas.height * 0.13);
 
-		//powercell readout
-		ctx.font = `${canvas.height / 24}px Comfortaa`;
-		ctx.textAlign = `left`;
-		ctx.fillText(`${data_persistent.powercells} power cells`, canvas.width * 0.02, canvas.height * 0.05);
-		ctx.textAlign = `center`;
+		//back button in case of non-main states
+		if (this.substate > 0) {
+			drawArrow(canvas.width * 0.08, canvas.height * 0.05, color_grey_light, Math.PI, canvas.width * 0.04, canvas.width * 0.02, canvas.height * 0.02, canvas.height * 0.04);
+		}
 
+
+		switch (this.substate) {
+			case 0:
+				//swivel display character
+				this.displayCharacterSelected = ((this.displayCharacterSelected * (render_animSteps - 1)) + this.characterSelected) / render_animSteps;
+
+				//title card
+				ctx.font = `${canvas.height / 8}px Comfortaa`;
+				ctx.textAlign = `center`;
+				ctx.fillStyle = color_text_bright;
+				ctx.fillText(`Run 3`, canvas.width * 0.5, canvas.height * 0.13);
+
+				//powercell readout
+				ctx.font = `${canvas.height / 24}px Comfortaa`;
+				ctx.textAlign = `left`;
+				ctx.fillText(`${data_persistent.powercells} power cells`, canvas.width * 0.02, canvas.height * 0.05);
+				ctx.textAlign = `center`;
+
+				//drawing buttons
+				var trueButtonWidth = (canvas.width * menu_buttonWidth * 0.5);
+				var trueButtonHeight = (canvas.height * menu_buttonHeight * 0.5);
+				var startHeight = (canvas.height * 0.5) - (trueButtonHeight * this.buttons.length * 1.5);
+
+				ctx.lineWidth = canvas.height / 96;
+				ctx.font = `${canvas.height / 30}px Comfortaa`;
+				for (var y=0; y<this.buttons.length; y++) {
+					var yOffset = startHeight + (trueButtonHeight * 4 * y) + menu_characterSize;
+					if (this.overButton == y) {
+						ctx.fillStyle = color_grey_dark;
+					} else {
+						ctx.fillStyle = color_grey_light;
+					}
+					drawRoundedRectangle((canvas.width * 0.5) - trueButtonWidth, yOffset, trueButtonWidth * 2, trueButtonHeight * 2, canvas.height / 48);
+					
+					//text
+					ctx.fillStyle = color_text;
+					ctx.fillText(this.buttons[y][0], canvas.width * 0.5, yOffset + trueButtonHeight + (canvas.height / 90));
+				}
+
+				//lower left buttons
+				for (var b=0; b<3; b++) {
+					drawTile2d((canvas.height * 0.05) + (canvas.width * (b * 0.07)), canvas.height * 0.9, canvas.width * 0.05, 30 + b);
+				}
+
+				//drawing characters
+
+				//selection box
+				var offX = menu_characterCircleRadius * canvas.height * Math.cos((Math.PI * 2 * (1 / data_characters.length) * this.displayCharacterSelected) - (Math.PI * 0.5));
+				var offY = menu_characterCircleRadius * canvas.height * Math.sin((Math.PI * 2 * (1 / data_characters.length) * this.displayCharacterSelected) - (Math.PI * 0.5));
+				drawSelectionBox((canvas.width * 0.5) + offX, (canvas.height * 0.5) + offY + menu_characterSize - 5, menu_characterSize * 2);
+
+				for (var h=0; h<data_characters.length; h++) {
+					offX = menu_characterCircleRadius * canvas.height * Math.cos((Math.PI * 2 * (1 / data_characters.length) * h) - (Math.PI * 0.5));
+					offY = menu_characterCircleRadius * canvas.height * Math.sin((Math.PI * 2 * (1 / data_characters.length) * h) - (Math.PI * 0.5));
+					//character texture
+					this.selectionTextures[h].frame = 0 + (modularDifference(this.displayCharacterSelected, h, data_characters.length) < 0.5 && data_persistent.unlocked.includes(data_characters[h]));
+					this.selectionTextures[h].beDrawn((canvas.width * 0.5) + offX, (canvas.height * 0.5) + offY + menu_characterSize, 0, menu_characterSize * 1.7);
+					if (!data_persistent.unlocked.includes(data_characters[h])) {
+						drawCharacterLock((canvas.width * 0.5) + offX, (canvas.height * 0.5) + offY + (menu_characterSize * 0.75), menu_characterSize, menu_characterSize);
+					}
+				}
+				break;
+			case 1:
+				//leaderboards
+				ctx.font = `${Math.floor(canvas.height / 30)}px Comfortaa`;
+				ctx.textAlign = "left";
+				ctx.fillStyle = color_text_bright;
+				//headers
+				ctx.fillText("Username", canvas.width * 0.05, canvas.height * 0.15);
+				ctx.fillText("Distance", canvas.width * 0.3, canvas.height * 0.15);
+				if (data_persistent.effectiveCutscenes.includes("batteries")) {
+					ctx.fillText("Batteries", canvas.width * 0.45, canvas.height * 0.15);
+				} else {
+					ctx.fillText("Powercells", canvas.width * 0.45, canvas.height * 0.15);
+				}
+				ctx.fillText("Characters Used", canvas.width * 0.6, canvas.height * 0.15);
+
+				for (var j=0; j<data_persistent.highscores.length; j++) {
+					ctx.fillText(data_persistent.highscores[j][0], canvas.width * 0.05, ((canvas.height * 0.2) + (canvas.width * 0.05 * j)) + (Math.floor(canvas.height / 30) * 0.5), canvas.width * 0.34);
+					//normal data
+					ctx.fillText(data_persistent.highscores[j][1] + "m", canvas.width * 0.3, ((canvas.height * 0.2) + (canvas.width * 0.05 * j)) +  (Math.floor(canvas.height / 30) * 0.5));
+					ctx.fillText(data_persistent.highscores[j][2], canvas.width * 0.45, ((canvas.height * 0.2) + (canvas.width * 0.05 * j)) +  (Math.floor(canvas.height / 30) * 0.5));
+
+					//characters used
+					for (var k=0; k<data_persistent.highscores[j][3].length; k++) {
+						var charIndex = data_characters.indexOf(data_persistent.highscores[j][3][k]);
+						this.selectionTextures[charIndex].frame = 0;
+						this.selectionTextures[charIndex].beDrawn((canvas.width * 0.6) + (menu_characterSize * 0.8 * (k + 0.5)), (canvas.height * 0.2) + (canvas.width * 0.05 * j), 0, menu_characterSize * 0.75);
+					}
+				}
+				break;
+			case 2:
+				//settings menu
+				break;
+		}
 		
-		//mode select
+	}
 
-		//drawing buttons
-		var trueButtonWidth = (canvas.width * menu_buttonWidth * 0.5);
-		var trueButtonHeight = (canvas.height * menu_buttonHeight * 0.5);
-		var startHeight = (canvas.height * 0.5) - (trueButtonHeight * this.buttons.length * 1.5);
-
-		ctx.lineWidth = canvas.height / 96;
-		ctx.font = `${canvas.height / 30}px Comfortaa`;
-		for (var y=0; y<this.buttons.length; y++) {
-			var yOffset = startHeight + (trueButtonHeight * 4 * y) + menu_characterSize;
-			if (this.overButton == y) {
-				ctx.fillStyle = color_grey_dark;
-			} else {
-				ctx.fillStyle = color_grey_light;
-			}
-			drawRoundedRectangle((canvas.width * 0.5) - trueButtonWidth, yOffset, trueButtonWidth * 2, trueButtonHeight * 2, canvas.height / 48);
-			
-			//text
-			ctx.fillStyle = color_text;
-			ctx.fillText(this.buttons[y][0], canvas.width * 0.5, yOffset + trueButtonHeight + (canvas.height / 90));
-		}
-
-		//drawing characters
-
-		//selection box
-		var offX = menu_characterCircleRadius * canvas.height * Math.cos((Math.PI * 2 * (1 / data_characters.length) * this.displayCharacterSelected) - (Math.PI * 0.5));
-		var offY = menu_characterCircleRadius * canvas.height * Math.sin((Math.PI * 2 * (1 / data_characters.length) * this.displayCharacterSelected) - (Math.PI * 0.5));
-		drawSelectionBox((canvas.width * 0.5) + offX, (canvas.height * 0.5) + offY + menu_characterSize - 5, menu_characterSize * 2);
-
-		for (var h=0; h<data_characters.length; h++) {
-			offX = menu_characterCircleRadius * canvas.height * Math.cos((Math.PI * 2 * (1 / data_characters.length) * h) - (Math.PI * 0.5));
-			offY = menu_characterCircleRadius * canvas.height * Math.sin((Math.PI * 2 * (1 / data_characters.length) * h) - (Math.PI * 0.5));
-			//character texture
-			this.selectionTextures[h].beDrawn((canvas.width * 0.5) + offX, (canvas.height * 0.5) + offY + menu_characterSize, 0, menu_characterSize * 1.7);
-			if (!data_persistent.unlocked.includes(data_characters[h])) {
-				drawCharacterLock((canvas.width * 0.5) + offX, (canvas.height * 0.5) + offY + (menu_characterSize * 0.75), menu_characterSize, menu_characterSize);
-			}
-		}
+	handleEscape() {
+		this.substate = 0;
 	}
 
 	handleMouseDown(a) {
-		if (this.overButton > -1) {
-			loading_state = eval(this.buttons[this.overButton][1]);
-		} else {
-			//checking for collision with characters. This is done here instead of the mouseMove function because hovering over characters doesn't do anything.
-			for (var h=0; h<data_characters.length; h++) {
-				var posX = (canvas.width * 0.5) + (menu_characterCircleRadius * canvas.height * Math.cos((Math.PI * 2 * (1 / data_characters.length) * h) - (Math.PI * 0.5)));
-				var posY = (canvas.height * 0.5) + menu_characterSize + (menu_characterCircleRadius * canvas.height * Math.sin((Math.PI * 2 * (1 / data_characters.length) * h) - (Math.PI * 0.5)));
-	
-				//selection box
-				if (cursor_x > posX - menu_characterSize && cursor_x < posX + menu_characterSize &&
-				cursor_y > posY - menu_characterSize && cursor_y < posY + menu_characterSize &&
-				data_persistent.unlocked.includes(data_characters[h])) {
-					this.characterSelected = h;
-					player = eval(`new ${data_characters[h]}(0, 0, 0)`);
-					if (Math.abs(this.characterSelected - this.displayCharacterSelected) > data_characters.length / 2) {
-						if (this.characterSelected < this.displayCharacterSelected) {
-							this.displayCharacterSelected -= data_characters.length;
-						} else {
-							this.displayCharacterSelected += data_characters.length;
+		switch (this.substate) {
+			case 0:
+				if (this.overButton > -1) {
+					loading_state = eval(this.buttons[this.overButton][1]);
+				} else {
+					//checking for collision with characters. This is done here instead of the mouseMove function because hovering over characters doesn't do anything.
+					for (var h=0; h<data_characters.length; h++) {
+						var posX = (canvas.width * 0.5) + (menu_characterCircleRadius * canvas.height * Math.cos((Math.PI * 2 * (1 / data_characters.length) * h) - (Math.PI * 0.5)));
+						var posY = (canvas.height * 0.5) + menu_characterSize + (menu_characterCircleRadius * canvas.height * Math.sin((Math.PI * 2 * (1 / data_characters.length) * h) - (Math.PI * 0.5)));
+			
+						//selection box
+						if (cursor_x > posX - menu_characterSize && cursor_x < posX + menu_characterSize &&
+						cursor_y > posY - menu_characterSize && cursor_y < posY + menu_characterSize &&
+						data_persistent.unlocked.includes(data_characters[h])) {
+							this.characterSelected = h;
+							player = eval(`new ${data_characters[h]}(0, 0, 0)`);
+							if (Math.abs(this.characterSelected - this.displayCharacterSelected) > data_characters.length / 2) {
+								if (this.characterSelected < this.displayCharacterSelected) {
+									this.displayCharacterSelected -= data_characters.length;
+								} else {
+									this.displayCharacterSelected += data_characters.length;
+								}
+							}
+						}
+					}
+
+					//check for collision with lower buttons
+					for (var b=0; b<3; b++) {
+						var xOff = (canvas.height * 0.05) + (canvas.width * (b * 0.07));
+						var yOff = canvas.height * 0.9;
+
+						if (cursor_x > xOff && cursor_x < xOff + canvas.width * 0.05 && cursor_y > yOff && cursor_y < yOff + canvas.width * 0.05) {
+							this.substate = b + 1;
 						}
 					}
 				}
-			}
+				break;
+			case 1:
+				//leaderboards
+				if (cursor_x < canvas.width * 0.1 && cursor_y < canvas.height * 0.05) {
+					this.substate = 0;
+				}
+				break;
+			case 2:
+				//settings menu, with back button as well :)
+				break;
+			case 3:
+				//cutscene viewer
+				break;
 		}
+		
 	}
 
 	handleMouseMove(a) {
 		updateCursorPos(a);
 
-		this.overButton = -1;
+		if (this.substate == 0) {
+			this.overButton = -1;
 
-		//check for collision with center buttons
-		var trueButtonWidth = (canvas.width * menu_buttonWidth * 0.5);
-		var trueButtonHeight = (canvas.height * menu_buttonHeight * 0.5);
-		var startHeight = (canvas.height * 0.5) - (trueButtonHeight * this.buttons.length * 1.5);
-		for (var y=0; y<this.buttons.length; y++) {
-			var yOffset = startHeight + (trueButtonHeight * 4 * y) + trueButtonHeight + (canvas.height / 16);
+			//check for collision with center buttons
+			var trueButtonWidth = (canvas.width * menu_buttonWidth * 0.5);
+			var trueButtonHeight = (canvas.height * menu_buttonHeight * 0.5);
+			var startHeight = (canvas.height * 0.5) - (trueButtonHeight * this.buttons.length * 1.5);
+			for (var y=0; y<this.buttons.length; y++) {
+				var yOffset = startHeight + (trueButtonHeight * 4 * y) + trueButtonHeight + (canvas.height / 16);
 
-			if (cursor_x > (canvas.width * 0.5) - trueButtonWidth && cursor_x < (canvas.width * 0.5) + trueButtonWidth &&
-				cursor_y > yOffset - trueButtonHeight && cursor_y < yOffset + trueButtonHeight) {
-					this.overButton = y;
+				if (cursor_x > (canvas.width * 0.5) - trueButtonWidth && cursor_x < (canvas.width * 0.5) + trueButtonWidth &&
+					cursor_y > yOffset - trueButtonHeight && cursor_y < yOffset + trueButtonHeight) {
+						this.overButton = y;
+				}
 			}
 		}
 	}
