@@ -1,7 +1,88 @@
 //I can't physically stop you from looking through all this code. But to be honest, I don't know why you would. I don't even like looking through all this code, and I wrote the darn thing!
 
+class SceneLine {
+	constructor(x1, y1, x2, y2) {
+		this.x = x1;
+		this.y = y1;
+		this.endX = x2;
+		this.endY = y2;
+	}
 
+	beDrawn() {
+		this.drawMainBody();
+		if (editor_active) {
+			this.drawSelectionCircles();
+		}
+	}
 
+	drawMainBody() {
+		//determine angle from width
+		ctx.strokeStyle = color_cutsceneBox;
+		ctx.lineWidth = canvas.height / 48;
+		drawLine([this.x * canvas.width, this.y * canvas.height], [this.endX * canvas.width, this.endY * canvas.height]);
+		ctx.lineWidth = 2;
+	}
+
+	drawSelectionCircles() {
+		//each texture has 5, for modifying different aspects of the texture
+		drawCircle(color_grey_dark, canvas.width * this.x, canvas.height * this.y, editor_handleRadius);
+		drawCircle(color_grey_dark, canvas.width * this.endX, canvas.height * this.endY, editor_handleRadius);
+
+		//colored circles
+		switch (this.selectedPart) {
+			//p1
+			case 0:
+				drawCircle(color_editor_cursor, canvas.width * this.x, canvas.height * this.y, editor_handleRadius);
+				break;
+			//p2
+			case 1:
+				drawCircle(color_editor_cursor, canvas.width * this.endX, canvas.height * this.endY, editor_handleRadius);
+				break;
+				break;
+		}
+	}
+
+	tick() {
+		switch (this.selectedPart) {
+			case 0:
+				//move to where the cursor is
+				this.x = cursor_x / canvas.width;
+				this.y = cursor_y / canvas.height;
+				break;
+			case 1:
+				//p2
+				this.endX = cursor_x / canvas.width;
+				this.endY = cursor_y / canvas.height;
+				break;
+		}
+		if (!cursor_down) {
+			//if the cursor's not down, stop being moved
+			this.selectedPart = undefined;
+		}
+	}
+
+	becomeSelected() {
+		//determines which part should be selected based on cursor position
+
+		//p1
+		if (getDistance2d([cursor_x, cursor_y], [canvas.width * this.x, canvas.height * this.y]) < editor_snapTolerance) {
+			this.selectedPart = 0;
+			return true;
+		}
+
+		//p2
+		if (getDistance2d([cursor_x, cursor_y], [canvas.width * this.endX, canvas.height * this.endY]) < editor_snapTolerance) {
+			this.selectedPart = 1;
+			return true;
+		}
+
+		return false;
+	}
+
+	giveStringData() {
+		return `LIN~${this.x.toFixed(4)}~${this.y.toFixed(4)}~${this.endX.toFixed(4)}~${this.endY.toFixed(4)}`;
+	}
+}
 //acts as a light source, as the player normally would
 class SceneLight {
 	constructor(x, y, z) {
@@ -133,8 +214,8 @@ class SceneLight {
 		return false;
 	}
 
-	giveEnglishConstructor() {
-		return `new SceneLight(${this.x.toFixed(4)}, ${this.y.toFixed(4)}, ${this.z.toFixed(4)})`;
+	giveStringData() {
+		return `LGT~${this.x.toFixed(4)}~${this.y.toFixed(4)}~${this.z.toFixed(4)}`;
 	}
 }
 
@@ -232,7 +313,12 @@ class SceneText {
 				break;
 			case 1:
 				//font size
-				this.fontSize = Math.abs(this.y - (cursor_y / canvas.height)) / this.processedContent.length;
+				var newFontSize = Math.abs(this.y - (cursor_y / canvas.height)) / this.processedContent.length;
+				if (newFontSize != this.fontSize) {
+					//change width as well
+					this.width *= newFontSize / this.fontSize;
+					this.fontSize = newFontSize;
+				}
 				break;
 			case 2:
 				//width
@@ -253,7 +339,7 @@ class SceneText {
 		var height = canvas.height * this.fontSize * this.processedContent.length;
 
 		//only become selected if in the correct area
-		if (cursor_x > x - width - editor_snapTolerance && cursor_x < x + width + editor_snapTolerance && cursor_y > y - height - editor_snapTolerance && cursor_y < y + height + editor_snapTolerance) {
+		if (cursor_x > x - width - editor_snapTolerance && cursor_x < x + width + editor_snapTolerance && cursor_y > y - (height / 2) - editor_snapTolerance && cursor_y < y + height + editor_snapTolerance) {
 			//top
 			if (cursor_y > y + height - editor_snapTolerance) {
 				this.selectedPart = 1;
@@ -290,8 +376,8 @@ class SceneText {
 		return false;
 	}
 
-	giveEnglishConstructor() {
-		return `new SceneText(${this.x.toFixed(4)}, ${this.y.toFixed(4)}, ${this.width.toFixed(4)}, ${this.fontSize.toFixed(4)}, '${this.rawContent}', ${this.isLight})`;
+	giveStringData() {
+		return `TXT~${this.x.toFixed(4)}~${this.y.toFixed(4)}~${this.width.toFixed(4)}~${this.fontSize.toFixed(4)}~${this.rawContent.replace("~", "")}~${this.isLight}`;
 	}
 }
 
@@ -389,8 +475,8 @@ class SceneBox {
 		return false;
 	}
 
-	giveEnglishConstructor() {
-		return `new SceneBox(${this.x.toFixed(4)}, ${this.y.toFixed(4)}, ${this.width.toFixed(4)}, ${this.height.toFixed(4)})`;
+	giveStringData() {
+		return `BOX~${this.x.toFixed(4)}~${this.y.toFixed(4)}~${this.width.toFixed(4)}~${this.height.toFixed(4)}`;
 	}
 }
 
@@ -400,14 +486,31 @@ class SceneBubble extends SceneBox {
 	}
 
 	drawMainBody() {
-		ctx.fillStyle = color_cutsceneBox;
+		//variable definition
+		var arcRadiusX = this.width * canvas.width;
+		var arcRadiusY = this.height * canvas.height;
+		var width = this.width * canvas.width * 2;
+		var height = this.height * canvas.height * 2;
+		var x = ((this.x - this.width) * canvas.width);
+		var y = ((this.y - this.height) * canvas.height);
+		
+
 		ctx.beginPath();
-		ctx.ellipse(this.x * canvas.width, this.y * canvas.height, this.width * canvas.width, this.height * canvas.height, 0, 0, Math.PI * 2);
+		ctx.fillStyle = color_cutsceneBox;
+		ctx.moveTo(x + arcRadiusX, y);
+		ctx.lineTo(x + width - arcRadiusX, y);
+		ctx.quadraticCurveTo(x + width, y, x + width, y + arcRadiusY);
+		ctx.lineTo(x + width, y + height - arcRadiusY);
+		ctx.quadraticCurveTo(x + width, y + height, x + width - arcRadiusX, y + height);
+		ctx.lineTo(x + arcRadiusX, y + height);
+		ctx.quadraticCurveTo(x, y + height, x, y + height - arcRadiusY);
+		ctx.lineTo(x, y + arcRadiusY);
+		ctx.quadraticCurveTo(x, y, x + arcRadiusX, y);
 		ctx.fill();
 	}
 
-	giveEnglishConstructor() {
-		return `new SceneBubble(${this.x.toFixed(4)}, ${this.y.toFixed(4)}, ${this.width.toFixed(4)}, ${this.height.toFixed(4)})`;
+	giveStringData() {
+		return `BUB~${this.x.toFixed(4)}~${this.y.toFixed(4)}~${this.width.toFixed(4)}~${this.height.toFixed(4)}`;
 	}
 }
 
@@ -556,8 +659,8 @@ class SceneSprite extends SceneBox {
 		return false;
 	}
 
-	giveEnglishConstructor() {
-		return `new SceneSprite(${this.x.toFixed(4)}, ${this.y.toFixed(4)}, ${this.width.toFixed(4)}, '${this.sheet}', ${this.rot.toFixed(4)}, ${this.texture.backwards}, ${this.textureX}, ${this.textureY})`;
+	giveStringData() {
+		return `SPR~${this.x.toFixed(4)}~${this.y.toFixed(4)}~${this.width.toFixed(4)}~${this.sheet}~${this.rot.toFixed(4)}~${this.texture.backwards}~${this.textureX}~${this.textureY}`;
 	}
 }
 
@@ -655,8 +758,8 @@ class SceneTri {
 		return false;
 	}
 
-	giveEnglishConstructor() {
-		return `new SceneTri(${this.x.toFixed(4)}, ${this.y.toFixed(4)}, ${this.endX.toFixed(4)}, ${this.endY.toFixed(4)}, ${this.width.toFixed(4)})`;
+	giveStringData() {
+		return `TRI~${this.x.toFixed(4)}~${this.y.toFixed(4)}~${this.endX.toFixed(4)}~${this.endY.toFixed(4)}~${this.width.toFixed(4)}`;
 	}
 }
 
@@ -724,7 +827,7 @@ class MapTexture {
 		this.z = newCoords[2];
 	}
 
-	giveEnglishConstructor() {
+	giveStringData() {
 		return `new MapTexture(${Math.round(this.x)}, ${Math.round(this.z)}, ${JSON.stringify(this.texture.frames)}, \`${this.cutsceneRef.split("_")[1]}\`, \`${this.viewCondition}\`)`;
 	}
 }
