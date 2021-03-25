@@ -2,7 +2,6 @@
 /* 
 	generateStarSphere();
 
-	activateCutsceneFromTunnel();
 	avgArray();
 	clamp();
 	crumbleTileSet();
@@ -13,6 +12,7 @@
 	getPercentage();
 	getTimeFromFrames();
 
+	handleAudio();
 	HSVtoRGB();
 	linterp();
 	localStorage_read();
@@ -40,19 +40,11 @@
 	sigmoid();
 	spliceIn();
 	spliceOut();
+	stealAudioConsent();
 
 	tunnelData_applyProperty();
 	tunnelData_handle();
 	tunnelData_parseData();
-	
-
-	trueReset();
-	updatePlotProgression();
-
-2d collision:
-	getOrientation();
-	lineIntersect();
-	inPoly();
 */
 
 
@@ -80,7 +72,6 @@ function generateStarSphere() {
 function activateCutsceneFromTunnel(start, end, time) {
 	//don't do the cutscene stuff during a challenge
 	if (loading_state.constructor.name != "State_Challenge") {
-
 		//put cutscene in the 'activated cutscenes' array
 		if (!data_persistent.effectiveCutscenes.includes(end)) {
 			data_persistent.effectiveCutscenes.push(end);
@@ -121,6 +112,19 @@ function avgArray(array) {
 //these operators are stupid and I hope to never use them again
 function clamp(num, min, max) {
 	return num <= min ? min : num >= max ? max : num;
+}
+
+function crumbleTileSets(tunnel, posArray) {
+	posArray.forEach(p => {
+		try {
+			tunnel.strips[p[0]].tiles[p[1]].fallStatus = physics_crumblingShrinkTime + physics_crumblingShrinkStart - 1;
+			tunnel.strips[p[0]].tiles[p[1]].propogateCrumble();
+		} catch (error) {
+			console.log(`Error crumbling tile with strip ${p[0]} and tile ${p[1]} at tunnel ${tunnel.id}`);
+		}
+		
+	});
+	
 }
 
 function getClosestObject(arr) {
@@ -179,6 +183,61 @@ function getTimeFromFrames(intFrames) {
 	}
 	return timeText;
 }
+
+
+
+
+
+
+function handleAudio() {
+	//first choose what audio should be
+	//don't update audio target at all during cutscenes
+	if (loading_state.constructor.name == "State_Cutscene") {
+		return;
+	}
+
+	//set target audio to player's parent if in a gameplay state
+	audio_channel1.target = undefined;
+	if (loading_state.parentControlsAudio) {
+		//special case for skater
+		if (player.constructor.name == "Skater" && player.parentPrev.music != "None") {
+			audio_channel1.target = audio_data["UnsafeSpeeds"];
+			return;
+		}
+
+		//also special case for infinite mode, going by difficulty
+		if (loading_state.constructor.name == "State_Infinite") {
+			//songs scale with distance
+			switch (Math.floor(loading_state.distance / 2000)) {
+				case 0:
+					audio_channel1.target = audio_data["TravelTheGalaxy"];
+					return;
+				case 1:
+					audio_channel1.target = audio_data["LeaveTheSolarSystem"];
+					return;
+				case 2:
+					audio_channel1.target = audio_data["WormholeToSomewhere"];
+					return;
+				case 3:
+					audio_channel1.target = audio_data["TheVoid"];
+					return;
+				case 4:
+					audio_channel1.target = audio_data["CrumblingWalls"];
+					return;
+				case 5:
+				default:
+					audio_channel1.target = audio_data["MapOfTheStars"];
+					return;
+			}
+		}
+		//default case
+		if (loading_state.substate != 3) {
+			audio_channel1.target = audio_data[player.parentPrev.music];
+		}
+	}
+}
+
+
 
 function HSVtoRGB(hsvObject) {
 	//I don't understand most of this but it appears to work
@@ -313,11 +372,6 @@ function outputTunnel(prefix) {
 	}
 
 	return output;
-}
-
-function placeOneTimeCutsceneTriggers() {
-	getObjectFromID("F-4").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("F-4"), 1.1, false, "river"));
-	getObjectFromID("Level 1").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("Level 1"), 0.5, true, "planetMissing"));
 }
 
 function placeTunnelSet(setName) {
@@ -472,13 +526,16 @@ function RGBtoHSV(sixDigitRGBHexCode) {
 }
 
 function runCrash() {
+	ctx.fillStyle = "#00";
+	ctx.fillRect(0, 0, canvas.width, canvas.height);
+	
+	//loop through all lines
 	ctx.fillStyle = "#F0F";
-	ctx.fillRect(0, 0, canvas.width / 2, canvas.height / 2);
-	ctx.fillRect(canvas.width / 2, canvas.height / 2, canvas.width / 2, canvas.height / 2);
-
-	ctx.fillStyle = "#000";
-	ctx.fillRect(canvas.width / 2, 0, canvas.width / 2, canvas.height / 2);
-	ctx.fillRect(0, canvas.height / 2, canvas.width / 2, canvas.height / 2);
+	for (var y=0; y<canvas.height; y++) {
+		if (randomSeeded(0, 1) < 0.25) {
+			ctx.fillRect(0, y, canvas.width, 1);
+		}
+	}
 
 	window.cancelAnimationFrame(game_animation);
 }
@@ -494,6 +551,17 @@ function spliceIn(string, charStart, string2) {
 
 function spliceOut(string, charStart, charEnd) {
 	return string.slice(0, charStart) + string.slice(charEnd, string.length);
+}
+
+function stealAudioConsent(a) {
+	//plays and then pauses all the audio elements. It's triggered by the first click, so the user doesn't notice, but they technically allowed the audio to play.
+	if (audio_consentRequired) {
+		for (var audio in audio_data) {
+			audio_data[audio].play();
+			audio_data[audio].pause();
+			audio_data[audio].currentTime = 0;
+		}
+	}
 }
 
 //applies a property to a tunnel set
@@ -545,6 +613,7 @@ function tunnelData_handle(data) {
 		color: "", 
 		id: "ERROR: name not initialized", 
 		maxLen: 0, 
+		music: "TravelTheGalaxy",
 		power: 1, 
 		functions: [], 
 		sides: 0, 
@@ -576,6 +645,9 @@ function tunnelData_handle(data) {
 				break;
 			case "color":
 				tunnelStructure.color = "#" + splitTag[1];
+				break;
+			case "music":
+				tunnelStructure.music = splitTag[1];
 				break;
 			case "tileWidth":
 				tunnelStructure.tileSize = splitTag[1] * 1;
@@ -702,67 +774,8 @@ function tunnelData_parseData(toParse, tileArray, tilesInLoop, tileTypeNum) {
 	}
 }
 
-function trueReset() {
-	//give user a warning
-	if (confirm("This action cannot be undone. Would you like to reset completely? \n(Press OK to reset, Cancel to not)")) {
-		//reset game flags
-		data_persistent = undefined;
-
-		//push to local storage
-		window.localStorage["run3_data"] = undefined;
-
-		//refresh page
-		window.location.reload();
-	}
-}
-
 function updateCursorPos(a) {
 	var canvasArea = canvas.getBoundingClientRect();
 	cursor_x = a.clientX - canvasArea.left;
 	cursor_y = a.clientY - canvasArea.top;
-}
-
-function updatePlotProgression() {
-	//activate all cutscene effects
-	if (data_persistent.effectiveCutscenes == undefined) {
-		data_persistent.effectiveCutscenes = [];
-	}
-	data_persistent.effectiveCutscenes.forEach(c => {
-		var reference = eval(`cutsceneData_${c}`);
-		eval(reference.effects);
-	});
-
-	//change the visited tags for all levels
-	data_persistent.discovered.forEach(a => {
-		try {
-			getObjectFromID(a).discovered = true;
-		} catch (eror) {}
-		
-	});
-
-	//level 1 is always discovered
-	getObjectFromID(`Level 1`).discovered = true;
-	//if no characters are unlocked, reset to the default
-	if (data_persistent.unlocked == undefined) {
-		data_persistent.unlocked = ["Runner"];
-	}
-
-	//if the end of the low power tunnel hasn't been discovered, move the new tunnel away
-	if (!(getObjectFromID(`Low Power Tunnel, Part 25`).discovered)) {
-		var a = 1;
-		var targetTunnel = getObjectFromID(`New Tunnel, Part ${a}`);
-		while (targetTunnel != undefined) {
-			targetTunnel.updatePosition(targetTunnel.x, targetTunnel.y, targetTunnel.z - 30000);
-			a += 1;
-			targetTunnel = getObjectFromID(`New Tunnel, Part ${a}`);
-		}
-	}
-
-	//if the end of the new tunnel has been discovered, all characters can go through it
-	if (getObjectFromID(`New Tunnel, Part 9`).discovered) {
-		for (var a=1; a<=9; a++) {
-			getObjectFromID(`New Tunnel, Part ${a}`).bannedCharacters = {};
-		}
-	}
-	console.log("applied story progression");
 }
