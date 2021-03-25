@@ -122,6 +122,7 @@ function drawInfiniteEndScreen() {
 		var index = data_characters.indexOf(drawingCharacters[a]);
 
 		if (loading_state.selectionTextures[index] != undefined) {
+			loading_state.selectionTextures[index].frame = 0;
 			//if the character hasn't been used, display the selection box
 			if (a >= loading_state.charactersUsed.length) {
 				//only draw selection if they can actually be selected
@@ -129,6 +130,7 @@ function drawInfiniteEndScreen() {
 					drawSelectionBox((canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + menu_characterSize, menu_characterSize * 2);
 				}
 			} else {
+				loading_state.selectionTextures[index].frame = 1;
 				//displaying data about their run
 				ctx.textAlign = "center";
 				var charInfo = loading_state.characterData[drawingCharacters[a]];
@@ -214,104 +216,7 @@ function drawQuad(color, p1, p2, p3, p4) {
 	ctx.fill();
 }
 
-function drawPlayerWithParentOLD() {
-	var tunnelSize = player.parentPrev.strips.length;
-	var tunnelStrip = getClosestObject(player.parentPrev.strips);
-
-	//organize strips based around that
-	var trackL = tunnelStrip - Math.floor(tunnelSize / 2);
-	var trackR = tunnelStrip + Math.floor(tunnelSize / 2);
-	var drawPlayer = true;
-	var stripsDrawn = 0;
-	
-	//if the size is even, trackL has to be one less than trackR
-	//farthest strip + setting variables
-	if (tunnelSize % 2 == 0) {
-		if (!player.parentPrev.strips[(tunnelStrip + (tunnelSize / 2)) % tunnelSize]) {
-			drawPlayer = false;
-			player.beDrawn();
-		}
-		player.parentPrev.strips[(tunnelStrip + (tunnelSize / 2)) % tunnelSize].beDrawn();
-		stripsDrawn += 1;
-		trackL = tunnelStrip - ((tunnelSize / 2) - 1);
-		trackR = tunnelStrip + (tunnelSize / 2) - 1;
-	}
-
-
-	//main draw loop
-	while (stripsDrawn < tunnelSize - 1 || (stripsDrawn > 99 && stripsDrawn < tunnelSize + 99)) {
-		if (stripsDrawn % 2 == 0) {
-			if (drawPlayer) {
-				if (!player.parentPrev.strips[trackR % tunnelSize].playerIsOnTop()) {
-					drawPlayer = false;
-					player.beDrawn();
-				}
-			}
-			player.parentPrev.strips[trackR % tunnelSize].beDrawn();
-			trackR -= 1;
-		} else {
-			if (drawPlayer) {
-				if (!player.parentPrev.strips[(trackL + tunnelSize) % tunnelSize].playerIsOnTop()) {
-					drawPlayer = false;
-					player.beDrawn();
-				}
-			}
-			player.parentPrev.strips[(trackL + tunnelSize) % tunnelSize].beDrawn();
-			trackL += 1;
-		}
-		stripsDrawn += 1;
-
-		if (stripsDrawn == Math.floor(player.parentPrev.strips.length / 2)) {
-			//if the camera is outside the tunnel do the hybrid approach. If not, do the normal way.
-			if (!player.parentPrev.coordinateIsInTunnel(world_camera.x, world_camera.y, world_camera.z)) {
-				player.parentPrev.freeObjs.forEach(f => {
-					f.beDrawn();
-				});
-				stripsDrawn += 100;
-			}
-		}
-	}
-
-	//final strip
-	if (drawPlayer && !player.parentPrev.strips[tunnelStrip].playerIsOnTop()) {
-		drawPlayer = false;
-		player.beDrawn();
-	}
-	player.parentPrev.strips[tunnelStrip].beDrawn();
-	stripsDrawn += 1;
-
-	//if the free objects still aren't drawn, draw them
-	if (stripsDrawn == player.parentPrev.strips.length) {
-		player.parentPrev.freeObjs.forEach(f => {
-			f.beDrawn();
-		});
-	}
-
-	//if the player's still not drawn, finally draw them
-	if (drawPlayer) {
-		player.beDrawn();
-	}
-
-	if (editor_active) {
-		//numbering strips
-		ctx.font = `${canvas.height / 48}px Comfortaa`;
-		ctx.fillStyle = color_text_bright;
-		var [tX, tY] = [0, 0];
-		for (var v=0; v<player.parentPrev.strips.length; v++) {
-			if (!isClipped([player.parentPrev.strips[v].x, player.parentPrev.strips[v].y, player.parentPrev.strips[v].z])) {
-				[tX, tY] = spaceToScreen([player.parentPrev.strips[v].x, player.parentPrev.strips[v].y, player.parentPrev.strips[v].z]);
-				ctx.fillText(v, tX + 5, tY);
-			}
-		}
-		//dot for closest spot
-		if (!isClipped([player.parentPrev.strips[tunnelStrip].x, player.parentPrev.strips[tunnelStrip].y, player.parentPrev.strips[tunnelStrip].z])) {
-			[tX, tY] = spaceToScreen([player.parentPrev.strips[tunnelStrip].x, player.parentPrev.strips[tunnelStrip].y, player.parentPrev.strips[tunnelStrip].z]);
-			drawCircle("#FFF", tX, tY, 10);
-		}
-	}
-}
-
-
+/*
 function drawPlayerWithParent() {
 	var tunnelSize = player.parentPrev.strips.length;
 	var tunnelStrip = getClosestObject(player.parentPrev.strips);
@@ -385,13 +290,13 @@ function drawPlayerWithParent() {
 			});
 		}
 	}
-			/*
-			if (drawPlayer) {
-				if (!player.parentPrev.strips[(trackL + tunnelSize) % tunnelSize].playerIsOnTop()) {
-					drawPlayer = false;
-					player.beDrawn();
-				}
-			} */
+			
+			// if (drawPlayer) {
+			// 	if (!player.parentPrev.strips[(trackL + tunnelSize) % tunnelSize].playerIsOnTop()) {
+			// 		drawPlayer = false;
+			// 		player.beDrawn();
+			// 	}
+			// } 
 
 
 	//free objects
@@ -458,7 +363,7 @@ function drawPlayerWithParent() {
 			drawCircle("#FFF", tX, tY, 10);
 		}
 	}
-}
+} */
 
 function drawRoundedRectangle(x, y, width, height, arcRadius) {
 	y += ctx.lineWidth * 0.5;
@@ -577,6 +482,7 @@ function drawCharacterLock(x, y, width, height) {
 }
 
 function drawSelectionBox(x, y, size) {
+	ctx.lineWidth = size / 15;
 	ctx.globalAlpha = 0.3;
 	ctx.fillStyle = color_grey_light;
 	ctx.strokeStyle = color_menuSelectionOutline;
@@ -586,6 +492,8 @@ function drawSelectionBox(x, y, size) {
 
 //draws all tiles but in 2 dimensions, used for the editor
 function drawTile2d(ex, why, size, type) {
+	ctx.beginPath();
+	ctx.rect(ex, why, size, size);
 	switch (type) {
 		case 1:
 			//regular
@@ -710,7 +618,7 @@ function drawTile2d(ex, why, size, type) {
 			ctx.stroke();
 			break;
 
-
+		//cutscene icons
 		case 20:
 			//box
 			ctx.fillStyle = color_cutsceneBox;
@@ -722,6 +630,15 @@ function drawTile2d(ex, why, size, type) {
 			drawCircle(color_cutsceneBox, ex, why, size / 2);
 			break;
 		case 22:
+			//tri
+			ctx.strokeStyle = color_cutsceneBox;
+			ctx.beginPath();
+			ctx.moveTo(ex - (size / 2), why - (size / 2));
+			ctx.lineTo(ex + (size / 2), why + (size / 2));
+			ctx.lineTo(ex - (size / 1.5), why - (size / 2.5));
+			ctx.stroke();
+			break;
+		case 23:
 			//line
 			ctx.strokeStyle = color_cutsceneBox;
 			ctx.beginPath();
@@ -729,18 +646,53 @@ function drawTile2d(ex, why, size, type) {
 			ctx.lineTo(ex + (size / 2), why + (size / 2));
 			ctx.stroke();
 			break;
-		case 23:
+		case 24:
 			//text
 			ctx.fillStyle = color_text_bright;
 			ctx.font = `${size}px Comfortaa`;
 			ctx.fillText("T", ex, why + (size * 0.66));
 			break;
-		case 24:
+		case 25:
 			ctx.fillStyle = color_map_bg;
 			ctx.globalAlpha = 0.5;
 			drawCircle(color_map_bg, ex, why, size / 2);
 			ctx.globalAlpha = 1;
 			drawCircle(color_map_bg, ex, why, size / 3);
 			break;
+		
+		//menu icons
+		case 30:
+			//leaderboards
+			ctx.fillStyle = color_grey_lightest;
+			ctx.fillRect(ex, why + size / 2, size / 4, size * 0.5);
+			ctx.fillRect(ex + (size * 0.333), why + size * 0.1, size / 4, size * 0.9);
+			ctx.fillRect(ex + (size * 0.666), why + size * 0.7, size / 4, size * 0.3);
+			break;
+		case 31:
+			//settings
+			var x = ex + (size * 0.5);
+			var y = why + (size * 0.5);
+			var r = size * 0.3;
+			ctx.fillStyle = color_grey_light;
+			ctx.strokeStyle = color_grey_dark;
+
+			ctx.moveTo(x + size * 0.5, y);
+			ctx.beginPath();
+			ctx.arc(x, y, size * 0.15, 0, Math.PI * 2, true);
+			for (var a=0; a<30; a++) {
+				var offset = [r * (1 + (0.3 * (a % 4 < 2))) * Math.cos((Math.PI / 15) * a), 
+							  r * (1 + (0.3 * (a % 4 < 2))) * Math.sin((Math.PI / 15) * a)];
+				ctx.lineTo(x + offset[0], y + offset[1]);
+			}
+			ctx.stroke();
+			ctx.fill();
+			break;
+		case 32:
+			//cutscene viewer
+			ctx.beginPath();
+			ctx.fillStyle = color_cutsceneBox;
+			ctx.ellipse(ex + (size / 2), why + (size / 3), size * 0.45, size / 3, 0, 0, Math.PI * 2);
+			ctx.fill();
+			drawTile2d(ex + (size / 2), why + (size / 2), size * 0.3, 22);
 	}
 }
