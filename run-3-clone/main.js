@@ -12,6 +12,26 @@ window.addEventListener("keyup", handleKeyNegate, false);
 	when using if else, put most likely condition first
 */
 //global variables
+var audio_data = {
+	//music files
+	"CrumblingWalls": new Audio('audio/CrumblingWalls.ogg'),
+	"LeaveTheSolarSystem": new Audio('audio/LeaveTheSolarSystem.ogg'),
+	"MapOfTheStars": new Audio('audio/MapOfTheStars.ogg'),
+	"TheVoid": new Audio('audio/TheVoid.ogg'),
+	"TravelTheGalaxy": new Audio('audio/TravelTheGalaxy.ogg'),
+	"UnsafeSpeeds": new Audio('audio/UnsafeSpeeds.ogg'),
+	"WormholeToSomewhere": new Audio('audio/WormholeToSomewhere.ogg'),
+
+	//sfx files
+	"Tone": new Audio('audio/Tone.ogg')
+}
+var audio_channel1 = new AudioChannel(0.5);
+var audio_channel2 = undefined;
+var audio_consentRequired = true;
+var audio_fadeTime = 75;
+var audio_tolerance = 1 / 30;
+
+
 var canvas;
 var ctx;
 var centerX;
@@ -65,18 +85,20 @@ var cursor_hoverTolerance = 10;
 var data_characters = [`Runner`, `Skater`, `Lizard`, `Bunny`, `Gentleman`, `Duplicator`, `Child`, `Pastafarian`, `Student`, `Angel`];
 
 
-var data_levelSets = [`main`, `boxStorage`, `coordination`, `planA`, `planC`, `memory`, `wayBack`, `wayBack2`, `wayBackNot`, `winterGames`, `lowPower`, `new`,
+var data_levelSets = [`main`, `boxRoad`, `boxStorage`, `coordination`, `planA`, `planC`, `memory`, `wayBack`, `wayBack2`, `wayBackNot`, `winterGames`, `lowPower`, `new`,
 						`A`, `B`, `C`, `D`, `F`, `G`, `H`, `I`, `L`, `M`, `N`, `T`, `U`, `W`];
 //data_levelSets = [`main`, `lowPower`, `new`];
 
 var data_persistent = {
-	powercells: 0,
 	discovered: [],
 	effectiveCutscenes: [],
-	unlocked: [`Runner`],
+	highscores: [],
+	name: "Guest User",
+	powercells: 0,
 	goingHomeProgress: undefined,
 	bridgeBuildingProgress: undefined,
-
+	unlocked: [`Runner`],
+	version: 1,
 };
 
 /*
@@ -127,7 +149,7 @@ var data_sprites = {
 		sheet: getImage('images/childSprites.png'),
 		frameTime: 2.1,
 		back: [[0, 3]],
-		front: [[]],
+		front: [[10, 0]],
 		jumpForwards: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0]],
 		jumpLeft: [[0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [5, 1], [6, 1]],
 		jumpRight: [[0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [5, 2], [6, 2]],
@@ -226,7 +248,7 @@ var data_sprites = {
 		sheet: getImage('images/studentSprites.png'),
 		frameTime: 2.2,
 		back: [[0, 2]],
-		front: [[]],
+		front: [[10, 0]],
 		jumpForwards: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0]],
 		jumpSideways: [[0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [5, 1], [6, 1]],
 		walkForwards: [[0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [5, 2], [6, 2], [7, 2],
@@ -359,6 +381,7 @@ let world_lightObjects = [];
 let world_objects = [];
 let active_objects = [];
 let world_wormhole;
+var world_version = 1;
 
 
 var render_animSteps = 9;
@@ -419,13 +442,18 @@ function setup() {
 
 	localStorage_read();
 
-	//setting the player in a tunnel
-
+	//the wavy air
+	//navigator.mediaDevices.getUserMedia({speakers: true});
 	page_animation = window.requestAnimationFrame(main);
 }
 
 function main() {
+	//main loop
 	loading_state.execute();
+
+	//handle audio
+	handleAudio();
+	audio_channel1.tick();
 
 	//save data every once in a while
 	if (world_time % 204 == 203) {
@@ -433,7 +461,6 @@ function main() {
 	}
 
 	//call self
-	//modulo so that time never gets stuck
 	world_time = (world_time + 1) % 9e15;
 	page_animation = window.requestAnimationFrame(main);
 }
@@ -460,6 +487,7 @@ function handleKeyPress(a) {
 				if (!controls_spacePressed) {
 					//if it's infinite mode, restart
 					if (loading_state instanceof State_Infinite && loading_state.substate == 2) {
+						loading_state.pushScoreToLeaderboard();
 						loading_state = new State_Infinite();
 					}
 					player.handleSpace();
@@ -555,18 +583,10 @@ function handleKeyPress(a) {
 						loading_state.frame += 1;
 						//creating new frame
 						if (loading_state.frame + 1 > loading_state.data.length) {
-							loading_state.data.push([[world_camera.x, world_camera.y, world_camera.z, world_camera.theta, world_camera.phi, world_camera.rot], []]);
-							//if space is pressed duplicate objects as well
+							//if space is pressed duplicate the frame
 							if (controls_shiftPressed) {
-								console.log("shift detected while adding frame");
-								var objData = ``;
-								for (var a=0; a<loading_state.data[loading_state.data.length-2][1].length-1; a++) {
-									objData += loading_state.data[loading_state.data.length-2][1][a].giveEnglishConstructor() + ", ";
-								}
-								if (loading_state.data[loading_state.data.length-2][1].length > 0) {
-									objData += loading_state.data[loading_state.data.length-2][1][loading_state.data[loading_state.data.length-2][1].length-1].giveEnglishConstructor();
-								}
-								loading_state.data[loading_state.data.length-1][1] = eval(`[${objData}]`);
+								var strData = loading_state.giveStringDataForLine(loading_state.data[loading_state.data.length-1]);
+								loading_state.data[loading_state.data.length] = loading_state.convertStringData(strData.substring(1, strData.length-4));
 							}
 						}
 						loading_state.updateFrame();
@@ -592,6 +612,12 @@ function handleKeyPress(a) {
 							loading_state.updateFrame();
 						}
 					}
+				}
+				break;
+			//c, toggles camera modification
+			case 67:
+				if (loading_state.constructor.name == "State_Cutscene") {
+					loading_state.modifyCameraPos = !loading_state.modifyCameraPos;
 				}
 				break;
 			//de-activating editor
@@ -702,6 +728,7 @@ function handleKeyNegate(a) {
 
 function handleMouseDown(a) {
 	cursor_down = true;
+	stealAudioConsent(a);
 	loading_state.handleMouseDown(a);
 }
 
@@ -773,8 +800,10 @@ function performanceTest() {
 	var perfTime = [performance.now(), 0];
 	var variableName = [0, 0, 0];
 	for (var a=0;a<1000000;a++) {
-		transformPoint(variableName, [Math.random(), Math.random(), Math.random()], [Math.random(), Math.random()], randomBounded(3, 6));
-		variableName = [0, 0, 0];
+		if (loading_state instanceof State_Cutscene) {
+			variableName[0] += 1;
+			variableName[0] -= 1;
+		}
 	}
 
 
