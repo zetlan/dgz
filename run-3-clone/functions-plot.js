@@ -1,11 +1,109 @@
 
 /* 
 INDEX:
+	placeOneTimeCutsceneTriggers();
+	trueReset();
 	unlockCharacter();
+	updatePlotProgression();
 */
 
 
+function placeOneTimeCutsceneTriggers() {
+	//triggers
+	getObjectFromID("Level 1").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("Level 1"), 0.5, true, "planetMissing"));
+	getObjectFromID("F-4").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("F-4"), 1.1, false, "river"));
+	getObjectFromID("U-1").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("U-1"), 0.2, false, "planetStolen"));
+	getObjectFromID("New Tunnel, Part 1").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("New Tunnel, Part 1"), 0.1, false, "selfAssembly"));
+
+	//character encounters
+	getObjectFromID("Level 10").freeObjs.push(new StaticCharacterPermanent(getObjectFromID("Level 10"), 12, 58, "Skater", "comingThrough"));
+	getObjectFromID("Level 41").freeObjs.push(new StaticCharacterPermanent(getObjectFromID("Level 41"), 3, 1, "Lizard", "heavySleeper"));
+}
+
+function trueReset() {
+	//give user a warning
+	if (confirm("This action cannot be undone. Would you like to reset completely? \n(Press OK to reset, Cancel to not)")) {
+		//reset game flags
+		data_persistent = undefined;
+
+		//push to local storage
+		window.localStorage["run3_data"] = undefined;
+
+		//refresh page
+		window.location.reload();
+	}
+}
 
 function unlockCharacter(characterName) {
-	if (!data_persistent.unlocked.includes("Gentleman")) {data_persistent.unlocked.push("Gentleman");}
+	if (!data_persistent.unlocked.includes(characterName)) {data_persistent.unlocked.push(characterName);}
+}
+
+function updatePlotProgression() {
+	//first make sure save file is up to date
+
+	//out of date case
+	if (data_persistent.version == undefined || data_persistent.version < world_version) {
+		if (confirm("Your save file is out of date. If you continue without resetting it, things may break. Would you like to reset? \n(Press OK to reset, Cancel to not)")) {
+			//resetting stuff
+			trueReset();
+		}
+	} else if (data_persistent.version > world_version) {
+		//past date case, how dare you mess with my save file like this. All your stars are lizards.
+		for (var j=0; j<world_stars.length; j++) {
+			world_stars[j] = new Star_Lizard(world_stars[j].x, world_stars[j].y, world_stars[j].z);
+		}
+	}
+
+
+	//activate all cutscene effects
+	if (data_persistent.effectiveCutscenes == undefined) {
+		data_persistent.effectiveCutscenes = [];
+	}
+	data_persistent.effectiveCutscenes.forEach(c => {
+		var reference = eval(`cutsceneData_${c}`);
+		eval(reference.effects);
+	});
+
+	//change the visited tags for all levels
+	data_persistent.discovered.forEach(a => {
+		try {
+			getObjectFromID(a).discovered = true;
+		} catch (eror) {}
+		
+	});
+
+	//level 1 is always discovered
+	getObjectFromID(`Level 1`).discovered = true;
+	//if no characters are unlocked, reset to the default
+	if (data_persistent.unlocked == undefined) {
+		data_persistent.unlocked = ["Runner"];
+	}
+
+	//if the end of the low power tunnel hasn't been discovered, move the new tunnel away
+	if (!(getObjectFromID(`Low Power Tunnel, Part 25`).discovered)) {
+		var a = 1;
+		var targetTunnel = getObjectFromID(`New Tunnel, Part ${a}`);
+		while (targetTunnel != undefined) {
+			targetTunnel.updatePosition(targetTunnel.x, targetTunnel.y, targetTunnel.z - 30000);
+			a += 1;
+			targetTunnel = getObjectFromID(`New Tunnel, Part ${a}`);
+		}
+	}
+
+	//if the end of the new tunnel has been discovered, all characters can go through it
+	if (getObjectFromID(`New Tunnel, Part 9`).discovered) {
+		for (var a=1; a<=9; a++) {
+			getObjectFromID(`New Tunnel, Part ${a}`).bannedCharacters = {};
+		}
+	}
+
+	//if the angel hasn't completed going home, lock the way back
+	if (data_persistent.goingHomeProgress == undefined || data_persistent.goingHomeProgress < 27) {
+		let wayBackStart = getObjectFromID("The Way Back, Part 1");
+		wayBackStart.bannedCharacters = {};
+		data_characters.forEach(c => {
+			wayBackStart.bannedCharacters[c] = "`The ${player.constructor.name} isn't going home yet!`";
+		});
+	}
+	console.log("applied story progression");
 }
