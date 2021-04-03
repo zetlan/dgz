@@ -57,6 +57,7 @@ const color_conveyor_secondary = "#616BFF";
 const color_crumbling = "#CCCCCC";
 const color_crumbling_secondary = "#808080";
 const color_cutsceneBox = "#FFF";
+const color_cutsceneLink = "#404";
 const color_editor_border = "#F8F";
 const color_editor_cursor = "#0FF";
 const color_editor_bg = "#335";
@@ -99,6 +100,11 @@ var data_persistent = {
 	bridgeBuildingProgress: undefined,
 	unlocked: [`Runner`],
 	version: 1,
+	settings: {
+		volume: 0.5,
+		highResolution: false,
+		preciseRendering: false
+	}
 };
 
 /*
@@ -258,6 +264,83 @@ var data_sprites = {
 	}
 };
 
+//perhaps this isn't the best data structure to organize this. It's tricky for a system that has to support both linear progression and branches.
+//TODO: find a better way to organize this?
+var data_cutsceneTree = 
+new CNode(-0.2941, -0.2009, 'comingThrough', [
+	new CNode(-0.2684, -0.0670, 'niceToMeetYou', []), 
+	new CNode(-0.2829, 0.0729, 'goldMedal', []), 
+	new CNode(-0.1490, -0.0967, 'insanity', [
+	new CNode(-0.1490, -0.0670, 'river', [
+		new CNode(-0.1490, -0.0342, 'socraticMethod', [])
+	])
+	]), 
+	new CNode(-0.1255, -0.2738, 'grandOpening', [
+	new CNode(-0.0363, -0.3586, 'thanksForPlaytesting', [])
+	]), 
+	new CNode(-0.3465, -0.1205, 'batteries', []), 
+	new CNode(-0.3912, -0.1577, 'planetMissing', [
+	new CNode(-0.0764, -0.1295, 'planetStolen', [
+			new CNode(-0.0831, 0.0595, 'naming', []), 
+		new CNode(-0.0296, 0.1116, 'orbits', [])
+	])
+	]), 
+	new CNode(0.0240, -0.1577, 'heavySleeper', [
+		new CNode(0.0184, -0.2113, 'cheating', []), 
+		new CNode(0.1111, -0.2188, 'teapot', []), 
+		new CNode(0.1379, -0.2679, 'boring', []), 
+		new CNode(0.1512, -0.1964, 'joinUs', []), 
+		new CNode(0.0675, -0.0446, 'dontKnockIt', []), 
+		new CNode(0.1903, -0.1548, 'changeTheSubject', []), 
+		new CNode(0.0307, 0.0699, 'inflation', []), 
+	new CNode(0.2718, 0.0744, 'wormholeInSight', [
+		new CNode(0.2707, -0.2827, 'theGap', [
+		new CNode(0.4766, -0.2723, 'crossingTheGap', [
+					new CNode(0.5190, 0.0179, 'fame', []), 
+					new CNode(0.6105, -0.2723, 'truancy', []), 
+			new CNode(0.5435, -0.1116, 'morningHypothesis1', [])
+		])
+		])
+	])
+	]), 
+	new CNode(-0.2695, -0.2991, 'candy', [
+		new CNode(-0.3209, -0.3943, 'selfAssembly', [
+		new CNode(-0.3967, -0.4196, 'conspiracy', [])
+	]), 
+	new CNode(-0.1613, 0.1920, 'myTurn', [
+		new CNode(-0.0876, 0.4033, 'theNextBigThing', [
+		new CNode(-0.0664, 0.4449, 'youThink', [
+			new CNode(-0.0552, 0.4821, 'friendlyGreeting', [
+			new CNode(-0.0619, 0.5223, 'indecision', [
+				new CNode(-0.0898, 0.5551, 'standardsToUphold', [
+				new CNode(-0.1423, 0.5833, 'itsJustYou', [
+					new CNode(-0.2193, 0.5595, 'discoveries', [
+					new CNode(-0.3142, 0.5253, 'angelVsBunny', [
+						new CNode(-0.3655, 0.5030, 'ofCourse', [
+						new CNode(-0.4157, 0.4821, 'fourthCondiment', [
+							new CNode(-0.5273, 0.4777, 'wait', [
+							new CNode(-0.5820, 0.4568, 'cantWait', [
+								new CNode(-0.4749, 0.3527, 'twoMonthWait1', [
+								new CNode(-0.5028, 0.3170, 'twoMonthWait2', [
+									new CNode(-0.5519, 0.2857, 'twoMonthWait3', [])
+								])
+								])
+							])
+							])
+						])
+						])
+					])
+					])
+				])
+				])
+			])
+			])
+		])
+		])
+	])
+	])
+])
+
 //for the map editor
 var editor_active = false;
 var editor_changingTheta = false;
@@ -295,6 +378,7 @@ let loading_state = new State_Loading();
 var map_height = 120000;
 var map_shift = 57000;
 var map_zOffset = -55200;
+var map_zStorage = map_zOffset;
 var map_iconSize = 0.06;
 
 var menu_buttonWidth = 0.2;
@@ -306,6 +390,7 @@ var menu_buttons = [
 ];
 var menu_characterCircleRadius = 0.3;
 var menu_characterSize = 30;
+var menu_cutsceneParallax = 0.3;
 
 let page_animation;
 
@@ -358,8 +443,9 @@ var tunnel_tileAssociation = {
 	"~steepRamp": 11, 
 	"~ramp": 12, //ice ramp
 	"~movable": 13, 
-	"~warning": 14,
-	"~battery": 15
+	"~movableBox": 14,
+	"~warning": 15,
+	"~battery": 16
 };
 
 var tunnel_translation = {
@@ -391,6 +477,7 @@ var render_identicalPointTolerance = 0.0001;
 var render_maxColorDistance = 950;
 var render_maxDistance = 15000;
 var render_minTileSize = 8;
+var render_ringSize = 18;
 var render_starOpacity = 0.6;
 var render_voidSpinSpeed = 0.04;
 
@@ -433,10 +520,6 @@ function setup() {
 
 	//high resolution slider
 	document.getElementById("haveHighResolution").onchange = updateResolution;
-	//if the box is already checked from a previous session update resolution to max
-	if (document.getElementById("haveHighResolution").checked) {
-		updateResolution();
-	}
 
 	generateStarSphere();
 
@@ -467,262 +550,203 @@ function main() {
 
 //input handling
 function handleKeyPress(a) {
-	if (!editor_active) {
-		switch(a.keyCode) {
-			//direction controls
-			// a / <--
-			case 65:
-			case 37:
-				player.ax = -1 * player.speed;
-				break;
-			//d / -->
-			case 68:
-			case 39:
-				player.ax = player.speed;
-				break;
-			// w / ^ / space
-			case 87:
-			case 38:
-			case 32:
-				if (!controls_spacePressed) {
-					//if it's infinite mode, restart
-					if (loading_state instanceof State_Infinite && loading_state.substate == 2) {
-						loading_state.pushScoreToLeaderboard();
-						loading_state = new State_Infinite();
-					}
-					player.handleSpace();
-				}
-				controls_spacePressed = true;
-				break;
-			//s / ˇ, for edit mode
-			case 83:
-			case 40:
-				if (loading_state instanceof State_Edit) {
-					player.az = -1;
-				}
-				break;
-			//r
-			case 82:
-				if (loading_state instanceof State_Game && loading_state.substate == 0) {
-					loading_state.handlePlayerDeath();
-				}
-				break;
+	loading_state.handleKeyPress(a);
 
-			//activating editor
-			case 221:
-				ctx.lineWidth = 2;
-				editor_active = true;
-				break;
-			case 27:
-				try {
-					loading_state.handleEscape();
-				} catch (er) {
-					console.log(`No escape function defined for the current game state peko`);
-				}
-				break;
-		}
-	} else {
-		switch(a.keyCode) {
-			//movement controls
-			// a/d
-			case 65:
-				world_camera.ax = -1 * world_camera.speed;
-				break;
-			case 68:
-				world_camera.ax = world_camera.speed;
-				break;
-			// w/s
-			case 87:
-				world_camera.az = world_camera.speed;
-				break;
-			case 83:
-				world_camera.az = -1 * world_camera.speed;
-				break;
-			//space
-			case 32:
-				if (!controls_spacePressed) {
-					world_camera.handleSpace();
-				}
-				controls_spacePressed = true;
-				break;
-			//shift
-			case 16:
-				controls_shiftPressed = true;
-				break;
-			//direction controls
-			case 37:
-				world_camera.dt = -1 * world_camera.sens;
-				break;
-			case 38:
-				world_camera.dp = world_camera.sens;
-				break;
-			case 39:
-				world_camera.dt = world_camera.sens;
-				break;
-			case 40:
-				world_camera.dp = -1 * world_camera.sens;
-				break;
-			case 81:
-				world_camera.dr = world_camera.sens / 2;
-				break;
-			case 69:
-				world_camera.dr = world_camera.sens / -2;
-				break;
+	//universal keys
+	switch (a.keyCode) {
+		case 16:
+			controls_shiftPressed = true;
+			break;
+		case 27:
+			try {
+				loading_state.handleEscape();
+			} catch (er) {
+				console.log(`No escape function defined for the current game state peko`);
+			}
+			break;
+		case 32:
+			controls_spacePressed = true;
+			break;
+		case 221:
+			editor_active = !editor_active;
+			break;
+	}
+}
 
-			//frame control (< / >)
-			case 188:
-				if (loading_state instanceof State_Cutscene) {
-					if (loading_state.frame > 0) {
-						loading_state.frame -= 1;
-						loading_state.updateFrame();
-					}
+function handleKeyPress_camera(a) {
+	//movement controls
+	switch (a.keyCode) {
+		// a/d
+		case 65:
+			world_camera.ax = -1 * world_camera.speed;
+			break;
+		case 68:
+			world_camera.ax = world_camera.speed;
+			break;
+		// w/s
+		case 87:
+			world_camera.az = world_camera.speed;
+			break;
+		case 83:
+			world_camera.az = -1 * world_camera.speed;
+			break;
+		//space
+		case 32:
+			//this if block just avoids repeat presses when holding down the key
+			if (!controls_spacePressed) {
+				world_camera.handleSpace();
+			}
+			break;
+		//angle controls
+		case 37:
+			world_camera.dt = -1 * world_camera.sens;
+			break;
+		case 38:
+			world_camera.dp = world_camera.sens;
+			break;
+		case 39:
+			world_camera.dt = world_camera.sens;
+			break;
+		case 40:
+			world_camera.dp = -1 * world_camera.sens;
+			break;
+		case 81:
+			world_camera.dr = world_camera.sens;
+			break;
+		case 69:
+			world_camera.dr = -1 * world_camera.sens;
+			break;
+	}
+}
+
+function handleKeyPress_player(a) {
+	switch(a.keyCode) {
+		//direction controls
+		// a / <--
+		case 65:
+		case 37:
+			player.ax = -1 * player.speed;
+			break;
+		//d / -->
+		case 68:
+		case 39:
+			player.ax = player.speed;
+			break;
+		// w / ^ / space
+		case 87:
+		case 38:
+		case 32:
+			if (!controls_spacePressed) {
+				//if it's infinite mode, restart
+				if (loading_state instanceof State_Infinite && loading_state.substate == 2) {
+					loading_state.pushScoreToLeaderboard();
+					loading_state = new State_Infinite();
 				}
-				break;
-			case 190:
-				if (loading_state instanceof State_Cutscene) {
-						loading_state.frame += 1;
-						//creating new frame
-						if (loading_state.frame + 1 > loading_state.data.length) {
-							//if space is pressed duplicate the frame
-							if (controls_shiftPressed) {
-								var strData = loading_state.giveStringDataForLine(loading_state.data[loading_state.data.length-1]);
-								loading_state.data[loading_state.data.length] = loading_state.convertStringData(strData.substring(1, strData.length-4));
-							}
-						}
-						loading_state.updateFrame();
-				}
-				break;
-			//delete button
-			case 8:
-				if (loading_state instanceof State_Cutscene) {
-					if (loading_state.selected != undefined) {
-						//if shift is pressed, splice out all items
-						if (controls_shiftPressed) {
-							loading_state.data[loading_state.frame][1] = [];
-							return;
-						}
-						//normal case
-						var editing = loading_state.data[loading_state.frame][1];
-						editing.splice(editing.indexOf(loading_state.selected), 1);
-					} else if (loading_state.data[loading_state.frame][1].length == 0) {
-						//if there are no items, delete the frame
-						if (loading_state.frame > 0) {
-							loading_state.data.pop();
-							loading_state.frame -= 1;
-							loading_state.updateFrame();
-						}
-					}
-				}
-				break;
-			//c, toggles camera modification
-			case 67:
-				if (loading_state.constructor.name == "State_Cutscene") {
-					loading_state.modifyCameraPos = !loading_state.modifyCameraPos;
-				}
-				break;
-			//de-activating editor
-			case 221:
-				ctx.lineWidth = 2;
-				editor_active = false;
-				break;
-			case 27:
-				try {
-					loading_state.handleEscape();
-				} catch (er) {
-					console.log(`No escape function defined for the current game state peko`);
-				}
-				break;
-		}
+				player.handleSpace();
+			}
+			controls_spacePressed = true;
+			break;
+		//r
+		case 82:
+			if (loading_state instanceof State_Game && loading_state.substate == 0) {
+				loading_state.handlePlayerDeath();
+			}
+			break;
 	}
 }
 
 function handleKeyNegate(a) {
-	if (!editor_active) {
-		switch(a.keyCode) {
-			//direction controls
-			case 65:
-			case 37:
-				if (player.ax < 0) {
-					player.ax = 0;
-				}
-				break;
-			case 68:
-			case 39:
-				if (player.ax > 0) {
-					player.ax = 0;
-				}
-				break;
-			// w / ^ / space
-			case 87:
-			case 38:
-			case 32:
-				controls_spacePressed = false;
-				break;
-		}
-	} else {
-		switch(a.keyCode) {
-			//direction controls
-			case 65:
-				if (world_camera.ax < 0) {
-					world_camera.ax = 0;
-				}
-				break;
-			case 68:
-				if (world_camera.ax > 0) {
-					world_camera.ax = 0;
-				}
-				break;
-			case 87:
-				if (world_camera.az > 0) {
-					world_camera.az = 0;
-				}
-				break;
-			case 83:
-				if (world_camera.az < 0) {
-					world_camera.az = 0;
-				}
-				break;
-			//shift
-			case 16:
-				controls_shiftPressed = false;
-				break;
-			//space
-			case 32:
-				controls_spacePressed = false;
-				break;
+	loading_state.handleKeyNegate(a);
 
-			//angle controls
-			case 37:
-				if (world_camera.dt < 0) {
-					world_camera.dt = 0;
-				}
-				break;
-			case 38:
-				if (world_camera.dp > 0) {
-					world_camera.dp = 0;
-				}
-				break;
-			case 39:
-				if (world_camera.dt > 0) {
-					world_camera.dt = 0;
-				}
-				break;
-			case 40:
-				if (world_camera.dp < 0) {
-					world_camera.dp = 0;
-				}
-				break;
-			case 81:
-				if (world_camera.dr > 0) {
-					world_camera.dr = 0;
-				}
-				break;
-			case 69:
-				if (world_camera.dr < 0) {
-					world_camera.dr = 0;
-				}
-				break;
-		}
+	//universals
+	if (a.keyCode == 16) {
+		controls_shiftPressed = false;
+	}
+	if (a.keyCode == 32) {
+		controls_spacePressed = false;
+	}
+}
+
+function handleKeyNegate_camera(a) {
+	switch(a.keyCode) {
+		//direction controls
+		case 65:
+			if (world_camera.ax < 0) {
+				world_camera.ax = 0;
+			}
+			break;
+		case 68:
+			if (world_camera.ax > 0) {
+				world_camera.ax = 0;
+			}
+			break;
+		case 87:
+			if (world_camera.az > 0) {
+				world_camera.az = 0;
+			}
+			break;
+		case 83:
+			if (world_camera.az < 0) {
+				world_camera.az = 0;
+			}
+			break;
+			
+		//angle controls
+		case 37:
+			if (world_camera.dt < 0) {
+				world_camera.dt = 0;
+			}
+			break;
+		case 38:
+			if (world_camera.dp > 0) {
+				world_camera.dp = 0;
+			}
+			break;
+		case 39:
+			if (world_camera.dt > 0) {
+				world_camera.dt = 0;
+			}
+			break;
+		case 40:
+			if (world_camera.dp < 0) {
+				world_camera.dp = 0;
+			}
+			break;
+		case 81:
+			if (world_camera.dr > 0) {
+				world_camera.dr = 0;
+			}
+			break;
+		case 69:
+			if (world_camera.dr < 0) {
+				world_camera.dr = 0;
+			}
+			break;
+	}
+}
+
+function handleKeyNegate_player(a) {
+	switch(a.keyCode) {
+		//a / <--
+		case 65:
+		case 37:
+			if (player.ax < 0) {
+				player.ax = 0;
+			}
+			break;
+		//d / -->
+		case 68:
+		case 39:
+			if (player.ax > 0) {
+				player.ax = 0;
+			}
+			break;
+		// w / ^ / space
+		case 87:
+		case 38:
+		case 32:
+			controls_spacePressed = false;
+			break;
 	}
 }
 
@@ -741,6 +765,7 @@ function handleMouseMove(a) {
 }
 
 function updateResolution() {
+	data_persistent.settings.highResolution = document.getElementById("haveHighResolution").checked;
 	var multiplier = 0.5;
 	if (document.getElementById("haveHighResolution").checked) {
 		multiplier = 2;
