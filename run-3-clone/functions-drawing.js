@@ -492,6 +492,9 @@ function drawSelectionBox(x, y, size) {
 
 //draws all tiles but in 2 dimensions, used for the editor
 function drawTile2d(ex, why, size, type) {
+	if (type >= 30) {
+		drawSelectionBox(ex + (size / 2), why + (size / 2), size);
+	}
 	ctx.beginPath();
 	ctx.rect(ex, why, size, size);
 	switch (type) {
@@ -602,12 +605,19 @@ function drawTile2d(ex, why, size, type) {
 			//tile with ring
 			ctx.fillStyle = `hsl(${loading_state.tunnel.color.h}, ${loading_state.tunnel.color.s}%, 60%)`;
 			ctx.fillRect(ex, why, size, size);
-			ctx.strokeStyle = ringColor;
+			ctx.strokeStyle = color_ring;
 			ctx.beginPath();
 			ctx.ellipse(ex + (size * 0.5), why + (size * 0.5), size * 0.2, size * 0.2, 0, 0, Math.PI * 180);
 			ctx.stroke();
 			break;
 		case 14:
+			//box with ring
+			drawTile2d(ex, why, size * 0.95, 9);
+			ctx.strokeStyle = color_ring;
+			drawLine([ex, why + (size * 0.2)], [ex, why + (size * 0.8)]);
+			drawLine([ex + size, why + (size * 0.2)], [ex + size, why + (size * 0.8)]);
+			break;
+		case 15:
 			//battery
 			ctx.strokeStyle = "#F0F";
 			ctx.beginPath();
@@ -618,7 +628,7 @@ function drawTile2d(ex, why, size, type) {
 			ctx.stroke();
 			break;
 
-		//cutscene icons
+		//2d cutscene icons
 		case 20:
 			//box
 			ctx.fillStyle = color_cutsceneBox;
@@ -630,20 +640,21 @@ function drawTile2d(ex, why, size, type) {
 			drawCircle(color_cutsceneBox, ex, why, size / 2);
 			break;
 		case 22:
-			//tri
-			ctx.strokeStyle = color_cutsceneBox;
-			ctx.beginPath();
-			ctx.moveTo(ex - (size / 2), why - (size / 2));
-			ctx.lineTo(ex + (size / 2), why + (size / 2));
-			ctx.lineTo(ex - (size / 1.5), why - (size / 2.5));
-			ctx.stroke();
-			break;
-		case 23:
 			//line
 			ctx.strokeStyle = color_cutsceneBox;
 			ctx.beginPath();
 			ctx.moveTo(ex - (size / 2), why - (size / 2));
 			ctx.lineTo(ex + (size / 2), why + (size / 2));
+			ctx.stroke();
+			break;
+		case 23:
+			//tri
+			ctx.strokeStyle = color_cutsceneBox;
+			ctx.lineWidth = 2;
+			ctx.beginPath();
+			ctx.moveTo(ex - (size / 2), why - (size / 2));
+			ctx.lineTo(ex + (size / 2), why + (size / 2));
+			ctx.lineTo(ex - (size / 1.5), why - (size / 2.5));
 			ctx.stroke();
 			break;
 		case 24:
@@ -652,37 +663,57 @@ function drawTile2d(ex, why, size, type) {
 			ctx.font = `${size}px Comfortaa`;
 			ctx.fillText("T", ex, why + (size * 0.66));
 			break;
+
+		//3d cutscene icons
 		case 25:
+			//light
 			ctx.fillStyle = color_map_bg;
 			ctx.globalAlpha = 0.5;
 			drawCircle(color_map_bg, ex, why, size / 2);
 			ctx.globalAlpha = 1;
 			drawCircle(color_map_bg, ex, why, size / 3);
 			break;
-		
+		case 26:
+			//powercell
+			ctx.beginPath();
+			ctx.fillStyle = colors_powerCells[0];
+			ctx.moveTo(ex + (size * 0.1), why + (size * 0.1));
+			ctx.lineTo(ex + (size * 0.9), why + (size * 0.4));
+			ctx.lineTo(ex + (size * 0.3), why + (size * 0.9))
+			ctx.lineTo(ex + (size * 0.1), why + (size * 0.1));
+			ctx.fill();
+			break;
+		case 27:
+			//box with rings
+			drawTile2d(ex, why, size, 14);
+			break;
+
+
+
+
+			
 		//menu icons
 		case 30:
 			//leaderboards
 			ctx.fillStyle = color_grey_lightest;
-			ctx.fillRect(ex, why + size / 2, size / 4, size * 0.5);
-			ctx.fillRect(ex + (size * 0.333), why + size * 0.1, size / 4, size * 0.9);
-			ctx.fillRect(ex + (size * 0.666), why + size * 0.7, size / 4, size * 0.3);
+			ctx.fillRect(ex + (size * 0.125), why + (size * 0.625), size * 0.1875, size * 0.25);
+			ctx.fillRect(ex + (size * 0.375) + (size * 0.03125), why + (size * 0.125), size * 0.1875, size * 0.75);
+			ctx.fillRect(ex + (size * 0.625) + (size * 0.0625), why + (size * 0.375), size * 0.1875, size * 0.5);
 			break;
 		case 31:
 			//settings
 			var x = ex + (size * 0.5);
 			var y = why + (size * 0.5);
-			var r = size * 0.3;
+			var r = size * 0.25;
 			ctx.fillStyle = color_grey_light;
 			ctx.strokeStyle = color_grey_dark;
 
 			ctx.moveTo(x + size * 0.5, y);
 			ctx.beginPath();
 			ctx.arc(x, y, size * 0.15, 0, Math.PI * 2, true);
-			for (var a=0; a<30; a++) {
-				var offset = [r * (1 + (0.3 * (a % 4 < 2))) * Math.cos((Math.PI / 15) * a), 
-							  r * (1 + (0.3 * (a % 4 < 2))) * Math.sin((Math.PI / 15) * a)];
-				ctx.lineTo(x + offset[0], y + offset[1]);
+			for (var a=0; a<34; a++) {
+				ctx.lineTo(x + (r * (1 + (0.25 * (a % 4 < 2))) * Math.cos((Math.PI / 16) * a)), 
+							y + (r * (1 + (0.25 * (a % 4 < 2))) * Math.sin((Math.PI / 16) * a)));
 			}
 			ctx.stroke();
 			ctx.fill();
@@ -691,8 +722,8 @@ function drawTile2d(ex, why, size, type) {
 			//cutscene viewer
 			ctx.beginPath();
 			ctx.fillStyle = color_cutsceneBox;
-			ctx.ellipse(ex + (size / 2), why + (size / 3), size * 0.45, size / 3, 0, 0, Math.PI * 2);
+			ctx.ellipse(ex + (size / 2), why + (size * 0.4), (size / 2) - (size / 7), size * 0.25, 0, 0, Math.PI * 2);
 			ctx.fill();
-			drawTile2d(ex + (size / 2), why + (size / 2), size * 0.3, 22);
+			drawTile2d(ex + (size * 0.7), why + (size * 0.6), size * 0.35, 22);
 	}
 }
