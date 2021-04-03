@@ -227,6 +227,10 @@ class Powercell {
 		}
 	}
 
+	doComplexLighting() {
+		getDistance_LightSource(this);
+	}
+
 	tick() {
 		this.playerDist = getDistance(this, player);
 		this.cameraDist = getDistance(this, world_camera);
@@ -234,62 +238,64 @@ class Powercell {
 		this.normal[1] += this.normalSpin[1];
 
 		//modifying coordinates
-		
-		//only do movement if close enough
-		if (this.playerDist < render_maxColorDistance * 1.7) {
-			//if close enough to player, be attracted to them
-			if (this.playerDist < powercells_acquireDistance) {
-				this.succ = true;
+		//avoid all that stuff in a cutscene
+		if (loading_state.constructor.name != "State_Cutscene") {
+			//only do movement if close enough
+			if (this.playerDist < render_maxColorDistance * 1.7) {
+				//if close enough to player, be attracted to them
+				if (this.playerDist < powercells_acquireDistance) {
+					this.succ = true;
 
-				//if extremely close, get smaller and eventually be collected
-				if (this.playerDist < powercells_acquireDistance / 3.2) {
-					this.size *= 0.96;
+					//if extremely close, get smaller and eventually be collected
+					if (this.playerDist < powercells_acquireDistance / 3.2) {
+						this.size *= 0.96;
 
-					//being collected
-					if (this.size < player.r || this.playerDist < player.r * 0.4) {
-						if (loading_state.constructor.name == "State_Infinite") {
-							loading_state.powercells += 1;
-							loading_state.characterData[player.constructor.name].powercells += 1;
-						} else {
-							data_persistent.powercells += 1;
-						}
-
-						//remove self from parent's array
-						for (var g=0; g<this.parent.freeObjs.length; g++) {
-							if (this.parent.freeObjs[g] == this) {
-								this.parent.freeObjs.splice(g, 1);
-								g = this.parent.freeObjs.length + 1;
+						//being collected
+						if (this.size < player.r || this.playerDist < player.r * 0.4) {
+							if (loading_state.constructor.name == "State_Infinite") {
+								loading_state.powercells += 1;
+								loading_state.characterData[player.constructor.name].powercells += 1;
+							} else {
+								data_persistent.powercells += 1;
 							}
-						}
 
-						//remove self from player's grasp
-						if (player.attracting == this) {
-							player.attracting = undefined;
-							player.attractionForce = undefined;
+							//remove self from parent's array
+							for (var g=0; g<this.parent.freeObjs.length; g++) {
+								if (this.parent.freeObjs[g] == this) {
+									this.parent.freeObjs.splice(g, 1);
+									g = this.parent.freeObjs.length + 1;
+								}
+							}
+
+							//remove self from player's grasp
+							if (player.attracting == this) {
+								player.attracting = undefined;
+								player.attractionForce = undefined;
+							}
 						}
 					}
 				}
-			}
 
-			if (this.succ) {
-				//changing force
-				this.pushForce[0] *= this.friction;
-				this.pushForce[1] *= this.friction;
-				this.pushForce[2] *= this.friction;
+				if (this.succ) {
+					//changing force
+					this.pushForce[0] *= this.friction;
+					this.pushForce[1] *= this.friction;
+					this.pushForce[2] *= this.friction;
+					
+					this.pushForce[0] += ((player.x - this.x) / this.playerDist) * 2.3;
+					this.pushForce[1] += ((player.y - this.y) / this.playerDist) * 2.3;
+					this.pushForce[2] += ((player.z - this.z) / this.playerDist) * 2.3;
+				}
 				
-				this.pushForce[0] += ((player.x - this.x) / this.playerDist) * 2.3;
-				this.pushForce[1] += ((player.y - this.y) / this.playerDist) * 2.3;
-				this.pushForce[2] += ((player.z - this.z) / this.playerDist) * 2.3;
-			}
-			
-			//moving along tunnel
-			this.x += this.pushForce[0];
-			this.y += this.pushForce[1];
-			this.z += this.pushForce[2];
+				//moving along tunnel
+				this.x += this.pushForce[0];
+				this.y += this.pushForce[1];
+				this.z += this.pushForce[2];
 
-			//if off the edge of the tunnel, put self back and set force to net 0
-			if (spaceToRelativeRotless([this.x, this.y, this.z], this.parent.endPos, [(Math.PI * 2) - this.parent.theta, 0])[2] > 0) {
-				this.pushForce = [0, 0, 0];
+				//if off the edge of the tunnel, put self back and set force to net 0
+				if (spaceToRelativeRotless([this.x, this.y, this.z], this.parent.endPos, [(Math.PI * 2) - this.parent.theta, 0])[2] > 0) {
+					this.pushForce = [0, 0, 0];
+				}
 			}
 		}
 	}
@@ -312,6 +318,61 @@ class Powercell {
 			drawWorldPoly([this.points[2], this.points[0], this.points[3]], color);
 			ctx.globalAlpha = 1;
 		}
+	}
+}
+
+class Ring {
+	constructor(x, y, z, theta, phi, radius) {
+		this.x = x;
+		this.y = y;
+		this.z = z;
+		this.theta = theta;
+		this.phi = phi;
+		this.r = radius;
+		this.width = 2;
+		this.resolution = 12;
+		this.color = RGBtoHSV(color_ring);
+
+		this.points = [];
+		this.calculatePoints();
+	}
+
+	calculatePoints() {
+		this.points = [];
+		for (var p=0; p<this.resolution; p++) {
+			this.points.push([Math.cos((Math.PI * 2 * p) / this.resolution), 0, Math.sin((Math.PI * 2 * p) / this.resolution)]);
+		}
+
+		this.points.forEach(p => {
+			transformPoint(p, [this.x, this.y, this.z], [this.theta, this.phi], this.r);
+		});
+	}
+
+	doComplexLighting() {
+		getDistance_LightSource(this);
+	}
+
+	getColor() {
+		return `hsl(${this.color.h}, ${this.color.s}%, ${linterp(70, 0, clamp(this.playerDist / render_maxColorDistance, 0, 1))}%)`
+	}
+
+	beDrawn() {
+		if (this.cameraDist < render_maxColorDistance || this.playerDist < render_maxColorDistance) {
+			ctx.strokeStyle = this.getColor();
+			ctx.lineCap = "round";
+			ctx.lineWidth = (this.width / this.cameraDist) * world_camera.scale;
+			for (var a=0; a<this.points.length;a++) {
+				drawWorldLine(this.points[a], this.points[(a + 1) % this.points.length]);
+			}
+			ctx.lineCap = "butt";
+		}
+		
+	}
+
+	tick() {
+		//calculate camera + player dist
+		this.cameraDist = getDistance(this, world_camera);
+		this.playerDist = getDistance(this, player);
 	}
 }
 
@@ -434,8 +495,12 @@ class StaticCharacter {
 
 		this.cutscene = cutsceneDataSTRING;
 		this.cameraDist = 1000;
-
-		this.texture = new Texture(data_sprites[character].sheet, data_sprites.spriteSize, 1e1001, false, false, data_sprites[character].back);
+		try {
+			this.texture = new Texture(data_sprites[character].sheet, data_sprites.spriteSize, 1e1001, false, false, data_sprites[character].back);
+		} catch (error) {
+			this.texture = new Texture(data_sprites["Runner"].sheet, 1, 1e1001, false, false, [[0, 0]]);
+		}
+		
 		this.textureRot = 0;
 
 		this.placeSelf();
@@ -831,12 +896,7 @@ class Tunnel {
 		//loop through all tiles
 		this.strips.forEach(s => {
 			s.realTiles.forEach(t => {
-				t.playerDist = render_maxColorDistance * 2;
-
-				//set distance to the minimum distance to a light source
-				world_lightObjects.forEach(l => {
-					t.playerDist = Math.min(t.playerDist, getDistance(t, l));
-				});
+				t.doComplexLighting();
 			});
 		});
 	}
@@ -955,8 +1015,11 @@ class Tunnel {
 				return new Tile_Ramp(x, y, z, size, normal, this, position, color);
 			case 12: 
 				return new Tile_Ice_Ramp(x, y, z, size, normal, this, position, color);
-				//movable tiles
-			case 14:
+			case 13:
+				return new Tile_Movable(x, y, z, size, normal, this, position, color);
+			case 14: 
+				return new Tile_Box_Ringed(x, y, z, size, normal, this, position);
+			case 15:
 				return new Tile_Warning(x, y, z, size, normal, this, position);
 			default:
 				return undefined;
@@ -1031,10 +1094,11 @@ class Tunnel {
 	}
 
 	placePowercells() {
+		var gentlemanToggle = (player.constructor.name == "Gentleman");
 		//placing power cells
 		var apothemLength = (this.tilesPerSide * this.tileSize) / (2 * Math.tan(Math.PI / this.sides));
 		var truePowercells = powercells_perTunnel;
-		if (player instanceof Gentleman) {
+		if (gentlemanToggle) {
 			truePowercells = Math.round(truePowercells * powercells_gentlemanMultiplier);
 		}
 		for (var a=0; a<truePowercells; a++) {
@@ -1048,6 +1112,9 @@ class Tunnel {
 			[offset[0], offset[2]] = rotate(offset[0], offset[2], this.theta);
 			
 			this.freeObjs.push(new Powercell(this.x + offset[0], this.y + offset[1], this.z + offset[2], this));
+			if (gentlemanToggle) {
+				this.freeObjs[this.freeObjs.length-1].temporary = true;
+			}
 		}
 	}
 
