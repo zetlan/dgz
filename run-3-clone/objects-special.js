@@ -1,4 +1,387 @@
-//I can't physically stop you from looking through all this code. But to be honest, I don't know why you would. I don't even like looking through all this code, and I wrote the darn thing!
+//I don't like object-orinted programming that much but somehow over half of my codebase has become classes, the heck is this garbage
+class CNode {
+	constructor(xPercent, yPercent, cutsceneID, childrenArr) {
+		this.trueX = xPercent;
+		this.trueY = yPercent;
+		this.x = xPercent;
+		this.y = yPercent;
+		this.cutscene = cutsceneID;
+		this.cutsceneRef = eval(`cutsceneData_${this.cutscene}`);
+		this.children = childrenArr;
+		this.visible = data_persistent.effectiveCutscenes.includes(this.cutscene);
+		this.visibleChildren = [];
+
+		this.time = 1;
+	}
+
+	getVisible() {
+		//get all visible children
+		this.visibleChildren = [];
+		this.children.forEach(c => {
+			c.getVisible();
+			if (c.visible) {
+				this.visibleChildren.push(c);
+			}
+		});
+		if (editor_active) {
+			this.visible = true;
+			return;
+		}
+		this.visible = data_persistent.effectiveCutscenes.includes(this.cutscene);
+		
+	}
+
+	giveEnglishConstructor(tabNumber) {
+		if (tabNumber == undefined) {
+			tabNumber = 0;
+		}
+		var childDat = "";
+		var tabDat = "";
+		for (var a=0; a<tabNumber; a++) {
+			tabDat += "\t";
+		}
+		if (this.children.length > 0) {
+			childDat += "\n";
+			for (var a=0; a<this.children.length-1; a++) {
+				childDat += tabDat + this.children[a].giveEnglishConstructor(tabNumber+1) + ", \n";
+			}
+			childDat += this.children[this.children.length-1].giveEnglishConstructor(tabNumber+1) + "\n";
+			childDat += tabDat;
+		}
+		
+		return `${tabDat}new CNode(${this.trueX.toFixed(4)}, ${this.trueY.toFixed(4)}, '${this.cutscene}', [${childDat}])`;
+	}
+
+	tick() {
+		//tick self, then children
+		if (editor_active) {
+			this.x = (this.trueX * (1 - menu_cutsceneParallax)) + 0.5;
+			this.y = (this.trueY * (1 - menu_cutsceneParallax)) + 0.5;
+		} else {
+			this.x = this.trueX + 0.5 - (((cursor_x - (canvas.width / 2)) / canvas.width) * menu_cutsceneParallax);
+			this.y = this.trueY + 0.5- (((cursor_y - (canvas.height / 2)) / canvas.height) * menu_cutsceneParallax);
+
+			if (Math.abs(cursor_x - (this.x * canvas.width)) < editor_handleRadius * 9 && Math.abs(cursor_y - (this.y * canvas.height)) < editor_handleRadius * 3) {
+				this.time = linterp(this.time, 2, 0.15);
+			} else {
+				this.time = linterp(this.time, 1, 0.15);
+			}
+		}
+
+		
+		
+		
+		this.children.forEach(c => {
+			c.tick();
+		});
+	}
+
+	becomeSelected(tolerance) {
+		//if close enough, become selected
+		if (getDistance2d([this.x * canvas.width, this.y * canvas.height], [cursor_x, cursor_y]) < tolerance) {
+			return this;
+		}
+
+		//try selecting children
+		for (var c=0; c<this.children.length; c++) {
+			var testSelect = this.children[c].becomeSelected(tolerance);
+			if (testSelect != undefined) {
+				return testSelect;
+			}
+		}
+	}
+
+	beDrawn_line() {
+		//draw children, then self
+		this.children.forEach(c => {
+			c.beDrawn_line();
+		});
+
+		if (this.visible) {
+			ctx.strokeStyle = color_cutsceneLink;
+			
+			this.visibleChildren.forEach(c => {
+				drawLine([this.x * canvas.width, this.y * canvas.height], [c.x * canvas.width, c.y * canvas.height]);
+			});
+		}
+	}
+
+	beDrawn_handle() {
+		this.children.forEach(c => {
+			c.beDrawn_handle();
+		});
+		if (this.visible) {
+			var textSize = ((canvas.height / 60) * this.time) / (1 + (editor_active * menu_cutsceneParallax));
+			//draw self's handle
+			ctx.font = `${textSize}px Comfortaa`;
+			ctx.fillStyle = color_text_bright;
+			ctx.textAlign = "center";
+			ctx.fillText(this.cutsceneRef.id, this.x * canvas.width, (this.y * canvas.height) + (textSize / 2));
+
+			if (editor_active) {
+				drawCircle(color_grey_light, this.x * canvas.width, this.y * canvas.height, editor_handleRadius);
+			}
+		}
+	}
+}
+
+
+//abstract class with functionality for 3d selection and movement
+class Scene3dObject {
+	constructor(x, y, z) {
+		this.x = x;
+		this.y = y;
+		this.z = z;
+		this.selectedPart = undefined;
+
+		this.handle1 = [render_crosshairSize, 0, 0];
+		this.handle2 = [0, render_crosshairSize, 0];
+		this.handle3 = [0, 0, render_crosshairSize];
+		this.magnitude = render_crosshairSize;
+	}
+
+	beDrawn() {
+		//only draw self if in edit mode and not clipped
+		if (editor_active && !isClipped([this.x, this.y, this.z])) {
+			this.beDrawnTrue();
+		}
+	}
+
+	beDrawnTrue() {
+		//jumping-off points
+		var screenCenter = spaceToScreen([this.x, this.y, this.z]);
+		var screenXup =  spaceToScreen([this.x + this.handle1[0], this.y + this.handle1[1], this.z + this.handle1[2]]);
+		var screenYup =  spaceToScreen([this.x + this.handle2[0], this.y + this.handle2[1], this.z + this.handle2[2]]);
+		var screenZup =  spaceToScreen([this.x + this.handle3[0], this.y + this.handle3[1], this.z + this.handle3[2]]);
+		//transforming lines to screen coordinates
+
+		//drawing lines
+		ctx.strokeStyle = "#F00";
+		drawLine(screenCenter, screenXup);
+		ctx.strokeStyle = "#0F0";
+		drawLine(screenCenter, screenYup);
+		ctx.strokeStyle = "#00F";
+		drawLine(screenCenter, screenZup);
+
+		//drawing circles
+		drawCircle(color_grey_dark, screenXup[0], screenXup[1], editor_handleRadius);
+		drawCircle(color_grey_dark, screenYup[0], screenYup[1], editor_handleRadius);
+		drawCircle(color_grey_dark, screenZup[0], screenZup[1], editor_handleRadius);
+
+		//selection circles
+		switch (this.selectedPart) {
+			case 0:
+				drawCircle(color_editor_cursor, screenXup[0], screenXup[1], editor_handleRadius);
+				break;
+			case 1:
+				drawCircle(color_editor_cursor, screenYup[0], screenYup[1], editor_handleRadius);
+				break;
+			case 2:
+				drawCircle(color_editor_cursor, screenZup[0], screenZup[1], editor_handleRadius);
+				break;
+		}
+	}
+
+	tick() {
+		switch (this.selectedPart) {
+			case 0:
+				//x
+				this.updatePosWithCursor(this.handle1);
+				break;
+			case 1:
+				//y
+				this.updatePosWithCursor(this.handle2);
+				break;
+			case 2:
+				//z
+				this.updatePosWithCursor(this.handle3);
+				break;
+		}
+		
+
+		if (!cursor_down) {
+			//if the cursor's not down, stop being moved
+			this.selectedPart = undefined;
+		}
+	}
+
+	//updates position along a ray based on cursor position
+	updatePosWithCursor(offset) {
+		var screenOffset = spaceToScreen([this.x + offset[0], this.y + offset[1], this.z + offset[2]]); 
+		var center = spaceToScreen([this.x, this.y, this.z]);
+		//get vector to the offset of the crosshair 
+		var angle = Math.atan2(screenOffset[0] - center[0], screenOffset[1] - center[1]) + (Math.PI * 1.5);
+		angle %= Math.PI * 2;
+		var distance = getDistance2d(center, screenOffset);
+		//get cursor offset
+		var cursorOffset = [cursor_x - screenOffset[0], cursor_y - screenOffset[1]];
+		//rotate offset
+		var rayLength = rotate(cursorOffset[0], -cursorOffset[1], -angle)[0];
+
+		//now that the offset is obtained, we can calculate where to move based on it
+		var realDistance = rayLength / distance;
+		this.x += offset[0] * realDistance;
+		this.y += offset[1] * realDistance;
+		this.z += offset[2] * realDistance;
+	}
+
+	giveHandles() {
+		//get the position of the various handles, and return those in a list for selection
+		return [
+			spaceToScreen([this.x + this.handle1[0], this.y + this.handle1[1], this.z + this.handle1[2]]),
+			spaceToScreen([this.x + this.handle2[0], this.y + this.handle2[1], this.z + this.handle2[2]]),
+			spaceToScreen([this.x + this.handle3[0], this.y + this.handle3[1], this.z + this.handle3[2]])
+		];
+	}
+
+	giveStringData() {
+		return "[FILL IN CONSTRUCTOR FOR 3D SCENE OBJECT HERE]";
+	}
+}
+
+
+class SceneBoxRinged extends Scene3dObject {
+	constructor(x, y, z, size, rot) {
+		super(x, y, z);
+		//figure out parent from closest object
+		var ref = world_objects[0];
+		var reqDist = getDistance(this, ref);
+		for (var a=1; a<world_objects.length; a++) {
+			if (getDistance(this, world_objects[a]) < reqDist) {
+				ref = world_objects[a];
+				reqDist = getDistance(this, world_objects[a]);
+			}
+		}
+
+		
+
+		this.box = new Tile_Box_Ringed(this.x, this.y, this.z, size, [(Math.PI * 1.5) - ref.theta, rot], ref, [0, 0]);
+		//fix knobs
+		this.handle1 = polToCart(this.box.normal[0], 0, render_crosshairSize);
+		this.handle2 = [0, render_crosshairSize, 0];
+		this.handle3 = polToCart(this.box.normal[0] + (Math.PI / 2), 0, render_crosshairSize);
+		this.handle4 = polToCart(this.box.normal[0], this.box.normal[1], this.box.size * 0.5);
+	}
+
+	beDrawn() {
+		this.box.tick();
+		this.box.doComplexLighting();
+		this.box.beDrawn();
+		super.beDrawn();
+	}
+
+	beDrawnTrue() {
+		//jumping-off points
+		var screenCenter = spaceToScreen([this.x, this.y, this.z]);
+		var screenXup = spaceToScreen([this.x + this.handle1[0], this.y + this.handle1[1], this.z + this.handle1[2]]);
+		var screenYup = spaceToScreen([this.x + this.handle2[0], this.y + this.handle2[1], this.z + this.handle2[2]]);
+		var screenZup = spaceToScreen([this.x + this.handle3[0], this.y + this.handle3[1], this.z + this.handle3[2]]);
+		var screenRup = spaceToScreen([this.x + this.handle4[0], this.y + this.handle4[1], this.z + this.handle4[2]]);
+		//transforming lines to screen coordinates
+
+		//drawing lines
+		ctx.lineWidth = 2;
+		ctx.strokeStyle = "#F0F";
+		drawLine(screenCenter, screenRup);
+		ctx.strokeStyle = "#F00";
+		drawLine(screenCenter, screenXup);
+		ctx.strokeStyle = "#0F0";
+		drawLine(screenCenter, screenYup);
+		ctx.strokeStyle = "#00F";
+		drawLine(screenCenter, screenZup);
+
+		//drawing circles
+		drawCircle(color_grey_dark, screenXup[0], screenXup[1], editor_handleRadius);
+		drawCircle(color_grey_dark, screenYup[0], screenYup[1], editor_handleRadius);
+		drawCircle(color_grey_dark, screenZup[0], screenZup[1], editor_handleRadius);
+		drawCircle(color_grey_dark, screenRup[0], screenRup[1], editor_handleRadius);
+		drawCircle(color_grey_dark, screenCenter[0], screenCenter[1] + ((this.box.size / this.box.cameraDist) * world_camera.scale), editor_handleRadius);
+
+		//selection circles
+		switch (this.selectedPart) {
+			case 0:
+				drawCircle(color_editor_cursor, screenXup[0], screenXup[1], editor_handleRadius);
+				break;
+			case 1:
+				drawCircle(color_editor_cursor, screenYup[0], screenYup[1], editor_handleRadius);
+				break;
+			case 2:
+				drawCircle(color_editor_cursor, screenZup[0], screenZup[1], editor_handleRadius);
+				break;
+			case 3:
+				drawCircle(color_editor_cursor, screenRup[0], screenRup[1], editor_handleRadius);
+				break;
+			case 3:
+				drawCircle(color_editor_cursor, screenCenter[0], screenCenter[1] + ((this.box.size / this.box.cameraDist) * world_camera.scale), editor_handleRadius);
+				break;
+		}
+	}
+
+	tick() {
+		switch (this.selectedPart) {
+			case 0:
+				//x
+				this.updatePosWithCursor(this.handle1);
+				break;
+			case 1:
+				//y
+				this.updatePosWithCursor(this.handle2);
+				break;
+			case 2:
+				//z
+				this.updatePosWithCursor(this.handle3);
+				break;
+			case 3:
+				//rot
+				//figure out rotation relative to self
+				var ctrXY = spaceToScreen([this.x, this.y, this.z]);
+				var rotXY = spaceToScreen([this.x + this.handle4[0], this.y, this.z + this.handle4[2]]);
+
+				var cursorRot = Math.atan2(ctrXY[1] - cursor_y, ctrXY[0] - cursor_x) + Math.PI;
+				var selfRot = Math.atan2(ctrXY[1] - rotXY[1], ctrXY[0] - rotXY[0]) + Math.PI;
+
+				//actual updating
+				this.box.normal[1] = selfRot - cursorRot;
+				this.handle4 = polToCart(this.box.normal[0], this.box.normal[1], this.box.size * 0.6);
+				break;
+			case 4:
+				//size
+				//get vertical cursor distance to center
+				var centerPos = spaceToScreen([this.x, this.y, this.z]);
+				var cursorDist = Math.abs(centerPos[1] - cursor_y);
+				//turn cursor distance into real distance, then clamp that
+				cursorDist = (cursorDist / world_camera.scale) * this.box.cameraDist;
+				this.box.size = Math.round(clamp(cursorDist, 5, 300));
+				break;
+		}
+		
+
+		if (!cursor_down) {
+			//if the cursor's not down, stop being moved
+			this.selectedPart = undefined;
+		}
+		this.box.x = this.x;
+		this.box.y = this.y;
+		this.box.z = this.z;
+		this.box.calculatePointsAndNormal();
+	}
+
+	giveHandles() {
+		var sizeHandlePos = spaceToScreen([this.x, this.y, this.z]);
+		return [
+			spaceToScreen([this.x + this.handle1[0], this.y + this.handle1[1], this.z + this.handle1[2]]),
+			spaceToScreen([this.x + this.handle2[0], this.y + this.handle2[1], this.z + this.handle2[2]]),
+			spaceToScreen([this.x + this.handle3[0], this.y + this.handle3[1], this.z + this.handle3[2]]),
+			spaceToScreen([this.x + this.handle4[0], this.y + this.handle4[1], this.z + this.handle4[2]]),
+			[sizeHandlePos[0], sizeHandlePos[1] + (this.box.size / this.box.cameraDist) * world_camera.scale]
+		];
+	}
+
+	giveStringData() {
+		return `3BR~${this.x.toFixed(4)}~${this.y.toFixed(4)}~${this.z.toFixed(4)}~${this.box.size}~${this.box.normal[1].toFixed(4)}`;
+	}
+}
+
 
 class SceneLine {
 	constructor(x1, y1, x2, y2) {
@@ -16,7 +399,6 @@ class SceneLine {
 	}
 
 	drawMainBody() {
-		//determine angle from width
 		ctx.strokeStyle = color_cutsceneBox;
 		ctx.lineWidth = canvas.height / 48;
 		drawLine([this.x * canvas.width, this.y * canvas.height], [this.endX * canvas.width, this.endY * canvas.height]);
@@ -24,7 +406,6 @@ class SceneLine {
 	}
 
 	drawSelectionCircles() {
-		//each texture has 5, for modifying different aspects of the texture
 		drawCircle(color_grey_dark, canvas.width * this.x, canvas.height * this.y, editor_handleRadius);
 		drawCircle(color_grey_dark, canvas.width * this.endX, canvas.height * this.endY, editor_handleRadius);
 
@@ -37,7 +418,6 @@ class SceneLine {
 			//p2
 			case 1:
 				drawCircle(color_editor_cursor, canvas.width * this.endX, canvas.height * this.endY, editor_handleRadius);
-				break;
 				break;
 		}
 	}
@@ -61,22 +441,12 @@ class SceneLine {
 		}
 	}
 
-	becomeSelected() {
-		//determines which part should be selected based on cursor position
-
-		//p1
-		if (getDistance2d([cursor_x, cursor_y], [canvas.width * this.x, canvas.height * this.y]) < editor_snapTolerance) {
-			this.selectedPart = 0;
-			return true;
-		}
-
-		//p2
-		if (getDistance2d([cursor_x, cursor_y], [canvas.width * this.endX, canvas.height * this.endY]) < editor_snapTolerance) {
-			this.selectedPart = 1;
-			return true;
-		}
-
-		return false;
+	giveHandles() {
+		//start / end pos
+		return [
+			[canvas.width * this.x, canvas.height * this.y],
+			[canvas.width * this.endX, canvas.height * this.endY]
+		]
 	}
 
 	giveStringData() {
@@ -84,138 +454,50 @@ class SceneLine {
 	}
 }
 //acts as a light source, as the player normally would
-class SceneLight {
+class SceneLight extends Scene3dObject {
 	constructor(x, y, z) {
-		this.x = x;
-		this.y = y;
-		this.z = z;
-
-		this.selectedPart = undefined;
+		super(x, y, z);
 	}
 
-	beDrawn() {
-		//only draw self if in edit mode and not clipped
-		if (editor_active && !isClipped([this.x, this.y, this.z])) {
-
-			//jumping-off points
-			var screenCenter = spaceToScreen([this.x, this.y, this.z]);
-			var screenXup =  spaceToScreen([this.x + render_crosshairSize, this.y, this.z]);
-			var screenYup =  spaceToScreen([this.x, this.y + render_crosshairSize, this.z]);
-			var screenZup =  spaceToScreen([this.x, this.y, this.z + render_crosshairSize]);
-
-			//transforming lines to screen coordinates
-
-			//drawing lines
-			ctx.strokeStyle = "#F00";
-			drawLine(screenCenter, screenXup);
-			ctx.strokeStyle = "#0F0";
-			drawLine(screenCenter, screenYup);
-			ctx.strokeStyle = "#00F";
-			drawLine(screenCenter, screenZup);
-
-			//drawing circles
-			drawCircle(color_grey_dark, screenXup[0], screenXup[1], editor_handleRadius);
-			drawCircle(color_grey_dark, screenYup[0], screenYup[1], editor_handleRadius);
-			drawCircle(color_grey_dark, screenZup[0], screenZup[1], editor_handleRadius);
-
-			//selection circles
-			switch (this.selectedPart) {
-				case 0:
-					drawCircle(color_editor_cursor, screenXup[0], screenXup[1], editor_handleRadius);
-					break;
-				case 1:
-					drawCircle(color_editor_cursor, screenYup[0], screenYup[1], editor_handleRadius);
-					break;
-				case 2:
-					drawCircle(color_editor_cursor, screenZup[0], screenZup[1], editor_handleRadius);
-					break;
+	tick() {
+		super.tick();
+		if (cursor_down) {
+			//update the lighting of the world
+			for (var n=Math.max(0, loading_state.nearObjs.length-1); n>Math.max(0, loading_state.nearObjs.length-15); n--) {
+				loading_state.nearObjs[n].doComplexLighting();
 			}
 		}
 	}
 
-	tick() {
-		//move to where the cursor is
-		var center = spaceToScreen([this.x, this.y, this.z]);
-		var offX =  spaceToScreen([this.x + render_crosshairSize, this.y, this.z]);
-		var offY =  spaceToScreen([this.x, this.y + render_crosshairSize, this.z]);
-		var offZ =  spaceToScreen([this.x, this.y, this.z + render_crosshairSize]);
-		
-		var angle;
-		var distance;
-		var realDistance;
-		var cursorOffset;
+	giveStringData() {
+		return `LGT~${this.x.toFixed(4)}~${this.y.toFixed(4)}~${this.z.toFixed(4)}`;
+	}
+}
 
-		switch (this.selectedPart) {
-			case 0:
-				//x
-				//get vector to the offset of the crosshair 
-				angle = Math.atan2(offX[0] - center[0], offX[1] - center[1]) + (Math.PI * 1.5);
-				distance = getDistance2d(center, offX);
-				//get cursor offset
-				cursorOffset = [cursor_x - offX[0], cursor_y - offX[1]];
-				//rotate offset
-				cursorOffset = rotate(cursorOffset[0], -cursorOffset[1], -angle)[0];
-
-				//now that the offset is obtained, we can calculate where to move based on it
-				realDistance = render_crosshairSize * (cursorOffset / distance);
-				this.x += realDistance;
-				break;
-			case 1:
-				//y
-				angle = Math.atan2(offY[0] - center[0], offY[1] - center[1]) + (Math.PI * 1.5);
-				distance = getDistance2d(center, offY);
-				cursorOffset = [cursor_x - offY[0], cursor_y - offY[1]];
-				cursorOffset = rotate(cursorOffset[0], cursorOffset[1], -angle)[0];
-				realDistance = render_crosshairSize * (cursorOffset / distance);
-				this.y -= realDistance;
-				break;
-			case 2:
-				//z
-				angle = Math.atan2(offZ[0] - center[0], offZ[1] - center[1]) + (Math.PI * 1.5);
-				distance = getDistance2d(center, offZ);
-				cursorOffset = [cursor_x - offZ[0], cursor_y - offZ[1]];
-				cursorOffset = rotate(cursorOffset[0], cursorOffset[1], -angle)[0];
-				realDistance = render_crosshairSize * (cursorOffset / distance);
-				this.z += realDistance;
-				break;
-		}
-		//update the lighting of the world
-		for (var n=Math.max(0, loading_state.nearObjs.length-1); n>Math.max(0, loading_state.nearObjs.length-15); n--) {
-			loading_state.nearObjs[n].doComplexLighting();
-		}
-
-		if (!cursor_down) {
-			//if the cursor's not down, stop being moved
-			this.selectedPart = undefined;
-		}
+class ScenePowercell extends Scene3dObject {
+	constructor(x, y, z) {
+		super(x, y, z);
+		this.powercell = new Powercell(x, y, z, getObjectFromID("Level 1"));
+		this.powercell.color = RGBtoHSV(colors_powerCells[0]);
+		this.powercell.pushForce = [0, 0, 0];
 	}
 
-	becomeSelected() {
-		//get the position of the various handles. If the cursor is close enough, attach to that handle
-		var screenXup =  spaceToScreen([this.x + render_crosshairSize, this.y, this.z]);
-		var screenYup =  spaceToScreen([this.x, this.y + render_crosshairSize, this.z]);
-		var screenZup =  spaceToScreen([this.x, this.y, this.z + render_crosshairSize]);
+	tick() {
+		super.tick();
+		this.powercell.x = this.x;
+		this.powercell.y = this.y;
+		this.powercell.z = this.z;
+	}
 
-		if (getDistance2d(screenXup, [cursor_x, cursor_y]) < editor_handleRadius) {
-			this.selectedPart = 0;
-			return true;
-		}
-
-		if (getDistance2d(screenYup, [cursor_x, cursor_y]) < editor_handleRadius) {
-			this.selectedPart = 1;
-			return true;
-		}
-
-		if (getDistance2d(screenZup, [cursor_x, cursor_y]) < editor_handleRadius) {
-			this.selectedPart = 2;
-			return true;
-		}
-
-		return false;
+	beDrawn() {
+		this.powercell.tick();
+		this.powercell.doComplexLighting();
+		this.powercell.beDrawn();
+		super.beDrawn();
 	}
 
 	giveStringData() {
-		return `LGT~${this.x.toFixed(4)}~${this.y.toFixed(4)}~${this.z.toFixed(4)}`;
+		return `POW~${this.x.toFixed(4)}~${this.y.toFixed(4)}~${this.z.toFixed(4)}`;
 	}
 }
 
@@ -231,6 +513,8 @@ class SceneText {
 		this.processedContent = [];
 		this.isLight = lightBOOLEAN;
 		this.selectedPart = undefined;
+
+		this.process();
 	}
 
 	beDrawn() {
@@ -261,27 +545,24 @@ class SceneText {
 		drawCircle(color_grey_dark, (canvas.width * this.x) + (canvas.width * this.width), canvas.height * this.y, editor_handleRadius);
 
 		drawCircle(color_grey_dark, (canvas.width * this.x) - (canvas.width * this.width * 0.5), (canvas.height * this.y) + (height * 0.5), editor_handleRadius);
-		drawCircle(color_grey_dark, (canvas.width * this.x) - (canvas.width * this.width * 0.5), (canvas.height * this.y) - (this.fontSize * canvas.height * 0.5), editor_handleRadius);
+		drawCircle(color_grey_dark, canvas.width * (this.x - this.width), canvas.height * this.y, editor_handleRadius);
 
 		//colored circles
 		switch (this.selectedPart) {
 			case 0:
-				//position
 				drawCircle(color_editor_cursor, canvas.width * this.x, canvas.height * this.y, editor_handleRadius);
 				break;
 			case 1:
-				//text size
 				drawCircle(color_editor_cursor, canvas.width * this.x, (canvas.height * this.y) + height, editor_handleRadius);
-				this.process();
 				break;
 			case 2:
-				//width
 				drawCircle(color_editor_cursor, (canvas.width * this.x) + (canvas.width * this.width), canvas.height * this.y, editor_handleRadius);
-				this.process();
 				break;
 			case 3:
-				//bright toggle
-				drawCircle(color_editor_cursor, (canvas.width * this.x) - (canvas.width * this.width * 0.5), (canvas.height * this.y) - (this.fontSize * canvas.height * 0.5), editor_handleRadius);
+				drawCircle(color_editor_cursor, (canvas.width * this.x) - (canvas.width * this.width * 0.5), (canvas.height * this.y) + (height * 0.5), editor_handleRadius);
+				break;
+			case 4:
+				drawCircle(color_editor_cursor, canvas.width * (this.x - this.width), canvas.height * this.y, editor_handleRadius);
 				break;
 		}
 	}
@@ -319,10 +600,24 @@ class SceneText {
 					this.width *= newFontSize / this.fontSize;
 					this.fontSize = newFontSize;
 				}
+				this.process();
 				break;
 			case 2:
 				//width
 				this.width = Math.abs(this.x - (cursor_x / canvas.width));
+				this.process();
+				break;
+			case 3:
+				var test = prompt("Enter message text please;", this.rawContent);
+				if (test != null && test != undefined && test != "") {
+					this.rawContent = test;
+					this.process();
+				}
+				this.selectedPart = undefined;
+				break;
+			case 4:
+				this.isLight = !this.isLight;
+				this.selectedPart = undefined;
 				break;
 		}
 		if (!cursor_down) {
@@ -331,49 +626,29 @@ class SceneText {
 		}
 	}
 
-	becomeSelected() {
+	giveHandles() {
 		//determines which part should be selected based on cursor position
 		var x = canvas.width * this.x;
 		var y = canvas.height * this.y;
 		var width = canvas.width * this.width;
 		var height = canvas.height * this.fontSize * this.processedContent.length;
 
-		//only become selected if in the correct area
-		if (cursor_x > x - width - editor_snapTolerance && cursor_x < x + width + editor_snapTolerance && cursor_y > y - (height / 2) - editor_snapTolerance && cursor_y < y + height + editor_snapTolerance) {
-			//top
-			if (cursor_y > y + height - editor_snapTolerance) {
-				this.selectedPart = 1;
-				return true;
-			}
 
-			//right area
-			if (cursor_x > x + width - editor_snapTolerance) {
-				this.selectedPart = 2;
-				return true;
-			}
 
-			//text modification
-			if (getDistance2d([cursor_x, cursor_y], [x - width / 2, y + height / 2]) < editor_snapTolerance) {
-				var test = prompt("Enter message text please;", this.rawContent);
-				if (test != null && test != undefined && test != "") {
-					this.rawContent = test;
-					this.process();
-				}
-				return false;
-			}
-
-			//bright toggle
-			if (getDistance2d([cursor_x, cursor_y], [x - width / 2, y - (this.fontSize * canvas.height) / 2]) < editor_snapTolerance) {
-				this.selectedPart = 3;
-				this.isLight = !this.isLight;
-				return false;
-			}
-
-			//center
-			this.selectedPart = 0;
-			return true;
-		}
-		return false;
+		/* 
+		center
+		font size
+		width
+		text modification
+		bright toggle
+		*/
+		return [
+			[x, y],
+			[x, y + height],
+			[x + width, y],
+			[x - (width / 2), y + (height / 2)],
+			[x - width, y],
+		];
 	}
 
 	giveStringData() {
@@ -448,31 +723,18 @@ class SceneBox {
 		}
 	}
 
-	becomeSelected() {
+	giveHandles() {
 		//determines which part should be selected based on cursor position
 		var x = canvas.width * this.x;
 		var y = canvas.height * this.y;
 		var width = canvas.width * this.width;
 		var height = canvas.height * this.height;
 
-		//only become selected if in the correct area
-		if (cursor_x > x - width - editor_snapTolerance && cursor_x < x + width + editor_snapTolerance && cursor_y > y - height - editor_snapTolerance && cursor_y < y + height + editor_snapTolerance) {
-
-			if (cursor_y > y + height - editor_snapTolerance) {
-				this.selectedPart = 1;
-				return true;
-			}
-			//right area
-			if (cursor_x > x + width - editor_snapTolerance) {
-				this.selectedPart = 2;
-				return true;
-			}
-
-			//center
-			this.selectedPart = 0;
-			return true;
-		}
-		return false;
+		return [
+			[x, y],
+			[x, y + height],
+			[x + width, y]
+		];
 	}
 
 	giveStringData() {
@@ -582,6 +844,10 @@ class SceneSprite extends SceneBox {
 				}
 				this.width = this.height * 0.75;
 				break;
+			case 2:
+				this.texture.backwards = !this.texture.backwards;
+				this.selectedPart = undefined;
+				break;
 			case 3:
 				//rotation
 				var xOffset = cursor_x - (canvas.width * this.x);
@@ -623,40 +889,27 @@ class SceneSprite extends SceneBox {
 		}
 	}
 
-	becomeSelected() {
+	giveHandles() {
 		//determines which part should be selected based on cursor position
 		var x = canvas.width * this.x;
 		var y = canvas.height * this.y;
 		var width = canvas.width * this.width;
 		var height = canvas.height * this.height;
 
-		//only become selected if in the correct area
-		if (cursor_x > x - width - editor_snapTolerance && cursor_x < x + width + editor_snapTolerance && cursor_y > y - height - editor_snapTolerance && cursor_y < y + height + editor_snapTolerance) {
-			//diagonal
-			if (getDistance2d([cursor_x, cursor_y], [x + width, y + height]) < editor_snapTolerance) {
-				this.selectedPart = 3;
-				return true;
-			}
-			//lower area
-			if (cursor_y > y + height - editor_snapTolerance) {
-				this.selectedPart = 1;
-				return true;
-			}
-			//right area
-			if (cursor_x > x + width - editor_snapTolerance) {
-				this.texture.backwards = !this.texture.backwards;
-				return false;
-			}
-			//lower left
-			if (getDistance2d([cursor_x, cursor_y], [x - (width * 0.5), y + (height * 0.5)]) < editor_snapTolerance) {
-				this.selectedPart = 4;
-				return true;
-			}
-			//center
-			this.selectedPart = 0;
-			return true;
-		}
-		return false;
+		/* 
+			center
+			size
+			backwards toggle
+			rotation
+			sprite select
+		*/
+		return [
+			[x, y],
+			[x, y + height],
+			[x + width, y],
+			[x + width, y + height],
+			[x - (width / 2), y + (height / 2)]
+		];
 	}
 
 	giveStringData() {
@@ -734,28 +987,17 @@ class SceneTri {
 		}
 	}
 
-	becomeSelected() {
-		//determines which part should be selected based on cursor position
-
-		//p1
-		if (getDistance2d([cursor_x, cursor_y], [canvas.width * this.x, canvas.height * this.y]) < editor_snapTolerance) {
-			this.selectedPart = 0;
-			return true;
-		}
-
-		//width
-		if (getDistance2d([cursor_x, cursor_y], [(canvas.width * this.x) + (canvas.width * this.width), canvas.height * this.y]) < editor_snapTolerance) {
-			this.selectedPart = 2;
-			return true;
-		}
-
-		//p2
-		if (getDistance2d([cursor_x, cursor_y], [canvas.width * this.endX, canvas.height * this.endY]) < editor_snapTolerance) {
-			this.selectedPart = 1;
-			return true;
-		}
-
-		return false;
+	giveHandles() {
+		/* 
+			p1
+			p2
+			width
+		*/
+		return [
+			[this.x * canvas.width, this.y * canvas.height],
+			[this.endX * canvas.width, this.endY * canvas.height],
+			[(this.x + this.width) * canvas.width, this.y * canvas.height]
+		];
 	}
 
 	giveStringData() {
@@ -839,6 +1081,14 @@ class MapTexture {
 
 
 
+
+
+
+
+
+
+
+
 //sliders for editing properties in the editor
 class PropertySlider {
 	constructor(xPERCENTAGE, yPERCENTAGE, widthPERCENTAGE, sliderWidthPERCENTAGE, label, propertyToModifySTRING, displayProperty, minValue, maxValue, snapAmount, resetTunnel) {
@@ -881,24 +1131,22 @@ class PropertySlider {
 		//update self's values if cursor is down
 		if (cursor_down) {
 			//if in the area, modify value
-			if (cursor_y > (canvas.height * this.y) - cursor_hoverTolerance && cursor_y < (canvas.height * this.y) + cursor_hoverTolerance) {
-				if (cursor_x < (canvas.width * (this.x + this.width)) + cursor_hoverTolerance && cursor_x > (canvas.width * this.x) - cursor_hoverTolerance) {
-					var percentage = cursor_x - (canvas.width * (this.x + this.textSpace));
-					percentage = clamp(percentage / (canvas.width * (this.width - this.textSpace)), 0, 1);
-					var value = linterp(this.min, this.max, percentage);
-					value = Math.round(value / this.snapTo) * this.snapTo;
-					eval(this.execution);
-					if (this.doReset) {
-						player = new Runner(player.x, player.y, player.z);
-						loading_state.tunnel.updatePosition(loading_state.tunnel.x, loading_state.tunnel.y, loading_state.tunnel.z);
-						player = new Pastafarian(player.x, player.y, player.z);
-					}
+			if (cursor_y > (canvas.height * this.y) - cursor_hoverTolerance && cursor_y < (canvas.height * this.y) + cursor_hoverTolerance &&
+			cursor_x < (canvas.width * (this.x + this.width)) + cursor_hoverTolerance && cursor_x > (canvas.width * this.x) - cursor_hoverTolerance) {
+				var percentage = cursor_x - (canvas.width * (this.x + this.textSpace));
+				percentage = clamp(percentage / (canvas.width * (this.width - this.textSpace)), 0, 1);
+				var value = linterp(this.min, this.max, percentage);
+				value = Math.round(value / this.snapTo) * this.snapTo;
+				eval(this.execution);
+				if (this.doReset) {
+					player = new Runner(player.x, player.y, player.z);
+					loading_state.tunnel.updatePosition(loading_state.tunnel.x, loading_state.tunnel.y, loading_state.tunnel.z);
+					player = new Pastafarian(player.x, player.y, player.z);
 				}
 			}
 		}
 	}
 }
-
 
 //text boxes you can click on and change in the editor
 class PropertyTextBox {
@@ -953,5 +1201,45 @@ class PropertyTextBox {
 				}
 			}
 		}
+	}
+}
+
+class PropertyToggle {
+	constructor(xPERCENTAGE, yPERCENTAGE, widthPERCENTAGE, label, propertyToModifySTRING) {
+		this.x = xPERCENTAGE;
+		this.y = yPERCENTAGE;
+		this.width = widthPERCENTAGE;
+		this.text = label;
+		this.property = propertyToModifySTRING;
+		this.halt = false;
+	}
+
+	beDrawn() {
+		//selection box
+		drawSelectionBox(this.x * canvas.width, this.y * canvas.height, (canvas.height / 36) * 2);
+
+		ctx.fillStyle = color_text_bright;
+		if (eval(this.property)) {
+			ctx.fillRect(x, y, size * 0.75, size * 0.75);
+		}
+
+		//text
+		ctx.font = `${canvas.height / 36}px Comfortaa`;
+		ctx.textAlign = "left";
+		ctx.fillText(this.label, canvas.width * (this.x + 0.01), (canvas.height * this.y) + (canvas.height / 108));
+	}
+
+	tick() {
+		//if cursor's down and in the area, toggle then halt self
+		if (cursor_down) {
+			if (!this.halt) {
+				this.halt = true;
+				if (cursor_x > this.x * canvas.width && cursor_x < (this.x + this.width) * canvas.width && cursor_y > (this.y * canvas.height) - (canvas.height / 36) && cursor_y < (this.y * canvas.height) + (canvas.height / 36)) {
+					eval(`${this.property} = !${this.property};`);
+				}
+			}
+			return;
+		}
+		this.halt = false;
 	}
 }
