@@ -63,7 +63,6 @@ class State_Edit {
 		player.y = world_camera.y;
 		player.z = world_camera.z;
 		player.onGround = 1;
-		player.dy = clamp(player.dy-(player.jumpStrength * 0.5), 0, 10);
 
 		//translate player up into camera movement
 		if (player.dy == 0) {
@@ -142,6 +141,14 @@ class State_Edit {
 		player.parent = this.tunnel;
 		player.parentPrev = this.tunnel;
 		render_maxColorDistance /= editor_colorMultiplier;
+	}
+
+	handleKeyPress(a) {
+		
+	}
+
+	handleKeyNegate(a) {
+
 	}
 }
 
