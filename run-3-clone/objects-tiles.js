@@ -33,12 +33,7 @@ class Tile extends FreePoly {
 	}
 
 	doComplexLighting() {
-		this.playerDist = render_maxColorDistance * 2;
-
-		//set distance to the minimum distance to a light source
-		world_lightObjects.forEach(l => {
-			this.playerDist = Math.min(this.playerDist, getDistance(this, l));
-		});
+		getDistance_LightSource(this);
 	}
 
 	doRotationEffects(entity) {
@@ -254,9 +249,14 @@ class Tile_Box extends Tile {
 class Tile_Box_Ringed extends Tile_Box {
 	constructor(x, y, z, size, normal, parent, tilePosition) {
 		super(x, y, z, size, normal, parent, tilePosition);
-		var ringOff = polToCart(normal[0], (normal[1] + (Math.PI * 1.5)) % (Math.PI * 2), (this.size / 2) + 2);
-		this.ringL = new Ring(x + ringOff[0], y + ringOff[1], z + ringOff[2], normal[0], (normal[1] + (Math.PI * 1.5)) % (Math.PI * 2), size / 4);
-		this.ringR = new Ring(x - ringOff[0], y - ringOff[1], z - ringOff[2], normal[0], (normal[1] + (Math.PI * 0.5)) % (Math.PI * 2), size / 4);
+		
+	}
+
+	calculatePointsAndNormal() {
+		super.calculatePointsAndNormal();
+		var ringOff = polToCart(this.normal[0], (this.normal[1] + (Math.PI * 1.5)) % (Math.PI * 2), (this.size / 2) + 2);
+		this.ringL = new Ring(this.x + ringOff[0], this.y + ringOff[1], this.z + ringOff[2], this.normal[0], (this.normal[1] + (Math.PI * 1.5)) % (Math.PI * 2), render_ringSize);
+		this.ringR = new Ring(this.x - ringOff[0], this.y - ringOff[1], this.z - ringOff[2], this.normal[0], (this.normal[1] + (Math.PI * 0.5)) % (Math.PI * 2), render_ringSize);
 	}
 
 	beDrawn() {
@@ -277,11 +277,18 @@ class Tile_Box_Ringed extends Tile_Box {
 			}
 			//left / rightß
 			if (relCPos[1] > 0) {
+				//change order of ring / face depending on position
+				if (relCPos[1] <= this.size / 2) {
+					this.ringR.beDrawn();
+				}
 				drawWorldPoly([this.points[0], this.points[3], this.points[7], this.points[4]], color);
 				if (relCPos[1] > this.size / 2) {
 					this.ringR.beDrawn();
 				}
 			} else {
+				if (relCPos[1] >= this.size / -2) {
+					this.ringL.beDrawn();
+				}
 				drawWorldPoly([this.points[1], this.points[2], this.points[6], this.points[5]], color);
 				if (relCPos[1] < this.size / -2) {
 					this.ringL.beDrawn();
@@ -298,8 +305,8 @@ class Tile_Box_Ringed extends Tile_Box {
 
 	doComplexLighting() {
 		super.doComplexLighting();
-		this.ringL.playerDist = this.playerDist;
-		this.ringR.playerDist = this.playerDist;
+		this.ringL.doComplexLighting();
+		this.ringR.doComplexLighting();
 		
 	}
 
@@ -672,12 +679,18 @@ class Tile_Ice_Ramp extends Tile_Ice {
 class Tile_Movable extends Tile {
 	constructor(x, y, z, size, normal, parent, tilePosition, color) {
 		super(x, y, z, size, normal, parent, tilePosition, color);
+		
+	}
+
+	calculatePointsAndNormal() {
+		super.calculatePointsAndNormal();
 		var ringOffset = polToCart(this.normal[0], this.normal[1], 2);
-		this.ring = new Ring(this.x + ringOffset[0], this.y + ringOffset[1], this.z + ringOffset[2], this.normal[0], this.normal[1], size / 4);
+		this.ring = new Ring(this.x + ringOffset[0], this.y + ringOffset[1], this.z + ringOffset[2], this.normal[0], this.normal[1], render_ringSize);
 	}
 
 	doComplexLighting() {
 		super.doComplexLighting();
+		//rings on tiles are close enough that it probably doesn't matter, and will save time to not do the computation
 		this.ring.playerDist = this.playerDist;
 	}
 
