@@ -133,6 +133,14 @@ function getDistance2d(xyP1, xyP2) {
 	return Math.sqrt(((xyP1[0] - xyP2[0]) * (xyP1[0] - xyP2[0])) + ((xyP1[1] - xyP2[1]) * (xyP1[1] - xyP2[1])));
 }
 
+//sets the object's player distance to the closest distance to a light source
+function getDistance_LightSource(obj) {
+	obj.playerDist = render_maxColorDistance * 2;
+	world_lightObjects.forEach(l => {
+		obj.playerDist = Math.min(obj.playerDist, getDistance(obj, l));
+	});
+}
+
 //determines if a point will be clipped due to being behind / too close to the camera
 function isClipped(pointArr) {
 	var [tX, tY, tZ] = pointArr;
