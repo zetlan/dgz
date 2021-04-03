@@ -22,6 +22,9 @@ class AudioChannel {
 		//set volume
 		if (this.audio != undefined) {
 			this.audio.volume = this.volume * (1 - (this.time / audio_fadeTime));
+			if (loading_state instanceof State_World && player.parentPrev != undefined) {
+				this.audio.volume *= player.parentPrev.power;
+			}
 		}
 	}
 
@@ -555,16 +558,16 @@ class Angel extends Character {
 	constructor(x, y, z) {
 		super(x, y, z, `Angel`);
 
-		this.speed = 0.08;
+		this.speed = 0.09;
 		this.dMax = 3.96;
 		this.fallMax = 3.6;
-		this.dMaxTrue = 9.25;
+		this.dMaxTrue = 9.125;
 		this.naturalFriction = 0.998;
-		this.jumpStrength = 2.6;
+		this.jumpStrength = 2.8;
 		this.jumpBoostStrength = 0.09;
 
 		this.boost = true;
-		this.boostStrength = 1.35;
+		this.boostStrength = 1.32;
 		this.glide = true;
 		this.haltGlide = true;
 		this.glideStrength = 0.2;
@@ -578,9 +581,9 @@ class Angel extends Character {
 		}
 
 		//gliding
-		if (this.glide && !this.boost && !this.haltGlide && controls_spacePressed) {
+		if (this.glide && !this.boost && !this.haltGlide) {
 			//trade forwards movement for upwards movements
-			if (this.dz > this.glideStrength * 8) {
+			if (controls_spacePressed && this.dz > this.glideStrength * 10) {
 				this.dz -= this.glideStrength * 0.5;
 				this.az *= this.friction;
 				this.dy += this.glideStrength;
@@ -592,7 +595,6 @@ class Angel extends Character {
 				this.glide = false;
 			}
 		}
-
 		super.tick();
 	}
 
