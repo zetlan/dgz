@@ -107,6 +107,13 @@ function avgArray(array) {
 	return finArr;
 }
 
+function changeTile(tunnel, tileCoords, newTileID) {
+	var reference = getObjectFromID(tunnel);
+	reference.data[tileCoords[0]][tileCoords[1]] = newTileID;
+	reference.updatePosition(reference.x, reference.y, reference.z);
+
+}
+
 
 //keeps a number between certain bounds
 //these operators are stupid and I hope to never use them again
@@ -149,6 +156,11 @@ function getObjectFromID(id) {
 			return world_objects[a];
 		}
 	}
+
+	//to prevent errors, return an empty object if nothing is found
+	//I do still want to make sure I don't accidentally miss things though
+	console.error(`ERROR: couldn't find tunnel with id ${id}`);
+	return {};
 }
 
 //returns the percentage from val1 to val2 that the checkVal is in
@@ -299,6 +311,14 @@ function localStorage_read() {
 		console.log("ERROR: invalid type specified in save data, using default");
 		return;
 	}
+
+	//update settings
+	audio_channel1.volume = data_persistent.settings.volume;
+	document.getElementById("haveHighResolution").checked = data_persistent.settings.highResolution;
+	if (data_persistent.settings.highResolution) {
+		data_persistent.settings.highResolution = false;
+		updateResolution();
+	}
 	console.log("loaded save");
 }
 
@@ -366,7 +386,7 @@ function outputWorld() {
 function outputTunnel(prefix) {
 	var output = ``;
 	var num = 1;
-	while (getObjectFromID(prefix + num) != undefined) {
+	while (getObjectFromID(prefix + num).id != undefined) {
 		output += getObjectFromID(prefix + num).giveStringData() + "\n";
 		num += 1;
 	}
@@ -561,6 +581,7 @@ function stealAudioConsent(a) {
 			audio_data[audio].pause();
 			audio_data[audio].currentTime = 0;
 		}
+		audio_consentRequired = false;
 	}
 }
 
@@ -568,7 +589,7 @@ function stealAudioConsent(a) {
 function tunnel_applyProperty(setPrefix, codeToExecuteSTRING) {
 	var targetTunnel = getObjectFromID(`${setPrefix}1`);
 	var targetNum = 2;
-	while (targetTunnel != undefined) {
+	while (targetTunnel.id != undefined) {
 		eval(codeToExecuteSTRING);
 		targetTunnel = getObjectFromID(`${setPrefix}${targetNum}`);
 		targetNum += 1;
