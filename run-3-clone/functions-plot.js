@@ -10,10 +10,26 @@ INDEX:
 
 function placeOneTimeCutsceneTriggers() {
 	//triggers
+
+	//overworld
 	getObjectFromID("Level 1").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("Level 1"), 0.5, true, "planetMissing"));
 	getObjectFromID("F-4").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("F-4"), 1.1, false, "river"));
 	getObjectFromID("U-1").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("U-1"), 0.2, false, "planetStolen"));
 	getObjectFromID("New Tunnel, Part 1").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("New Tunnel, Part 1"), 0.1, false, "selfAssembly"));
+
+
+	//the way back
+	getObjectFromID("The Way Back, Part 1").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("The Way Back, Part 1"), 0.5, false, "angelVsBunny"));
+	
+	getObjectFromID("Plan A, Part 8").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("Plan A, Part 8"), 54.5, false, "wait"));
+
+	getObjectFromID("Plan C, Part 8").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("Plan C, Part 8"), 97, false, "superpowers"));
+	getObjectFromID("Plan C, Part 9").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("Plan C, Part 9"), 110, false, "twoMonthWait1"));
+	getObjectFromID("Plan C, Part 12").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("Plan C, Part 12"), 86, false, "twoMonthWait2"));
+	getObjectFromID("Plan C, Part 14").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("Plan C, Part 14"), 69.4, false, "twoMonthWait3"));
+
+
+	//the way onwards
 
 	//character encounters
 	getObjectFromID("Level 10").freeObjs.push(new StaticCharacterPermanent(getObjectFromID("Level 10"), 12, 58, "Skater", "comingThrough"));
