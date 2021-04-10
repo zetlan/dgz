@@ -10,9 +10,11 @@
 		<title>Run 3.js</title>
 		<meta charset="utf-8">
 		<link rel='icon' href='images/Runner.png' type='image/png'/>
-		<!--font uwu nyaa-->
+		<!--font nyaa~
+		canon, the Angel writes in permanent marker-->
 		<link rel="preconnect" href="https://fonts.gstatic.com">
 		<link href="https://fonts.googleapis.com/css2?family=Comfortaa&display=swap" rel="stylesheet">
+		<link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
 		<style>
 			body {
 				background-color: slateblue;
@@ -27,6 +29,10 @@
 			#centerModule {
 				text-align: center;
 				margin: auto;
+			}
+
+			#download, #upload {
+				display: none;
 			}
 		</style>
 		<!--extreme high-tech organizational scheme-->
@@ -55,8 +61,8 @@
 	<body>
 		<div id="centerModule">
 			<canvas id="cornh" width="640" height="480"></canvas><br>
-			<input type="checkbox" id="haveHighResolution"><label for="haveHighResolution">High resolution</label><br>
-			<button onclick="trueReset();">reset save data</button>
+			<a download="data-editor.txt" id="download">[download]</a>
+			<input type="file" id="upload" onChange="file_import();">
 		</div>
 	</body>
 </html>
