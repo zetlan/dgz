@@ -26,7 +26,7 @@ var audio_data = {
 	"Tone": new Audio('audio/Tone.ogg')
 }
 var audio_channel1 = new AudioChannel(0.5);
-var audio_channel2 = undefined;
+var audio_channel2 = new AudioChannel(0.5);
 var audio_consentRequired = true;
 var audio_fadeTime = 75;
 var audio_tolerance = 1 / 30;
@@ -40,6 +40,13 @@ var centerY;
 var challenge_fadeTime = 50;
 var challenge_opacity = 0.05;
 var challenge_textTime = 280;
+
+var checklist_width = 0.35;
+var checklist_height = 0.45;
+var checklist_margin = 0.01;
+var checklist_speed = 0.04;
+var checklist_searchButton = new PropertyButton(checklist_width + (checklist_margin * 2.1) + (checklist_width * 0.375), 1, checklist_width * 0.75, 0.06, `Keep searching`, `loading_state = new State_Challenge(challengeData_angelMissions, data_persistent.goingHomeProgress);`);
+var checklist_stayLines = 3;
 
 var controls_cursorLock = false;
 var controls_sensitivity = 100;
@@ -74,6 +81,7 @@ const color_ring = "#FEEC00";
 const color_stars = "#44A";
 const color_text = "#424";
 const color_text_bright = "#FAF";
+const color_text_danger = "#F22";
 const color_warning = "#FFDB29";
 const color_warning_secondary = "#8C8C89";
 const colors_powerCells = ["#888888", "#8888FF", "#88FF88", "#88FFFF", "#FF8888", "#FF88FF", "#FFFF88", "#FFFFFF"];
@@ -83,15 +91,28 @@ var cursor_y = 0;
 var cursor_down = false;
 var cursor_hoverTolerance = 10;
 
+var data_alphaNumerics = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+//[title text, superscript text, line to jump to when clicked, cutscene complete requirement, character is going home?]
+var data_angelChecklist = [
+	'GOING HOME CHECKLIST',
+	['The Know-It-All', '1st', 'myTurn', false, []],
+	['The Show-Off', '2nd', 'theNextBigThing', false, []],
+	['The Crackpot', '3rd', 'youThink', true],
+	['The Nerd', '6th', 'discoveries', false, []],
+	['The Sneak', '3rd', 'youThink', true],
+	['The Meddler', '4th', 'friendlyGreeting', true],
+	['The Snob', '5th', 'standardsToUphold', false, []]
+];
 var data_characters = [`Runner`, `Skater`, `Lizard`, `Bunny`, `Gentleman`, `Duplicator`, `Child`, `Pastafarian`, `Student`, `Angel`];
 
 
 var data_levelSets = [`main`, `boxRoad`, `boxStorage`, `coordination`, `planA`, `planC`, `memory`, `wayBack`, `wayBack2`, `wayBackNot`, `winterGames`, `lowPower`, `new`,
 						`A`, `B`, `C`, `D`, `F`, `G`, `H`, `I`, `L`, `M`, `N`, `T`, `U`, `W`];
 //data_levelSets = [`main`, `lowPower`, `new`];
+var data_musics = ['CrumblingWalls', 'LeaveTheSolarSystem', 'MapOfTheStars', 'TheVoid', 'TravelTheGalaxy', 'WormholeToSomewhere', 'None'];
 
 var data_persistent = {
-	discovered: [],
+	discovered: "Level 1",
 	effectiveCutscenes: [],
 	highscores: [],
 	name: "Guest User",
@@ -267,105 +288,119 @@ var data_sprites = {
 //perhaps this isn't the best data structure to organize this. It's tricky for a system that has to support both linear progression and branches.
 //TODO: find a better way to organize this?
 var data_cutsceneTree = 
-new CNode(-0.2941, -0.2009, 'comingThrough', [
-	new CNode(-0.2684, -0.0670, 'niceToMeetYou', []), 
-	new CNode(-0.2829, 0.0729, 'goldMedal', []), 
-	new CNode(-0.1490, -0.0967, 'insanity', [
-	new CNode(-0.1490, -0.0670, 'river', [
-		new CNode(-0.1490, -0.0342, 'socraticMethod', [])
-	])
-	]), 
-	new CNode(-0.1255, -0.2738, 'grandOpening', [
-	new CNode(-0.0363, -0.3586, 'thanksForPlaytesting', [])
-	]), 
-	new CNode(-0.3465, -0.1205, 'batteries', []), 
-	new CNode(-0.3912, -0.1577, 'planetMissing', [
-	new CNode(-0.0764, -0.1295, 'planetStolen', [
-			new CNode(-0.0831, 0.0595, 'naming', []), 
-		new CNode(-0.0296, 0.1116, 'orbits', [])
-	])
-	]), 
-	new CNode(0.0240, -0.1577, 'heavySleeper', [
-		new CNode(0.0184, -0.2113, 'cheating', []), 
-		new CNode(0.1111, -0.2188, 'teapot', []), 
-		new CNode(0.1379, -0.2679, 'boring', []), 
-		new CNode(0.1512, -0.1964, 'joinUs', []), 
-		new CNode(0.0675, -0.0446, 'dontKnockIt', []), 
-		new CNode(0.1903, -0.1548, 'changeTheSubject', []), 
-		new CNode(0.0307, 0.0699, 'inflation', []), 
-	new CNode(0.2718, 0.0744, 'wormholeInSight', [
-		new CNode(0.2707, -0.2827, 'theGap', [
-		new CNode(0.4766, -0.2723, 'crossingTheGap', [
-					new CNode(0.5190, 0.0179, 'fame', []), 
-					new CNode(0.6105, -0.2723, 'truancy', []), 
-			new CNode(0.5435, -0.1116, 'morningHypothesis1', [])
+new CNode(-0.3351, -0.2068, 'comingThrough', [
+	new CNode(-0.2893, -0.0848, 'niceToMeetYou', []), 
+	new CNode(-0.3608, 0.0179, 'goldMedal', []), 
+	new CNode(-0.2000, -0.1280, 'insanity', [
+		new CNode(-0.1945, -0.0804, 'river', [
+			new CNode(-0.1889, -0.0327, 'socraticMethod', [])
 		])
+	]), 
+	new CNode(-0.1777, -0.2619, 'grandOpening', [
+		new CNode(-0.1253, -0.3616, 'thanksForPlaytesting', [])
+	]), 
+	new CNode(-0.3887, -0.1369, 'batteries', []), 
+	new CNode(-0.4422, -0.1741, 'planetMissing', [
+		new CNode(-0.1074, -0.1399, 'planetStolen', [
+			new CNode(-0.1163, 0.0595, 'naming', []), 
+			new CNode(-0.0739, 0.1324, 'orbits', [])
 		])
-	])
 	]), 
-	new CNode(-0.2695, -0.2991, 'candy', [
-		new CNode(-0.3209, -0.3943, 'selfAssembly', [
-		new CNode(-0.3967, -0.4196, 'conspiracy', [])
-	]), 
-	new CNode(-0.1613, 0.1920, 'myTurn', [
-		new CNode(-0.0876, 0.4033, 'theNextBigThing', [
-		new CNode(-0.0664, 0.4449, 'youThink', [
-			new CNode(-0.0552, 0.4821, 'friendlyGreeting', [
-			new CNode(-0.0619, 0.5223, 'indecision', [
-				new CNode(-0.0898, 0.5551, 'standardsToUphold', [
-				new CNode(-0.1423, 0.5833, 'itsJustYou', [
-					new CNode(-0.2193, 0.5595, 'discoveries', [
-					new CNode(-0.3142, 0.5253, 'angelVsBunny', [
-						new CNode(-0.3655, 0.5030, 'ofCourse', [
-						new CNode(-0.4157, 0.4821, 'fourthCondiment', [
-							new CNode(-0.5273, 0.4777, 'wait', [
-							new CNode(-0.5820, 0.4568, 'cantWait', [
-								new CNode(-0.4749, 0.3527, 'twoMonthWait1', [
-								new CNode(-0.5028, 0.3170, 'twoMonthWait2', [
-									new CNode(-0.5519, 0.2857, 'twoMonthWait3', [])
-								])
+	new CNode(-0.0170, -0.1830, 'heavySleeper', [
+		new CNode(-0.0326, -0.0402, 'studentTeacher', []), 
+		new CNode(-0.0003, -0.2426, 'cheating', []), 
+		new CNode(0.0946, -0.2262, 'teapot', []), 
+		new CNode(0.1158, -0.2842, 'boring', []), 
+		new CNode(0.1415, -0.2054, 'joinUs', []), 
+		new CNode(0.0901, -0.0357, 'dontKnockIt', []), 
+		new CNode(0.1426, -0.1622, 'changeTheSubject', []), 
+		new CNode(0.0622, 0.0759, 'inflation', []), 
+		new CNode(0.2408, 0.0640, 'wormholeInSight', [
+			new CNode(0.2084, -0.2887, 'theGap', [
+				new CNode(0.2073, -0.4018, 'somethingWeird', [
+					new CNode(0.2308, -0.4405, 'tellAFriend', [
+						new CNode(0.3390, -0.4658, 'lightningStrikesTwice', [
+							new CNode(0.4116, -0.4241, 'affliction', [
+								new CNode(0.4462, -0.3006, 'crossingTheGap', [
+									new CNode(0.4618, -0.0759, 'fame', []), 
+									new CNode(0.5812, -0.3080, 'truancy', []), 
+									new CNode(0.5444, -0.2188, 'morningHypothesis1', [])
 								])
 							])
+						])
+					])
+				])
+			])
+		])
+	]), 
+	new CNode(-0.3016, -0.3497, 'candy', [
+		new CNode(-0.3719, -0.4182, 'selfAssembly', [
+			new CNode(-0.4645, -0.4539, 'conspiracy', [])
+		]), 
+		new CNode(-0.1878, 0.1905, 'myTurn', [
+			new CNode(-0.0876, 0.4033, 'theNextBigThing', [
+				new CNode(-0.0664, 0.4449, 'youThink', [
+					new CNode(-0.0552, 0.4821, 'friendlyGreeting', [
+						new CNode(-0.0619, 0.5223, 'indecision', [
+							new CNode(-0.0898, 0.5551, 'standardsToUphold', [
+								new CNode(-0.1423, 0.5833, 'itsJustYou', [
+									new CNode(-0.2193, 0.5595, 'discoveries', [
+										new CNode(-0.3284, 0.5253, 'angelVsBunny', [
+											new CNode(-0.3663, 0.5655, 'sneaking', []), 
+											new CNode(-0.3655, 0.5030, 'ofCourse', [
+												new CNode(-0.4157, 0.4821, 'fourthCondiment', [
+													new CNode(-0.5273, 0.4777, 'wait', [
+														new CNode(-0.5820, 0.4568, 'cantWait', [
+															new CNode(-0.4749, 0.3527, 'twoMonthWait1', [
+																new CNode(-0.5028, 0.3170, 'twoMonthWait2', [
+																	new CNode(-0.5519, 0.2857, 'twoMonthWait3', [])
+																])
+															])
+														])
+													])
+												])
+											])
+										])
+									])
+								])
 							])
 						])
-						])
-					])
 					])
 				])
-				])
-			])
 			])
 		])
-		])
-	])
 	])
 ])
 
 //for the map editor
 var editor_active = false;
 var editor_changingTheta = false;
-var editor_selected = undefined;
 var editor_clickTolerance = 5;
-var editor_snapTolerance = 5;
+var editor_cutsceneSnapTolerance = 30;
+var editor_mapSnapTolerance = 5;
 var editor_thetaCircleRadius = 60;
 var editor_thetaKnobRadius = 10;
 
+
 //for the tunnel editor, try to keep up zozzle
-var editor_cameraJumpDistance = 120;
+var editor_buttonHeightPercentage = 0.45;
+var editor_cameraLimit = 300000;
 var editor_colorMultiplier = 1.7;
+var editor_cutsceneColumns = 3;
+var editor_cutsceneMargin = 0.08;
+var editor_maxCutscenes = 21;
+var editor_cutscenes = [cutsceneData_affliction, cutsceneData_angelVsBunny, cutsceneData_batteries, cutsceneData_boring, cutsceneData_candy, cutsceneData_changeTheSubject, cutsceneData_cantWait, cutsceneData_cheating];
 var editor_mapHeight = 10000;
 var editor_maxEditDistance = 1500;
-var editor_propertyMenuWidth = 0.25;
+var editor_objects = [];
+var editor_propertyMenuWidth = 0.3;
 var editor_sliderHeight = 0.05;
 var editor_sliderProportion = 0.145;
 var editor_sliderMargin = 0.008;
 var editor_topBarHeight = 0.12;
 var editor_tileSize = 0.025;
-var editor_buttons = [
-	[`Tiles`, `new State_Edit_Tiles()`],
-	[`Properties`, `new State_Edit_Properties()`],
-	[`World`, `new State_Edit_World()`]
-];
+var editor_worldSnapTolerance = 25;
+var editor_worldFile = undefined;
 
 //for the cutscene editor
 var editor_handleRadius = 6;
@@ -381,13 +416,8 @@ var map_zOffset = -55200;
 var map_zStorage = map_zOffset;
 var map_iconSize = 0.06;
 
-var menu_buttonWidth = 0.2;
-var menu_buttonHeight = 0.05;
-var menu_buttons = [
-	[`Infinite Mode`, `new State_Infinite()`],
-	[`Explore Mode`, `new State_Map()`],
-	[`Edit Mode`, `new State_Edit_Tiles()`]
-];
+var menu_buttonWidth = 0.25;
+var menu_buttonHeight = 0.06;
 var menu_characterCircleRadius = 0.3;
 var menu_characterSize = 30;
 var menu_cutsceneParallax = 0.3;
@@ -406,6 +436,7 @@ var physics_graceTimeRamp = 10;
 let player;
 var player_radius = 18;
 var player_coyote = 6;
+var player_maxNameWidth = 0.28;
 
 var powercells_acquireDistance = player_radius * 6;
 var powercells_gentlemanMultiplier = 0.5;
@@ -413,10 +444,14 @@ var powercells_perTunnel = 10;
 var powercells_spinSpeed = 0.05;
 var powercells_size = 30;
 
+var tunnel_dataStarChainMax = 4;
+var tunnel_dataRepeatMax = 3;
+
 var tunnel_textTime = 50;
 var tunnel_transitionLength = 200;
 var tunnel_voidWidth = 200;
 var tunnel_bufferTiles = 4;
+
 var tunnel_functions = {
 	"instant": power_instant,
 	"smooth": power_smooth,
@@ -447,7 +482,6 @@ var tunnel_tileAssociation = {
 	"~warning": 15,
 	"~battery": 16
 };
-
 var tunnel_translation = {
 	"0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9,
 	":": 10, ";": 11, "<": 12, "=": 13, ">": 14, "?": 15,"@": 16, "A": 17, "B": 18, "C": 19,
@@ -481,6 +515,13 @@ var render_ringSize = 18;
 var render_starOpacity = 0.6;
 var render_voidSpinSpeed = 0.04;
 
+var text_queue = [];
+var text_time = challenge_textTime;
+
+var textures_common = [];
+for (var t=0; t<data_characters.length; t++) {
+	textures_common.push(new Texture(eval(`data_sprites.${data_characters[t]}.sheet`), data_sprites.spriteSize, 2, false, false, eval(`[data_sprites.${data_characters[t]}.back[0], data_sprites.${data_characters[t]}.front[0]]`)));
+}
 
 var times_current = {};
 var times_past = {};
@@ -518,12 +559,15 @@ function setup() {
 	world_objects = []; 
 	world_stars = [];
 
-	//high resolution slider
-	document.getElementById("haveHighResolution").onchange = updateResolution;
-
 	generateStarSphere();
-
+	generateAngelLines();
 	localStorage_read();
+
+	//edit world objects
+	if (editor_objects.length == 0) {
+		editor_objects.push(new Tunnel(0.00, {h: 120, s: 50, v: 0.8}, [[1, 1, 1, 1, 1], [1, 0, 1, 0, 1]], 'Custom Tunnel 1', 5, 1, [], 4, [1], [], 4, 75, 0, 0, [], `TravelTheGalaxy`));
+		editor_objects.push(new Tunnel(1.57, {h: 240, s: 50, v: 0.8}, [[1, 1, 1, 1, 1], [1, 0, 1, 0, 1]], 'Custom Tunnel 2', 5, 1, [], 4, [1], [], 4, 75, 100, 2000, [], `TravelTheGalaxy`));
+	}
 
 	//the wavy air
 	//navigator.mediaDevices.getUserMedia({speakers: true});
@@ -533,10 +577,12 @@ function setup() {
 function main() {
 	//main loop
 	loading_state.execute();
+	handleTextDisplay();
 
 	//handle audio
 	handleAudio();
 	audio_channel1.tick();
+	audio_channel2.tick();
 
 	//save data every once in a while
 	if (world_time % 204 == 203) {
@@ -765,9 +811,8 @@ function handleMouseMove(a) {
 }
 
 function updateResolution() {
-	data_persistent.settings.highResolution = document.getElementById("haveHighResolution").checked;
 	var multiplier = 0.5;
-	if (document.getElementById("haveHighResolution").checked) {
+	if (data_persistent.settings.highResolution) {
 		multiplier = 2;
 	}
 
