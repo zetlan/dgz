@@ -99,7 +99,7 @@ class CNode {
 
 		if (this.visible) {
 			ctx.strokeStyle = color_cutsceneLink;
-			
+			ctx.lineWidth = 2;
 			this.visibleChildren.forEach(c => {
 				drawLine([this.x * canvas.width, this.y * canvas.height], [c.x * canvas.width, c.y * canvas.height]);
 			});
@@ -379,6 +379,43 @@ class SceneBoxRinged extends Scene3dObject {
 
 	giveStringData() {
 		return `3BR~${this.x.toFixed(4)}~${this.y.toFixed(4)}~${this.z.toFixed(4)}~${this.box.size}~${this.box.normal[1].toFixed(4)}`;
+	}
+}
+
+class SceneCode {
+	constructor(codeToExecute) {
+		this.code = codeToExecute;
+		this.finished = false;
+		this.selectedPart = undefined;
+	}
+
+	tick() {
+		//update code info
+		var test = prompt("Enter new code please;", this.code);
+		if (test != null && test != undefined && test != "") {
+			this.code = test;
+			this.finished = false;
+		}
+		this.selectedPart = undefined;
+	}
+
+	beDrawn() {
+		if (editor_active) {
+			drawCircle(color_grey_dark, canvas.width * 0.95, canvas.height * 0.95, editor_handleRadius);
+		} else {
+			if (!this.finished) {
+				eval(this.code);
+				this.finished = true;
+			}
+		}
+	}
+
+	giveHandles() {
+		return [[canvas.width * 0.95, canvas.height * 0.95]];
+	}
+
+	giveStringData() {
+		return `COD~${this.code}`;
 	}
 }
 
@@ -1089,7 +1126,49 @@ class MapTexture {
 
 
 
-//sliders for editing properties in the editor
+class PropertyButton {
+	constructor(x, y, widthPERCENTAGE, heightPERCENTAGE, label, codeOnClick) {
+		this.x = x;
+		this.y = y;
+		this.width = widthPERCENTAGE;
+		this.height = heightPERCENTAGE;
+		this.label = label;
+		this.code = codeOnClick;
+		this.mouseOver = false;
+	}
+
+	beDrawn() {
+		ctx.lineWidth = canvas.height / 96;
+		ctx.strokeStyle = color_grey_dark;
+		if (this.mouseOver) {
+			ctx.fillStyle = color_grey_dark;
+		} else {
+			ctx.fillStyle = color_grey_light;
+		}
+		drawRoundedRectangle(canvas.width * (this.x - this.width / 2), canvas.height * (this.y - this.height / 2), canvas.width * this.width, canvas.height * this.height, canvas.height / 48);
+
+		ctx.font = `${canvas.height / 25}px Comfortaa`;
+		ctx.textAlign = "center";
+		ctx.fillStyle = color_text;
+		ctx.fillText(this.label, canvas.width * this.x, (canvas.height * this.y) + (canvas.height / 75));
+	}
+
+	tick() {
+		//mouseover check
+		this.mouseOver =  (cursor_x > canvas.width * (this.x - this.width * 0.5) && 
+						cursor_x < canvas.width * (this.x + this.width * 0.5) && 
+						cursor_y > canvas.height * (this.y - this.height * 0.5) && 
+						cursor_y < canvas.height * (this.y + this.height * 0.5));
+	}
+
+	handleClick() {
+		if (this.mouseOver) {
+			eval(this.code);
+		}
+	}
+}
+
+//slider
 class PropertySlider {
 	constructor(xPERCENTAGE, yPERCENTAGE, widthPERCENTAGE, sliderWidthPERCENTAGE, label, propertyToModifySTRING, displayProperty, minValue, maxValue, snapAmount, resetTunnel) {
 		this.x = xPERCENTAGE;
@@ -1164,12 +1243,7 @@ class PropertyTextBox {
 	}
 
 	beDrawn() {
-		//selection box
-		ctx.strokeStyle = color_menuSelectionOutline;
-		ctx.fillStyle = color_grey_light;
-		ctx.globalAlpha = 0.3;
-		drawRoundedRectangle(canvas.width * this.x, (canvas.height * this.y) - (canvas.height / 50), canvas.width * this.width, canvas.height / 25, canvas.height / 96);
-		ctx.globalAlpha = 1;
+		drawSelectionBox(canvas.width * (this.x + (this.width * 0.5)), canvas.height * this.y, canvas.width * this.width, canvas.height / 25);
 
 		//text
 		ctx.fillStyle = color_text_bright;
@@ -1196,8 +1270,10 @@ class PropertyTextBox {
 							loading_state.tunnel.updatePosition(loading_state.tunnel.x, loading_state.tunnel.y, loading_state.tunnel.z);
 							player = new Pastafarian(player.x, player.y, player.z);
 						}
+						//repeat pop-up prevention
+						cursor_x = -1000;
+						cursor_y = -1000;
 					}
-					
 				}
 			}
 		}
@@ -1216,17 +1292,17 @@ class PropertyToggle {
 
 	beDrawn() {
 		//selection box
-		drawSelectionBox(this.x * canvas.width, this.y * canvas.height, (canvas.height / 36) * 2);
+		drawSelectionBox((this.x + this.width) * canvas.width, this.y * canvas.height, (canvas.height / 36) * 2,( canvas.height / 36) * 2);
 
 		ctx.fillStyle = color_text_bright;
 		if (eval(this.property)) {
-			ctx.fillRect(x, y, size * 0.75, size * 0.75);
+			ctx.fillRect(((this.x + this.width) * canvas.width) - (canvas.height / 72), (this.y * canvas.height) - (canvas.height / 72), canvas.height / 36, canvas.height / 36);
 		}
 
 		//text
 		ctx.font = `${canvas.height / 36}px Comfortaa`;
 		ctx.textAlign = "left";
-		ctx.fillText(this.label, canvas.width * (this.x + 0.01), (canvas.height * this.y) + (canvas.height / 108));
+		ctx.fillText(this.text, canvas.width * this.x, (canvas.height * this.y) + (canvas.height / 108));
 	}
 
 	tick() {
