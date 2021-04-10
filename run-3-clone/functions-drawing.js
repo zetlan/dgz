@@ -11,8 +11,9 @@ INDEX:
 		drawWorldPoly();
 
 	specifics:
+		drawAngelPanel();
+		drawCharacterLock();
 		drawCrosshair();
-		drawEditorOverlay();
 		drawInfiniteEndScreen();
 		drawKeys();
 		drawSky();
@@ -40,29 +41,6 @@ function drawArrow(x, y, color, rotationInRADIANS, bodyLength, headLength, bodyW
 
 	drawPoly(color, points);
 	ctx.stroke();
-}
-
-
-function drawCrosshair() {
-	ctx.strokeStyle = "#FFF";
-	//starting pos
-	var center = polToCart(world_camera.theta, world_camera.phi, 5);
-	center = [center[0] + world_camera.x, center[1] + world_camera.y, center[2] + world_camera.z];
-
-	//jumping-off points
-	var xPlus = [center[0] + (render_crosshairSize / 20), center[1], center[2]];
-	var yPlus = [center[0], center[1] + (render_crosshairSize / 20), center[2]];
-	var zPlus = [center[0], center[1], center[2] + (render_crosshairSize / 20)];
-
-	//transforming lines to screen coordinates
-
-	//drawing lines
-	ctx.strokeStyle = "#F00";
-	drawWorldLine(center, xPlus);
-	ctx.strokeStyle = "#0F0";
-	drawWorldLine(center, yPlus);
-	ctx.strokeStyle = "#00F";
-	drawWorldLine(center, zPlus);
 }
 
 function drawInfiniteEndScreen() {
@@ -121,16 +99,16 @@ function drawInfiniteEndScreen() {
 		}
 		var index = data_characters.indexOf(drawingCharacters[a]);
 
-		if (loading_state.selectionTextures[index] != undefined) {
-			loading_state.selectionTextures[index].frame = 0;
+		if (textures_common[index] != undefined) {
+			textures_common[index].frame = 0;
 			//if the character hasn't been used, display the selection box
 			if (a >= loading_state.charactersUsed.length) {
 				//only draw selection if they can actually be selected
 				if (data_persistent.unlocked.includes(drawingCharacters[a])) {
-					drawSelectionBox((canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + menu_characterSize, menu_characterSize * 2);
+					drawSelectionBox((canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + menu_characterSize, menu_characterSize * 2, menu_characterSize * 2);
 				}
 			} else {
-				loading_state.selectionTextures[index].frame = 1;
+				textures_common[index].frame = 1;
 				//displaying data about their run
 				ctx.textAlign = "center";
 				var charInfo = loading_state.characterData[drawingCharacters[a]];
@@ -142,7 +120,7 @@ function drawInfiniteEndScreen() {
 			}
 			
 			//draw character
-			loading_state.selectionTextures[index].beDrawn((canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + menu_characterSize, 0, menu_characterSize * 1.4);
+			textures_common[index].beDrawn((canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + menu_characterSize, 0, menu_characterSize * 1.4);
 
 			//if locked, draw a lock
 			if (!data_persistent.unlocked.includes(drawingCharacters[a])) {
@@ -384,21 +362,15 @@ function drawRoundedRectangle(x, y, width, height, arcRadius) {
 	ctx.fill();
 }
 
-function drawSky(bgColor) {
-	//background
-	ctx.fillStyle = bgColor;
-	ctx.fillRect(0, 0, canvas.width, canvas.height);
-	
-	//tick wormhole
-	world_wormhole.tick();
-	ctx.lineCap = "round";
-	//stars
-	ctx.globalAlpha = render_starOpacity;
-	world_stars.forEach(c => {
-		c.beDrawn();
-	});
-	ctx.lineCap = "butt";
-	ctx.globalAlpha = 1;
+//draws an equilateral triangle centered on an xy position
+function drawTriangle(x, y, radius, rot) {
+	ctx.beginPath();
+	ctx.moveTo(x + (radius * Math.cos(rot)), y + (radius * Math.sin(rot)));
+	for (var b=1; b<3; b++) {
+		ctx.lineTo(x + (radius * Math.cos(rot + (Math.PI * 2 * (b / 3)))), 
+					y + (radius * Math.sin(rot + (Math.PI * 2 * (b / 3)))));
+	}
+	ctx.fill();
 }
 
 function drawWorldLine(worldPoint1, worldPoint2) {
@@ -453,10 +425,80 @@ function drawWorldPoly(points, color) {
 
 
 
-
-
-
 //specifics
+function drawAngelPanel(time) {
+	//slide the whole panel based on time
+	var yOffset = ((1.3 * (time * time)) - (2.26 * time) + 0.96) * canvas.height * checklist_height;
+	var yDefault = (1 - checklist_height) * canvas.height;
+
+	//main box
+	ctx.fillStyle = color_cutsceneBox;
+	ctx.fillRect(checklist_margin * canvas.width, yDefault + yOffset, checklist_width * canvas.width, checklist_height * canvas.height);
+
+	//box triangle
+	ctx.fillStyle = color_text;
+	drawTriangle(canvas.width * (checklist_width + checklist_margin - 0.01), yDefault + yOffset + (canvas.height * 0.015), canvas.height * 0.01, (Math.PI / -2) - (Math.PI * time));
+
+	if (time > 0) {
+		//title card
+		ctx.fillStyle = color_text;
+		ctx.strokeStyle = color_text;
+		ctx.lineWidth = 2;
+		ctx.font = `${canvas.height / 30}px Permanent Marker`;
+		ctx.textAlign = "center";
+		ctx.fillText(data_angelChecklist[0], canvas.width * (checklist_margin + (checklist_width / 2)), yDefault + yOffset + (canvas.height * 0.07));
+
+		//line
+		ctx.moveTo(canvas.width * (checklist_margin + (checklist_width * 0.05)), yDefault + yOffset + (canvas.height * 0.075));
+		ctx.lineTo(canvas.width * (checklist_margin + (checklist_width * 0.95)), yDefault + yOffset + (canvas.height * 0.08));
+		ctx.stroke();
+
+		ctx.font = `${canvas.height / 35}px Permanent Marker`;
+		ctx.textAlign = "left";
+		for (var g=1; g<data_angelChecklist.length; g++) {
+			var textYOffset = canvas.height * ((g+2) * (checklist_height / (data_angelChecklist.length + 2)));
+			var textXOffset = canvas.width * (checklist_margin + (checklist_width / 5));
+			var boxSize = canvas.width * (checklist_width / 25);
+			var currentTextWidth = ctx.measureText(data_angelChecklist[g][0]).width * 1.1;
+
+			//text
+			ctx.fillText(data_angelChecklist[g][0], textXOffset, yDefault + yOffset + textYOffset);
+
+			//box
+			ctx.beginPath();
+			ctx.rect(textXOffset - (boxSize * 2), yDefault + yOffset + textYOffset - (boxSize * 0.9), boxSize, boxSize);
+			ctx.stroke();
+
+			//box check
+			if (data_persistent.effectiveCutscenes.includes(data_angelChecklist[g][2])) {
+				//superscript
+				ctx.font = `${canvas.height / 50}px Permanent Marker`;
+				ctx.fillText(data_angelChecklist[g][1], textXOffset + currentTextWidth, yDefault + yOffset + textYOffset - (canvas.height / 50));
+				ctx.font = `${canvas.height / 35}px Permanent Marker`;
+
+				if (data_angelChecklist[g][3]) {
+					//box check
+					ctx.fillText('/', textXOffset - (canvas.width * checklist_width / 15), yDefault + yOffset + textYOffset);
+				} else {
+					//drawing cross-out lines
+					ctx.beginPath();
+					ctx.moveTo(textXOffset, yDefault + yOffset + textYOffset - (canvas.height / 35) + (canvas.height * (1/40) * data_angelChecklist[g][4][0]));
+					for (var a=1; a<=checklist_stayLines; a++) {
+						ctx.lineTo(textXOffset + (currentTextWidth * 0.91 * (a % 2)), yDefault + yOffset + textYOffset - (canvas.height / 40) + (canvas.height * (1/40) * data_angelChecklist[g][4][a]));
+					}
+					ctx.stroke();
+				}
+			}
+		}
+		//keep searching button
+		if (data_persistent.goingHomeProgress < challengeData_angelMissions.length) {
+			checklist_searchButton.y = checklist_height + ((yDefault + yOffset) / canvas.height) - 0.06;
+			checklist_searchButton.tick();
+			checklist_searchButton.beDrawn();
+		}
+	}
+}
+
 function drawCharacterLock(x, y, width, height) {
 	//lock circle
 	ctx.beginPath();
@@ -481,19 +523,94 @@ function drawCharacterLock(x, y, width, height) {
 	drawRoundedRectangle(x - (width * 0.5), y, width, height * 0.95, canvas.height / 100);
 }
 
-function drawSelectionBox(x, y, size) {
-	ctx.lineWidth = size / 15;
+function drawCharacterText() {
+	var yOffset = Math.pow((text_time / (challenge_textTime / 2)) - 1, 12);
+
+	var yPos = (canvas.height * 0.92) + (yOffset * canvas.width * 0.08);
+	ctx.fillStyle = color_grey_light;
+	ctx.strokeStyle = color_grey_dark;
+	drawRoundedRectangle(canvas.width * 0.11, yPos - (menu_characterSize * 0.15), canvas.width * 0.8, menu_characterSize * 1.3, canvas.height / 96);
+	if (text_queue[0][0] != undefined) {
+		textures_common[text_queue[0][0]].beDrawn(canvas.width * 0.14, yPos + (menu_characterSize / 2), 0, menu_characterSize);
+	}
+	
+	ctx.fillStyle = color_text;
+	ctx.font = `${menu_characterSize / 2}px Comfortaa`;
+	ctx.textAlign = "center";
+
+	//before drawing text, split it if necessary
+	if (text_queue[0][1].constructor.name == "String") {
+		var dataStorage = text_queue[0][1].split(" ");
+		text_queue[0][1] = [];
+		var tempStr = "";
+		while (dataStorage.length > 0) {
+			//loop through the lines and add to the queue
+			while (dataStorage.length > 0 && ctx.measureText(tempStr + dataStorage[0] + " ").width < (canvas.width * 0.8) - menu_characterSize * 1.5) {
+				tempStr += dataStorage.splice(0, 1) + " ";
+			}
+			
+			text_queue[0][1].push(tempStr);
+			tempStr = "";
+
+		}
+	}
+	for (var a=0; a<text_queue[0][1].length; a++) {
+		ctx.fillText(text_queue[0][1][a], (canvas.width * 0.5) + menu_characterSize, yPos + (menu_characterSize * 0.25) + (menu_characterSize * 1.1 * ((a + 1) / (text_queue[0][1].length + 1))));
+	}
+}
+
+function drawCrosshair() {
+	ctx.strokeStyle = "#FFF";
+	//starting pos
+	var center = polToCart(world_camera.theta, world_camera.phi, 5);
+	center = [center[0] + world_camera.x, center[1] + world_camera.y, center[2] + world_camera.z];
+
+	//jumping-off points
+	var xPlus = [center[0] + (render_crosshairSize / 20), center[1], center[2]];
+	var yPlus = [center[0], center[1] + (render_crosshairSize / 20), center[2]];
+	var zPlus = [center[0], center[1], center[2] + (render_crosshairSize / 20)];
+
+	//transforming lines to screen coordinates
+
+	//drawing lines
+	ctx.strokeStyle = "#F00";
+	drawWorldLine(center, xPlus);
+	ctx.strokeStyle = "#0F0";
+	drawWorldLine(center, yPlus);
+	ctx.strokeStyle = "#00F";
+	drawWorldLine(center, zPlus);
+}
+
+function drawSelectionBox(x, y, width, height) {
+	ctx.lineWidth = height / 15;
 	ctx.globalAlpha = 0.3;
 	ctx.fillStyle = color_grey_light;
 	ctx.strokeStyle = color_menuSelectionOutline;
-	drawRoundedRectangle(x - (size / 2), y - (size / 2), size, size, size / 6);
+	drawRoundedRectangle(x - (width / 2), y - (height / 2), width, height, height / 6);
+	ctx.globalAlpha = 1;
+}
+
+function drawSky(bgColor) {
+	//background
+	ctx.fillStyle = bgColor;
+	ctx.fillRect(0, 0, canvas.width, canvas.height);
+	
+	//tick wormhole
+	world_wormhole.tick();
+	ctx.lineCap = "round";
+	//stars
+	ctx.globalAlpha = render_starOpacity;
+	world_stars.forEach(c => {
+		c.beDrawn();
+	});
+	ctx.lineCap = "butt";
 	ctx.globalAlpha = 1;
 }
 
 //draws all tiles but in 2 dimensions, used for the editor
 function drawTile2d(ex, why, size, type) {
 	if (type >= 30) {
-		drawSelectionBox(ex + (size / 2), why + (size / 2), size);
+		drawSelectionBox(ex + (size / 2), why + (size / 2), size, size);
 	}
 	ctx.beginPath();
 	ctx.rect(ex, why, size, size);
@@ -663,9 +780,17 @@ function drawTile2d(ex, why, size, type) {
 			ctx.font = `${size}px Comfortaa`;
 			ctx.fillText("T", ex, why + (size * 0.66));
 			break;
-
-		//3d cutscene icons
 		case 25:
+			//code console
+			ctx.fillStyle = color_cutsceneBox;
+			ctx.fillRect(ex - (size * 0.5), why - (size * 0.5), size, size);
+			ctx.fillStyle = color_text;
+			ctx.font = `${size}px Comfortaa`;
+			ctx.fillText(">", ex + (size * 0.2), why + (size * 0.4));
+			break;
+		
+		//3d cutscene icons
+		case 26:
 			//light
 			ctx.fillStyle = color_map_bg;
 			ctx.globalAlpha = 0.5;
@@ -673,7 +798,7 @@ function drawTile2d(ex, why, size, type) {
 			ctx.globalAlpha = 1;
 			drawCircle(color_map_bg, ex, why, size / 3);
 			break;
-		case 26:
+		case 27:
 			//powercell
 			ctx.beginPath();
 			ctx.fillStyle = colors_powerCells[0];
@@ -683,7 +808,7 @@ function drawTile2d(ex, why, size, type) {
 			ctx.lineTo(ex + (size * 0.1), why + (size * 0.1));
 			ctx.fill();
 			break;
-		case 27:
+		case 28:
 			//box with rings
 			drawTile2d(ex, why, size, 14);
 			break;
