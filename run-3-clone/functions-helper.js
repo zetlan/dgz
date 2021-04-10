@@ -2,9 +2,10 @@
 /* 
 	generateStarSphere();
 
+	addCharacterEncounter();
 	avgArray();
 	clamp();
-	crumbleTileSet();
+	crumbleTileSets();
 
 	getClosestObject();
 	getImage();
@@ -45,11 +46,22 @@
 	tunnelData_applyProperty();
 	tunnelData_handle();
 	tunnelData_parseData();
+	tunnelData_parseDataReverse();
+	tunnelData_parseStars();
 */
 
 
 
 //generation functions
+function generateAngelLines() {
+	data_angelChecklist.forEach(c => {
+		if (!c[3]) {
+			for (var t=0; t<=checklist_stayLines; t++) {
+				c[4].push(randomSeeded(0.1, 1));
+			}
+		}
+	});
+}
 function generateStarSphere() {
 	//random stars
 	for (var e=0;e<world_starNumber;e++) {
@@ -68,6 +80,9 @@ function generateStarSphere() {
 
 
 //utility functions
+function addCharacterEncounter(levelID, strip, tile, characterName, cutsceneName) {
+	getObjectFromID(levelID).freeObjs.push(new StaticCharacter(getObjectFromID(levelID), strip, tile, characterName, cutsceneName));
+}
 
 function activateCutsceneFromTunnel(start, end, time) {
 	//don't do the cutscene stuff during a challenge
@@ -121,17 +136,77 @@ function clamp(num, min, max) {
 	return num <= min ? min : num >= max ? max : num;
 }
 
-function crumbleTileSets(tunnel, posArray) {
+function crumbleTileSets(tunnelID, posArray) {
+	tunnelID = getObjectFromID(tunnelID);
 	posArray.forEach(p => {
 		try {
-			tunnel.strips[p[0]].tiles[p[1]].fallStatus = physics_crumblingShrinkTime + physics_crumblingShrinkStart - 1;
-			tunnel.strips[p[0]].tiles[p[1]].propogateCrumble();
+			tunnelID.strips[p[0]].tiles[p[1]].fallStatus = physics_crumblingShrinkTime + physics_crumblingShrinkStart - 1;
+			tunnelID.strips[p[0]].tiles[p[1]].propogateCrumble();
 		} catch (error) {
-			console.log(`Error crumbling tile with strip ${p[0]} and tile ${p[1]} at tunnel ${tunnel.id}`);
+			console.log(`Error crumbling tile with strip ${p[0]} and tile ${p[1]} at tunnel ${tunnelID.id}`);
 		}
 		
 	});
 	
+}
+
+//generate file from editor world
+function file_export() {
+	//create data
+	var textDat = '';
+
+	//world objects
+	editor_objects.forEach(e => {
+		textDat += e.giveStringData() + "\n";
+	});
+	textDat += "\n";
+
+	//cutscenes
+
+
+
+	var fileObj = new Blob([textDat], {type: 'text/plain'});
+
+	//make sure a world file doesn't already exist
+	if (editor_worldFile != undefined) {
+		window.URL.revokeObjectURL(editor_worldFile);
+	}
+	editor_worldFile = window.URL.createObjectURL(fileObj);
+
+	var link = document.getElementById('download');
+	link.href = editor_worldFile;
+	link.click();
+}
+
+
+//turn file into editor world
+function file_import() {
+	//people say javascript is its most awkward when it's interacting with html + other elements. I think they're right.
+	var fileObj = document.getElementById('upload').files[0];
+	var fileReader = new FileReader();
+	fileReader.onload = function(fileLoadedEvent) {
+		//function for when the text actually loads
+		var worldText = fileLoadedEvent.target.result;
+
+
+		//loading levels
+		editor_objects = [];
+		var levelToLoad = worldText.substring(0, worldText.indexOf("\n"));
+		worldText = worldText.substring(worldText.indexOf("\n")+1);
+		while (levelToLoad != "") {
+			editor_objects.push(new Tunnel_FromData(levelToLoad));
+
+			levelToLoad = worldText.substring(0, worldText.indexOf("\n"));
+			worldText = worldText.substring(worldText.indexOf("\n")+1);
+		}
+
+		loading_state.readFrom = orderObjects(editor_objects, 6);
+
+
+		//loading cutscenes
+	};
+
+	fileReader.readAsText(fileObj, "UTF-8");
 }
 
 function getClosestObject(arr) {
@@ -148,6 +223,11 @@ function getImage(url) {
 	var image = new Image();
 	image.src = url;
 	return image;
+}
+
+//given a dictionary of key:value pairs, returns the key of a value
+function getKey(obj, value) {
+	return Object.keys(obj)[Object.values(obj).indexOf(value)];
 }
 
 function getObjectFromID(id) {
@@ -202,6 +282,20 @@ function getTimeFromFrames(intFrames) {
 
 
 function handleAudio() {
+	//channel 2 is pretty simple, just maintain whatever you're doing if in a gameplay state and if not, set self to undefined
+	//the only states accessible from the world should be map + menu, if I've missed one I'll need to fix it, but doing constructor.name is faster than instanceof
+	if (loading_state.constructor.name == "State_Map" || loading_state.constructor.name == "State_Menu") {
+		audio_channel2.target = undefined;
+	}
+
+	//subtitles for people with their volume off
+	if (audio_channel2.audio == audio_data["Tone"] && audio_channel2.volume == 0 && text_queue.length == 0) {
+		text_queue.push([undefined, `beeeep`]);
+	} 
+
+
+
+	//channel 1
 	//first choose what audio should be
 	//don't update audio target at all during cutscenes
 	if (loading_state.constructor.name == "State_Cutscene") {
@@ -245,6 +339,25 @@ function handleAudio() {
 		//default case
 		if (loading_state.substate != 3) {
 			audio_channel1.target = audio_data[player.parentPrev.music];
+		}
+	}
+}
+
+
+//deals with the text queue at the bottom of the screen
+function handleTextDisplay() {
+	//only do if things in the queue
+	if (text_queue.length > 0) {
+		//draw
+		drawCharacterText();
+
+		//choosing text
+		if (loading_state.substate == 0) {
+			text_time -= 1;
+			if (text_time == 0) {
+				text_time = challenge_textTime;
+				text_queue.splice(0, 1);
+			}
 		}
 	}
 }
@@ -314,22 +427,21 @@ function localStorage_read() {
 
 	//update settings
 	audio_channel1.volume = data_persistent.settings.volume;
-	document.getElementById("haveHighResolution").checked = data_persistent.settings.highResolution;
 	if (data_persistent.settings.highResolution) {
-		data_persistent.settings.highResolution = false;
 		updateResolution();
 	}
 	console.log("loaded save");
 }
 
 function localStorage_write() {
-	//loop through all levels. If it's discovered, add it to the discovered array
-	data_persistent.discovered = [];
+	//loop through all levels. If it's discovered, add it to the discovered list
+	data_persistent.discovered = "";
 	for (var a=0; a<world_objects.length; a++) {
 		if (world_objects[a].discovered == true) {
-			data_persistent.discovered.push(world_objects[a].id);
+			data_persistent.discovered += "~"+world_objects[a].id;
 		}
 	}
+	data_persistent.discovered = data_persistent.discovered.substring(1);
 	window.localStorage["run3_data"] = JSON.stringify(data_persistent);
 }
 
@@ -657,12 +769,9 @@ function tunnelData_handle(data) {
 				tunnelStructure.id = splitTag[1];
 				break;
 			case "layout-tunnel":
-				//splice out the non-numbers
-				var layoutNumberBits = JSON.parse("[" + splitTag[1] + "]");
-
 				//0 is sides, 1 is tiles per side
-				tunnelStructure.sides = layoutNumberBits[0];
-				tunnelStructure.tilesPerSide = layoutNumberBits[1];
+				tunnelStructure.sides = splitTag[1] * 1;
+				tunnelStructure.tilesPerSide = splitTag[2] * 1;
 				break;
 			case "color":
 				tunnelStructure.color = "#" + splitTag[1];
@@ -689,7 +798,7 @@ function tunnelData_handle(data) {
 					tunnelStructure.functions.push([splitTag[1] * 1, splitTag[3], "cutscene"]);
 				}
 				break;
-			case "terrain-pos":
+			case "terrain":
 				tunnelStructure.tileData.push(splitTag[1] + "~" + splitTag[2]);
 				break;
 			case "pos-x":
@@ -749,6 +858,87 @@ function tunnelData_handle(data) {
 //takes in terrain data and returns the 2d array with different tunnel tile types
 function tunnelData_parseData(toParse, tileArray, tilesInLoop, tileTypeNum) {
 	//first step is to parse the stars
+	toParse = tunnelData_parseStars(toParse);
+
+	//next step is converting the data to 1s/0s
+	var newData = "";
+	for (var e=0;e<toParse.length;e++) {
+		newData += ("000000" + (tunnel_translation[toParse[e]]).toString(2)).substr(-6);
+	}
+
+	//final step is to map the 1s/0s onto the tunnel array
+	var posCounter = 0;
+	while (posCounter < newData.length) {
+		var row = posCounter % tilesInLoop;
+		var column = Math.floor(posCounter / tilesInLoop);
+
+		//if the array doesn't already have a value, put self's value in
+		if (!(tileArray[row][column] > 0)) {
+			tileArray[row][column] = newData[posCounter] * tileTypeNum;
+		}
+
+		posCounter += 1;
+	}
+}
+
+function tunnelData_parseDataReverse(tileDataArray) {
+	//helpful numbers
+	var numOfTiles = Object.keys(tunnel_tileAssociation).length;
+
+
+	//helpful units of storage
+	var dataString = "";
+	var stringRegister2 = "";
+	var dataLists = [];
+
+	//step 1: convert tunnel array to sets of 1s / 0s
+	
+	//loop through possible values, create array index
+	//doing this loop backwards makes it faster
+	for (var n=numOfTiles-1; n>-1; n--) {
+		dataLists[n] = "";
+	}
+
+	//loop through possible values again, this time search through the tunnel data to see tiles of that type
+	for (var n=0; n<numOfTiles; n++) {
+		for (var tile=0; tile<tileDataArray[0].length; tile++) {
+			for (var strip=0; strip<tileDataArray.length; strip++) {
+				//add a 0 or 1 string based on whether the tile is there or not
+				dataLists[n] += "" + (1 * (tileDataArray[strip][tile] == (n+1)));
+			}
+		}
+	}
+
+
+	//step 2: convert binary data into b64 data
+	for (var q=0; q<dataLists.length; q++) {
+		stringRegister2 = "";
+
+
+		//only append to final if it's got a tile in it
+		if (dataLists[q] * 1 != 0) {
+			//go through each set of binary numbers, turn into a b64 character, then remove them. After the whole set has been done put the b64 string back into the list
+			while (dataLists[q].length > 0) {
+				stringRegister2 += getKey(tunnel_translation, parseInt(dataLists[q].substring(0, 6), 2));
+				dataLists[q] = dataLists[q].substring(6);
+			}
+			//step 3: add stars while we're at it
+			dataLists[q] = tunnelData_parseStarsReverse(stringRegister2);
+
+			//step 4: append data to final array
+			dataString += `|terrain~${dataLists[q]}`;
+			//if it's a special tile, mark that
+			if (q > 0) {
+				dataString += getKey(tunnel_tileAssociation, q+1);
+			}
+		}
+	}
+
+	//step 5: return
+	return dataString;
+}
+
+function tunnelData_parseStars(toParse) {
 	//loop through all characters of the data
 	for (var u=0;u<toParse.length;u++) {
 		//if the character is a star, look forwards for other stars
@@ -773,26 +963,66 @@ function tunnelData_parseData(toParse, tileArray, tilesInLoop, tileTypeNum) {
 			}
 		}
 	}
+	return toParse;
+}
 
-	//next step is converting the data to 1s/0s
-	var newData = "";
-	for (var e=0;e<toParse.length;e++) {
-		newData += ("000000" + (tunnel_translation[toParse[e]]).toString(2)).substr(-6);
-	}
+function tunnelData_parseStarsReverse(toParse) {
+	var strStore = "";
+	var strFinal = "";
+	var repeatTimes = 0;
+	var repeatLimit = 0;
+	//go through all the characters
+	while (toParse.length > 0) {
+		//repeat for all the stars
+		for (var starNum=1; starNum<=tunnel_dataStarChainMax; starNum++) {
+			//get initial check value
+			strStore = toParse.substring(0, starNum);
 
-	//final step is to map the 1s/0s onto the tunnel array
-	var posCounter = 0;
-	while (posCounter < newData.length) {
-		var row = posCounter % tilesInLoop;
-		var column = Math.floor(posCounter / tilesInLoop);
+			//jump through and detect how many times that value repeats
+			while (strStore == toParse.substring(repeatTimes * starNum, (repeatTimes + 1) * starNum)) {
+				repeatTimes += 1;
+			}
 
-		//if the array doesn't already have a value, put self's value in
-		if (!(tileArray[row][column] > 0)) {
-			tileArray[row][column] = newData[posCounter] * tileTypeNum;
+			//cap repeatTimes at 63, I don't want undefined characters in my data
+			if (repeatTimes > 63) {
+				repeatTimes = 63;
+			}
+
+			//if there's only 1 star, it must repeat 4+ times. 2 stars requires 3 repeats, and 3+ stars requires only 2 repeats
+			switch (starNum) {
+				case 1:
+					repeatLimit = 3;
+					break;
+				default:
+					repeatLimit = 2;
+					break;
+			}
+
+			//if repeated enough, use the stars and leave the loop. if not, move to the next star number
+			if (repeatTimes > repeatLimit) {
+				//append to final string
+				strFinal += strStore;
+				for (var s=0; s<starNum; s++) {
+					strFinal += "*";
+				}
+				if (getKey(tunnel_translation, repeatTimes) == undefined) {
+					console.log(repeatTimes);
+				}
+				strFinal += getKey(tunnel_translation, repeatTimes);
+				//update toParse and leave star loop
+				toParse = toParse.substring(starNum * repeatTimes);
+				starNum = tunnel_dataStarChainMax + 1;
+			} else if (starNum == tunnel_dataStarChainMax) {
+				//if out of star numbers, remove and add the single character
+				strFinal += toParse[0];
+				toParse = toParse.substring(1);
+			}
+
+			//reset things to default
+			repeatTimes = 0;
 		}
-
-		posCounter += 1;
 	}
+	return strFinal;
 }
 
 function updateCursorPos(a) {
