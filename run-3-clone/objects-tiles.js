@@ -50,7 +50,7 @@ class Tile extends FreePoly {
 			cameraRotAttempt = (this.dir_down[1] + (Math.PI * 1.5)) % (Math.PI * 2);
 		}
 
-		world_camera.phi = 0;
+		world_camera.targetPhi = 0;
 		world_camera.targetTheta = entity.dir_front[0];
 		//if the difference is too great, fix that
 		if (Math.abs(world_camera.theta - world_camera.targetTheta) > Math.PI) {
@@ -663,7 +663,7 @@ class Tile_Ice_Ramp extends Tile_Ice {
 		[this.x, this.y, this.z] = avgArray(this.points);
 		this.dir_down = this.normal;
 		this.normal = calculateNormal(this.points);
-		this.dir_right = [this.normal[0], this.normal[1] + (Math.PI / 2)];
+		this.dir_right = [this.dir_down[0], this.dir_down[1] + (Math.PI / 2)];
 	}
 
 	doCollisionEffects(entity) {
@@ -763,7 +763,7 @@ class Tile_Ramp extends Tile {
 		[this.x, this.y, this.z] = avgArray(this.points);
 		this.dir_down = this.normal;
 		this.normal = calculateNormal(this.points);
-		this.dir_right = [this.normal[0], this.normal[1] + (Math.PI / 2)];
+		this.dir_right = [this.dir_down[0], this.dir_down[1] + (Math.PI / 2)];
 	}
 
 	doCollisionEffects(entity) {
