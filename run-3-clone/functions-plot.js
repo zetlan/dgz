@@ -80,16 +80,13 @@ function updatePlotProgression() {
 		eval(reference.effects);
 	});
 
+	var discoveredLevels = data_persistent.discovered.split("~");
 	//change the visited tags for all levels
-	data_persistent.discovered.forEach(a => {
-		try {
-			getObjectFromID(a).discovered = true;
-		} catch (eror) {}
-		
+	discoveredLevels.forEach(a => {
+		getObjectFromID(a).discovered = true;
 	});
 
 	//level 1 is always discovered
-	getObjectFromID(`Level 1`).discovered = true;
 	//if no characters are unlocked, reset to the default
 	if (data_persistent.unlocked == undefined) {
 		data_persistent.unlocked = ["Runner"];
@@ -104,22 +101,6 @@ function updatePlotProgression() {
 			a += 1;
 			targetTunnel = getObjectFromID(`New Tunnel, Part ${a}`);
 		}
-	}
-
-	//if the end of the new tunnel has been discovered, all characters can go through it
-	if (getObjectFromID(`New Tunnel, Part 9`).discovered) {
-		for (var a=1; a<=9; a++) {
-			getObjectFromID(`New Tunnel, Part ${a}`).bannedCharacters = {};
-		}
-	}
-
-	//if the angel hasn't completed going home, lock the way back
-	if (data_persistent.goingHomeProgress == undefined || data_persistent.goingHomeProgress < 27) {
-		let wayBackStart = getObjectFromID("The Way Back, Part 1");
-		wayBackStart.bannedCharacters = {};
-		data_characters.forEach(c => {
-			wayBackStart.bannedCharacters[c] = "`The ${player.constructor.name} isn't going home yet!`";
-		});
 	}
 	console.log("applied story progression");
 }
