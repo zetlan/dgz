@@ -94,7 +94,8 @@ class Camera {
 		this.theta = yRot;
 		this.phi = xRot;
 		this.rot = 0;
-		this.targetTheta = 0;
+		this.targetTheta = yRot;
+		this.targetPhi = xRot;
 		this.targetRot = 0;
 
 		this.dt = 0;
@@ -109,6 +110,7 @@ class Camera {
 			this.y = (this.targetY + (this.y * (render_animSteps - 1))) / render_animSteps;
 			this.z = (this.targetZ + (this.z * (render_animSteps - 1))) / render_animSteps;
 			this.theta = (this.targetTheta + (this.theta * (render_animSteps - 1))) / render_animSteps;
+			this.phi = (this.targetPhi + (this.phi * (render_animSteps - 1))) / render_animSteps;
 		} else {
 			//handling velocity
 
@@ -174,6 +176,7 @@ class Camera {
 		this.targetY = this.y;
 		this.targetZ = this.z;
 		this.targetTheta = this.theta;
+		this.targetPhi = this.phi;
 		this.targetRot = this.rot;
 	}
 
