@@ -9,12 +9,6 @@ class State_World {
 		this.textTime = 0;
 		this.parentControlsAudio = true;
 
-		//textures for characters
-		this.selectionTextures = [];
-		for (var t=0; t<data_characters.length; t++) {
-			this.selectionTextures.push(new Texture(eval(`data_sprites.${data_characters[t]}.sheet`), data_sprites.spriteSize, 2, false, false, eval(`[data_sprites.${data_characters[t]}.back[0], data_sprites.${data_characters[t]}.front[0]]`)));
-		}
-
 		this.orderWorld();
 
 		//make sure to switch into substate 3 if the player is in a bad tunnel
@@ -132,17 +126,17 @@ class State_World {
 				ctx.fillText(targetText, canvas.width * 0.5, canvas.height * 0.4);
 
 				//drawing characters
-				var charWidth = (canvas.width * 0.75) / this.selectionTextures.length;
+				var charWidth = (canvas.width * 0.75) / textures_common.length;
 				var targetY = canvas.height * 0.6;
 				var multiplier = 1.2;
-				for (var c=0; c<this.selectionTextures.length; c++) {
+				for (var c=0; c<textures_common.length; c++) {
 					var targetX = (canvas.width * 0.125) + (charWidth * c) + (charWidth * 0.5);
 					
 					//draw selection box if selectable
 					if (data_persistent.unlocked.includes(data_characters[c]) && player.parentPrev.bannedCharacters[data_characters[c]] == undefined) {
-						drawSelectionBox(targetX, targetY, menu_characterSize * 1.5);
+						drawSelectionBox(targetX, targetY, menu_characterSize * 1.5, menu_characterSize * 1.5);
 					}
-					this.selectionTextures[c].beDrawn(targetX, targetY, 0, menu_characterSize * multiplier);
+					textures_common[c].beDrawn(targetX, targetY, 0, menu_characterSize * multiplier);
 
 					//draw lock if locked
 					if (!data_persistent.unlocked.includes(data_characters[c])) {
@@ -233,7 +227,7 @@ class State_World {
 
 		//if in character selection, select a new character
 		if (this.substate == 3) {
-			var charWidth = (canvas.width * 0.75) / this.selectionTextures.length;
+			var charWidth = (canvas.width * 0.75) / textures_common.length;
 			var targetY = canvas.height * 0.6;
 			for (var c=0; c<data_characters.length; c++) {
 				var targetX = (canvas.width * 0.125) + (charWidth * c) + (charWidth * 0.5);
@@ -326,13 +320,11 @@ class State_Challenge extends State_World {
 		this.fadeTime = challenge_fadeTime;
 		this.texture = new Texture(data_sprites[this.data[0]].sheet, data_sprites.spriteSize, 1e1001, false, false, data_sprites[this.data[0]].front);
 
-		this.textQueue = [];
 		this.lowerTextTime = challenge_textTime;
 		this.addTextToQueue();
 
 		//place player
 		this.targetParent = getObjectFromID(this.data[this.line][0]);
-		console.log(this.data[this.line]);
 		this.placePlayer();
 	}
 
@@ -342,7 +334,7 @@ class State_Challenge extends State_World {
 		//add it all
 		split.forEach(s => {
 			if (s != "") {
-				this.textQueue.push(s);
+				text_queue.push([data_characters.indexOf(this.data[0]), s]);	
 			}
 		});
 	}
@@ -376,28 +368,6 @@ class State_Challenge extends State_World {
 		}
 		
 		super.execute();
-		//draw lower text
-		if (this.substate == 0 && this.textQueue.length > 0) {
-			this.lowerTextTime -= 1;
-			if (this.lowerTextTime == 0) {
-				this.lowerTextTime = challenge_textTime;
-				this.textQueue.splice(0, 1);
-				return;
-			}
-
-			var yOffset = Math.pow((this.lowerTextTime / (challenge_textTime / 2)) - 1, 12);
-			var textSize = Math.min(canvas.height * 0.04, (canvas.width * 0.78) / (this.textQueue[0].length * 0.55));
-
-			var yPos = (canvas.height * 0.92) + (yOffset * canvas.width * 0.08);
-			ctx.fillStyle = color_grey_light;
-			ctx.strokeStyle = color_grey_dark;
-			drawRoundedRectangle(canvas.width * 0.11, yPos - (menu_characterSize * 0.15), canvas.width * 0.8, menu_characterSize * 1.3, canvas.height / 96);
-			this.texture.beDrawn(canvas.width * 0.14, yPos + (menu_characterSize / 2), 0, menu_characterSize);
-			ctx.fillStyle = color_text;
-			ctx.font = `${textSize}px Comfortaa`;
-			ctx.textAlign = "center";
-			ctx.fillText(this.textQueue[0], (canvas.width * 0.5) + menu_characterSize, yPos + (canvas.height * 0.03) + (textSize / 2));
-		}
 		
 
 
@@ -475,6 +445,11 @@ class State_Cutscene extends State_World {
 				]
 			}
 		}
+		//make a copy without linking to the reference
+		this.selectionTextures = [];
+		textures_common.forEach(c => {
+			this.selectionTextures.push(c);
+		});
 
 		
 		//sidebar stuff
@@ -484,7 +459,8 @@ class State_Cutscene extends State_World {
 			`new SceneBubble(0.5, 0.5, 0.1, 0.1)`,
 			`new SceneLine(0.4, 0.4, 0.6, 0.6)`,
 			`new SceneTri(0.4, 0.4, 0.6, 0.6, (editor_handleRadius * 2) / canvas.width)`,
-			`new SceneText(0.5, 0.5, 0.1, 0.05, "lorem ipsum dolor set amet, quim eres it", false);`
+			`new SceneText(0.5, 0.5, 0.1, 0.05, "lorem ipsum dolor set amet, quim eres it", false);`,
+			`new SceneCode(\`console.log("Make absolutely sure you know what you're doing before you use this. For real. 100% sure. I don't take responsibility for anything that breaks as a result.");\`);`
 		];
 		this.objs3d = [
 			`new SceneLight(world_camera.x + polToCart(world_camera.theta, world_camera.phi, 5)[0], world_camera.y + polToCart(world_camera.theta, world_camera.phi, 5)[1], world_camera.z + polToCart(world_camera.theta, world_camera.phi, 5)[2])`,
@@ -509,16 +485,14 @@ class State_Cutscene extends State_World {
 				this.data[e] = this.convertStringData(this.data[e]);
 			}
 		}
-		this.doDraw = true;
 		this.doSidebar = true;
 		this.destinationState = new State_Map();
+		this.skipping = false;
 
 		//editor specific thingies
 		this.selected = undefined;
 		this.modifyCameraPos = false;
 		this.updateFrame();
-
-		editor_snapTolerance *= 2.2;
 	}
 
 	drawIconLine(x, IDstart, dataArr) {
@@ -551,7 +525,12 @@ class State_Cutscene extends State_World {
 		LIN - line				x1~y1~x2~y2
 		TRI - triangle line		x1~y1~x2~y2~width
 		TXT - text box			x~y~width~textSize~content~useLightColor? 
-		POW - powercell			x~y~z */
+		COD - code block		code
+
+		POW - powercell			x~y~z 
+		3BR - ringed box		x~y~z~size~rot
+		
+		*/
 
 		//split by vertical seperator, then parse each tag
 		var tags = line.split("|");
@@ -574,6 +553,9 @@ class State_Cutscene extends State_World {
 					break;
 				case "BOX":
 					objData.push(new SceneBox(s[1] * 1, s[2] * 1, s[3] * 1, s[4] * 1));
+					break;
+				case "COD":
+					objData.push(new SceneCode(s[1]));
 					break;
 				case "LIN":
 					objData.push(new SceneLine(s[1] * 1, s[2] * 1, s[3] * 1, s[4] * 1));
@@ -601,7 +583,7 @@ class State_Cutscene extends State_World {
 		ctx.fillRect(0, 0, canvas.width * editor_cutsceneWidth, canvas.height);
 		ctx.globalAlpha = 1;
 
-		this.drawIconLine((editor_cutsceneWidth * 0.2) * canvas.width, 25, this.objs3d);
+		this.drawIconLine((editor_cutsceneWidth * 0.2) * canvas.width, 26, this.objs3d);
 		this.drawIconLine((editor_cutsceneWidth * 0.5) * canvas.width, 20, this.objs2d);
 
 		var targetX = (editor_cutsceneWidth * 0.8) * canvas.width;
@@ -647,11 +629,13 @@ class State_Cutscene extends State_World {
 				ctx.globalAlpha = 1;
 			}
 
-			//show frame number at the top
-			ctx.fillStyle = color_text_bright;
+			//show frame number + id at the top
 			ctx.font = `${canvas.height * 0.06}px Comfortaa`;
-			var text = `${this.frame+1} / ${this.data.length}`;
-			ctx.fillText(text, canvas.width * 0.5, canvas.height * 0.05);
+			drawSelectionBox(canvas.width * 0.5, canvas.height * 0.03, ctx.measureText(this.id).width + (canvas.width * 0.02), canvas.height * 0.06);
+			ctx.fillStyle = color_text_bright;
+			
+			ctx.fillText(this.id, canvas.width * 0.5, canvas.height * 0.05);
+			ctx.fillText(`${this.frame+1} / ${this.data.length}`, canvas.width * 0.5, canvas.height * 0.1);
 
 			//sidebar
 			this.drawSidebar();
@@ -681,6 +665,26 @@ class State_Cutscene extends State_World {
 				//also update frame info
 				this.data[this.frame][0] = [world_camera.x, world_camera.y, world_camera.z, world_camera.theta, world_camera.phi, world_camera.rot];
 			}
+
+			//update world every few frames
+			if (world_time % 50 == 1 && this.modifyCameraPos) {
+				this.updateFrame();
+			}
+		}
+
+		//fast forwards if skipping cutscene
+		if (this.skipping) {
+			this.frame += 1;
+			this.updateFrame();
+		}
+	}
+
+	exit() {
+		loading_state = this.destinationState;
+		try {
+			loading_state.doWorldEffects();
+		} catch (error) {
+			//don't do this, this code right here is a bad example
 		}
 	}
 
@@ -732,11 +736,15 @@ var outputString = `{
 		//in regular mode
 		if (!editor_active) {
 			this.frame += 1;
-			if (this.data[this.frame] != undefined) {
-				this.updateFrame();
-			} else {
-				//exiting gracefully (everyone take a bow zozzle)
-				this.handleEscape();
+			this.updateFrame();
+			return;
+		}
+
+		//ID change
+		if (cursor_y < canvas.height * 0.1 && cursor_x > canvas.width * 0.4 && cursor_x < canvas.width * 0.6) {
+			var newID = prompt("Enter new ID:", this.id);
+			if (newID != null && newID != "" && newID != undefined) {
+				this.id = newID;
 			}
 			return;
 		}
@@ -767,20 +775,20 @@ var outputString = `{
 
 		//search through list of objects
 		var tolerance = editor_handleRadius * 3;
+		this.selected = undefined;
 		for (var h=this.data[this.frame][1].length-1; h>-1; h--) {
 			//get list of handles
 			var handleList = this.data[this.frame][1][h].giveHandles();
 			for (var a=0; a<handleList.length; a++) {
 				//if the handle is closer than the tolerance, select it
 				if (getDistance2d([cursor_x, cursor_y], handleList[a]) < tolerance) {
-					//multi-selection protection
-					if (this.selected != undefined) {
-						this.selected.selectedPart = undefined;
-						this.selected = undefined;
-					}
 					this.selected = this.data[this.frame][1][h];
 					this.selected.selectedPart = a;
 				}
+			}
+			//if selected an object, exit
+			if (this.selected != undefined) {
+				return;
 			}
 		}
 	}
@@ -791,13 +799,7 @@ var outputString = `{
 			return;
 		}
 
-		editor_snapTolerance /= 2.2;
-		loading_state = this.destinationState;
-		try {
-			loading_state.doWorldEffects();
-		} catch (error) {
-			//don't do this
-		}
+		this.skipping = true;
 	}
 
 	handleKeyPress(a) {
@@ -864,7 +866,12 @@ var outputString = `{
 	}
 
 	updateFrame() {
-		this.doDraw = true;
+		//if data is undefined, exit
+		if (this.data[this.frame] == undefined) {
+			this.exit();
+			return;
+		}
+
 		//camera properties
 		world_camera.x = this.data[this.frame][0][0];
 		world_camera.y = this.data[this.frame][0][1];
@@ -882,13 +889,19 @@ var outputString = `{
 		player.y = world_camera.y;
 		player.z = world_camera.z;
 
-		//update light sources and process text
 		world_lightObjects = [];
+		//special object effects
 		this.data[this.frame][1].forEach(v => {
-			if (v.constructor.name == "SceneLight") {
-				world_lightObjects.push(v);
-			} else if (v.fontSize != undefined) {
-				v.process();
+			switch (v.constructor.name) {
+				case "SceneLight":
+					world_lightObjects.push(v);
+					break;
+				case "SceneText":
+					v.process();
+					break;
+				case "SceneCode":
+					v.finished = false;
+					break;
 			}
 		});
 
@@ -1166,7 +1179,7 @@ class State_Infinite extends State_World {
 				var offX = canvas.width * 0.6 * ((a % 5) / 5);
 
 				//only continue if the character at the specified index is real
-				if (loading_state.selectionTextures[data_characters.indexOf(characterList[a])] != undefined && data_persistent.unlocked.includes(characterList[a])) {
+				if (textures_common[data_characters.indexOf(characterList[a])] != undefined && data_persistent.unlocked.includes(characterList[a])) {
 					//if the player has clicked on the box for the character, send them into the infinite mode thingy again
 					if (cursor_x > (canvas.width * 0.35) + offX - menu_characterSize && cursor_x < (canvas.width * 0.35) + offX + menu_characterSize && 
 						cursor_y > (canvas.height * 0.13) + offY && cursor_y < (canvas.height * 0.13) + offY + (menu_characterSize * 2)) {
@@ -1224,7 +1237,10 @@ class State_Loading {
 	}
 
 	handleMouseDown(a) {
-
+		//after all, why not create a star at the cursor position?
+		updateCursorPos(a);
+		//don't update the RNG, that's pretty important
+		drawCircle(color_stars, cursor_x, cursor_y, randomBounded(3, 7));
 	}
 
 	handleMouseMove(a) {
@@ -1264,6 +1280,9 @@ class State_Map {
 			new MapTexture(46575, -126244, [data_sprites.Map.snowflakes[4]], undefined, `getObjectFromID("Winter Games, Part 7").discovered`),
 		];
 		this.dir_held = false;
+		this.substate = 0;
+		this.angelPanelTime = 0;
+		this.angelPanelSpeed = 0;
 	}
 
 	doWorldEffects() {
@@ -1276,8 +1295,9 @@ class State_Map {
 		world_camera.rot = 0;
 
 		//targets
-		world_camera.targetRot = world_camera.rot;
 		world_camera.targetTheta = world_camera.theta;
+		world_camera.targetPhi = world_camera.phi;
+		world_camera.targetRot = world_camera.rot;
 
 		world_camera.targetX = world_camera.x;
 		world_camera.targetY = world_camera.y;
@@ -1361,6 +1381,16 @@ class State_Map {
 			ctx.fillStyle = color_text;
 			ctx.fillText(this.objSelected.id, canvas.width * 0.5, canvas.height * 0.1);
 		}
+
+		//angel going home panel
+		if (data_persistent.goingHomeProgress != undefined) {
+			this.angelPanelTime += this.angelPanelSpeed;
+			if (this.angelPanelTime > 1 || this.angelPanelTime < 0) {
+				this.angelPanelTime = clamp(this.angelPanelTime, 0, 1);
+				this.angelPanelSpeed = 0;
+			}
+			drawAngelPanel(this.angelPanelTime);
+		}
 	}
 
 	handleEscape() {
@@ -1372,6 +1402,30 @@ class State_Map {
 	handleMouseDown(a) {
 		//update cursor position
 		updateCursorPos(a);
+
+		//going home checklist things
+		if (data_persistent.goingHomeProgress != undefined) {
+			//flip note up
+			if (this.angelPanelTime < 0.04 && cursor_x > canvas.width * checklist_margin && cursor_x < canvas.width * (checklist_margin + checklist_width) && cursor_y > canvas.height * 0.95) {
+				this.angelPanelSpeed = checklist_speed;
+				return;
+			}
+
+			//flip note down
+			if (this.angelPanelTime > 0.96) {
+				if (cursor_x > canvas.width * checklist_margin && cursor_x < canvas.width * (checklist_margin + checklist_width) && 
+				cursor_y > canvas.height * (1 - checklist_height) && cursor_y < canvas.height * (1.05 - checklist_height)) {
+					this.angelPanelSpeed = -1 * checklist_speed;
+					return;
+				}
+
+				//button
+				if (data_persistent.goingHomeProgress < challengeData_angelMissions.length) {
+					checklist_searchButton.handleClick();
+				}
+			}
+		}
+
 		if (this.objSelected != undefined) {
 			this.objSelected.handleMouseDown();
 		}
@@ -1391,6 +1445,12 @@ class State_Map {
 			//normal mode, reset + select tunnel
 			this.objSelected = undefined;
 			this.cursorPos = [-100, -100];
+			if (data_persistent.goingHomeProgress != undefined) {
+				//if cursor is on the note, don't select an object
+				if (this.angelPanelTime > 0 && cursor_x > canvas.width * checklist_margin && cursor_x < canvas.width * (checklist_margin + checklist_width) && cursor_y > canvas.width * (1 - checklist_height)) {
+					return;
+				}
+			}
 			this.selectMapObject();
 		} else {
 			if (this.objSelected != undefined) {
@@ -1406,6 +1466,9 @@ class State_Map {
 	}
 
 	handleKeyPress(a) {
+		if (editor_active) {
+			handleKeyPress_camera(a);
+		}
 		if (!this.dir_held) {
 			switch (a.keyCode) {
 				//<--
@@ -1427,12 +1490,15 @@ class State_Map {
 	}
 
 	handleKeyNegate(a) {
+		if (editor_active) {
+			handleKeyNegate_camera(a);
+		}
 		this.dir_held = false;
 	}
 
 	selectMapObject() {
 		//loop through all map objects and select the closest one
-		var reqDist = editor_snapTolerance * 4;
+		var reqDist = editor_cutsceneSnapTolerance;
 		world_objects.forEach(c => {
 			if (c.discovered || editor_active) {
 				if (getDistance2d(c.map_circleCoords, [cursor_x, cursor_y]) < reqDist) {
@@ -1458,14 +1524,6 @@ class State_Map {
 
 class State_Menu {
 	constructor() {
-		this.overButton = -1;
-		this.buttons = menu_buttons;
-
-		this.selectionTextures = [];
-		for (var t=0; t<data_characters.length; t++) {
-			this.selectionTextures.push(new Texture(eval(`data_sprites.${data_characters[t]}.sheet`), data_sprites.spriteSize, 2, false, false, eval(`[data_sprites.${data_characters[t]}.back[0], data_sprites.${data_characters[t]}.front[0]]`)));
-		}
-
 		this.characterSelected = 0;
 		this.displayCharacterSelected = 0;
 
@@ -1481,14 +1539,20 @@ class State_Menu {
 
 		//settings for settings menu
 		this.settings = [
-			new PropertySlider(0.05, 0.3, 0.15, 0.1, 'volume', `audio_channel1.volume = value;`, `audio_channel1.volume`, 0, 1, 0.01, false),
-			new PropertyToggle(0.05, 0.4, 0.15, `high resolution`, `data_persistent.settings.highResolution`)
-		]
+			new PropertySlider(0.05, 0.3, 0.4, 0.2, 'music volume', `audio_channel1.volume = value;`, `audio_channel1.volume`, 0, 1, 0.01, false),
+			new PropertySlider(0.05, 0.4, 0.4, 0.2, 'effects volume', `audio_channel2.volume = value;`, `audio_channel2.volume`, 0, 1, 0.01, false),
+			new PropertyToggle(0.05, 0.5, 0.4, `high resolution`, `data_persistent.settings.highResolution`),
+			//new PropertyToggle(0.05, 0.5, 0.4, `precise tunnel rendering`, `data_persistent.settings.altRender`)
+		];
+		this.buttons = [
+			new PropertyButton(0.5, 0.5 - ((menu_buttonHeight * 0.75) * 3) + 						   (menu_characterSize / canvas.height), menu_buttonWidth, menu_buttonHeight, "Infinite Mode", `loading_state = new State_Infinite();`),
+			new PropertyButton(0.5, 0.5 - ((menu_buttonHeight * 0.75) * 3) + (menu_buttonHeight * 2) + (menu_characterSize / canvas.height), menu_buttonWidth, menu_buttonHeight, "Explore Mode", `loading_state = new State_Map();`),
+			new PropertyButton(0.5, 0.5 - ((menu_buttonHeight * 0.75) * 3) + (menu_buttonHeight * 4) + (menu_characterSize / canvas.height), menu_buttonWidth, menu_buttonHeight, "Edit Mode", `loading_state = new State_Edit_Tiles();`),
+		];
 	}
 	execute() {
 		//bege
 		ctx.fillStyle = color_bg;
-		ctx.strokeStyle = color_grey_dark;
 		ctx.fillRect(0, 0, canvas.width, canvas.height);
 
 		//back button in case of non-main states
@@ -1502,6 +1566,9 @@ class State_Menu {
 				//swivel display character
 				this.displayCharacterSelected = ((this.displayCharacterSelected * (render_animSteps - 1)) + this.characterSelected) / render_animSteps;
 
+				//selection box for username
+				drawSelectionBox(canvas.width * ((player_maxNameWidth / 2) + 0.01), canvas.height * 0.0375, canvas.width * player_maxNameWidth, canvas.height * 0.055);
+
 				//title card
 				ctx.font = `${canvas.height / 8}px Comfortaa`;
 				ctx.textAlign = `center`;
@@ -1509,33 +1576,18 @@ class State_Menu {
 				ctx.fillText(`Run 3`, canvas.width * 0.5, canvas.height * 0.13);
 
 				//powercell readout
-				ctx.font = `${canvas.height / 24}px Comfortaa`;
+				ctx.font = `${canvas.height / 32}px Comfortaa`;
 				ctx.textAlign = `left`;
 
 				ctx.fillText(data_persistent.name, canvas.width * 0.02, canvas.height * 0.05);
 				ctx.fillText(`${data_persistent.powercells} power cells`, canvas.width * 0.02, canvas.height * 0.1);
 				ctx.textAlign = `center`;
-
-				//drawing buttons
-				var trueButtonWidth = (canvas.width * menu_buttonWidth * 0.5);
-				var trueButtonHeight = (canvas.height * menu_buttonHeight * 0.5);
-				var startHeight = (canvas.height * 0.5) - (trueButtonHeight * this.buttons.length * 1.5);
-
-				ctx.lineWidth = canvas.height / 96;
-				ctx.font = `${canvas.height / 30}px Comfortaa`;
-				for (var y=0; y<this.buttons.length; y++) {
-					var yOffset = startHeight + (trueButtonHeight * 4 * y) + menu_characterSize;
-					if (this.overButton == y) {
-						ctx.fillStyle = color_grey_dark;
-					} else {
-						ctx.fillStyle = color_grey_light;
-					}
-					drawRoundedRectangle((canvas.width * 0.5) - trueButtonWidth, yOffset, trueButtonWidth * 2, trueButtonHeight * 2, canvas.height / 48);
-					
-					//text
-					ctx.fillStyle = color_text;
-					ctx.fillText(this.buttons[y][0], canvas.width * 0.5, yOffset + trueButtonHeight + (canvas.height / 90));
-				}
+				
+				ctx.strokeStyle = color_grey_dark;
+				this.buttons.forEach(b => {
+					b.tick();
+					b.beDrawn();
+				});
 
 				//lower left buttons
 				for (var b=0; b<3; b++) {
@@ -1547,14 +1599,14 @@ class State_Menu {
 				//selection box
 				var offX = menu_characterCircleRadius * canvas.height * Math.cos((Math.PI * 2 * (1 / data_characters.length) * this.displayCharacterSelected) - (Math.PI * 0.5));
 				var offY = menu_characterCircleRadius * canvas.height * Math.sin((Math.PI * 2 * (1 / data_characters.length) * this.displayCharacterSelected) - (Math.PI * 0.5));
-				drawSelectionBox((canvas.width * 0.5) + offX, (canvas.height * 0.5) + offY + menu_characterSize - 5, menu_characterSize * 2);
+				drawSelectionBox((canvas.width * 0.5) + offX, (canvas.height * 0.5) + offY + menu_characterSize - 5, menu_characterSize * 2, menu_characterSize * 2);
 
 				for (var h=0; h<data_characters.length; h++) {
 					offX = menu_characterCircleRadius * canvas.height * Math.cos((Math.PI * 2 * (1 / data_characters.length) * h) - (Math.PI * 0.5));
 					offY = menu_characterCircleRadius * canvas.height * Math.sin((Math.PI * 2 * (1 / data_characters.length) * h) - (Math.PI * 0.5));
 					//character texture
-					this.selectionTextures[h].frame = 0 + (modularDifference(this.displayCharacterSelected, h, data_characters.length) < 0.5 && data_persistent.unlocked.includes(data_characters[h]));
-					this.selectionTextures[h].beDrawn((canvas.width * 0.5) + offX, (canvas.height * 0.5) + offY + menu_characterSize, 0, menu_characterSize * 1.7);
+					textures_common[h].frame = 0 + (modularDifference(this.displayCharacterSelected, h, data_characters.length) < 0.5 && data_persistent.unlocked.includes(data_characters[h]));
+					textures_common[h].beDrawn((canvas.width * 0.5) + offX, (canvas.height * 0.5) + offY + menu_characterSize, 0, menu_characterSize * 1.7);
 					if (!data_persistent.unlocked.includes(data_characters[h])) {
 						drawCharacterLock((canvas.width * 0.5) + offX, (canvas.height * 0.5) + offY + (menu_characterSize * 0.75), menu_characterSize, menu_characterSize);
 					}
@@ -1566,31 +1618,47 @@ class State_Menu {
 				ctx.textAlign = "left";
 				ctx.fillStyle = color_text_bright;
 				//headers
-				ctx.fillText("Username", canvas.width * 0.05, canvas.height * 0.15);
-				ctx.fillText("Distance", canvas.width * 0.3, canvas.height * 0.15);
+				ctx.fillText("Username", canvas.width * 0.04, canvas.height * 0.15);
+				ctx.fillText("Distance", canvas.width * 0.35, canvas.height * 0.15);
 				if (data_persistent.effectiveCutscenes.includes("batteries")) {
-					ctx.fillText("Batteries", canvas.width * 0.45, canvas.height * 0.15);
+					ctx.fillText("Batteries", canvas.width * 0.5, canvas.height * 0.15);
 				} else {
-					ctx.fillText("Powercells", canvas.width * 0.45, canvas.height * 0.15);
+					ctx.fillText("Powercells", canvas.width * 0.5, canvas.height * 0.15);
 				}
-				ctx.fillText("Characters Used", canvas.width * 0.6, canvas.height * 0.15);
+				ctx.fillText("Characters Used", canvas.width * 0.65, canvas.height * 0.15);
 
 				for (var j=0; j<data_persistent.highscores.length; j++) {
-					ctx.fillText(data_persistent.highscores[j][0], canvas.width * 0.05, ((canvas.height * 0.2) + (canvas.width * 0.05 * j)) + (Math.floor(canvas.height / 30) * 0.5), canvas.width * 0.34);
+					ctx.fillText(data_persistent.highscores[j][0], canvas.width * 0.04, ((canvas.height * 0.2) + (canvas.width * 0.05 * j)) + (Math.floor(canvas.height / 30) * 0.5), canvas.width * 0.34);
 					//normal data
-					ctx.fillText(data_persistent.highscores[j][1] + "m", canvas.width * 0.3, ((canvas.height * 0.2) + (canvas.width * 0.05 * j)) +  (Math.floor(canvas.height / 30) * 0.5));
-					ctx.fillText(data_persistent.highscores[j][2], canvas.width * 0.45, ((canvas.height * 0.2) + (canvas.width * 0.05 * j)) +  (Math.floor(canvas.height / 30) * 0.5));
+					ctx.fillText(data_persistent.highscores[j][1] + "m", canvas.width * 0.35, ((canvas.height * 0.2) + (canvas.width * 0.05 * j)) +  (Math.floor(canvas.height / 30) * 0.5));
+					ctx.fillText(data_persistent.highscores[j][2], canvas.width * 0.5, ((canvas.height * 0.2) + (canvas.width * 0.05 * j)) +  (Math.floor(canvas.height / 30) * 0.5));
 
 					//characters used
 					for (var k=0; k<data_persistent.highscores[j][3].length; k++) {
 						var charIndex = data_characters.indexOf(data_persistent.highscores[j][3][k]);
-						this.selectionTextures[charIndex].frame = 0;
-						this.selectionTextures[charIndex].beDrawn((canvas.width * 0.6) + (menu_characterSize * 0.8 * (k + 0.5)), (canvas.height * 0.2) + (canvas.width * 0.05 * j), 0, menu_characterSize * 0.75);
+						textures_common[charIndex].frame = 0;
+						textures_common[charIndex].beDrawn((canvas.width * 0.65) + (menu_characterSize * 0.8 * (k + 0.5)), (canvas.height * 0.2) + (canvas.width * 0.05 * j), 0, menu_characterSize * 0.75);
 					}
 				}
 				break;
 			case 2:
+				//reset save data button
+				drawSelectionBox(canvas.width * 0.5, canvas.height * 0.935, canvas.width * 0.4, canvas.height * 0.08);
+				ctx.fillStyle = color_text_danger;
+				ctx.textAlign = "center";
+				ctx.font = `${canvas.height / 20}px Comfortaa`;
+				ctx.fillText(`Delete save data`, canvas.width * 0.5, canvas.height * 0.95);
+
+				var currentRes = data_persistent.settings.highResolution;
 				//settings menu
+				this.settings.forEach(s => {
+					s.tick();
+					s.beDrawn();
+				});
+				//update resolution if required
+				if (data_persistent.settings.highResolution != currentRes) {
+					updateResolution();
+				}
 				break;
 			case 3:
 				//cutscene viewer menu
@@ -1600,7 +1668,6 @@ class State_Menu {
 				data_cutsceneTree.beDrawn_handle();
 				break;
 		}
-		
 	}
 
 	handleEscape() {
@@ -1617,53 +1684,77 @@ class State_Menu {
 
 		switch (this.substate) {
 			case 0:
-				if (this.overButton > -1) {
-					loading_state = eval(this.buttons[this.overButton][1]);
-				} else {
-					//checking for collision with characters.
-					for (var h=0; h<data_characters.length; h++) {
-						var posX = (canvas.width * 0.5) + (menu_characterCircleRadius * canvas.height * Math.cos((Math.PI * 2 * (1 / data_characters.length) * h) - (Math.PI * 0.5)));
-						var posY = (canvas.height * 0.5) + menu_characterSize + (menu_characterCircleRadius * canvas.height * Math.sin((Math.PI * 2 * (1 / data_characters.length) * h) - (Math.PI * 0.5)));
-			
-						//selection box
-						if (cursor_x > posX - menu_characterSize && cursor_x < posX + menu_characterSize &&
-						cursor_y > posY - menu_characterSize && cursor_y < posY + menu_characterSize &&
-						data_persistent.unlocked.includes(data_characters[h])) {
-							this.characterSelected = h;
-							player = eval(`new ${data_characters[h]}(0, 0, 0)`);
-							if (Math.abs(this.characterSelected - this.displayCharacterSelected) > data_characters.length / 2) {
-								if (this.characterSelected < this.displayCharacterSelected) {
-									this.displayCharacterSelected -= data_characters.length;
-								} else {
-									this.displayCharacterSelected += data_characters.length;
-								}
-							}
-							h = data_characters.length + 1;
+				//collision with buttons
+				this.buttons.forEach(b => {
+					b.handleClick();
+				});
+				if (loading_state != this) {
+					return;
+				}
+
+				//collision with name changer
+				if (cursor_x < canvas.width * 0.25 && cursor_y < canvas.height * 0.1) {
+					var value = prompt("Enter new username please:", data_persistent.name);
+					if (value != null && value != "") {
+						//make sure name fits in the box lol
+						ctx.font = `${canvas.height / 32}px Comfortaa`;
+						var charNum = value.length;
+						while (ctx.measureText(value).width > canvas.width * player_maxNameWidth) {
+							charNum -= 1;
+							value = value.substring(0, charNum);
 						}
+						data_persistent.name = value;
 					}
-	
-					//check for collision with lower buttons
-					for (var b=0; b<3; b++) {
-						var xOff = (canvas.height * 0.05) + (canvas.width * (b * 0.07));
-						var yOff = canvas.height * 0.9;
-	
-						if (cursor_x > xOff && cursor_x < xOff + canvas.width * 0.05 && cursor_y > yOff && cursor_y < yOff + canvas.width * 0.05) {
-							this.substate = b + 1;
-							//if cutscene mode, update viewership
-							if (this.substate == 3) {
-								data_cutsceneTree.getVisible();
+					return;
+				}
+
+				//collision with characters.
+				for (var h=0; h<data_characters.length; h++) {
+					var posX = (canvas.width * 0.5) + (menu_characterCircleRadius * canvas.height * Math.cos((Math.PI * 2 * (1 / data_characters.length) * h) - (Math.PI * 0.5)));
+					var posY = (canvas.height * 0.5) + menu_characterSize + (menu_characterCircleRadius * canvas.height * Math.sin((Math.PI * 2 * (1 / data_characters.length) * h) - (Math.PI * 0.5)));
+
+					//selection box
+					if (cursor_x > posX - menu_characterSize && cursor_x < posX + menu_characterSize &&
+					cursor_y > posY - menu_characterSize && cursor_y < posY + menu_characterSize &&
+					data_persistent.unlocked.includes(data_characters[h])) {
+						this.characterSelected = h;
+						player = eval(`new ${data_characters[h]}(0, 0, 0)`);
+						if (Math.abs(this.characterSelected - this.displayCharacterSelected) > data_characters.length / 2) {
+							if (this.characterSelected < this.displayCharacterSelected) {
+								this.displayCharacterSelected -= data_characters.length;
+							} else {
+								this.displayCharacterSelected += data_characters.length;
 							}
 						}
+						return;
+					}
+				}
+				//collision with lower buttons
+				for (var b=0; b<3; b++) {
+					var xOff = (canvas.height * 0.05) + (canvas.width * (b * 0.07));
+					var yOff = canvas.height * 0.9;
+
+					if (cursor_x > xOff && cursor_x < xOff + canvas.width * 0.05 && cursor_y > yOff && cursor_y < yOff + canvas.width * 0.05) {
+						this.substate = b + 1;
+						//if cutscene mode, update viewership
+						if (this.substate == 3) {
+							data_cutsceneTree.getVisible();
+						}
+						return;
 					}
 				}
 				break;
 			case 2:
-				//settings menu
+				//reset button
+				if (cursor_x > canvas.width * 0.3 && cursor_x < canvas.width * 0.7 && cursor_y > canvas.height * 0.9) {
+					trueReset();
+				}
+
 				break;
 			case 3:
 				//try to select a cutscene node
 				this.nodeSelected = undefined;
-				this.nodeSelected = data_cutsceneTree.becomeSelected(editor_snapTolerance * 6);
+				this.nodeSelected = data_cutsceneTree.becomeSelected(editor_cutsceneSnapTolerance);
 				//cutscene viewer
 				if (!editor_active) {
 					//activating cutscene
@@ -1674,28 +1765,10 @@ class State_Menu {
 				}
 				break;
 		}
-		
 	}
 
 	handleMouseMove(a) {
 		updateCursorPos(a);
-
-		if (this.substate == 0) {
-			this.overButton = -1;
-
-			//check for collision with center buttons
-			var trueButtonWidth = (canvas.width * menu_buttonWidth * 0.5);
-			var trueButtonHeight = (canvas.height * menu_buttonHeight * 0.5);
-			var startHeight = (canvas.height * 0.5) - (trueButtonHeight * this.buttons.length * 1.5);
-			for (var y=0; y<this.buttons.length; y++) {
-				var yOffset = startHeight + (trueButtonHeight * 4 * y) + trueButtonHeight + (canvas.height / 16);
-
-				if (cursor_x > (canvas.width * 0.5) - trueButtonWidth && cursor_x < (canvas.width * 0.5) + trueButtonWidth &&
-					cursor_y > yOffset - trueButtonHeight && cursor_y < yOffset + trueButtonHeight) {
-						this.overButton = y;
-				}
-			}
-		}
 		if (this.substate == 3 && cursor_down && editor_active && this.nodeSelected != undefined) {
 			this.nodeSelected.trueX = ((cursor_x / canvas.width) - 0.5) / (1 - menu_cutsceneParallax);
 			this.nodeSelected.trueY = ((cursor_y / canvas.height) - 0.5) / (1 - menu_cutsceneParallax);
@@ -1715,4 +1788,3 @@ class State_Menu {
 
 	}
 }
-
