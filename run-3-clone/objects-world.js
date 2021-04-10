@@ -1,3 +1,43 @@
+
+
+/*this is what happens when you refuse to use a real 3d renderer and instead hack together a bunch of 
+special cases and rendering tricks,then months later are forced to confront putting real 3d objects into your program.
+Don't do what I did, be smart.
+
+I should have used quaternions.
+
+If I come back to this project later I'll convert all the euler angles to quaternions, because that would solve a lot of problems. 
+It would also allow a revamp of the galaxy map, tunnels pointing up/down, so many cool things! I'm getting ahead of myself, sorry
+*/
+class Boat {
+	constructor(x, y, z, theta, phi) {
+		this.x = x;
+		this.y = y;
+		this.z = z;
+	}
+
+	beDrawn() {
+
+	}
+
+	doComplexLighting() {
+
+	}
+
+	generate() {
+
+	}
+
+	tick() {
+
+	}
+}
+
+
+
+
+
+
 class FreePoly {
 	constructor(points, color) {
 		this.x;
@@ -519,8 +559,7 @@ class StaticCharacter {
 
 	placeSelf() {
 		var targetTile = this.parent.strips[this.strip].tiles[this.tile];
-		//var offset = polToCart(targetTile.normal[0], targetTile.normal[1] + (Math.PI / 2), player_radius);
-		var offset = [0, 0, 0];
+		var offset = polToCart(targetTile.dir_down[0], targetTile.dir_down[1] + Math.PI, player_radius * 5);
 		this.x = targetTile.x + offset[0];
 		this.y = targetTile.y + offset[1];
 		this.z = targetTile.z + offset[2];
@@ -616,7 +655,7 @@ class Tunnel {
 		this.r = (this.tilesPerSide * this.tileSize) / (2 * Math.sin(Math.PI / this.sides));
 
 		this.generateTiles();
-		//stop rendering individual tiles when they're less than 10 units per tile
+		//stop rendering individual tiles when they're less than 1 unit per tile
 		this.maxTileRenderDist = Math.min(render_maxDistance, (this.tileSize / 2) * world_camera.scale);
 
 		//map stuffies
@@ -702,11 +741,11 @@ class Tunnel {
 			this.freeObjs.forEach(f => {
 				f.beDrawn();
 			});
-			stripsDrawn += 100;
+			stripsDrawn += 1000;
 		}
 
 		//front faces
-		while (stripsDrawn < tunnelSize - 1 || (stripsDrawn > 99 && stripsDrawn < tunnelSize + 99)) {
+		while (stripsDrawn < tunnelSize - 1 || (stripsDrawn > 999 && stripsDrawn < tunnelSize + 999)) {
 			if (stripsDrawn % 2 == 0) {
 				if (drawPlayer) {
 					if (!this.strips[trackR % tunnelSize].playerIsOnTop()) {
@@ -771,7 +810,7 @@ class Tunnel {
 	}
 
 	beDrawn_HighDetail() {
-		//copy + modify from drawPlayerWithParent
+		//copy + modify from playerParent
 		var tunnelStrip = getClosestObject(this.strips);
 		var trackL = tunnelStrip - Math.floor(this.strips.length / 2);
 		var trackR = tunnelStrip + Math.floor(this.strips.length / 2);
@@ -802,13 +841,17 @@ class Tunnel {
 			this.freeObjs.forEach(f => {
 				f.beDrawn();
 			});
-			stripsDrawn += 100;
+			stripsDrawn += 1000;
 		}
 
 		//tunnel part 2
-		while (stripsDrawn < this.strips.length - 1 || (stripsDrawn > 99 && stripsDrawn < this.strips.length + 99)) {
+		while (stripsDrawn < this.strips.length - 1 || (stripsDrawn > 999 && stripsDrawn < this.strips.length + 999)) {
 			if (stripsDrawn % 2 == 0) {
-				this.strips[trackR % this.strips.length].beDrawn();;
+				try {
+					this.strips[trackR % this.strips.length].beDrawn();
+				} catch (er) {
+					console.log(trackR);
+				}
 				trackR -= 1;
 			} else {
 				this.strips[(trackL + this.strips.length) % this.strips.length].beDrawn();;
@@ -1034,14 +1077,15 @@ class Tunnel {
 	}
 
 	giveStringData() {
-		//TODO: support power function output and tile data output
+		//TODO: support function output
+		//TODO: support banned character output
 		var output = ``;
 		//non-tile position features
 		output += `id~${this.id}`;
-		output += `|pos-x~${this.x}`;
-		output += `|pos-z~${this.z}`;
-		output += `|direction~${this.theta}`;
-		output += `|layout-tunnel~${this.sides},${this.tilesPerSide}`;
+		output += `|pos-x~${this.x.toFixed(4)}`;
+		output += `|pos-z~${this.z.toFixed(4)}`;
+		output += `|direction~${this.theta.toFixed(4)}`;
+		output += `|layout-tunnel~${this.sides}~${this.tilesPerSide}`;
 		output += `|color~${HSVtoRGB(this.color)}`;
 		output += `|tileWidth~${this.tileSize}`;
 		this.spawns.forEach(s => {
@@ -1051,6 +1095,15 @@ class Tunnel {
 		this.endSpawns.forEach(s => {
 			output += `|endSpawn~${s}`;
 		});
+
+		//tile data
+		this.repairData();
+
+		output += tunnelData_parseDataReverse(this.data);
+
+		//functions
+
+		//banned characters
 
 		return output;
 	}
@@ -1155,6 +1208,29 @@ class Tunnel {
 			return true;
 		}
 		return false;
+	}
+
+	repairData() {
+		//fix data array size
+		while (this.data.length > this.sides * this.tilesPerSide) {
+			this.data.pop();
+		}
+		//fix possible undefineds
+		for (var a=0; a<this.sides * this.tilesPerSide; a++) {
+			if (this.data[a] == undefined) {
+				this.data[a] = [];
+			}
+			for (var b=0; b<this.len; b++) {
+				if (this.data[a][b] == undefined) {
+					this.data[a][b] = 0;
+				}
+			}
+
+			//remove elements if too long
+			while (this.data[a].length > this.len) {
+				this.data[a].pop();
+			}
+		}
 	}
 
 	reset() {
@@ -1295,7 +1371,7 @@ class Tunnel {
 			for (var a=0; a<world_objects.length; a++) {
 				if (world_objects[a] != this) {
 					var endPos = world_objects[a].map_endCoords;
-					if (getDistance2d([endPos[0], endPos[1]], [snapX + startSelectOffset[0], snapY + startSelectOffset[1]]) < editor_snapTolerance) {
+					if (getDistance2d([endPos[0], endPos[1]], [snapX + startSelectOffset[0], snapY + startSelectOffset[1]]) < editor_mapSnapTolerance) {
 						//moving position of selection
 						//get difference between tunnel start coordinates and selected coordinates
 						snapX = endPos[0] - startSelectOffset[0];
@@ -1316,6 +1392,12 @@ class Tunnel {
 		this.x = x;
 		this.y = y;
 		this.z = z;
+
+		//calculate length
+		this.len = 0;
+		this.data.forEach(d => {
+			this.len = Math.max(this.len, d.length);
+		});
 
 		//middle
 		this.centerPos = [0, 0, (this.len / 2) * this.tileSize];
@@ -1361,28 +1443,6 @@ class Tunnel {
 		[tileX, tileZ] = rotate(tileX, tileZ, this.theta);
 
 		return [this.x + tileX, this.y + tileY, this.z + tileZ];
-	}
-
-	giveStringData() {
-		//split into array
-		var splitData = this.rawData.split("|");
-		var toReturn = ``;
-		//add ID 
-		toReturn += splitData[0];
-
-		//add coordinates
-		toReturn += `|pos-x~${Math.round(this.x)}`;
-		toReturn += `|pos-z~${Math.round(this.z)}`;
-		toReturn += `|direction~${this.theta.toFixed(4)}`;
-
-		//add all other tags, subtract banned tags
-		splitData.forEach(y => {
-			if ((y.indexOf("id~") != 0) && (y.indexOf("pos-x~") != 0) && (y.indexOf("pos-z~") != 0) && (y.indexOf("direction~") != 0)) {
-				toReturn += `|${y}`;
-			}
-		});
-
-		return toReturn;
 	}
 }
 
@@ -1443,14 +1503,21 @@ class Tunnel_Strip {
 		//debug
 		if (editor_active) {
 			var cXYZ = polToCart(this.normal[0], this.normal[1], 10);
-			cXYZ = [this.x + cXYZ[0], this.y + cXYZ[1], this.z + cXYZ[2]];
-			ctx.beginPath();
+			var dXYZ = polToCart((Math.PI * 2) - this.parent.theta, 0, this.parent.tileSize * this.tiles.length);
+			//spawn
 			ctx.lineWidth = 4;
 			ctx.strokeStyle = "#808";
 			if (this.parent.spawns.includes(this.parent.strips.indexOf(this))) {
 				ctx.strokeStyle = "#0F0";
 			}
-			drawWorldLine([this.x, this.y, this.z], cXYZ);
+			drawWorldLine([this.x, this.y, this.z], [this.x + cXYZ[0], this.y + cXYZ[1], this.z + cXYZ[2]]);
+
+			//end spawn
+			ctx.strokeStyle = "#808";
+			if (this.parent.endSpawns.includes(this.parent.strips.indexOf(this))) {
+				ctx.strokeStyle = "#0F0";
+			}
+			drawWorldLine([this.x + dXYZ[0], this.y + dXYZ[1], this.z + dXYZ[2]], [this.x + dXYZ[0] + cXYZ[0], this.y + dXYZ[1] + cXYZ[1], this.z + dXYZ[2] + cXYZ[2]]);
 		}
 	}
 
@@ -1464,18 +1531,18 @@ class Tunnel_Strip {
 		for (var t=0; t<this.realTiles.length; t++) {
 			if (lineDown) {
 				//if the line is down, check distance to last real tile. If it's more than 1, end line
-				if (this.realTiles[t].parentPosition[1] - this.realTiles[t-1].parentPosition[1] > 1 || this.realTiles[t].playerDist < render_maxColorDistance * 1.15) {
+				if (this.realTiles[t].parentPosition[1] - this.realTiles[t-1].parentPosition[1] > 1 || this.realTiles[t].playerDist < render_maxColorDistance * 1.15 || this.realTiles[t].strength != undefined) {
 					lineDown = false;
 					drawWorldLine([this.realTiles[lineStart].x, this.realTiles[lineStart].y, this.realTiles[lineStart].z], [this.realTiles[t-1].x, this.realTiles[t-1].y, this.realTiles[t-1].z]);
 
 					//afterwords, restart line
-					if (this.realTiles[t].playerDist >= render_maxColorDistance * 1.15 && !(this.realTiles[t].fallStatus > 100)) {
+					if (this.realTiles[t].playerDist >= render_maxColorDistance * 1.15 && !(this.realTiles[t].fallStatus > 100) && this.realTiles[t].strength == undefined) {
 						lineDown = true;
 						lineStart = t;
 					}
 				}
 			} else {
-				if (this.realTiles[t].playerDist >= render_maxColorDistance * 1.15 && !(this.realTiles[t].fallStatus > 100)) {
+				if (this.realTiles[t].playerDist >= render_maxColorDistance * 1.15 && !(this.realTiles[t].fallStatus > 100) && this.realTiles[t].strength == undefined) {
 					//if the line isn't down, start the line
 					lineDown = true;
 					lineStart = t;
