@@ -116,7 +116,10 @@ class Polynomial implements PolynomialInterface {
 
       //give new polynomial those glomphed values
       for (int term : mergeTerms.keySet()) {
-         mergePoly.makeTerm(term, mergeTerms.get(term));
+         //only give if the value isn't 0
+         if (mergeTerms.get(term) != 0) {
+            mergePoly.makeTerm(term, mergeTerms.get(term));
+         }
       }
 
       //return the friendo
@@ -144,7 +147,10 @@ class Polynomial implements PolynomialInterface {
 
       //glomph terms into the polynomial
       for (int term : multTerms.keySet()) {
-         multPoly.makeTerm(term, multTerms.get(term));
+         //only give if the value isn't 0
+         if (multTerms.get(term) != 0) {
+            multPoly.makeTerm(term, multTerms.get(term));
+         }
       }
       //return the friendo
       return multPoly;
