@@ -1,5 +1,5 @@
 // Name: 
-// Date: 
+// Date: March-26-2021
 
 import java.util.*;
 
@@ -83,8 +83,10 @@ class Widget implements Comparable<Widget> {
       if(myHands < other.myHands) {
          return -1;
       }
-         
-      return (myHands > other.getHands());
+      if (myHands > other.getHands()) {
+         return 1;
+      }
+      return 0;
    }
    
    public boolean equals(Widget other) {
@@ -100,7 +102,7 @@ class Widget implements Comparable<Widget> {
    }
    
    public int hashCode() {
-      return (int)(this.myCubits.hashCode() * this.myHands.hashCode());
+      return (int)(Integer.valueOf(this.myCubits).hashCode() * Integer.valueOf(this.myHands).hashCode());
    }
    
 }
