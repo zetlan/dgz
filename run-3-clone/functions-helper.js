@@ -437,6 +437,8 @@ function localStorage_read() {
 		console.log(`ERROR: could not parse ${toRead}, using default`);
 		return;
 	}
+
+	var settingStorage = data_persistent.settings;
 	
 
 	//make sure it's somewhat safe, and then make it into the game flags
@@ -445,6 +447,11 @@ function localStorage_read() {
 	} else {
 		console.log("ERROR: invalid type specified in save data, using default");
 		return;
+	}
+
+	if (data_persistent.settings == undefined) {
+		data_persistent.settings = settingStorage;
+		console.log("ERROR: invalid settings recieved, using default");
 	}
 
 	//update settings
