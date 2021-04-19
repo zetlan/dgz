@@ -177,7 +177,6 @@ function file_export() {
 		window.URL.revokeObjectURL(editor_worldFile);
 	}
 	editor_worldFile = window.URL.createObjectURL(fileObj);
-
 	var link = document.getElementById('download');
 	link.href = editor_worldFile;
 	link.click();
