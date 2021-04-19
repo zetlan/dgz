@@ -12,19 +12,6 @@ window.addEventListener("keyup", handleKeyNegate, false);
 	when using if else, put most likely condition first
 */
 //global variables
-var audio_data = {
-	//music files
-	"CrumblingWalls": new Audio('audio/CrumblingWalls.ogg'),
-	"LeaveTheSolarSystem": new Audio('audio/LeaveTheSolarSystem.ogg'),
-	"MapOfTheStars": new Audio('audio/MapOfTheStars.ogg'),
-	"TheVoid": new Audio('audio/TheVoid.ogg'),
-	"TravelTheGalaxy": new Audio('audio/TravelTheGalaxy.ogg'),
-	"UnsafeSpeeds": new Audio('audio/UnsafeSpeeds.ogg'),
-	"WormholeToSomewhere": new Audio('audio/WormholeToSomewhere.ogg'),
-
-	//sfx files
-	"Tone": new Audio('audio/Tone.ogg')
-}
 var audio_channel1 = new AudioChannel(0.5);
 var audio_channel2 = new AudioChannel(0.5);
 var audio_consentRequired = true;
@@ -79,9 +66,11 @@ const color_map_writing = "#010";
 const color_menuSelectionOutline = "#88F";
 const color_ring = "#FEEC00";
 const color_stars = "#44A";
+const color_tape = "#5E6570";
 const color_text = "#424";
 const color_text_bright = "#FAF";
 const color_text_danger = "#F22";
+const color_trigger = "#808";
 const color_warning = "#FFDB29";
 const color_warning_secondary = "#8C8C89";
 const colors_powerCells = ["#888888", "#8888FF", "#88FF88", "#88FFFF", "#FF8888", "#FF88FF", "#FFFF88", "#FFFFFF"];
@@ -95,16 +84,40 @@ var data_alphaNumerics = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqr
 //[title text, superscript text, line to jump to when clicked, cutscene complete requirement, character is going home?]
 var data_angelChecklist = [
 	'GOING HOME CHECKLIST',
-	['The Know-It-All', '1st', 'myTurn', false, []],
-	['The Show-Off', '2nd', 'theNextBigThing', false, []],
-	['The Crackpot', '3rd', 'youThink', true],
-	['The Nerd', '6th', 'discoveries', false, []],
-	['The Sneak', '3rd', 'youThink', true],
-	['The Meddler', '4th', 'friendlyGreeting', true],
-	['The Snob', '5th', 'standardsToUphold', false, []]
+	['The Know-It-All', '1st', 'myTurn', false, undefined, []],
+	['The Show-Off', '2nd', 'theNextBigThing', false, 1, []],
+	['The Crackpot', '3rd', 'youThink', true, 7],
+	['The Nerd', '6th', 'discoveries', false, 19, []],
+	['The Sneak', '3rd', 'youThink', true, 7],
+	['The Meddler', '4th', 'friendlyGreeting', true, 10],
+	['The Snob', '5th', 'standardsToUphold', false, 14, []]
 ];
-var data_characters = [`Runner`, `Skater`, `Lizard`, `Bunny`, `Gentleman`, `Duplicator`, `Child`, `Pastafarian`, `Student`, `Angel`];
+var data_audio = {
+	//music files
+	"CrumblingWalls": new Audio('audio/CrumblingWalls.ogg'),
+	"LeaveTheSolarSystem": new Audio('audio/LeaveTheSolarSystem.ogg'),
+	"MapOfTheStars": new Audio('audio/MapOfTheStars.ogg'),
+	"TheVoid": new Audio('audio/TheVoid.ogg'),
+	"TravelTheGalaxy": new Audio('audio/TravelTheGalaxy.ogg'),
+	"UnsafeSpeeds": new Audio('audio/UnsafeSpeeds.ogg'),
+	"WormholeToSomewhere": new Audio('audio/WormholeToSomewhere.ogg'),
 
+	//sfx files
+	"Tone": new Audio('audio/Tone.ogg')
+}
+var data_characters = [`Runner`, `Skater`, `Lizard`, `Bunny`, `Gentleman`, `Duplicator`, `Child`, `Pastafarian`, `Student`, `Angel`];
+var data_characterColors = {
+	"Angel": "#EFF",
+	"Bunny": "#764",
+	"Child": "#8F8",
+	"Duplicator": "#BEE",
+	"Gentleman": "#888",
+	"Lizard": "#5A5",
+	"Pastafarian": "#DCE",
+	"Runner": "#CCC",
+	"Skater": "#DAA",
+	"Student": "#B31"
+};
 
 var data_levelSets = [`main`, `boxRoad`, `boxStorage`, `coordination`, `planA`, `planC`, `memory`, `wayBack`, `wayBack2`, `wayBackNot`, `winterGames`, `lowPower`, `new`,
 						`A`, `B`, `C`, `D`, `F`, `G`, `H`, `I`, `L`, `M`, `N`, `T`, `U`, `W`];
@@ -122,9 +135,10 @@ var data_persistent = {
 	unlocked: [`Runner`],
 	version: 1,
 	settings: {
-		volume: 0.5,
+		altRender: false,
 		highResolution: false,
-		preciseRendering: false
+		maskCursor: false,
+		volume: 0.5,
 	}
 };
 
@@ -321,10 +335,21 @@ new CNode(-0.3351, -0.2068, 'comingThrough', [
 					new CNode(0.2308, -0.4405, 'tellAFriend', [
 						new CNode(0.3390, -0.4658, 'lightningStrikesTwice', [
 							new CNode(0.4116, -0.4241, 'affliction', [
-								new CNode(0.4462, -0.3006, 'crossingTheGap', [
-									new CNode(0.4618, -0.0759, 'fame', []), 
-									new CNode(0.5812, -0.3080, 'truancy', []), 
-									new CNode(0.5444, -0.2188, 'morningHypothesis1', [])
+								new CNode(0.4116, -0.4241, 'protip', [
+									new CNode(0.4618, -0.0759, 'dontQuestionIt', []),
+									new CNode(0.4462, -0.3006, 'crossingTheGap', [
+										new CNode(0.4618, -0.0759, 'fame', []), 
+										new CNode(0.5812, -0.3080, 'truancy', []), 
+										new CNode(0.5380, -0.2634, 'morningHypothesis1', [
+											new CNode(0.5536, -0.2455, 'morningHypothesis2', [
+												new CNode(0.5714, -0.2277, 'morningHypothesis3', [
+													new CNode(0.5938, -0.2098, 'morningHypothesis4', [
+														new CNode(0.6172, -0.1905, 'morningHypothesis5', [])
+													])
+												])
+											])
+										])
+									])
 								])
 							])
 						])
@@ -340,20 +365,26 @@ new CNode(-0.3351, -0.2068, 'comingThrough', [
 		new CNode(-0.1878, 0.1905, 'myTurn', [
 			new CNode(-0.0876, 0.4033, 'theNextBigThing', [
 				new CNode(-0.0664, 0.4449, 'youThink', [
-					new CNode(-0.0552, 0.4821, 'friendlyGreeting', [
-						new CNode(-0.0619, 0.5223, 'indecision', [
-							new CNode(-0.0898, 0.5551, 'standardsToUphold', [
-								new CNode(-0.1423, 0.5833, 'itsJustYou', [
-									new CNode(-0.2193, 0.5595, 'discoveries', [
-										new CNode(-0.3284, 0.5253, 'angelVsBunny', [
-											new CNode(-0.3663, 0.5655, 'sneaking', []), 
-											new CNode(-0.3655, 0.5030, 'ofCourse', [
-												new CNode(-0.4157, 0.4821, 'fourthCondiment', [
-													new CNode(-0.5273, 0.4777, 'wait', [
-														new CNode(-0.5820, 0.4568, 'cantWait', [
-															new CNode(-0.4749, 0.3527, 'twoMonthWait1', [
-																new CNode(-0.5028, 0.3170, 'twoMonthWait2', [
-																	new CNode(-0.5519, 0.2857, 'twoMonthWait3', [])
+					new CNode(-0.0368, 0.4732, 'friendlyGreeting', [
+						new CNode(-0.0301, 0.5045, 'indecision', [
+							new CNode(-0.0290, 0.5342, 'standardsToUphold', [
+								new CNode(-0.0245, 0.5670, 'itsJustYou', [
+									new CNode(-0.0647, 0.5997, 'discoveries', [
+										new CNode(-0.2053, 0.5804, 'angelVsBunny', [
+											new CNode(-0.2924, 0.5565, 'ofCourse', []), 
+											new CNode(-0.2132, 0.6324, 'sneaking', []), 
+											new CNode(-0.1797, 0.5134, 'obvious', [
+												new CNode(-0.3147, 0.5342, 'boatRide', [
+													new CNode(-0.3739, 0.5060, 'fourthCondiment', [
+														new CNode(-0.5033, 0.5164, 'wait', [
+															new CNode(-0.4710, 0.4613, 'stopSolvingProblems', [
+																new CNode(-0.3024, 0.3601, 'ABCD', [])
+															]), 
+															new CNode(-0.5993, 0.4658, 'cantWait', [
+																new CNode(-0.4207, 0.3601, 'twoMonthWait1', [
+																	new CNode(-0.4553, 0.3363, 'twoMonthWait2', [
+																		new CNode(-0.4866, 0.3140, 'twoMonthWait3', [])
+																	])
 																])
 															])
 														])
@@ -370,7 +401,7 @@ new CNode(-0.3351, -0.2068, 'comingThrough', [
 			])
 		])
 	])
-])
+]);
 
 //for the map editor
 var editor_active = false;
@@ -389,7 +420,7 @@ var editor_colorMultiplier = 1.7;
 var editor_cutsceneColumns = 3;
 var editor_cutsceneMargin = 0.08;
 var editor_maxCutscenes = 21;
-var editor_cutscenes = [cutsceneData_affliction, cutsceneData_angelVsBunny, cutsceneData_batteries, cutsceneData_boring, cutsceneData_candy, cutsceneData_changeTheSubject, cutsceneData_cantWait, cutsceneData_cheating];
+var editor_cutscenes = {}
 var editor_mapHeight = 10000;
 var editor_maxEditDistance = 1500;
 var editor_objects = [];
@@ -397,8 +428,23 @@ var editor_propertyMenuWidth = 0.3;
 var editor_sliderHeight = 0.05;
 var editor_sliderProportion = 0.145;
 var editor_sliderMargin = 0.008;
+var editor_spawn = undefined;
 var editor_topBarHeight = 0.12;
 var editor_tileSize = 0.025;
+var editor_warning = "Warning: Editor data does not save between sessions. If you want to save your data, make sure to export your world before closing the window.";
+var editor_controlText = [
+	`EDIT MODE CONTROLS:`,
+	`< / > - decrement / increment cutscene frame`,
+	`WASD - change camera position`,
+	`arrow keys - change camera orientation`,
+	`QE - change camera rotation`,
+	`space - reset camera's rotation`,
+	`c - toggle permanent camera change`,
+	`esc - reset camera position`,
+	`NORMAL MODE CONTROLS:`,
+	`esc - skip cutscene`,
+	`click - advance frame`
+]
 var editor_worldSnapTolerance = 25;
 var editor_worldFile = undefined;
 
@@ -408,7 +454,7 @@ var editor_cutsceneWidth = 0.2;
 
 var infinite_levelRange = 40;
 
-let loading_state = new State_Loading();
+let loading_state;
 
 var map_height = 120000;
 var map_shift = 57000;
@@ -544,15 +590,24 @@ function setup() {
 	document.addEventListener("mousedown", handleMouseDown, false);
 	document.addEventListener("mouseup", handleMouseUp, false);
 
+	//objects
+	world_camera = new Camera(0, 8, 0, 0, 0);
+	player = new Runner(-60, 0, 0);
+	world_wormhole = new Wormhole(60000, 2000, 199199);
+
 	//adding a fun little suprise :)
 	if (Math.random() < 0.001) {
 		var icon = document.querySelector("link[rel~='icon']");
 		icon.href = 'images/run.png';
 	}
 
-	world_camera = new Camera(0, 8, 0, 0, 0);
-	player = new Runner(-60, 0, 0);
-	world_wormhole = new Wormhole(60000, 2000, 199199);
+	//edit world objects
+	if (editor_objects.length == 0) {
+		editor_objects.push(new Tunnel(0.00, {h: 120, s: 50, v: 0.8}, [[1, 1, 1, 1, 1], [1, 0, 1, 0, 1]], 'Custom Tunnel IeCo', 5, 1, [], 4, [1], [], 4, 75, 0, 0, [], `TravelTheGalaxy`));
+		editor_spawn = editor_objects[0];
+	}
+
+	loading_state = new State_Edit_World();
 
 	//setting up world
 	//as a reminder, tunnels are (x, y, z, angle, tile size, sides, tiles per sides, color, length, data)
@@ -562,12 +617,6 @@ function setup() {
 	generateStarSphere();
 	generateAngelLines();
 	localStorage_read();
-
-	//edit world objects
-	if (editor_objects.length == 0) {
-		editor_objects.push(new Tunnel(0.00, {h: 120, s: 50, v: 0.8}, [[1, 1, 1, 1, 1], [1, 0, 1, 0, 1]], 'Custom Tunnel 1', 5, 1, [], 4, [1], [], 4, 75, 0, 0, [], `TravelTheGalaxy`));
-		editor_objects.push(new Tunnel(1.57, {h: 240, s: 50, v: 0.8}, [[1, 1, 1, 1, 1], [1, 0, 1, 0, 1]], 'Custom Tunnel 2', 5, 1, [], 4, [1], [], 4, 75, 100, 2000, [], `TravelTheGalaxy`));
-	}
 
 	//the wavy air
 	//navigator.mediaDevices.getUserMedia({speakers: true});
@@ -798,8 +847,12 @@ function handleKeyNegate_player(a) {
 
 function handleMouseDown(a) {
 	cursor_down = true;
-	stealAudioConsent(a);
-	loading_state.handleMouseDown(a);
+	var canvasArea = canvas.getBoundingClientRect();
+	if (!data_persistent.settings.maskCursor || (
+	a.clientX - canvasArea.left <= canvas.width && a.clientX - canvasArea.left >= 0 && 
+	a.clientY - canvasArea.top >= 0 && a.clientY - canvasArea.top <= canvas.height)) {
+		loading_state.handleMouseDown(a);
+	}
 }
 
 function handleMouseUp(a) {
@@ -807,7 +860,12 @@ function handleMouseUp(a) {
 }
 
 function handleMouseMove(a) {
-	loading_state.handleMouseMove(a);
+	var canvasArea = canvas.getBoundingClientRect();
+	if (!data_persistent.settings.maskCursor || (
+	a.clientX - canvasArea.left <= canvas.width && a.clientX - canvasArea.left >= 0 && 
+	a.clientY - canvasArea.top >= 0 && a.clientY - canvasArea.top <= canvas.height)) {
+		loading_state.handleMouseMove(a);
+	}
 }
 
 function updateResolution() {
@@ -817,8 +875,6 @@ function updateResolution() {
 	}
 
 	//all things necessary for switching between resolutions
-
-	
 	canvas.width *= multiplier;
 	canvas.height *= multiplier;
 	world_camera.scale *= multiplier;
