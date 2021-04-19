@@ -1,38 +1,322 @@
 
 
-/*this is what happens when you refuse to use a real 3d renderer and instead hack together a bunch of 
-special cases and rendering tricks,then months later are forced to confront putting real 3d objects into your program.
-Don't do what I did, be smart.
-
-I should have used quaternions.
-
-If I come back to this project later I'll convert all the euler angles to quaternions, because that would solve a lot of problems. 
-It would also allow a revamp of the galaxy map, tunnels pointing up/down, so many cool things! I'm getting ahead of myself, sorry
+/*boat
 */
 class Boat {
 	constructor(x, y, z, theta, phi) {
 		this.x = x;
 		this.y = y;
 		this.z = z;
+
+		this.theta = theta;
+		this.phi = phi;
+		this.tileSize = getObjectFromID("Level X").tileSize;
+		this.color = getObjectFromID("Level X").color;
+		this.tapeColor = RGBtoHSV(color_tape);
+		this.power = 1;
+		this.cameraDist = 1000;
+		this.playerDist = 1000;
+
+		this.tapeHeight = 0.1;
+
+		this.generate();
+	}
+
+	addToTwoArrs(arr1, arr2, object) {
+		arr1.push(object);
+		arr2.push(object);
+	}
+
+	addToArrAndTree(array, tree, object) {
+		array.push(object);
+		if (object.x == undefined) {
+			object.calculateNormal();
+		}
+		tree.addObj(object);
 	}
 
 	beDrawn() {
+		//different ordering based on where the camera is
+		var selfCameraPos = spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], [this.theta, this.phi]);
 
+		/*if camera is on top, it goes low -> floor -> top. If camera is below it goes top -> floor -> low. 
+		To save space, the code block looks like low -> floor -> top -> floor -> low, but if statements make sure only one of the two configurations will happen
+		*/
+
+		/*X is positive towards the front of the boat, 
+		Y is positive to the right of the boat,
+		Z is positive at the top of the boat */
+
+		if (selfCameraPos[2] > this.tileSize / -2) {
+			//low deco, then floor, then top
+			this.lowDeco.forEach(o => {o.beDrawn();});
+			this.body.forEach(o => {o.beDrawn();});
+			this.top.beDrawn();
+		} else {
+			this.top.beDrawn();
+			this.body.forEach(o => {o.beDrawn();});
+			this.lowDeco.forEach(o => {o.beDrawn();});
+		}
+
+		if (editor_active) {
+			var offP = polToCart(this.theta, this.phi, 10);
+			var center = spaceToScreen([this.x, this.y, this.z]);
+			var offT = polToCart(this.theta, 0, 10);
+			ctx.strokeStyle = "#F80";
+			ctx.lineWidth = 2;
+			drawCircle("#F80", center[0], center[1], 5);
+			drawWorldLine([this.x, this.y, this.z], [this.x + offP[0], this.y + offP[1], this.z + offP[2]]);
+			drawWorldLine([this.x, this.y, this.z], [this.x + offT[0], this.y + offT[1], this.z + offT[2]]);
+		}
 	}
 
 	doComplexLighting() {
-
+		this.objects.forEach(o => {
+			o.doComplexLighting();
+		});
 	}
 
 	generate() {
+		//establish positions, LEFT = negative x, RIGHT = positive x
+		var pos_lowTiles = [
+			[-0.5, -0.5, -1],
+			[0.5, -0.5, -1],
+			[-0.5, -0.5, 0],
+			[0.5, -0.5, 0],
+			[-0.5, -0.5, 1],
+			[0.5, -0.5, 1],
+		];
+		var pos_rings = [
+			[0, -0.5 - (1 / this.tileSize), -0.5],
+			[0, -0.5 - (1 / this.tileSize), 0.5],
 
+			[-1 + (1 / this.tileSize), 0, -1],
+			[-1 + (1 / this.tileSize), 0, 0],
+			[1 - (1 / this.tileSize), 0, -1],
+			[1 - (1 / this.tileSize), 0, 0],
+
+		]
+		var pos_mains = [
+			[-1, 0, -1],
+			[-1, 0, 0],
+			[1, 0, -1],
+			[1, 0, 0],
+		]
+		//starring: completely giving up on euler angles and just letting the algorithm figure this one out
+		//TODO: refactor this, it can take way fewer lines, for example generateTape() could generate the whole polygon
+		var pos_fronts = [
+			[[Math.sqrt(2) / -2, 0.5, Math.sqrt(2)], 
+			[-1, 0.5, 0.5],
+			[-1, -0.5, 0.5],
+			[Math.sqrt(2) / -2, -0.5, Math.sqrt(2)]],
+
+			[[0, 0.5, 2.168],
+			[Math.sqrt(2) / -2, 0.5, Math.sqrt(2)],
+			[Math.sqrt(2) / -2, -0.5, Math.sqrt(2)],
+			[0, -0.5, 2.168]],
+
+			[[Math.sqrt(2) / 2, 0.5, Math.sqrt(2)], 
+			[1, 0.5, 0.5],
+			[1, -0.5, 0.5],
+			[Math.sqrt(2) / 2, -0.5, Math.sqrt(2)]],
+
+			[[0, 0.5, 2.168],
+			[Math.sqrt(2) / 2, 0.5, Math.sqrt(2)],
+			[Math.sqrt(2) / 2, -0.5, Math.sqrt(2)],
+			[0, -0.5, 2.168]],
+		]
+
+		var pos_contoursL = [
+			[-1, -1.5],
+			[-1, -0.5],
+			[-1, 0.5],
+			[pos_fronts[0][0][0], pos_fronts[0][0][2]],
+			[pos_fronts[1][0][0], pos_fronts[1][0][2]]
+		]
+		var pos_contoursR = [
+			[1, -1.5],
+			[1, -0.5],
+			[1, 0.5],
+			[pos_fronts[2][0][0], pos_fronts[2][0][2]],
+			[pos_fronts[3][0][0], pos_fronts[3][0][2]]
+		]
+		var pos_inTapes = [];
+		this.generateTape(0.5, 1.5, 0.7, pos_contoursL, pos_inTapes);
+		this.generateTape(1.8, 3.2, 0.3, pos_contoursL, pos_inTapes);
+		this.generateTape(0, 1.1, 0.8, pos_contoursR, pos_inTapes);
+		this.generateTape(1.7, 3.1, 0.2, pos_contoursR, pos_inTapes);
+
+		var pos_outTapes = [];
+		this.generateTape(0.4, 1.4, 0.3, pos_contoursL, pos_outTapes);
+		this.generateTape(0.9, 2.2, 0.7, pos_contoursL, pos_outTapes);
+		this.generateTape(2.4, 3.6, 0.4, pos_contoursL, pos_outTapes);
+		this.generateTape(3.3, 3.999, 0.2, pos_contoursL, pos_outTapes);
+		this.generateTape(3.8, 3.999, 0.85, pos_contoursL, pos_outTapes);
+
+		this.generateTape(0, 0.3, 0.8, pos_contoursR, pos_outTapes);
+		this.generateTape(0, 0.8, 0.4, pos_contoursR, pos_outTapes);
+		this.generateTape(0.7, 2, 0.25, pos_contoursR, pos_outTapes);
+		this.generateTape(1.5, 3.7, 0.7, pos_contoursR, pos_outTapes);
+		this.generateTape(3.5, 3.999, 0.85, pos_contoursR, pos_outTapes);
+		this.generateTape(3.2, 3.999, 0.2, pos_contoursR, pos_outTapes);
+
+		pos_lowTiles.forEach(p => {
+			this.transformPointSpecial(p, [this.x, this.y, this.z], this.theta + (Math.PI / 2), this.phi, this.tileSize);
+		});
+
+		pos_rings.forEach(p => {
+			this.transformPointSpecial(p, [this.x, this.y, this.z], this.theta + (Math.PI / 2), this.phi, this.tileSize);
+		});
+
+		pos_mains.forEach(p => {
+			this.transformPointSpecial(p, [this.x, this.y, this.z], this.theta + (Math.PI / 2), this.phi, this.tileSize);
+		});
+		pos_fronts.forEach(p => {
+			p.forEach(q => {
+				this.transformPointSpecial(q, [this.x, this.y, this.z], this.theta + (Math.PI / 2), this.phi, this.tileSize);
+			});
+		});
+		pos_inTapes.forEach(p => {
+			p.forEach(q => {
+				this.transformPointSpecial(q, [this.x, this.y, this.z], this.theta + (Math.PI / 2), this.phi, this.tileSize * 0.999);
+			});
+		});
+		pos_outTapes.forEach(p => {
+			p.forEach(q => {
+				this.transformPointSpecial(q, [this.x, this.y, this.z], this.theta + (Math.PI / 2), this.phi, this.tileSize * 1.0001);
+			});
+		});
+
+		//actually construct the thing
+		this.body = [];
+		this.lowDeco = [];
+		this.objects = [];
+		this.top = new B3Node();
+
+		//body
+		var temp = undefined;
+		pos_lowTiles.forEach(p => {
+			this.addToTwoArrs(this.objects, this.body, new Tile(p[0], p[1], p[2], this.tileSize, [this.theta, this.phi], this, undefined, this.color));
+		});
+
+		//lower rings
+		this.addToTwoArrs(this.objects, this.lowDeco, new Ring(pos_rings[0][0], pos_rings[0][1], pos_rings[0][2], this.theta, this.phi, render_ringSize));
+		this.addToTwoArrs(this.objects, this.lowDeco, new Ring(pos_rings[1][0], pos_rings[1][1], pos_rings[1][2], this.theta, this.phi, render_ringSize));
+		
+		//left side
+		this.addToArrAndTree(this.objects, this.top, new Tile(pos_mains[0][0], pos_mains[0][1], pos_mains[0][2], this.tileSize, [this.theta, this.phi - (Math.PI / 2)], this, undefined, this.color));
+		this.addToArrAndTree(this.objects, this.top, new Tile(pos_mains[1][0], pos_mains[1][1], pos_mains[1][2], this.tileSize, [this.theta, this.phi - (Math.PI / 2)], this, undefined, this.color));
+		this.addToArrAndTree(this.objects, this.top, new FreePoly(pos_fronts[0], this.color));
+		this.addToArrAndTree(this.objects, this.top, new FreePoly(pos_fronts[1], this.color));
+
+
+		//right side
+		this.addToArrAndTree(this.objects, this.top, new Tile(pos_mains[2][0], pos_mains[2][1], pos_mains[2][2], this.tileSize, [this.theta, this.phi - (Math.PI / 2)], this, undefined, this.color));
+		this.addToArrAndTree(this.objects, this.top, new Tile(pos_mains[3][0], pos_mains[3][1], pos_mains[3][2], this.tileSize, [this.theta, this.phi - (Math.PI / 2)], this, undefined, this.color));
+		this.addToArrAndTree(this.objects, this.top, new FreePoly(pos_fronts[2], this.color));
+		this.addToArrAndTree(this.objects, this.top, new FreePoly(pos_fronts[3], this.color));
+		//left side deco:
+
+		//outside
+		for (var a=0; a<5; a++) {
+			this.addToArrAndTree(this.objects, this.top, new FreePoly(pos_outTapes[a], this.tapeColor));
+		}
+
+		//inside
+		this.addToArrAndTree(this.objects, this.top, new Ring(pos_rings[2][0], pos_rings[2][1], pos_rings[2][2], this.theta, this.phi - (Math.PI / 2), render_ringSize));
+		this.addToArrAndTree(this.objects, this.top, new Ring(pos_rings[3][0], pos_rings[3][1], pos_rings[3][2], this.theta, this.phi - (Math.PI / 2), render_ringSize));
+		this.addToArrAndTree(this.objects, this.top, new FreePoly(pos_inTapes[0], this.tapeColor));
+		this.addToArrAndTree(this.objects, this.top, new FreePoly(pos_inTapes[1], this.tapeColor));
+
+		//right side deco:
+
+		//outside
+		for (var a=5; a<11; a++) {
+			this.addToArrAndTree(this.objects, this.top, new FreePoly(pos_outTapes[a], this.tapeColor));
+		}
+
+		//inside
+		this.addToArrAndTree(this.objects, this.top, new Ring(pos_rings[4][0], pos_rings[4][1], pos_rings[4][2], this.theta, this.phi - (Math.PI / 2), render_ringSize));
+		this.addToArrAndTree(this.objects, this.top, new Ring(pos_rings[5][0], pos_rings[5][1], pos_rings[5][2], this.theta, this.phi - (Math.PI / 2), render_ringSize));
+		this.addToArrAndTree(this.objects, this.top, new FreePoly(pos_inTapes[2], this.tapeColor));
+		this.addToArrAndTree(this.objects, this.top, new FreePoly(pos_inTapes[3], this.tapeColor));
+
+		//this.addToArrAndTree(this.objects, this.top, );
+	}
+
+	//transforms a set of points into a tape strip that can go on the edge
+	/*EX: tapeParams = [0, 0.7, 2] means a piece of tape that starts at the very back of the boat (0 tiles), at a height of 0.7 (the actual tape will range from 0.75 to 0.65), and 
+	then the tape goes for 2 tiles forwards.*/
+	generateTape(tapeTileStart, tapeTileEnd, tapeHeight, contour, arrayToPutResultIn) {
+		var tapePoints = [];
+		
+		//add start point
+		var lerpX = linterp(contour[Math.floor(tapeTileStart)][0], contour[Math.ceil(tapeTileStart)][0], tapeTileStart - Math.floor(tapeTileStart));
+		var lerpZ = linterp(contour[Math.floor(tapeTileStart)][1], contour[Math.ceil(tapeTileStart)][1], tapeTileStart - Math.floor(tapeTileStart));
+		tapePoints.push([lerpX, tapeHeight - 0.5 - (this.tapeHeight / 2), lerpZ]);
+		tapePoints.push([lerpX, tapeHeight - 0.5 + (this.tapeHeight / 2), lerpZ]);
+		var additive = 1 - (tapeTileStart % 1);
+
+		//add all points before the end
+		while (tapeTileStart + additive < tapeTileEnd) {
+			lerpX = linterp(contour[Math.floor(tapeTileStart+additive)][0], contour[Math.ceil(tapeTileStart+additive)][0], (tapeTileStart+additive) - Math.floor(tapeTileStart+additive));
+			lerpZ = linterp(contour[Math.floor(tapeTileStart+additive)][1], contour[Math.ceil(tapeTileStart+additive)][1], (tapeTileStart+additive) - Math.floor(tapeTileStart+additive));
+			tapePoints.push([lerpX, tapeHeight - 0.5 + (this.tapeHeight / 2), lerpZ]);
+			additive += 1;
+		}
+		additive -= 1;
+
+		//if the end isn't whole, there will be stuff left, doing that
+		if (tapeTileEnd % 1 != 0) {
+			lerpX = linterp(contour[Math.floor(tapeTileEnd)][0], contour[Math.ceil(tapeTileEnd)][0], tapeTileEnd - Math.floor(tapeTileEnd));
+			lerpZ = linterp(contour[Math.floor(tapeTileEnd)][1], contour[Math.ceil(tapeTileEnd)][1], tapeTileEnd - Math.floor(tapeTileEnd));
+			tapePoints.push([lerpX, tapeHeight - 0.5 + (this.tapeHeight / 2), lerpZ]);
+			tapePoints.push([lerpX, tapeHeight - 0.5 - (this.tapeHeight / 2), lerpZ]);
+		}
+
+
+		//add all points before the start
+		while (tapeTileStart + additive > tapeTileStart) {
+			lerpX = linterp(contour[Math.floor(tapeTileStart+additive)][0], contour[Math.ceil(tapeTileStart+additive)][0], (tapeTileStart+additive) - Math.floor(tapeTileStart+additive));
+			lerpZ = linterp(contour[Math.floor(tapeTileStart+additive)][1], contour[Math.ceil(tapeTileStart+additive)][1], (tapeTileStart+additive) - Math.floor(tapeTileStart+additive));
+			tapePoints.push([lerpX, tapeHeight - 0.5 - (this.tapeHeight / 2), lerpZ]);
+			additive -= 1;
+		}
+		arrayToPutResultIn.push(tapePoints);
 	}
 
 	tick() {
+		//self
+		this.cameraDist = getDistance(this, world_camera);
+		this.playerDist = getDistance(this, player);
 
+		//tick all objects
+		this.objects.forEach(o => {
+			o.tick();
+		});
+
+		if (this.cameraDist < render_maxColorDistance * 1.5) {
+			//order all objects
+			this.lowDeco = orderObjects(this.lowDeco, 4);
+		}
+	}
+
+	//because the regular transformPoint didn't quite work
+	transformPointSpecial(point, addPoint, theta, rot, size) {
+		point[0] *= size;
+		point[1] *= size;
+		point[2] *= size;
+
+		//I have no idea if this is correct but it appears to work
+		[point[0], point[1]] = rotate(point[0], point[1], (Math.PI * 2.5) - rot);
+		[point[0], point[2]] = rotate(point[0], point[2], (Math.PI * 2) - theta);
+
+		//adjusting for coordinates
+		point[0] += addPoint[0];
+		point[1] += addPoint[1];
+		point[2] += addPoint[2];
 	}
 }
-
 
 
 
@@ -51,7 +335,7 @@ class FreePoly {
 
 		//collision tolerance
 		this.tolerance = player.r * 0.76;
-		this.normal = calculateNormal(this.points);
+		this.normal;
 	}
 
 	calculateNormal() {
@@ -68,9 +352,9 @@ class FreePoly {
 		cross = cartToPol(cross[0], cross[1], cross[2]);
 		
 		//checking for alignment with camera
-		if (spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], [cross[0], cross[1]])[2] < 0) {
-			cross[0] = (cross[0] + Math.PI) % (Math.PI * 2);
-		}
+		// if (spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], [cross[0], cross[1]])[2] < 0) {
+		// 	cross[0] = (cross[0] + Math.PI) % (Math.PI * 2);
+		// }
 		this.normal = [cross[0], cross[1]];
 	}
 
@@ -80,7 +364,6 @@ class FreePoly {
 
 		//if the player is colliding, do collision stuffies
 		if (Math.abs(entityCoords[2]) < this.tolerance && Math.abs(entityCoords[0]) < (this.size / 2) + this.tolerance && Math.abs(entityCoords[1]) < (this.size / 2) + this.tolerance) {
-			var temp = entityCoords[2];
 			//different behavior depending on side
 			if (entityCoords[2] < 0) {
 				//outside the tunnel
@@ -97,6 +380,7 @@ class FreePoly {
 				this.doCollisionEffects(entity);
 
 				//slow entity down if the movement has jumped them too far
+				//var temp = entityCoords[2];
 				//if (Math.abs(temp - entityCoords[2]) >= entity.r * 0.3 && Math.abs(entityCoords[0]) > this.size / 4 && Math.abs(entityCoords[1] > this.size / 4)) {
 				//	entity.dz *= 1 - (Math.abs(temp - entityCoords[2]) / player.r);
 				//}
@@ -110,6 +394,10 @@ class FreePoly {
 	doCollisionEffects(entity) {
 		entity.onGround = physics_graceTime;
 		entity.onIce = false;
+	}
+
+	doComplexLighting() {
+		getDistance_LightSource(this);
 	}
 
 	//clips self and returns an array with two polygons, clipped at the input plane.
@@ -166,8 +454,6 @@ class FreePoly {
 				outPart = this;
 			}
 		}
-		
-
 		return [inPart, outPart];
 	}
 
@@ -178,6 +464,10 @@ class FreePoly {
 	getCameraDist() {
 		this.cameraDist = getDistance(this, world_camera);
 		this.playerDist = getDistance(this, player);
+	}
+
+	getColor() {
+		return `hsl(${this.color.h}, ${this.color.s}%, ${linterp(this.color.v * 67.5, 0, clamp(this.playerDist / render_maxColorDistance, 0.1, 1))}%)`;
 	}
 
 	beDrawn() {
@@ -366,8 +656,7 @@ class Ring {
 		this.x = x;
 		this.y = y;
 		this.z = z;
-		this.theta = theta;
-		this.phi = phi;
+		this.normal = [theta, phi];
 		this.r = radius;
 		this.width = 2;
 		this.resolution = 12;
@@ -384,7 +673,7 @@ class Ring {
 		}
 
 		this.points.forEach(p => {
-			transformPoint(p, [this.x, this.y, this.z], [this.theta, this.phi], this.r);
+			transformPoint(p, [this.x, this.y, this.z], this.normal, this.r);
 		});
 	}
 
@@ -559,7 +848,7 @@ class StaticCharacter {
 
 	placeSelf() {
 		var targetTile = this.parent.strips[this.strip].tiles[this.tile];
-		var offset = polToCart(targetTile.dir_down[0], targetTile.dir_down[1] + Math.PI, player_radius * 5);
+		var offset = polToCart(targetTile.dir_down[0], targetTile.dir_down[1], player_radius);
 		this.x = targetTile.x + offset[0];
 		this.y = targetTile.y + offset[1];
 		this.z = targetTile.z + offset[2];
@@ -612,7 +901,7 @@ class Tunnel {
 		this.phi = 0;
 
 		
-
+		this.allowBackwards = true;
 		this.bannedCharacters = bannedCharacters;
 		this.color = color;
 		this.cameraDist = 1000;
@@ -666,6 +955,10 @@ class Tunnel {
 
 	beDrawn() {
 		if (this == player.parentPrev) {
+			if (data_persistent.settings.altRender) {
+				drawPlayerWithTunnel(this);
+				return;
+			}
 			this.beDrawn_playerParent();
 			return;
 		}
@@ -847,11 +1140,7 @@ class Tunnel {
 		//tunnel part 2
 		while (stripsDrawn < this.strips.length - 1 || (stripsDrawn > 999 && stripsDrawn < this.strips.length + 999)) {
 			if (stripsDrawn % 2 == 0) {
-				try {
-					this.strips[trackR % this.strips.length].beDrawn();
-				} catch (er) {
-					console.log(trackR);
-				}
+				this.strips[trackR % this.strips.length].beDrawn();
 				trackR -= 1;
 			} else {
 				this.strips[(trackL + this.strips.length) % this.strips.length].beDrawn();;
@@ -1075,12 +1364,11 @@ class Tunnel {
 								getDistance({x:this.centerPos[0], y:this.centerPos[1], z:this.centerPos[2]}, {x:world_camera.targetX, y:world_camera.targetY, z:world_camera.targetZ}),
 								getDistance({x:this.endPos[0], y:this.endPos[1], z:this.endPos[2]}, {x:world_camera.targetX, y:world_camera.targetY, z:world_camera.targetZ}));
 	}
-
 	giveStringData() {
 		//TODO: support function output
 		//TODO: support banned character output
 		var output = ``;
-		//non-tile position features
+		//simple non-tile position features
 		output += `id~${this.id}`;
 		output += `|pos-x~${this.x.toFixed(4)}`;
 		output += `|pos-z~${this.z.toFixed(4)}`;
@@ -1098,12 +1386,18 @@ class Tunnel {
 
 		//tile data
 		this.repairData();
-
 		output += tunnelData_parseDataReverse(this.data);
 
 		//functions
 
 		//banned characters
+		var reverseBanned = flipObject(this.bannedCharacters);
+		Object.keys(reverseBanned).forEach(r => {
+			output += `|charRestriction~${r}`;
+			reverseBanned[r].forEach(c => {
+				output += "~" + c;
+			});
+		});
 
 		return output;
 	}
@@ -1111,6 +1405,7 @@ class Tunnel {
 	placePlayer() {
 		var spawnObj;
 		var spawnChoice;
+		player.backwards = player.backwards && this.allowBackwards;
 		if (player.backwards) {
 			//choosing randomly from spawns 
 			spawnChoice = this.endSpawns[Math.floor(randomBounded(0, this.endSpawns.length-1))];
@@ -1245,6 +1540,20 @@ class Tunnel {
 		this.power = this.powerBase;
 		this.powerPrevious = this.powerBase;
 		this.powerTime = 0;
+
+		//calculating whether to allow the player to move backwards
+		this.allowBackwards = false;
+		
+		if (!editor_objects.includes(this)) {
+			var prefix = this.id.replaceAll(/[0-9]/g, '');
+			var num = this.id.replaceAll(/[A-z]/g, '').replaceAll(',', '').replaceAll('-', '') * 1;
+			var sequel = getObjectFromID(prefix+(num+1));
+			this.allowBackwards = (sequel.id == undefined || sequel.discovered);
+		} else {
+			//if in the editor world, always allow backwards
+			this.allowBackwards = true;
+		}
+		
 
 		//reset all crumbling tiles
 		this.strips.forEach(a => {
@@ -1443,6 +1752,26 @@ class Tunnel {
 		[tileX, tileZ] = rotate(tileX, tileZ, this.theta);
 
 		return [this.x + tileX, this.y + tileY, this.z + tileZ];
+	}
+}
+
+class Tunnel_Blocker {
+	constructor(parent, tileZ, data) {
+		this.x;
+		this.y;
+		this.z;
+
+		this.tileData = data;
+		this.tileZ = tileZ;
+
+		this.cameraDist = 1000;
+		this.playerDist = 1000;
+
+		this.parent = parent;
+	}
+
+	generate() {
+
 	}
 }
 
