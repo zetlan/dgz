@@ -10,7 +10,6 @@ class Tile extends FreePoly {
 		this.points;
 		this.normal = normal;
 		this.cameraRot = this.normal[1];
-		this.rPoint;
 		this.dir_right;
 		this.dir_down;
 
@@ -18,21 +17,18 @@ class Tile extends FreePoly {
 
 		this.parent = parent;
 		this.parentPosition = tilePosition;
+		this.isReal = false;
 	}
 
 	calculatePointsAndNormal() {
 		var points = [[-1, 0, -1], [-1, 0, 1], [1, 0, 1], [1, 0, -1]];
-		
-		var rPoint = [0, 0, -10];
-		rPoint = transformPoint(rPoint, [0, 0, 0], this.normal, 1);
 
 		for (var p=0; p<points.length; p++) {
 			points[p] = transformPoint(points[p], [this.x, this.y, this.z], this.normal, this.size + 0.5);
 		}
 		
 		this.points = points;
-		this.rPoint = [rPoint[0] + this.x, rPoint[1] + this.y, rPoint[2] + this.z];
-		this.dir_right = cartToPol(rPoint[0], rPoint[1], rPoint[2]);
+		this.dir_right = [this.normal[0], this.normal[1] + (Math.PI / 2)];
 		this.dir_down = this.normal;
 	}
 
@@ -41,7 +37,7 @@ class Tile extends FreePoly {
 		entity.dir_front = [(Math.PI * 2) - this.parent.theta + (Math.PI * player.backwards), 0];
 		entity.dir_side = [this.dir_right[0], this.dir_right[1] + (Math.PI * player.backwards)];
 		entity.dir_down = this.dir_down;
-		entity.dy = 0;
+		entity.dy = -1;
 
 		//TODO: find a way to refactor the if/else out of this
 		if (player.backwards) {
@@ -50,7 +46,7 @@ class Tile extends FreePoly {
 			cameraRotAttempt = (this.dir_down[1] + (Math.PI * 1.5)) % (Math.PI * 2);
 		}
 
-		world_camera.phi = 0;
+		world_camera.targetPhi = 0;
 		world_camera.targetTheta = entity.dir_front[0];
 		//if the difference is too great, fix that
 		if (Math.abs(world_camera.theta - world_camera.targetTheta) > Math.PI) {
@@ -78,13 +74,13 @@ class Tile extends FreePoly {
 
 	collideWithEntity(entity) {
 		//only collide if player is within certain distance
-		if (Math.abs(this.x - entity.x) + Math.abs(this.y - entity.y) + Math.abs(this.z - entity.z) < (this.size * 2) + entity.r) {
+		if (this.playerDist < this.size * 2) {
 			super.collideWithEntity(entity);
 		}
 	}
 
 	getColor() {
-		return `hsl(${this.color.h}, ${this.color.s}%, ${linterp(40 * (this.parent.power + 0.5), 0, clamp((this.playerDist / render_maxColorDistance) * (1 / (this.parent.power + 0.001)), 0.1, 1))}%)`;
+		return `hsl(${this.color.h}, ${this.color.s}%, ${linterp((this.color.v * 45) * (this.parent.power + 0.5), 0, clamp((this.playerDist / render_maxColorDistance) * (1 / (this.parent.power + 0.001)), 0.1, 1))}%)`;
 	}
 
 	playerIsOnTop() {
@@ -95,7 +91,7 @@ class Tile extends FreePoly {
 //I just gave up on the tile system with this one and made it its own object
 class Tile_Box extends Tile {
 	constructor(x, y, z, size, normal, parent, tilePosition) {
-		super(x, y, z, size, normal, parent, tilePosition, {h: 300, s: 10});
+		super(x, y, z, size, normal, parent, tilePosition, RGBtoHSV(color_box));
 
 		//all boxes have a left / right tile, for changing rotation
 		this.leftTile = new Tile(x, y, z, size, [normal[0], (normal[1] + (Math.PI * 1.5)) % (Math.PI * 2)], parent, tilePosition, this.color);
@@ -105,23 +101,19 @@ class Tile_Box extends Tile {
 	calculatePointsAndNormal() {
 		var points = [	[-1, 1, -1], [-1, 1, 1], [1, 1, 1], [1, 1, -1],
 						[-1, -1, -1], [-1, -1, 1], [1, -1, 1], [1, -1, -1]];
-		
-		var rPoint = [0, 0, -10];
-		rPoint = transformPoint(rPoint, [0, 0, 0], this.normal, 1);
 
 		for (var p=0; p<points.length; p++) {
 			points[p] = transformPoint(points[p], [this.x, this.y, this.z], this.normal, this.size + 0.5);
 		}
 		
 		this.points = points;
-		this.rPoint = [rPoint[0] + this.x, rPoint[1] + this.y, rPoint[2] + this.z];
-		this.dir_right = cartToPol(rPoint[0], rPoint[1], rPoint[2]);
+		this.dir_right = [this.normal[0], this.normal[1] + (Math.PI / 2)];
 		this.dir_down = this.normal;
 	}
 	
 
 	beDrawn() {
-		if (this.cameraDist < render_maxColorDistance + this.size) {
+		if ((this.size / this.cameraDist) * world_camera.scale > render_minTileSize * 0.5 && this.cameraDist < render_maxColorDistance * 2) {
 			//actual box shape
 			/*faces:
 			top - 0 1 2 3 
@@ -250,6 +242,77 @@ class Tile_Box extends Tile {
 	}
 }
 
+class Tile_Box_Ringed extends Tile_Box {
+	constructor(x, y, z, size, normal, parent, tilePosition) {
+		super(x, y, z, size, normal, parent, tilePosition);
+		
+	}
+
+	calculatePointsAndNormal() {
+		super.calculatePointsAndNormal();
+		var ringOff = polToCart(this.normal[0], (this.normal[1] + (Math.PI * 1.5)) % (Math.PI * 2), (this.size / 2) + 2);
+		this.ringL = new Ring(this.x + ringOff[0], this.y + ringOff[1], this.z + ringOff[2], this.normal[0], (this.normal[1] + (Math.PI * 1.5)) % (Math.PI * 2), render_ringSize);
+		this.ringR = new Ring(this.x - ringOff[0], this.y - ringOff[1], this.z - ringOff[2], this.normal[0], (this.normal[1] + (Math.PI * 0.5)) % (Math.PI * 2), render_ringSize);
+	}
+
+	beDrawn() {
+		//TODO: refactor this to align with parent class, currently is inefficient
+		if ((this.size / this.cameraDist) * world_camera.scale > render_minTileSize * 0.5 && this.cameraDist < render_maxColorDistance * 2) {
+			var relCPos = spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], this.normal);
+			var color = this.getColor();
+			if (relCPos[2] > 0) {
+				drawWorldPoly([this.points[0], this.points[1], this.points[2], this.points[3]], color);
+			} else {
+				drawWorldPoly([this.points[4], this.points[5], this.points[6], this.points[7]], color);
+			}
+			//front / back
+			if (relCPos[0] > 0) {
+				drawWorldPoly([this.points[3], this.points[2], this.points[6], this.points[7]], color);
+			} else {
+				drawWorldPoly([this.points[0], this.points[1], this.points[5], this.points[4]], color);
+			}
+			//left / rightß
+			if (relCPos[1] > 0) {
+				//change order of ring / face depending on position
+				if (relCPos[1] <= this.size / 2) {
+					this.ringR.beDrawn();
+				}
+				drawWorldPoly([this.points[0], this.points[3], this.points[7], this.points[4]], color);
+				if (relCPos[1] > this.size / 2) {
+					this.ringR.beDrawn();
+				}
+			} else {
+				if (relCPos[1] >= this.size / -2) {
+					this.ringL.beDrawn();
+				}
+				drawWorldPoly([this.points[1], this.points[2], this.points[6], this.points[5]], color);
+				if (relCPos[1] < this.size / -2) {
+					this.ringL.beDrawn();
+				}
+			}
+			return;
+		}
+		//simple circle for far away
+		if (!isClipped([this.x, this.y, this.z])) {
+			var pos = spaceToScreen([this.x, this.y, this.z]);
+			drawCircle(this.getColor(), pos[0], pos[1], (this.size / this.cameraDist) * world_camera.scale * 0.6);
+		}
+	}
+
+	doComplexLighting() {
+		super.doComplexLighting();
+		this.ringL.doComplexLighting();
+		this.ringR.doComplexLighting();
+		
+	}
+
+	tick() {
+		super.tick();
+		this.ringL.tick();
+		this.ringR.tick();
+	}
+}
+
 class Tile_Box_Spun extends Tile_Box {
 	constructor(x, y, z, size, normal, parent, tilePosition) {
 		super(x, y, z, size, [normal[0], normal[1] + (Math.PI * 0.25)], parent, tilePosition);
@@ -260,17 +323,13 @@ class Tile_Box_Spun extends Tile_Box {
 		var len = 1 / Math.sqrt(2);
 		var points = [	[-1, len, -len], [-1, len, len], [1, len, len], [1, len, -len],
 						[-1, -len, -len], [-1, -len, len], [1, -len, len], [1, -len, -len]];
-		
-		var rPoint = [0, 0, -10];
-		rPoint = transformPoint(rPoint, [0, 0, 0], this.normal, 1);
 
 		for (var p=0; p<points.length; p++) {
 			points[p] = transformPoint(points[p], [this.x, this.y, this.z], this.normal, this.size + 0.5);
 		}
 		
 		this.points = points;
-		this.rPoint = [rPoint[0] + this.x, rPoint[1] + this.y, rPoint[2] + this.z];
-		this.dir_right = cartToPol(rPoint[0], rPoint[1], rPoint[2]);
+		this.dir_right = [this.normal[0], this.normal[1] + (Math.PI / 2)];
 		this.dir_down = this.normal;
 		this.size -= player.r * 0.6;
 	}
@@ -282,14 +341,14 @@ class Tile_Bright extends Tile {
 	}
 
 	getColor() {
-		return `hsl(${this.color.h}, ${this.color.s}%, ${linterp(60, 5, clamp((this.playerDist / render_maxColorDistance) * 0.75, 0, 1))}%)`
+		return `hsl(${this.color.h}, ${this.color.s}%, ${linterp(75, 5, clamp((this.playerDist / render_maxColorDistance) * 0.75, 0, 1))}%)`
 	}
 }
 
 class Tile_Conveyor extends Tile {
 	constructor(x, y, z, size, normal, parent, tilePosition) {
-		super(x, y, z, size, normal, parent, tilePosition, RGBtoHSV("#69beff"));
-		this.secondaryColor = RGBtoHSV("#616bff");
+		super(x, y, z, size, normal, parent, tilePosition, RGBtoHSV(color_conveyor));
+		this.secondaryColor = RGBtoHSV(color_conveyor_secondary);
 		this.time = 0;
 		this.conveyTime = 80;
 	}
@@ -330,7 +389,7 @@ class Tile_Conveyor extends Tile {
 
 	tick() {
 		super.tick();
-		this.time = (this.time + (1 / this.conveyTime)) % 1;
+		this.time = (world_time / this.conveyTime) % 1;
 	}
 	
 	beDrawn() {
@@ -436,7 +495,7 @@ class Tile_Conveyor_Right extends Tile_Conveyor {
 
 class Tile_Crumbling extends Tile {
 	constructor(x, y, z, size, normal, parent, tilePosition, color) {
-		super(x, y, z, size, normal, parent, tilePosition, {h: 0, s: 0});
+		super(x, y, z, size, normal, parent, tilePosition, RGBtoHSV(color_crumbling));
 		this.activeSize = this.size;
 
 		this.home = [this.x, this.y, this.z];
@@ -453,9 +512,6 @@ class Tile_Crumbling extends Tile {
 			this.activeSize = this.size;
 		}
 		this.points = [[-1, 0, -1], [-1, 0, 1], [1, 0, 1], [1, 0, -1]];
-		
-		var rPoint = [0, 0, -10];
-		transformPoint(rPoint, [0, 0, 0], this.normal, 1);
 
 		this.points.forEach(p => {
 			transformPoint(p, [this.x, this.y, this.z], this.normal, this.activeSize);
@@ -463,15 +519,14 @@ class Tile_Crumbling extends Tile {
 
 		this.line1 = [transformPoint([0.5, 0, 0.5], [this.x, this.y, this.z], this.normal, this.activeSize), transformPoint([-0.5, 0, -0.5], [this.x, this.y, this.z], this.normal, this.activeSize)];
 		this.line2 = [transformPoint([-0.5, 0, 0.5], [this.x, this.y, this.z], this.normal, this.activeSize), transformPoint([0.5, 0, -0.5], [this.x, this.y, this.z], this.normal, this.activeSize)];
-		this.rPoint = [rPoint[0] + this.x, rPoint[1] + this.y, rPoint[2] + this.z];
 
-		this.dir_right = cartToPol(rPoint[0], rPoint[1], rPoint[2]);
+		this.dir_right = [this.normal[0], this.normal[1] + (Math.PI / 2)];
 		this.dir_down = this.normal;
 	}
 
 	collideWithEntity(entity) {
 		//only do if large enough
-		if (this.activeSize > 0.01) {
+		if (this.activeSize > 0.01 && this.playerDist < this.size * 2) {
 			super.collideWithEntity(entity);
 		}
 
@@ -528,7 +583,7 @@ class Tile_Crumbling extends Tile {
 		if (this.activeSize > 0.01) {
 			super.beDrawn();
 			if (this.playerDist / render_maxColorDistance < 0.95) {
-				ctx.strokeStyle = `hsl(0, 0%, ${linterp(50, 0, this.playerDist / render_maxColorDistance)}%)`;
+				ctx.strokeStyle = `hsl(0, 0%, ${linterp(40, 0, this.playerDist / render_maxColorDistance)}%)`;
 				drawWorldLine(this.line1[0], this.line1[1]);
 				drawWorldLine(this.line2[0], this.line2[1]);
 			}
@@ -569,7 +624,7 @@ class Tile_Crumbling extends Tile {
 
 	crumbleOtherTile(strip, num) {
 		if (this.parent.strips[strip].tiles[num] instanceof Tile_Crumbling && this.parent.strips[strip].tiles[num].fallStatus == undefined) {
-			this.parent.strips[strip].tiles[num].fallStatus = 0;
+			this.parent.strips[strip].tiles[num].fallStatus = Math.max(0, this.fallStatus);
 			this.parent.strips[strip].tiles[num].propogateCrumble();
 		}
 	}
@@ -577,7 +632,7 @@ class Tile_Crumbling extends Tile {
 
 class Tile_Ice extends Tile {
 	constructor(x, y, z, size, normal, parent, tilePosition) {
-		super(x, y, z, size, normal, parent, tilePosition, {h: 185, s: 9});
+		super(x, y, z, size, normal, parent, tilePosition, RGBtoHSV(color_ice));
 	}
 
 	getColor() {
@@ -597,10 +652,6 @@ class Tile_Ice_Ramp extends Tile_Ice {
 
 	calculatePointsAndNormal() {
 		this.points = [[-1, 0, -1], [-1, 0, 1], [-1 + Math.sqrt(3), 0.5, 1], [-1 + Math.sqrt(3), 0.5, -1]];
-		
-		var rPoint = [0, 0, -10];
-		transformPoint(rPoint, [0, 0, 0], this.normal, 1);
-
 		this.points.forEach(p => {
 			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 0.5);
 		});
@@ -608,17 +659,48 @@ class Tile_Ice_Ramp extends Tile_Ice {
 		[this.x, this.y, this.z] = avgArray(this.points);
 		this.dir_down = this.normal;
 		this.normal = calculateNormal(this.points);
-		this.rPoint = [rPoint[0] + this.x, rPoint[1] + this.y, rPoint[2] + this.z];
-		this.dir_right = cartToPol(rPoint[0], rPoint[1], rPoint[2]);
+		this.dir_right = [this.dir_down[0], this.dir_down[1] + (Math.PI / 2)];
 	}
 
 	doCollisionEffects(entity) {
 		super.doCollisionEffects(entity);
 		//push player up a bit
 		if (entity.dy < entity.dz * 0.1) {
-			entity.dy = entity.dz * 0.1;
+			entity.dy = entity.dz * 0.1 * ((!player.backwards * 2) - 1);
 		}
 		entity.onGround = physics_graceTimeRamp;
+	}
+}
+
+class Tile_Movable extends Tile {
+	constructor(x, y, z, size, normal, parent, tilePosition, color) {
+		super(x, y, z, size, normal, parent, tilePosition, color);
+		
+	}
+
+	calculatePointsAndNormal() {
+		super.calculatePointsAndNormal();
+		var ringOffset = polToCart(this.normal[0], this.normal[1], 2);
+		this.ring = new Ring(this.x + ringOffset[0], this.y + ringOffset[1], this.z + ringOffset[2], this.normal[0], this.normal[1], render_ringSize);
+	}
+
+	doComplexLighting() {
+		super.doComplexLighting();
+		//rings on tiles are close enough that it probably doesn't matter, and will save time to not do the computation
+		this.ring.playerDist = this.playerDist;
+	}
+
+	beDrawn() {
+		super.beDrawn();
+		//if the camera is on same side as normal, draw ring
+		if (spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], this.normal)[2] > 0) {
+			this.ring.beDrawn();
+		}
+	}
+
+	tick() {
+		super.tick();
+		this.ring.tick();
 	}
 }
 
@@ -627,7 +709,7 @@ class Tile_Plexiglass extends Tile {
 	constructor(x, y, z, size, normal, parent, tilePosition, color, strength) {
 		super(x, y, z, size, normal, parent, tilePosition, color);
 		this.strength = strength;
-		this.minStrength = 0.05;
+		this.minStrength = 0.04;
 	}
 
 	getAlpha() {
@@ -656,7 +738,7 @@ class Tile_Plexiglass extends Tile {
 
 	collideWithEntity(entity) {
 		if (player.personalBridgeStrength != undefined) {
-			if (this.getAlpha() > this.minStrength) {
+			if (this.getAlpha() > this.minStrength && this.playerDist < this.size * 2) {
 				super.collideWithEntity(entity);
 			}
 		}
@@ -670,10 +752,6 @@ class Tile_Ramp extends Tile {
 
 	calculatePointsAndNormal() {
 		this.points = [[-1, 0, -1], [-1, 0, 1], [-1 + (2 / Math.sqrt(2)), (2 / Math.sqrt(2)), 1], [-1 + (2 / Math.sqrt(2)), (2 / Math.sqrt(2)), -1]];
-		
-		var rPoint = [0, 0, -10];
-		transformPoint(rPoint, [0, 0, 0], this.normal, 1);
-
 		this.points.forEach(p => {
 			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 0.5);
 		});
@@ -681,14 +759,13 @@ class Tile_Ramp extends Tile {
 		[this.x, this.y, this.z] = avgArray(this.points);
 		this.dir_down = this.normal;
 		this.normal = calculateNormal(this.points);
-		this.rPoint = [rPoint[0] + this.x, rPoint[1] + this.y, rPoint[2] + this.z];
-		this.dir_right = cartToPol(rPoint[0], rPoint[1], rPoint[2]);
+		this.dir_right = [this.dir_down[0], this.dir_down[1] + (Math.PI / 2)];
 	}
 
 	doCollisionEffects(entity) {
 		super.doCollisionEffects(entity);
 		//push player up a bit
-		entity.dy = entity.dz * 0.7;
+		entity.dy = entity.dz * 0.7 * ((!player.backwards * 2) - 1);
 		entity.onground = physics_graceTimeRamp;
 	}
 
@@ -704,5 +781,60 @@ class Tile_Vertical extends Tile {
 }
 
 class Tile_Warning extends Tile {
+	constructor(x, y, z, size, normal, parent, tilePosition) {
+		super(x, y, z, size, normal, parent, tilePosition, RGBtoHSV(color_warning));
+		this.verticalPlayerDist = 1000;
+	}
 
+	calculatePointsAndNormal() {
+		super.calculatePointsAndNormal();
+		this.verticalPoints = [[1, 0, -1], [1, 1.25, -1], [1, 1.25, 1], [1, 0, 1]];
+		this.verticalCenter = avgArray(this.verticalPoints);
+
+		transformPoint(this.verticalCenter, [this.x, this.y, this.z], this.normal, this.size + 0.5);
+		this.verticalPoints.forEach(p => {
+			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 0.5);
+		});
+	}
+
+	tick() {
+		super.tick();
+
+		//get player distance for vertical part
+		this.verticalPlayerDist = getDistance(player, {x: this.verticalCenter[0], y: this.verticalCenter[1], z: this.verticalCenter[2]});
+	}
+
+	getVerticalColor() {
+		return `hsl(${this.color.h}, ${this.color.s}%, ${linterp((this.color.v * 45) * (this.parent.power + 0.5), 0, clamp((this.verticalPlayerDist / render_maxColorDistance) * (1 / (this.parent.power + 0.001)), 0.1, 1))}%)`;
+	}
+
+	collideWithEntity(entity) {
+		super.collideWithEntity(entity);
+
+		//also colliding with front bit
+		//transform player to self's coordinates
+		var entityCoords = spaceToRelative([entity.x, entity.y, entity.z], this.verticalCenter, [this.dir_down[0] + (Math.PI / 2), 0, this.dir_down[1]]);
+		if (Math.abs(entityCoords[2]) < this.tolerance && Math.abs(entityCoords[0] < this.size + this.tolerance) && Math.abs(entityCoords[0]) < (this.size * 0.25) + this.tolerance) {
+			//different behavior depending on side
+			if (entityCoords[2] < 0) {
+				entityCoords[2] = -this.tolerance;
+			} else {
+				entityCoords[2] = this.tolerance;
+			}
+			entity.dz = 0;
+			//transforming back to regular coordinates
+			[entity.x, entity.y, entity.z] = relativeToSpaceRot(entityCoords, this.verticalCenter, [this.dir_down[0] + (Math.PI / 2), 0, this.dir_down[1]]);
+		}
+	}
+
+	beDrawn() {
+		super.beDrawn();
+		drawWorldPoly(this.verticalPoints, this.getVerticalColor());
+		if (editor_active) {
+			//draw sideways normal
+			var cXYZ = polToCart(this.dir_down[0] + (Math.PI / 2), 0, 5);
+			cXYZ = [this.verticalCenter[0] + cXYZ[0], this.verticalCenter[1] + cXYZ[1], this.verticalCenter[2] + cXYZ[2]];
+			drawWorldLine(this.verticalCenter, cXYZ);
+		}
+	}
 }
