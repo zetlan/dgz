@@ -47,7 +47,40 @@ public class HeapPriorityQueue<E extends Comparable<E>>
    }
    
    private void heapDown(int k, int size) {
-   
+      if (k * 2 + 1 <= size) {
+         if (myHeap.get(k*2) > myHeap.get(k) || myHeap.get(k*2 + 1) > myHeap.get(k)) {
+            if (myHeap.get(k*2) > myHeap.get(k) && myHeap.get(k*2+1) > myHeap.get(k)) {
+               if (myHeap.get(k*2) > myHeap.get(k*2+1)) {
+                  swap(k, k*2);
+                  heapDown(array, k*2, size);
+               } else {
+                  swap(array, k, k*2+1);
+                  heapDown(array, k*2+1, size);
+               }
+               return;
+            }
+
+            if (array[k*2] > array[k]) {
+               swap(array, k, k*2);
+               heapDown(array, k*2, size);
+               return;
+            }
+
+            if (array[k*2+1] > array[k]) {
+               swap(array, k, k*2+1);
+               heapDown(array, k*2+1, size);
+               return;
+            }
+         }
+      }
+
+      if (k * 2 <= size) {
+         if (array[k * 2] > array[k]) {
+            swap(array, k, k*2);
+            heapDown(array, k*2, size);
+         }
+         return;
+      }
    }
    
    public String toString() {
