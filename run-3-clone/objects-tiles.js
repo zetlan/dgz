@@ -32,10 +32,6 @@ class Tile extends FreePoly {
 		this.dir_down = this.normal;
 	}
 
-	doComplexLighting() {
-		getDistance_LightSource(this);
-	}
-
 	doRotationEffects(entity) {
 		var cameraRotAttempt;
 		entity.dir_front = [(Math.PI * 2) - this.parent.theta + (Math.PI * player.backwards), 0];
