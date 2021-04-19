@@ -57,7 +57,7 @@ function generateAngelLines() {
 	data_angelChecklist.forEach(c => {
 		if (!c[3]) {
 			for (var t=0; t<=checklist_stayLines; t++) {
-				c[4].push(randomSeeded(0.1, 1));
+				c[5].push(randomSeeded(0.1, 1));
 			}
 		}
 	});
@@ -161,9 +161,14 @@ function file_export() {
 	});
 	textDat += "\n";
 
+	//spawn index
+	textDat += editor_objects.indexOf(editor_spawn) + "\n\n";
+
 	//cutscenes
+	textDat += "{\n";
 
 
+	textDat += "\n}";
 
 	var fileObj = new Blob([textDat], {type: 'text/plain'});
 
@@ -209,6 +214,20 @@ function file_import() {
 	fileReader.readAsText(fileObj, "UTF-8");
 }
 
+function flipObject(object) {
+	//takes key:value pairs and turns them into value: key pairs.
+	var flipped = {};
+	var keyList = Object.keys(object);
+	keyList.forEach(k => {
+		var val = object[k];
+		if (flipped[val] == undefined) {
+			flipped[val] = [];
+		}
+		flipped[val].push(k);
+	});
+	return flipped;
+}
+
 function getClosestObject(arr) {
 	var item = 0;
 	for (var a=1; a<arr.length; a++) {
@@ -238,8 +257,8 @@ function getObjectFromID(id) {
 	}
 
 	//to prevent errors, return an empty object if nothing is found
-	//I do still want to make sure I don't accidentally miss things though
-	console.error(`ERROR: couldn't find tunnel with id ${id}`);
+	//commented out because the errors get annoying.
+	//console.error(`ERROR: couldn't find tunnel with id ${id}`);
 	return {};
 }
 
@@ -289,7 +308,7 @@ function handleAudio() {
 	}
 
 	//subtitles for people with their volume off
-	if (audio_channel2.audio == audio_data["Tone"] && audio_channel2.volume == 0 && text_queue.length == 0) {
+	if (audio_channel2.audio == data_audio["Tone"] && audio_channel2.volume == 0 && text_queue.length == 0) {
 		text_queue.push([undefined, `beeeep`]);
 	} 
 
@@ -307,7 +326,7 @@ function handleAudio() {
 	if (loading_state.parentControlsAudio) {
 		//special case for skater
 		if (player.constructor.name == "Skater" && player.parentPrev.music != "None") {
-			audio_channel1.target = audio_data["UnsafeSpeeds"];
+			audio_channel1.target = data_audio["UnsafeSpeeds"];
 			return;
 		}
 
@@ -316,29 +335,29 @@ function handleAudio() {
 			//songs scale with distance
 			switch (Math.floor(loading_state.distance / 2000)) {
 				case 0:
-					audio_channel1.target = audio_data["TravelTheGalaxy"];
+					audio_channel1.target = data_audio["TravelTheGalaxy"];
 					return;
 				case 1:
-					audio_channel1.target = audio_data["LeaveTheSolarSystem"];
+					audio_channel1.target = data_audio["LeaveTheSolarSystem"];
 					return;
 				case 2:
-					audio_channel1.target = audio_data["WormholeToSomewhere"];
+					audio_channel1.target = data_audio["WormholeToSomewhere"];
 					return;
 				case 3:
-					audio_channel1.target = audio_data["TheVoid"];
+					audio_channel1.target = data_audio["TheVoid"];
 					return;
 				case 4:
-					audio_channel1.target = audio_data["CrumblingWalls"];
+					audio_channel1.target = data_audio["CrumblingWalls"];
 					return;
 				case 5:
 				default:
-					audio_channel1.target = audio_data["MapOfTheStars"];
+					audio_channel1.target = data_audio["MapOfTheStars"];
 					return;
 			}
 		}
 		//default case
 		if (loading_state.substate != 3) {
-			audio_channel1.target = audio_data[player.parentPrev.music];
+			audio_channel1.target = data_audio[player.parentPrev.music];
 		}
 	}
 }
@@ -399,6 +418,10 @@ function HSVtoRGB(hsvObject) {
 	];
 
 	return RGB;
+}
+
+function isValidString(str) {
+	return (str != null && str != undefined && str != "");
 }
 
 //performs a linear interpolation between 2 values
@@ -688,10 +711,10 @@ function spliceOut(string, charStart, charEnd) {
 function stealAudioConsent(a) {
 	//plays and then pauses all the audio elements. It's triggered by the first click, so the user doesn't notice, but they technically allowed the audio to play.
 	if (audio_consentRequired) {
-		for (var audio in audio_data) {
-			audio_data[audio].play();
-			audio_data[audio].pause();
-			audio_data[audio].currentTime = 0;
+		for (var audio in data_audio) {
+			data_audio[audio].play();
+			data_audio[audio].pause();
+			data_audio[audio].currentTime = 0;
 		}
 		audio_consentRequired = false;
 	}
@@ -921,6 +944,11 @@ function tunnelData_parseDataReverse(tileDataArray) {
 			while (dataLists[q].length > 0) {
 				stringRegister2 += getKey(tunnel_translation, parseInt(dataLists[q].substring(0, 6), 2));
 				dataLists[q] = dataLists[q].substring(6);
+				//if only zeroes are left, escape early
+				if (dataLists[q] * 1 == 0) {
+					dataLists[q] = "";
+					
+				}
 			}
 			//step 3: add stars while we're at it
 			dataLists[q] = tunnelData_parseStarsReverse(stringRegister2);
