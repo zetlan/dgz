@@ -1,4 +1,63 @@
 //I don't like object-orinted programming that much but somehow over half of my codebase has become classes, the heck is this garbage
+
+//3d binary tree
+class B3Node {
+	constructor() {
+		this.obj;
+		this.low;
+		this.hie;
+	}
+
+	addObj(object) {
+		//if self is undefined add to self
+		if (this.obj == undefined) {
+			this.obj = object;
+			return;
+		}
+
+		//if self already contains an object use the object's normal to place the next object
+		if (spaceToRelativeRotless([object.x, object.y, object.z], [this.obj.x, this.obj.y, this.obj.z], this.obj.normal)[2] > 0) {
+			//front object
+			if (this.hie == undefined) {
+				this.hie = new B3Node();
+			}
+			this.hie.addObj(object);
+		} else {
+			//object is behind
+			if (this.low == undefined) {
+				this.low = new B3Node();
+			}
+			this.low.addObj(object);
+		}
+	}
+
+	//beDrawn is the only ordered function
+	beDrawn() {
+		//different ordering based on camera position
+		if (spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.obj.x, this.obj.y, this.obj.z], this.obj.normal)[2] > 0) {
+			//camera is on top
+			if (this.low != undefined) {
+				this.low.beDrawn();
+			}
+			this.obj.beDrawn();
+			if (this.hie != undefined) {
+				this.hie.beDrawn();
+			}
+		} else {
+			//camera is below
+			if (this.hie != undefined) {
+				this.hie.beDrawn();
+			}
+			this.obj.beDrawn();
+			if (this.low != undefined) {
+				this.low.beDrawn();
+			}
+		}
+	}
+}
+
+
+
 class CNode {
 	constructor(xPercent, yPercent, cutsceneID, childrenArr) {
 		this.trueX = xPercent;
@@ -118,9 +177,9 @@ class CNode {
 			ctx.textAlign = "center";
 			ctx.fillText(this.cutsceneRef.id, this.x * canvas.width, (this.y * canvas.height) + (textSize / 2));
 
-			if (editor_active) {
-				drawCircle(color_grey_light, this.x * canvas.width, this.y * canvas.height, editor_handleRadius);
-			}
+			//if (editor_active) {
+			//	drawCircle(color_grey_light, this.x * canvas.width, this.y * canvas.height, editor_handleRadius);
+			//}
 		}
 	}
 }
@@ -239,6 +298,144 @@ class Scene3dObject {
 	}
 }
 
+class SceneBoat extends Scene3dObject {
+	constructor(x, y, z, theta, phi) {
+		super(x, y, z);
+
+		this.boat = new Boat(this.x, this.y, this.z, theta, phi);
+		this.handleSize = 70;
+		//fix knobs
+		this.handle1 = polToCart(this.boat.theta, 0, render_crosshairSize);
+		this.handle2 = polToCart(this.boat.theta + (Math.PI / 2), 0, render_crosshairSize);
+		this.handle3 = polToCart(this.boat.theta + (Math.PI / 2), Math.PI / 2, render_crosshairSize);
+		this.handle4 = polToCart(this.boat.theta, this.boat.phi, this.handleSize);
+		this.handle5 = polToCart(this.boat.theta, 0, this.handleSize);
+	}
+
+	beDrawn() {
+		this.boat.tick();
+		this.boat.doComplexLighting();
+		this.boat.beDrawn();
+		super.beDrawn();
+	}
+
+	beDrawnTrue() {
+		//jumping-off points
+		var screenCenter = spaceToScreen([this.x, this.y, this.z]);
+		var screenXup = spaceToScreen([this.x + this.handle1[0], this.y + this.handle1[1], this.z + this.handle1[2]]);
+		var screenYup = spaceToScreen([this.x + this.handle2[0], this.y + this.handle2[1], this.z + this.handle2[2]]);
+		var screenZup = spaceToScreen([this.x + this.handle3[0], this.y + this.handle3[1], this.z + this.handle3[2]]);
+		var screenRup = spaceToScreen([this.x + this.handle4[0], this.y + this.handle4[1], this.z + this.handle4[2]]);
+		var screenTup = spaceToScreen([this.x + this.handle5[0], this.y + this.handle5[1], this.z + this.handle5[2]]);
+		//transforming lines to screen coordinates
+
+		//drawing lines
+		ctx.lineWidth = 2;
+		ctx.strokeStyle = "#F0F";
+		drawLine(screenCenter, screenRup);
+		drawLine(screenCenter, screenTup);
+		ctx.strokeStyle = "#F00";
+		drawLine(screenCenter, screenXup);
+		ctx.strokeStyle = "#0F0";
+		drawLine(screenCenter, screenYup);
+		ctx.strokeStyle = "#00F";
+		drawLine(screenCenter, screenZup);
+
+		//drawing circles
+		drawCircle(color_grey_dark, screenXup[0], screenXup[1], editor_handleRadius);
+		drawCircle(color_grey_dark, screenYup[0], screenYup[1], editor_handleRadius);
+		drawCircle(color_grey_dark, screenZup[0], screenZup[1], editor_handleRadius);
+		drawCircle(color_grey_dark, screenRup[0], screenRup[1], editor_handleRadius);
+		drawCircle(color_grey_dark, screenTup[0], screenTup[1], editor_handleRadius);
+
+		//selection circles
+		switch (this.selectedPart) {
+			case 0:
+				drawCircle(color_editor_cursor, screenXup[0], screenXup[1], editor_handleRadius);
+				break;
+			case 1:
+				drawCircle(color_editor_cursor, screenYup[0], screenYup[1], editor_handleRadius);
+				break;
+			case 2:
+				drawCircle(color_editor_cursor, screenZup[0], screenZup[1], editor_handleRadius);
+				break;
+			case 3:
+				drawCircle(color_editor_cursor, screenRup[0], screenRup[1], editor_handleRadius);
+				break;
+			case 4:
+				drawCircle(color_editor_cursor, screenTup[0], screenTup[1], editor_handleRadius);
+				break;
+		}
+	}
+
+	tick() {
+		switch (this.selectedPart) {
+			case 0:
+				//x
+				this.updatePosWithCursor(this.handle1);
+				break;
+			case 1:
+				//y
+				this.updatePosWithCursor(this.handle2);
+				break;
+			case 2:
+				//z
+				this.updatePosWithCursor(this.handle3);
+				break;
+			case 3:
+				//rot
+				//figure out rotation relative to self
+				var ctrXY = spaceToScreen([this.x, this.y, this.z]);
+				var cursorRot = Math.atan2(ctrXY[1] - cursor_y, ctrXY[0] - cursor_x) + Math.PI;
+
+				//actual updating
+				this.boat.phi = cursorRot;
+				break;
+			case 4:
+				//theta
+				var ctrXY = spaceToScreen([this.x, this.y, this.z]);
+				var cursorRot = Math.atan2(ctrXY[1] - cursor_y, ctrXY[0] - cursor_x) + Math.PI;
+
+				//actual updating
+				this.boat.theta = cursorRot;
+				break;
+		}
+		
+
+		if (!cursor_down) {
+			//if the cursor's not down, stop being moved
+			this.selectedPart = undefined;
+		}
+		this.boat.x = this.x;
+		this.boat.y = this.y;
+		this.boat.z = this.z;
+
+		this.handle1 = polToCart(this.boat.theta, 0, render_crosshairSize);
+		this.handle2 = polToCart(this.boat.theta + (Math.PI / 2), 0, render_crosshairSize);
+		this.handle3 = polToCart(this.boat.theta + (Math.PI / 2), Math.PI / 2, render_crosshairSize);
+		this.handle4 = polToCart(this.boat.theta, this.boat.phi, this.handleSize);
+		this.handle5 = polToCart(this.boat.theta, 0, this.handleSize);
+		if (world_time % 5 == 1) {
+			this.boat.generate();
+		}
+		
+	}
+
+	giveHandles() {
+		return [
+			spaceToScreen([this.x + this.handle1[0], this.y + this.handle1[1], this.z + this.handle1[2]]),
+			spaceToScreen([this.x + this.handle2[0], this.y + this.handle2[1], this.z + this.handle2[2]]),
+			spaceToScreen([this.x + this.handle3[0], this.y + this.handle3[1], this.z + this.handle3[2]]),
+			spaceToScreen([this.x + this.handle4[0], this.y + this.handle4[1], this.z + this.handle4[2]]),
+			spaceToScreen([this.x + this.handle5[0], this.y + this.handle5[1], this.z + this.handle5[2]]),
+		];
+	}
+
+	giveStringData() {
+		return `3BT~${this.x.toFixed(4)}~${this.y.toFixed(4)}~${this.z.toFixed(4)}~${this.boat.theta.toFixed(4)}~${this.boat.phi.toFixed(4)}`;
+	}
+}
+
 
 class SceneBoxRinged extends Scene3dObject {
 	constructor(x, y, z, size, rot) {
@@ -311,7 +508,7 @@ class SceneBoxRinged extends Scene3dObject {
 			case 3:
 				drawCircle(color_editor_cursor, screenRup[0], screenRup[1], editor_handleRadius);
 				break;
-			case 3:
+			case 4:
 				drawCircle(color_editor_cursor, screenCenter[0], screenCenter[1] + ((this.box.size / this.box.cameraDist) * world_camera.scale), editor_handleRadius);
 				break;
 		}
@@ -390,18 +587,23 @@ class SceneCode {
 	}
 
 	tick() {
-		//update code info
-		var test = prompt("Enter new code please;", this.code);
-		if (test != null && test != undefined && test != "") {
-			this.code = test;
-			this.finished = false;
+		//update code info after cursor is down't
+		if (!cursor_down) {
+			var test = prompt("Enter new code please;", this.code);
+			if (isValidString(test)) {
+				this.code = test;
+				this.finished = false;
+			}
+			this.selectedPart = undefined;
 		}
-		this.selectedPart = undefined;
 	}
 
 	beDrawn() {
 		if (editor_active) {
 			drawCircle(color_grey_dark, canvas.width * 0.95, canvas.height * 0.95, editor_handleRadius);
+			if (cursor_down && this.selectedPart != undefined) {
+				drawCircle(color_editor_cursor, canvas.width * 0.95, canvas.height * 0.95, editor_handleRadius);
+			}
 		} else {
 			if (!this.finished) {
 				eval(this.code);
@@ -546,7 +748,7 @@ class SceneText {
 		this.y = y;
 		this.width = width;
 		this.fontSize = textSize;
-		this.rawContent = content.replace("\\'", "'");
+		this.rawContent = content.replaceAll("\\'", "'");
 		this.processedContent = [];
 		this.isLight = lightBOOLEAN;
 		this.selectedPart = undefined;
@@ -646,7 +848,7 @@ class SceneText {
 				break;
 			case 3:
 				var test = prompt("Enter message text please;", this.rawContent);
-				if (test != null && test != undefined && test != "") {
+				if (isValidString(test)) {
 					this.rawContent = test;
 					this.process();
 				}
@@ -689,7 +891,7 @@ class SceneText {
 	}
 
 	giveStringData() {
-		return `TXT~${this.x.toFixed(4)}~${this.y.toFixed(4)}~${this.width.toFixed(4)}~${this.fontSize.toFixed(4)}~${this.rawContent.replace("~", "")}~${this.isLight}`;
+		return `TXT~${this.x.toFixed(4)}~${this.y.toFixed(4)}~${this.width.toFixed(4)}~${this.fontSize.toFixed(4)}~${this.rawContent.replaceAll("~", "")}~${this.isLight}`;
 	}
 }
 
@@ -1260,9 +1462,9 @@ class PropertyTextBox {
 				if (cursor_x < (canvas.width * (this.x + this.width)) + cursor_hoverTolerance && cursor_x > (canvas.width * this.x) - cursor_hoverTolerance) {
 					var value = prompt(this.boxLabel, eval(this.boxContent));
 					//sanitize input because users are evil gremlins (sorry any user that's reading this, you're not an evil gremlin, but your typing habits could cause problems)
-					if (value != undefined && value != "" && value != null) {
-						value.replace(`\'`, "");
-						value.replace(`\\`, "");
+					if (isValidString(value)) {
+						value.replaceAll(`\'`, "");
+						value.replaceAll(`\\`, "");
 
 						eval(this.execution);
 						if (this.doReset) {
