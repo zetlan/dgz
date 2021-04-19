@@ -506,6 +506,8 @@ id~Memory Evaluation, Part 5|pos-x~-40892|pos-z~-71168|direction~1.6190|layout-t
 id~Memory Evaluation, Part 6|pos-x~-49082|pos-z~-71563|direction~2.1220|layout-tunnel~5~3|color~000066|tileWidth~125|spawn~1|terrain~002BB0*bBB@0*a2BB0*>H030*7600!0*6H030*7600!00BB@000300H030*;7P0l07P0l0H030*@7oo|terrain~oom]]oon00!0*8300H0*4600!0*8300H0*4600!07oo]]_oo00!0600!0600!0*4701h0?01h08!060*7!060*4oom]]ooh0600!0*W7oo]]_oo0*9H030*JH030*4ooh00ooh~glow
 id~Memory Evaluation, Part 7|pos-x~-58623|pos-z~-77429|direction~2.3303|layout-tunnel~4~3|color~0033CC|tileWidth~125|spawn~10|terrain~00BB0*o0*=BB0*960404P7P0**5P10101h180**3>02**30*8h0h0*5N0N0*570700oo|terrain~oo]]oo02**3060404P7P0**5P10101h180**3>02**4030*4h0h0*5N0N0*5707oo]]oo02**30*X2030*Goo00oo~glow|trigger-z~84~result-cutscene~grandOpening
 `;
+//first: 
+//final: id~Memory Evaluation, Part 3|pos-x~-28450|pos-z~-78330|direction~0.8094|layout-tunnel~8~3|color~FFFF00|tileWidth~125|spawn~1|terrain~0*4B*40*o0*EB*40*?H0008001h0010003****30002000N000@000L00040004000l000P000P0*9o*4|terrain~o*4]*4o*4h000@000H0008000h00100010003****30002000N000@000L00040004000l000P****3o*4]*4o*4000h000@0*o000P0o*40*4o*4~glow
 levelData_memory = tunnelData_applyProperty(levelData_memory, `power~0`);
 levelData_memory = tunnelData_applyProperty(levelData_memory, "charRestriction~`The ${player.constructor.name} isn't allowed into this tunnel.`~Angel~Bunny~Child~Duplicator~Lizard~Pastafarian~Runner~Skater~Student");
 
