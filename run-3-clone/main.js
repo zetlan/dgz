@@ -165,7 +165,7 @@ var data_sprites = {
 	},
 
 	Angel: {
-		sheet: getImage('images/angelSprites.png'),
+		sheet: getImage('images/angelSpritesNEW.png'),
 		frameTime: 2.2,
 		back: [[0, 2]],
 		front: [[10, 0]],
