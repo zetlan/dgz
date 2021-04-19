@@ -20,6 +20,7 @@ function placeOneTimeCutsceneTriggers() {
 
 	//the way back
 	getObjectFromID("The Way Back, Part 1").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("The Way Back, Part 1"), 0.5, false, "angelVsBunny"));
+	getObjectFromID("The Way Back, Part 8").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("The Way Back, Part 8"), 0.5, false, "boatRide"));
 	
 	getObjectFromID("Plan A, Part 8").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("Plan A, Part 8"), 54.5, false, "wait"));
 
@@ -28,6 +29,12 @@ function placeOneTimeCutsceneTriggers() {
 	getObjectFromID("Plan C, Part 12").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("Plan C, Part 12"), 86, false, "twoMonthWait2"));
 	getObjectFromID("Plan C, Part 14").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("Plan C, Part 14"), 69.4, false, "twoMonthWait3"));
 
+	//hard-coded values ew
+	var level = getObjectFromID("Level X");
+	level.freeObjs.push(new Boat(24828, 120, -159034, level.theta - (Math.PI / 2), 3.8));
+
+	level = getObjectFromID("Launch Site A");
+	level.freeObjs.push(new Boat(77892, 44, -270906, (Math.PI * 2.5) - level.theta, 0.6));
 
 	//the way onwards
 
@@ -77,7 +84,12 @@ function updatePlotProgression() {
 	}
 	data_persistent.effectiveCutscenes.forEach(c => {
 		var reference = eval(`cutsceneData_${c}`);
-		eval(reference.effects);
+		try {
+			eval(reference.effects);
+		} catch (e) {
+			console.error("couldn't do effects for cutscene " + c)
+		}
+		
 	});
 
 	var discoveredLevels = data_persistent.discovered.split("~");
