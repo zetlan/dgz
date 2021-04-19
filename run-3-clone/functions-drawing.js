@@ -194,13 +194,13 @@ function drawQuad(color, p1, p2, p3, p4) {
 	ctx.fill();
 }
 
-/*
-function drawPlayerWithParent() {
-	var tunnelSize = player.parentPrev.strips.length;
-	var tunnelStrip = getClosestObject(player.parentPrev.strips);
+
+function drawPlayerWithTunnel(obj) {
+	var tunnelSize = obj.strips.length;
+	var tunnelStrip = getClosestObject(obj.strips);
 
 	//STEP 1; draw all strips as far lines, just for funsies (:
-	player.parentPrev.strips.forEach(s => {
+	obj.strips.forEach(s => {
 		s.beDrawn_LineFar();
 	});
 
@@ -232,9 +232,9 @@ function drawPlayerWithParent() {
 			trackL += 1;
 		}
 
-		if ((lowerStrips.length + upperStrips.length) == Math.floor(player.parentPrev.strips.length / 2)) {
+		if ((lowerStrips.length + upperStrips.length) == Math.floor(obj.strips.length / 2)) {
 			//if the camera is outside the tunnel then reorganize strips to half be below, half above. If the camera's inside the tunnel it's fine, all the strips can be below. 
-			if (!player.parentPrev.coordinateIsInTunnel(world_camera.x, world_camera.y, world_camera.z)) {
+			if (!obj.coordinateIsInTunnel(world_camera.x, world_camera.y, world_camera.z)) {
 				target = upperStrips;
 			}
 		}
@@ -247,22 +247,22 @@ function drawPlayerWithParent() {
 	//lower strips
 
 	//different case based on tunnel direction
-	if (player.parentPrev.reverseOrder) {
-		for (var a=player.parentPrev.len-1; a>=0; a--) {
+	if (obj.reverseOrder) {
+		for (var a=obj.len-1; a>=0; a--) {
 			lowerStrips.forEach(n => {
-				if (player.parentPrev.strips[n].tiles[a] != undefined) {
-					if (player.parentPrev.strips[n].tiles[a].isReal) {
-						player.parentPrev.strips[n].tiles[a].beDrawn();
+				if (obj.strips[n].tiles[a] != undefined) {
+					if (obj.strips[n].tiles[a].isReal) {
+						obj.strips[n].tiles[a].beDrawn();
 					}
 				}
 			});
 		}
 	} else {
-		for (var a=0; a<player.parentPrev.len; a++) {
+		for (var a=0; a<obj.len; a++) {
 			lowerStrips.forEach(n => {
-				if (player.parentPrev.strips[n].tiles[a] != undefined) {
-					if (player.parentPrev.strips[n].tiles[a].isReal) {
-						player.parentPrev.strips[n].tiles[a].beDrawn();
+				if (obj.strips[n].tiles[a] != undefined) {
+					if (obj.strips[n].tiles[a].isReal) {
+						obj.strips[n].tiles[a].beDrawn();
 					}
 				}
 			});
@@ -278,27 +278,27 @@ function drawPlayerWithParent() {
 
 
 	//free objects
-	player.parentPrev.freeObjs.forEach(f => {
+	obj.freeObjs.forEach(f => {
 		f.beDrawn();
 	});
 
 	//upper strips
-	if (player.parentPrev.reverseOrder) {
-		for (var a=player.parentPrev.len-1; a>=0; a--) {
+	if (obj.reverseOrder) {
+		for (var a=obj.len-1; a>=0; a--) {
 			upperStrips.forEach(n => {
-				if (player.parentPrev.strips[n].tiles[a] != undefined) {
-					if (player.parentPrev.strips[n].tiles[a].isReal) {
-						player.parentPrev.strips[n].tiles[a].beDrawn();
+				if (obj.strips[n].tiles[a] != undefined) {
+					if (obj.strips[n].tiles[a].isReal) {
+						obj.strips[n].tiles[a].beDrawn();
 					}
 				}
 			});
 		}
 	} else {
-		for (var a=0; a<player.parentPrev.len; a++) {
+		for (var a=0; a<obj.len; a++) {
 			upperStrips.forEach(n => {
-				if (player.parentPrev.strips[n].tiles[a] != undefined) {
-					if (player.parentPrev.strips[n].tiles[a].isReal) {
-						player.parentPrev.strips[n].tiles[a].beDrawn();
+				if (obj.strips[n].tiles[a] != undefined) {
+					if (obj.strips[n].tiles[a].isReal) {
+						obj.strips[n].tiles[a].beDrawn();
 					}
 				}
 			});
@@ -321,9 +321,9 @@ function drawPlayerWithParent() {
 		ctx.font = `${canvas.height / 48}px Comfortaa`;
 		ctx.fillStyle = color_text_bright;
 		var [tX, tY] = [0, 0];
-		for (var v=0; v<player.parentPrev.strips.length; v++) {
-			if (!isClipped([player.parentPrev.strips[v].x, player.parentPrev.strips[v].y, player.parentPrev.strips[v].z])) {
-				[tX, tY] = spaceToScreen([player.parentPrev.strips[v].x, player.parentPrev.strips[v].y, player.parentPrev.strips[v].z]);
+		for (var v=0; v<obj.strips.length; v++) {
+			if (!isClipped([obj.strips[v].x, obj.strips[v].y, obj.strips[v].z])) {
+				[tX, tY] = spaceToScreen([obj.strips[v].x, obj.strips[v].y, obj.strips[v].z]);
 
 				//large square for close objects, small square for fars
 				if (lowerStrips.includes(v)) {
@@ -336,12 +336,12 @@ function drawPlayerWithParent() {
 			}
 		}
 		//dot for closest spot
-		if (!isClipped([player.parentPrev.strips[tunnelStrip].x, player.parentPrev.strips[tunnelStrip].y, player.parentPrev.strips[tunnelStrip].z])) {
-			[tX, tY] = spaceToScreen([player.parentPrev.strips[tunnelStrip].x, player.parentPrev.strips[tunnelStrip].y, player.parentPrev.strips[tunnelStrip].z]);
+		if (!isClipped([obj.strips[tunnelStrip].x, obj.strips[tunnelStrip].y, obj.strips[tunnelStrip].z])) {
+			[tX, tY] = spaceToScreen([obj.strips[tunnelStrip].x, obj.strips[tunnelStrip].y, obj.strips[tunnelStrip].z]);
 			drawCircle("#FFF", tX, tY, 10);
 		}
 	}
-} */
+}
 
 function drawRoundedRectangle(x, y, width, height, arcRadius) {
 	y += ctx.lineWidth * 0.5;
@@ -482,9 +482,9 @@ function drawAngelPanel(time) {
 				} else {
 					//drawing cross-out lines
 					ctx.beginPath();
-					ctx.moveTo(textXOffset, yDefault + yOffset + textYOffset - (canvas.height / 35) + (canvas.height * (1/40) * data_angelChecklist[g][4][0]));
+					ctx.moveTo(textXOffset, yDefault + yOffset + textYOffset - (canvas.height / 35) + (canvas.height * (1/40) * data_angelChecklist[g][5][0]));
 					for (var a=1; a<=checklist_stayLines; a++) {
-						ctx.lineTo(textXOffset + (currentTextWidth * 0.91 * (a % 2)), yDefault + yOffset + textYOffset - (canvas.height / 40) + (canvas.height * (1/40) * data_angelChecklist[g][4][a]));
+						ctx.lineTo(textXOffset + (currentTextWidth * 0.91 * (a % 2)), yDefault + yOffset + textYOffset - (canvas.height / 40) + (canvas.height * (1/40) * data_angelChecklist[g][5][a]));
 					}
 					ctx.stroke();
 				}
@@ -812,20 +812,36 @@ function drawTile2d(ex, why, size, type) {
 			//box with rings
 			drawTile2d(ex, why, size, 14);
 			break;
+		case 29:
+			//boat
+			ctx.beginPath();
+			ctx.fillStyle = "#8FF0F7";
+			ctx.moveTo(ex, why + (size / 3));
+			ctx.lineTo(ex + (size * 0.666), why + (size / 3));
+			ctx.lineTo(ex + size, why + (size / 2));
+			ctx.lineTo(ex + (size * 0.666), why + (size * 0.666));
+			ctx.lineTo(ex, why + (size * 0.666));
+			ctx.fill();
+			break;
+		case 30:
+			//movable tile
+			drawTile2d(ex, why, size, 13);
+			break;
+		
 
 
 
 
 			
 		//menu icons
-		case 30:
+		case 40:
 			//leaderboards
 			ctx.fillStyle = color_grey_lightest;
 			ctx.fillRect(ex + (size * 0.125), why + (size * 0.625), size * 0.1875, size * 0.25);
 			ctx.fillRect(ex + (size * 0.375) + (size * 0.03125), why + (size * 0.125), size * 0.1875, size * 0.75);
 			ctx.fillRect(ex + (size * 0.625) + (size * 0.0625), why + (size * 0.375), size * 0.1875, size * 0.5);
 			break;
-		case 31:
+		case 41:
 			//settings
 			var x = ex + (size * 0.5);
 			var y = why + (size * 0.5);
@@ -843,7 +859,7 @@ function drawTile2d(ex, why, size, type) {
 			ctx.stroke();
 			ctx.fill();
 			break;
-		case 32:
+		case 42:
 			//cutscene viewer
 			ctx.beginPath();
 			ctx.fillStyle = color_cutsceneBox;
