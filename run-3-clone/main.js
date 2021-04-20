@@ -607,7 +607,7 @@ function setup() {
 		editor_spawn = editor_objects[0];
 	}
 
-	loading_state = new State_Edit_World();
+	loading_state = new State_Loading();
 
 	//setting up world
 	//as a reminder, tunnels are (x, y, z, angle, tile size, sides, tiles per sides, color, length, data)
