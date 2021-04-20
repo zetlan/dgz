@@ -108,7 +108,7 @@ function updatePlotProgression() {
 	if (!(getObjectFromID(`Low Power Tunnel, Part 25`).discovered)) {
 		var a = 1;
 		var targetTunnel = getObjectFromID(`New Tunnel, Part ${a}`);
-		while (targetTunnel != undefined) {
+		while (targetTunnel.id != undefined) {
 			targetTunnel.updatePosition(targetTunnel.x, targetTunnel.y, targetTunnel.z - 30000);
 			a += 1;
 			targetTunnel = getObjectFromID(`New Tunnel, Part ${a}`);
