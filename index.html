@@ -4,6 +4,10 @@
     <head>
         <title>Clementine home page</title>
 
+        <!-- search engine optimization (: -->
+        <meta charset="UTF-8">
+        <meta name="author" content="Cynthia Clementine">
+        <meta name="keywords" content="1994, Cynthia Clementine, website">
         <style>
             body {
                 background-color: slateblue;
@@ -13,6 +17,11 @@
             #top-text {
                 color: white;
                 font-size: 30px;
+                text-align: center;
+            }
+            #localStorage-text {
+                color: white;
+                font-size: 20px;
                 text-align: center;
             }
 
@@ -101,5 +110,35 @@
                 <a href="noise/perlin-noise.html">Perlin noise generation</a><br>
             </p>
         </div>
+
+        <!--display storage size-->
+        <div id="localStorage-text">;
+            <p id="storageNotifier">Persistent storage used: <span id="storageCalculator">[uncalculated]</span>%</p>
+            <p id="storageExtra"></p>
+        </div>
     </body>
+
+    <script type="text/javascript">
+        //calculate amount of localstorage remaining
+        //max is 5MB
+        var size = 0; 
+        Object.keys(window.localStorage).forEach(d => {
+            size += window.localStorage[d].length * 2;
+        });
+        var percent = (size / 5000000);
+        
+        document.getElementById("storageCalculator").textContent = percent.toFixed(5);
+
+        if (percent > 0.999) {
+            document.getElementById("storageExtra").textContent = "Oh dear goodness please just get rid of something I have no idea what's going to happen and probably neither do you but I don't think it's good";
+        } else if (percent > 0.95) {
+            document.getElementById("storageExtra").textContent = "You need to clear some storage. things will begin to break very soon.";
+        } else if (percent > 0.75) {
+            document.getElementById("storageExtra").textContent = "You should probably clear some storage soon.";
+        } else if (percent > 0.5) {
+            document.getElementById("storageExtra").textContent = "Hi, just wanted to draw attention to the amount of storage that you have used.";
+        } else {
+            document.getElementById("storageExtra").textContent = "All is well";
+        } 
+    </script>
 </html>
