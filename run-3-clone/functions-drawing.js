@@ -142,20 +142,21 @@ function drawInfiniteEndScreen() {
 
 function drawKeys() {
 	ctx.fillStyle = color_keyUp;
-	ctx.fillRect(0 + 20, canvas.height - 40, 10, 20);
-	ctx.fillRect(0 + 70, canvas.height - 40, 10, 20);
-	ctx.fillRect(0 + 40, canvas.height - 40, 20, 20);
+	var unit = canvas.height / 72;
+	ctx.fillRect(unit * 1, canvas.height - (unit * 3), unit, unit * 2);
+	ctx.fillRect(unit * 6, canvas.height - (unit * 3), unit, unit * 2);
+	ctx.fillRect(unit * 3, canvas.height - (unit * 3), unit * 2, unit * 2);
 
 	ctx.fillStyle = color_keyPress;
 	if (player.ax < 0) {
-		ctx.fillRect(0 + 20, canvas.height - 40, 10, 20);
+		ctx.fillRect(unit * 1, canvas.height - (unit * 3), unit, unit * 2);
 	}
 	if (player.ax > 0) {
-		ctx.fillRect(0 + 70, canvas.height - 40, 10, 20);
+		ctx.fillRect(unit * 6, canvas.height - (unit * 3), unit, unit * 2);
 	}
 
 	if (controls_spacePressed) {
-		ctx.fillRect(0 + 40, canvas.height - 40, 20, 20);
+		ctx.fillRect(unit * 3, canvas.height - (unit * 3), unit * 2, unit * 2);
 	}
 }
 
@@ -365,8 +366,7 @@ function drawRoundedRectangle(x, y, width, height, arcRadius) {
 //draws an equilateral triangle centered on an xy position
 function drawTriangle(x, y, radius, rot) {
 	ctx.beginPath();
-	ctx.moveTo(x + (radius * Math.cos(rot)), y + (radius * Math.sin(rot)));
-	for (var b=1; b<3; b++) {
+	for (var b=0; b<4; b++) {
 		ctx.lineTo(x + (radius * Math.cos(rot + (Math.PI * 2 * (b / 3)))), 
 					y + (radius * Math.sin(rot + (Math.PI * 2 * (b / 3)))));
 	}
@@ -582,12 +582,13 @@ function drawCrosshair() {
 }
 
 function drawSelectionBox(x, y, width, height) {
+	var al = ctx.globalAlpha;
 	ctx.lineWidth = height / 15;
-	ctx.globalAlpha = 0.3;
+	ctx.globalAlpha = al / 3;
 	ctx.fillStyle = color_grey_light;
 	ctx.strokeStyle = color_menuSelectionOutline;
 	drawRoundedRectangle(x - (width / 2), y - (height / 2), width, height, height / 6);
-	ctx.globalAlpha = 1;
+	ctx.globalAlpha = al;
 }
 
 function drawSky(bgColor) {
@@ -866,5 +867,13 @@ function drawTile2d(ex, why, size, type) {
 			ctx.ellipse(ex + (size / 2), why + (size * 0.4), (size / 2) - (size / 7), size * 0.25, 0, 0, Math.PI * 2);
 			ctx.fill();
 			drawTile2d(ex + (size * 0.7), why + (size * 0.6), size * 0.35, 22);
+			break;
+		case 43:
+			//credits
+			ctx.strokeStyle = color_text_bright;
+			drawLine([ex + (size * 0.15), why + (size * 0.3)], [ex + (size * 0.85), why + (size * 0.3)]);
+			drawLine([ex + (size * 0.15), why + (size * 0.5)], [ex + (size * 0.85), why + (size * 0.5)]);
+			drawLine([ex + (size * 0.15), why + (size * 0.7)], [ex + (size * 0.85), why + (size * 0.7)]);
+			break;
 	}
 }
