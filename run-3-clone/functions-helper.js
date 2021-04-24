@@ -3,8 +3,10 @@
 	generateStarSphere();
 
 	addCharacterEncounter();
+	activateCutsceneFromTunnel();
 	avgArray();
 	clamp();
+	compressCutsceneData();
 	crumbleTileSets();
 
 	getClosestObject();
@@ -84,6 +86,18 @@ function addCharacterEncounter(levelID, strip, tile, characterName, cutsceneName
 	getObjectFromID(levelID).freeObjs.push(new StaticCharacter(getObjectFromID(levelID), strip, tile, characterName, cutsceneName));
 }
 
+function activateCutsceneFromEditorTunnel(start, end, time) {
+	//simpler because it only applies to edit mode
+	setTimeout(() => {
+		var parentStorage = player.parentPrev;
+		var newState = new State_Cutscene(eval(`cutsceneData_${end}`));
+		newState.destinationState = loading_state;
+		loading_state = newState;
+		player.parentPrev = parentStorage;
+	}, 10);
+	return start;
+}
+
 function activateCutsceneFromTunnel(start, end, time) {
 	//don't do the cutscene stuff during a challenge
 	if (loading_state.constructor.name != "State_Challenge") {
@@ -95,7 +109,6 @@ function activateCutsceneFromTunnel(start, end, time) {
 			loading_state = new State_Cutscene(eval(`cutsceneData_${end}`));
 		}, 10);
 	}
-	
 	return start;
 }
 
@@ -136,6 +149,29 @@ function clamp(num, min, max) {
 	return num <= min ? min : num >= max ? max : num;
 }
 
+function compressCutsceneData(reference) {
+	//loop through all frames
+	//if it's an array of objects, get string data and replace it
+	for (var f=0; f<reference.frames.length; f++) {
+		var arr = reference.frames[f];
+		if (arr.constructor.name == "Array") {
+			//camera data
+			var camData = "CAM~";
+			for (var a=0; a<arr[0].length-1; a++) {
+				camData += arr[0][a].toFixed(4) + "~";
+			}
+			camData += arr[0][arr[0].length-1].toFixed(4);
+
+			var objData = "";
+			arr[1].forEach(a => {
+				objData += "|" + a.giveStringData();
+			});
+
+			reference.frames[f] = camData + objData;
+		}
+	}
+}
+
 function crumbleTileSets(tunnelID, posArray) {
 	tunnelID = getObjectFromID(tunnelID);
 	posArray.forEach(p => {
@@ -162,13 +198,24 @@ function file_export() {
 	textDat += "\n";
 
 	//spawn index
-	textDat += editor_objects.indexOf(editor_spawn) + "\n\n";
+	textDat += editor_objects.indexOf(editor_spawn) + "\n";
 
 	//cutscenes
-	textDat += "{\n";
+	//loop through all cutscenes
+	var cList = Object.keys(editor_cutscenes);
+	cList.forEach(c => {
+		compressCutsceneData(editor_cutscenes[c]);
+		textDat += `\n${c}\n`;
+		textDat += `${editor_cutscenes[c].id}\n`;
+		textDat += `${editor_cutscenes[c].effects}\n`;
 
-
-	textDat += "\n}";
+		//frames
+		var frameRef = editor_cutscenes[c].frames;
+		frameRef.forEach(f => {
+			textDat += `${f}\n`;
+		});
+		textDat += "end";
+	});
 
 	var fileObj = new Blob([textDat], {type: 'text/plain'});
 
@@ -206,8 +253,42 @@ function file_import() {
 
 		loading_state.readFrom = orderObjects(editor_objects, 6);
 
-
+		//load start level
+		editor_spawn = editor_objects[worldText.substring(0, worldText.indexOf("\n")) * 1];
+		worldText = worldText.substring(worldText.indexOf("\n")+2);
+		
+		//safety
+		var tolerance = 5000;
 		//loading cutscenes
+		worldText = worldText.split("\n");
+		while (worldText.length > 0) {
+			console.log("length: ", worldText.length);
+			var ref = worldText[0];
+			var cName = worldText[1];
+			var cEffects = worldText[2];
+			var cFrames = [];
+			var lineCheck = 3;
+
+			//4 + is frames, search
+			while (worldText[lineCheck] != "end") {
+				cFrames.push(worldText[lineCheck]);
+				lineCheck += 1;
+
+				tolerance -= 1;
+				if (tolerance <= 0) {
+					if (!confirm(editor_warning_file)) {
+						return;
+					}
+				}
+			}
+			//push cutscene and delete from the data
+			editor_cutscenes[ref] = {
+				id: cName,
+				effects: cEffects,
+				frames: cFrames
+			};
+			worldText.splice(0, lineCheck+1);
+		}
 	};
 
 	fileReader.readAsText(fileObj, "UTF-8");
@@ -384,9 +465,9 @@ function handleTextDisplay() {
 
 function HSVtoRGB(hsvObject) {
 	//I don't understand most of this but it appears to work
-	var compound = (hsvObject.v / 100) * (hsvObject.s / 80);
+	var compound = hsvObject.v * (hsvObject.s / 80);
 	var x = compound * (1 - Math.abs(((hsvObject.h / 60) % 2) - 1));
-	var mystery = (hsvObject.v / 100) - compound;
+	var mystery = hsvObject.v - compound;
 	var RGB = [0, 0, 0];
 
 	switch(Math.floor(hsvObject.h / 60)) {
@@ -411,12 +492,23 @@ function HSVtoRGB(hsvObject) {
 	}
 
 	RGB = [
-		(RGB[0] + mystery) * 255, 
-		(RGB[1] + mystery) * 255, 
-		(RGB[2] + mystery) * 255
+		Math.floor((RGB[0] + mystery) * 255), 
+		Math.floor((RGB[1] + mystery) * 255), 
+		Math.floor((RGB[2] + mystery) * 255)
 	];
 
-	return RGB;
+	var RGBString = "";
+	var tempStr = "";
+	RGB.forEach(colorPart => {
+		tempStr = colorPart.toString(16);
+		if (tempStr.length == 1) {
+			tempStr = "0" + tempStr;
+		}
+		RGBString += tempStr;
+	});
+
+
+	return RGBString;
 }
 
 function isValidString(str) {
@@ -459,6 +551,12 @@ function localStorage_read() {
 	if (data_persistent.settings.highResolution) {
 		updateResolution();
 	}
+	ctx.imageSmoothingEnabled = data_persistent.settings.antiAlias;
+
+	//canvas stuff
+	ctx.lineWidth = 2;
+	ctx.lineJoin = "round";
+	ctx.lineCap = "round";
 	console.log("loaded save");
 }
 
