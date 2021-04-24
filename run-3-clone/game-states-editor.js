@@ -5,12 +5,28 @@ class State_Edit {
 		this.lightMultiplier = 2.2;
 		this.tunnel = this.readFrom[this.readFrom.length-1];
 		this.buttons = [
-			new PropertyButton(0.5 / 5, editor_topBarHeight / 2, 1 / 5.5, editor_topBarHeight * editor_buttonHeightPercentage, "Tiles", `loading_state = new State_Edit_Tiles();`),
-			new PropertyButton(1.5 / 5, editor_topBarHeight / 2, 1 / 5.5, editor_topBarHeight * editor_buttonHeightPercentage, "Properties", `loading_state = new State_Edit_Properties();`),
-			new PropertyButton(3.5 / 5, editor_topBarHeight / 2, 1 / 5.5, editor_topBarHeight * editor_buttonHeightPercentage, "Cutscene", `loading_state = new State_Edit_Cutscenes();`),
-			new PropertyButton(4.5 / 5, editor_topBarHeight / 2, 1 / 5.5, editor_topBarHeight * editor_buttonHeightPercentage, "Playtest", ``),
-			new PropertyButton(2.5 / 5, editor_topBarHeight / 2, 1 / 5.5, editor_topBarHeight * editor_buttonHeightPercentage, "World", `loading_state = new State_Edit_World();`),
+			new PropertyButton(0.5 / 5, editor_topBarHeight / 2, 1 / 5.5, editor_topBarHeight * editor_buttonHeightPercentage, "Tiles", `if (loading_state.constructor.name != "State_Edit_Tiles") {loading_state = new State_Edit_Tiles();}`),
+			new PropertyButton(1.5 / 5, editor_topBarHeight / 2, 1 / 5.5, editor_topBarHeight * editor_buttonHeightPercentage, "Properties", `if (loading_state.constructor.name != "State_Edit_Properties") {loading_state = new State_Edit_Properties();}`),
+			new PropertyButton(3.5 / 5, editor_topBarHeight / 2, 1 / 5.5, editor_topBarHeight * editor_buttonHeightPercentage, "Cutscene", `if (loading_state.constructor.name != "State_Edit_Cutscenes") {loading_state = new State_Edit_Cutscenes();}`),
+			new PropertyButton(4.5 / 5, editor_topBarHeight / 2, 1 / 5.5, editor_topBarHeight * editor_buttonHeightPercentage, "Playtest", `loading_state.enterPlaytestMode();`),
+			new PropertyButton(2.5 / 5, editor_topBarHeight / 2, 1 / 5.5, editor_topBarHeight * editor_buttonHeightPercentage, "World", `if (loading_state.constructor.name != "State_Edit_World") {loading_state = new State_Edit_World();}`),
 		];
+	}
+
+	calculateTunnelPoints() {
+		//points of the tunnel, handy for tunnel functions
+		this.tunnelPoints = [];
+		for (var a=0; a<this.tunnel.sides; a++) {
+			this.tunnelPoints.push([
+				this.tunnel.r * Math.cos(((Math.PI * 2) / this.tunnel.sides) * (a - 0.5)), 
+				this.tunnel.r * Math.sin(((Math.PI * 2) / this.tunnel.sides) * (a - 0.5)), 
+				0
+			]);
+		}
+		//rotate
+		for (var b=0; b<this.tunnelPoints.length; b++) {
+			[this.tunnelPoints[b][0], this.tunnelPoints[b][1]] = rotate(this.tunnelPoints[b][0], this.tunnelPoints[b][1], (Math.PI * 2) - this.tunnel.theta);
+		}
 	}
 
 	doWorldEffects() {
@@ -33,6 +49,20 @@ class State_Edit {
 		render_maxColorDistance *= this.lightMultiplier;
 	}
 
+	enterPlaytestMode() {
+		render_maxColorDistance /= this.lightMultiplier;
+		editor_objects.forEach(u => {
+			u.getCameraDist();
+		});
+
+		player.parentPrev = editor_spawn;
+		loading_state = new State_Playtest();
+		loading_state.returnState = this;
+		loading_state.text = player.parentPrev.id;
+		loading_state.time = tunnel_textTime;
+		player.parentPrev.reset();
+	}
+
 	execute() {
 		drawSky(color_bg);
 		world_camera.tick();
@@ -50,9 +80,6 @@ class State_Edit {
 		if (world_time % 17 == 16) {
 			this.readFrom = orderObjects(this.readFrom, 6);
 		}
-		
-		
-		this.drawTopBar();
 		//little dot in the center of the screen
 		drawCircle(color_editor_cursor, canvas.width * 0.5, canvas.height * 0.5, 2);
 	}
@@ -103,6 +130,28 @@ class State_Edit {
 		});
 	}
 
+	renderFunction(tunnelFunction) {
+		//tunnel functions are [z, result value, type];
+		//if the area isn't clipped, render the function
+		var zOff = [0, 0, tunnelFunction[0] * this.tunnel.tileSize];
+		[zOff[0], zOff[2]] = rotate(zOff[0], zOff[2], (Math.PI * 2) - this.tunnel.theta);
+		zOff[0] += this.tunnel.x;
+		zOff[1] += this.tunnel.y;
+		zOff[2] += this.tunnel.z;
+		if (!isClipped(zOff)) {
+			ctx.fillStyle = color_trigger;
+			ctx.globalAlpha = 0.7 * Math.max((2 - Math.pow(Math.sin(modularDifference((Math.PI * 2) - loading_state.tunnel.theta, world_camera.theta, Math.PI * 2)) + 1, 1.5)), 0);
+			ctx.beginPath();
+			var point = [];
+			this.tunnelPoints.forEach(p => {
+				point = spaceToScreen([p[0] + zOff[0], p[1] + zOff[1], p[2] + zOff[2]]);
+				ctx.lineTo(point[0], point[1]);
+			});
+			ctx.fill();
+			ctx.globalAlpha = 1;
+		}
+	}
+
 	handleMouseMove(a) {
 		updateCursorPos(a);
 		//if the cursor is up top
@@ -146,6 +195,11 @@ class State_Edit_Tiles extends State_Edit {
 		super();
 		this.doWorldEffects();
 
+		this.substate = 0;
+		this.substateTravel = 0;
+
+		this.lowButton = new PropertyButton(0.91, 0.96, 0.16, 0.05, "Triggers", `loading_state.switchSubstates();`);
+
 		this.tileSelected = 0;
 		this.animTileSelected = 0;
 
@@ -154,20 +208,21 @@ class State_Edit_Tiles extends State_Edit {
 		this.selectedTileExtra = new Tile_Plexiglass(tileCoords[0], tileCoords[1], tileCoords[2], this.tunnel.tileSize, this.tunnel.strips[this.targetTile[0]].normal, this.tunnel, this.targetTile, this.tunnel.color, 0.5);
 		this.selectedTileExtra.playerDist = 50;
 		this.selectedTileExtra.cameraDist = 50;
-		this.topDarkButton = 1;
 		this.cameraMovement = 0;
+		this.display = [[0, 0], [0, 0], [0, 0], [0, 0]];
+		this.calculateTunnelPoints();
+	}
 
-		//points of the tunnel, handy for tunnel functions
-		this.tunnelPoints = [];
-		for (var a=0; a<this.tunnel.sides; a++) {
-			this.tunnelPoints.push([this.tunnel.r * Math.cos(((Math.PI * 2) / this.tunnel.sides) * (a - 0.5)), 
-									this.tunnel.r * Math.sin(((Math.PI * 2) / this.tunnel.sides) * (a - 0.5))]);
+	switchSubstates() {
+		if (this.substate == 0 || this.substateTravel < 0) {
+			//if it's already in the tiles area
+			this.lowButton.label = "Triggers";
+			this.substateTravel = editor_substateTravelSpeed;
+		} else {
+			//if already in triggers area
+			this.lowButton.label = "Tiles";
+			this.substateTravel = -editor_substateTravelSpeed;
 		}
-		//turn 2d points into 3d points
-		for (var b=0; b<this.tunnelPoints.length; b++) {
-			
-		}
-
 	}
 
 	execute() {
@@ -178,14 +233,16 @@ class State_Edit_Tiles extends State_Edit {
 			world_camera.targetY += cameraOffset[1];
 			world_camera.targetZ += cameraOffset[2];
 
+			this.getSelectedTile();
+
 			if (cursor_down) {
-				this.modifySelectedTilePos();
+				this.modifySelectedTile();
 			}
 		}
 		
 		super.execute();
 
-		if (modularDifference((Math.PI * 2) - loading_state.tunnel.theta, world_camera.targetTheta, Math.PI * 2) == 0) {
+		if (modularDifference((Math.PI * 2) - loading_state.tunnel.theta, world_camera.theta, Math.PI * 2) < Math.PI * 0.5) {
 			//forwards case
 			for (var f=this.tunnel.functions.length-1; f>-1; f--) {
 				this.renderFunction(this.tunnel.functions[f]);
@@ -196,45 +253,139 @@ class State_Edit_Tiles extends State_Edit {
 				this.renderFunction(f);
 			});
 		}
-		
 		this.selectedTileExtra.beDrawn();
+		this.lowButton.tick();
+		this.lowButton.beDrawn();
+		super.drawTopBar();
 
-		//update the tile selected
-		this.animTileSelected = (this.animTileSelected * (render_animSteps - 1) + this.tileSelected) / render_animSteps;
-
-		//draw tile coordinates
-		if (this.targetTile != undefined) {
-			ctx.fillStyle = color_text_bright;
-			ctx.textAlign = "right";
-			ctx.font = `${canvas.height / 40}px Comfortaa`;
-			ctx.fillText(JSON.stringify(this.targetTile), canvas.width * 0.96, canvas.height * 0.95);
-			ctx.textAlign = "center";
+		//update substate
+		this.substate += this.substateTravel;
+		this.substate = clamp(this.substate, 0, 1);
+		if (this.substate == 0 || this.substate == 1) {
+			this.substateTravel = 0;
 		}
-		//side bar
+
+		//side bar bg
 		ctx.fillStyle = color_editor_bg;
-		ctx.fillRect(0, canvas.height * (editor_topBarHeight - 0.01), canvas.width * 0.06, canvas.height);
+		ctx.fillRect(0, canvas.height * (editor_topBarHeight - 0.01), canvas.width * (0.06 + (0.14 * this.substate)), canvas.height);
 
-		//selection box
-		ctx.globalAlpha = 0.3;
-		ctx.fillStyle = color_grey_light;
-		ctx.strokeStyle = color_menuSelectionOutline;
-		ctx.lineWidth = canvas.height / 200;
-		drawRoundedRectangle((canvas.width * 0.015) - (canvas.width * editor_tileSize * 0.3), ((canvas.height / 17) * (this.animTileSelected + 2)) - (canvas.width * editor_tileSize * 0.3), 
-							canvas.width * editor_tileSize * 1.6, canvas.width * editor_tileSize * 1.6, canvas.height / 100);
-		ctx.globalAlpha = 1;
-		ctx.lineWidth = 2;
+		//tile sidebar
+		if (this.substate < 1) {
+			ctx.globalAlpha = 1 - this.substate;
+			//update the tile selected
+			this.animTileSelected = (this.animTileSelected * (render_animSteps - 1) + this.tileSelected) / render_animSteps;
+			//draw tile coordinates
+			if (this.targetTile != undefined) {
+				ctx.fillStyle = color_text_bright;
+				ctx.textAlign = "right";
+				ctx.font = `${canvas.height / 40}px Comfortaa`;
+				ctx.fillText(JSON.stringify(this.targetTile), canvas.width * 0.99, canvas.height * 0.92);
+				ctx.textAlign = "center";
+			}
 
-		//tile listing
-		for (var a=0; a<15; a++) {
-			drawTile2d(canvas.width * 0.015, (canvas.height / 17) * (a + 2), canvas.width * editor_tileSize, a);
+			//selection box
+			ctx.lineWidth = canvas.height / 200;
+			drawSelectionBox((canvas.width * (0.015 + editor_tileSize / 2)), ((canvas.height / 17) * (this.animTileSelected + 2)) + (canvas.width * editor_tileSize / 2), 
+							canvas.width * editor_tileSize * 1.6, canvas.width * editor_tileSize * 1.6);
+			ctx.lineWidth = 2;
+
+			//tile listing
+			for (var a=0; a<15; a++) {
+				drawTile2d(canvas.width * 0.015, (canvas.height / 17) * (a + 2), canvas.width * editor_tileSize, a);
+			}
 		}
+
+		//trigger sidebar
+		if (this.substate > 0) {
+			ctx.globalAlpha = this.substate;
+			ctx.lineWidth = 2;
+
+			var totalHeight = (1 - editor_topBarHeight - 0.04);
+			var heightOffset = editor_topBarHeight + 0.02;
+
+			//tunnel line
+			var color = `hsl(${this.tunnel.color.h}, ${this.tunnel.color.s}%, ${this.tunnel.color.v * 85}%)`;
+			ctx.strokeStyle = color;
+			ctx.fillStyle = color;
+			ctx.beginPath();
+			var endPercent = (tunnel_transitionLength / ((this.tunnel.len * this.tunnel.tileSize) + tunnel_transitionLength));
+			ctx.moveTo(canvas.width * 0.01, canvas.height * (heightOffset + (totalHeight * endPercent)));
+			ctx.lineTo(canvas.width * 0.01, canvas.height * (heightOffset + totalHeight));
+			ctx.stroke();
+
+			//circles
+			var numTiles = this.tunnel.len + (tunnel_transitionLength / this.tunnel.tileSize);
+			
+			for (var t=0; t<numTiles; t++) {
+				var height = canvas.height * (heightOffset + ((t + 0.5) * (totalHeight / numTiles)));
+				ctx.beginPath();
+				ctx.ellipse(canvas.width * 0.01, height, canvas.height / 240, canvas.height / 240, 0, 0, Math.PI * 2);
+				ctx.fill();
+			}
+
+		}
+		ctx.globalAlpha = 0.2;
+		drawPoly("#FFF", this.display);
+		ctx.globalAlpha = 1;
+		
 	}
 
-	renderFunction(tunnelFunction) {
+	getSelectedTile() {
+		var xOffset = cursor_x - (canvas.width * 0.5);
+		var yOffset = cursor_y - (canvas.height * 0.5);
+		var tRef = this.tunnel;
+		//outRate is the rate at which the ray travels out from the center. Used to calculate at what z position it will hit the tunnel
+		var outRate = Math.sqrt(((xOffset * xOffset) + (yOffset * yOffset))) / world_camera.scale;
+		//rough estimate of intersection point
+		var intersectZ = tRef.r / outRate;
 
+		if (intersectZ < editor_maxEditDistance) {
+			//update the tile self points to
+			var isBackwards = (modularDifference((Math.PI * 2) - loading_state.tunnel.theta, world_camera.targetTheta, Math.PI * 2) != 0);
+			var angle = (Math.atan2(yOffset, -xOffset) + Math.PI) / (Math.PI * 2);
+			if (isBackwards) {
+				angle = 0.5 - angle;
+			}
+			this.targetTile[0] = Math.floor(((angle * (tRef.sides * tRef.tilesPerSide)) + (tRef.sides * tRef.tilesPerSide) + (tRef.tilesPerSide / 2)) % (tRef.sides * tRef.tilesPerSide));
+
+			//loop through tiles, starting at -1 or camera's z position
+			var cameraTilePos = spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [tRef.x, tRef.y, tRef.z], [(Math.PI * 2) - tRef.theta, 0])[2] / tRef.tileSize;
+			var start;
+			var end;
+			if (isBackwards) {
+				end = Math.floor(cameraTilePos);
+				start = -1;
+			} else {
+				end = tRef.strips[this.targetTile[0]].tiles.length + (editor_maxEditDistance / tRef.tileSize);
+				start = Math.max(-1, Math.floor(cameraTilePos+1))
+			}
+			var polyPoints = [[], [], [], []];
+			var sRef = tRef.strips[this.targetTile[0]];
+			//start from -1 and move forwards
+			for (var t=start; t<end; t++) {
+				//get polygon position for the tile
+				polyPoints = [[0.5 + t, 0, -0.5], [0.5 + t, 0, 0.5], [1.5 + t, 0, 0.5], [1.5 + t, 0, -0.5]];
+				//screen position
+				for (var p=0; p<polyPoints.length; p++) {
+					polyPoints[p] = spaceToScreen(transformPoint(polyPoints[p], [sRef.x, sRef.y, sRef.z], sRef.normal, tRef.tileSize * 2));
+				}
+				
+				//if the cursor is inside the tile, make that selected and then break out
+				if (inPoly([cursor_x, cursor_y], polyPoints)) {
+					this.display = polyPoints;
+					this.targetTile[1] = t;
+					t = end + 1;
+				}
+			}
+			var tileCoords = tRef.worldPositionOfTile(this.targetTile[0], this.targetTile[1] + 1);
+			this.selectedTileExtra = new Tile_Plexiglass(tileCoords[0], tileCoords[1], tileCoords[2], tRef.tileSize, tRef.strips[this.targetTile[0]].normal, tRef, this.targetTile, tRef.color, 0.5);
+			this.selectedTileExtra.playerDist = 50;
+			this.selectedTileExtra.cameraDist = 50;
+		}
 	}
 
 	handleMouseMove(a) {
+		updateCursorPos(a);
 		//if cursor is up top
 		if (super.handleMouseMove(a) == 31) {
 			return;
@@ -246,59 +397,11 @@ class State_Edit_Tiles extends State_Edit {
 		}
 
 		//if still here...
+		this.getSelectedTile();
 
-		//modify selected tile
-		var xOffset = cursor_x - (canvas.width * 0.5);
-		var yOffset = cursor_y - (canvas.height * 0.5);
-		//outRate is the rate at which the ray travels out from the center. Used to calculate at what z position it will hit the tunnel
-		var outRate = Math.sqrt(((xOffset * xOffset) + (yOffset * yOffset))) / world_camera.scale;
-		//rough estimate of intersection point
-		var intersectZ = this.tunnel.r / outRate;
-		//var divisor = getDistance2d([0, 0], [xOffset, yOffset]) / Math.max(Math.abs(xOffset), Math.abs(yOffset));
-		//intersectZ /= divisor;
-		var cameraZ = spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.tunnel.x, this.tunnel.y, this.tunnel.z], [(Math.PI * 2) - this.tunnel.theta, 0])[2];
-
-		if (intersectZ < editor_maxEditDistance) {
-			//update the tile self points to
-			var isBackwards = (modularDifference((Math.PI * 2) - loading_state.tunnel.theta, world_camera.targetTheta, Math.PI * 2) != 0);
-			var angle = (Math.atan2(yOffset, -xOffset) + Math.PI) / (Math.PI * 2);
-			if (isBackwards) {
-				angle = 0.5 - angle;
-			}
-			var targetStrip = Math.floor(((angle * (this.tunnel.sides * this.tunnel.tilesPerSide)) + (this.tunnel.sides * this.tunnel.tilesPerSide) + (this.tunnel.tilesPerSide / 2)) % (this.tunnel.sides * this.tunnel.tilesPerSide));
-			var targetColumn = Math.floor((cameraZ + intersectZ - (2 * intersectZ * isBackwards)) / this.tunnel.tileSize) + (2 * isBackwards);
-			this.targetTile = [targetStrip, targetColumn];
-
-			//search for closer tiles
-			var error = getDistance2d(spaceToScreen(this.tunnel.worldPositionOfTile(this.targetTile[0], this.targetTile[1] + 1)), [cursor_x, cursor_y]);
-			var pastError;
-			
-			for (var t=this.targetTile[1]-1; t>=-1; t--) {
-				pastError = error;
-				//check tile
-				error = getDistance2d(spaceToScreen(this.tunnel.worldPositionOfTile(this.targetTile[0], t+1)), [cursor_x, cursor_y]);
-				//if the error has increased, break out of the loop. If not however, change the target tile
-				if (error > pastError) {
-					t = -43;
-				} else {
-					this.targetTile[1] = t;
-				}
-			}
-
-			if (this.targetTile[1] < -1) {
-				this.targetTile[1] = -1;
-			}
-
-			
-			var tileCoords = this.tunnel.worldPositionOfTile(this.targetTile[0], this.targetTile[1] + 1);
-			this.selectedTileExtra = new Tile_Plexiglass(tileCoords[0], tileCoords[1], tileCoords[2], this.tunnel.tileSize, this.tunnel.strips[this.targetTile[0]].normal, this.tunnel, this.targetTile, this.tunnel.color, 0.5);
-			this.selectedTileExtra.playerDist = 50;
-			this.selectedTileExtra.cameraDist = 50;
-
-			//if the cursor is down, modify the tile
-			if (cursor_down) {
-				this.modifySelectedTilePos();
-			}
+		//if the cursor is down, modify the tile
+		if (cursor_down) {
+			this.modifySelectedTile();
 		}
 	}
 
@@ -307,24 +410,37 @@ class State_Edit_Tiles extends State_Edit {
 			return;
 		}
 
-		//changing tile selected
-		if (cursor_x < canvas.width * 0.06) {
-			this.tileSelected = clamp(Math.floor((cursor_y - (canvas.height / 17))  / (canvas.height / 17)) - 1, 0, 15);
-			return;
-		}
+		this.lowButton.handleClick();
 
-		//if it's at the start, toggle a spawn rather than creating a tile
-		if (this.targetTile[1] == -1) {
-			var spawnArr = this.tunnel.spawns;
-			if (!spawnArr.includes(this.targetTile[0])) {
-				spawnArr.push(this.targetTile[0]);
-			} else {
-				spawnArr.splice(spawnArr.indexOf(this.targetTile[0]), 1);
+		if (this.substateTravel == 0) {
+			//tile stuff
+			if (this.substate == 0) {
+				//changing tile selected
+				if (cursor_x < canvas.width * 0.06) {
+					this.tileSelected = clamp(Math.floor((cursor_y - (canvas.height / 17))  / (canvas.height / 17)) - 1, 0, 15);
+					return;
+				}
+
+				//if it's at the start, toggle a spawn rather than creating a tile
+				if (this.targetTile[1] == -1) {
+					var spawnArr = this.tunnel.spawns;
+					if (!spawnArr.includes(this.targetTile[0])) {
+						spawnArr.push(this.targetTile[0]);
+					} else {
+						spawnArr.splice(spawnArr.indexOf(this.targetTile[0]), 1);
+					}
+					return;
+				}
+				//place tile there if no other actions have been taken
+				this.modifySelectedTile();
 			}
-			return;
+
+			//trigger stuff
+			if (this.substate == 1) {
+				//determine tile selected
+			}
 		}
-		//place tile there if no other actions have been taken
-		this.modifySelectedTilePos();
+		
 	}
 
 	handleKeyPress(a) {
@@ -373,20 +489,21 @@ class State_Edit_Tiles extends State_Edit {
 		}
 	}
 
-	modifySelectedTilePos() {
+	modifySelectedTile() {
 		//expand array if necessary
-		this.tunnel.len = Math.max(this.tunnel.len, this.targetTile[1] + 1);
-		this.tunnel.repairData();
-
+		if (this.targetTile[1]+1 > this.tunnel.len) {
+			this.tunnel.endSpawns = [];
+		}
+		
 		//basically just uh... kinda sorta... replace the tile
 		this.tunnel.data[this.targetTile[0]][this.targetTile[1]] = this.tileSelected;
 		var coords = this.tunnel.worldPositionOfTile(this.targetTile[0], this.targetTile[1] + 1);
 		this.tunnel.strips[this.targetTile[0]].tiles[this.targetTile[1]] = this.tunnel.generateTile(this.tileSelected, coords[0], coords[1], coords[2], this.tunnel.tileSize, this.tunnel.strips[this.targetTile[0]].normal, [this.targetTile[0], this.targetTile[1]], this.tunnel.color);
+		var playerRef = player;
 		player = new Runner(player.x, player.y, player.z);
-		this.tunnel.strips[this.targetTile[0]].establishReals();
-		player = new Pastafarian(player.x, player.y, player.z);
-		player.parent = this.tunnel;
-		player.parentPrev = this.tunnel;
+		this.tunnel.repairData();
+		this.tunnel.updatePosition(this.tunnel.x, this.tunnel.y, this.tunnel.z);
+		player = playerRef;
 	}
 }
 
@@ -406,9 +523,9 @@ class State_Edit_Properties extends State_Edit {
 			new PropertySlider(0.01, 0.14 + (4 * editor_sliderHeight), editor_propertyMenuWidth - (editor_sliderMargin * 2), editor_sliderProportion, `power`, `loading_state.tunnel.powerBase = value;`, `loading_state.tunnel.powerBase`, 0, 1, 0.01, false),
 
 			//tile properties
-			new PropertySlider(0.01, 0.14 + (6 * editor_sliderHeight), editor_propertyMenuWidth - (editor_sliderMargin * 2), editor_sliderProportion, `tile size`, `loading_state.tunnel.tileSize = value;`, `loading_state.tunnel.tileSize`, 15, 220, 5, true),
-			new PropertySlider(0.01, 0.14 + (7 * editor_sliderHeight), editor_propertyMenuWidth - (editor_sliderMargin * 2), editor_sliderProportion / 2, `tiles / side`, `loading_state.tunnel.tilesPerSide = value; loading_state.tunnel.repairData();`, `loading_state.tunnel.tilesPerSide`, 1, 8, 1, true),
-			new PropertySlider(0.01, 0.14 + (8 * editor_sliderHeight), editor_propertyMenuWidth - (editor_sliderMargin * 2), editor_sliderProportion, `sides`, `loading_state.tunnel.sides = value; loading_state.tunnel.repairData();`, `loading_state.tunnel.sides`, 3, 50, 1, true),
+			new PropertySlider(0.01, 0.14 + (6 * editor_sliderHeight), editor_propertyMenuWidth - (editor_sliderMargin * 2), editor_sliderProportion, `tile size`, `loading_state.tunnel.tileSize = value; loading_state.calculateTunnelPoints();`, `loading_state.tunnel.tileSize`, 15, 220, 5, true),
+			new PropertySlider(0.01, 0.14 + (7 * editor_sliderHeight), editor_propertyMenuWidth - (editor_sliderMargin * 2), editor_sliderProportion / 2, `tiles / side`, `loading_state.tunnel.tilesPerSide = value; loading_state.tunnel.repairData(); loading_state.calculateTunnelPoints();`, `loading_state.tunnel.tilesPerSide`, 1, 8, 1, true),
+			new PropertySlider(0.01, 0.14 + (8 * editor_sliderHeight), editor_propertyMenuWidth - (editor_sliderMargin * 2), editor_sliderProportion, `sides`, `loading_state.tunnel.sides = value; loading_state.tunnel.repairData(); loading_state.calculateTunnelPoints();`, `loading_state.tunnel.sides`, 3, 50, 1, true),
 
 			//music
 			new PropertyButton(0.025, 0.14 + (10 * editor_sliderHeight), 0.04, 0.05, '<', `loading_state.tunnel.music = data_musics[(data_musics.indexOf(loading_state.tunnel.music)+(data_musics.length-1)) % data_musics.length];`),
@@ -428,8 +545,6 @@ class State_Edit_Properties extends State_Edit {
 			new PropertyButton(0.5 + (editor_propertyMenuWidth / 2), 0.95, 0.04, 0.05, '+', `loading_state.banStorage.push(["the ~~character~~ isn't here!", []])`),
 			new PropertyButton(0.5 + (editor_propertyMenuWidth / 2), 0.533, 0.06, 0.08, 'X', `loading_state.banSelected = undefined;`)
 		];
-		
-		this.topDarkButton = 2;
 
 		this.banStorage = undefined;
 		this.banSelected = undefined;
@@ -437,6 +552,7 @@ class State_Edit_Properties extends State_Edit {
 
 		this.substate = 0;
 		this.newTunnelData = undefined;
+		this.calculateTunnelPoints();
 	}
 
 	createTunnel() {
@@ -456,6 +572,7 @@ class State_Edit_Properties extends State_Edit {
 		player.parent = newObj;
 		player.parentPrev = newObj;
 		this.newTunnelData = undefined;
+		this.calculateTunnelPoints();
 	}
 
 	drawCharacterBans() {
@@ -521,22 +638,22 @@ class State_Edit_Properties extends State_Edit {
 
 			//bg
 			if (this.allowStorage.includes(data_characters[c]) || this.banStorage[this.banSelected][1].includes(data_characters[c])) {
-				if (this.allowStorage.includes(data_characters[c])) {
-					ctx.fillStyle = color_grey_light;
-				} else {
-					ctx.fillStyle = color_grey_dark;
+				ctx.fillStyle = color_grey_light;
+				if (!this.allowStorage.includes(data_characters[c])) {
+					ctx.fillStyle = data_characterColors[c];
 				}
+				
 				ctx.beginPath();
 				ctx.moveTo(centerX, centerY);
 				ctx.lineTo(centerX + leftOff[0], centerY + leftOff[1]);
 				ctx.lineTo(centerX + rightOff[0], centerY + rightOff[1]);
 				ctx.lineTo(centerX, centerY);
 				ctx.fill();
-
-				//draw character
-				drawSelectionBox(centerX + centerOff[0], centerY + centerOff[1], menu_characterSize * 1.25, menu_characterSize * 1.25);
-				textures_common[c].beDrawn(centerX + centerOff[0], centerY + centerOff[1], 0, menu_characterSize);
 			}
+
+			//draw character
+			drawSelectionBox(centerX + centerOff[0], centerY + centerOff[1], menu_characterSize * 1.25, menu_characterSize * 1.25);
+			textures_common[c].beDrawn(centerX + centerOff[0], centerY + centerOff[1], 0, menu_characterSize);
 
 
 
@@ -574,6 +691,19 @@ class State_Edit_Properties extends State_Edit {
 
 			//world thoingies
 			super.execute();
+
+			if (modularDifference((Math.PI * 2) - loading_state.tunnel.theta, world_camera.theta, Math.PI * 2) < Math.PI / 2) {
+				//forwards case
+				for (var f=this.tunnel.functions.length-1; f>-1; f--) {
+					this.renderFunction(this.tunnel.functions[f]);
+				}
+			} else {
+				//backwards case
+				this.tunnel.functions.forEach(f => {
+					this.renderFunction(f);
+				});
+			}
+			super.drawTopBar();
 
 			//side bar
 			ctx.fillStyle = color_editor_bg;
@@ -725,12 +855,19 @@ class State_Edit_Properties extends State_Edit {
 			});
 		}
 	}
+
+	handleEscape() {
+		if (this.substate == 1) {
+			this.substate = 0;
+			return;
+		}
+		super.handleEscape();
+	}
 }
 
 class State_Edit_World extends State_Edit {
 	constructor() {
 		super();
-		this.topDarkButton = 3;
 		//x, y approach
 		this.cameraForce = [0, 0];
 		this.tunnel = undefined;
@@ -756,13 +893,12 @@ class State_Edit_World extends State_Edit {
 			tag += data_alphaNumerics[Math.floor(randomBounded(0, data_alphaNumerics.length-1))];
 		}
 		var pos = screenToSpace([canvas.width / 2, canvas.height / 2], world_camera.targetY);
-		editor_objects.push(new Tunnel(0.00, {h: Math.round(randomBounded(0, 360)), s: Math.round(randomBounded(20, 80)), v: randomBounded(0.2, 0.8)}, [[1, 1, 1, 1, 1], [1, 0, 1, 0, 1]], 'Custom Tunnel '+tag, 5, 1, [], 4, [1], [], 4, 75, pos[0], pos[2], [], `TravelTheGalaxy`));
+		editor_objects.push(new Tunnel(0.00, {h: Math.round(randomBounded(0, 360)), s: Math.round(randomBounded(20, 80)), v: randomBounded(0.2, 0.8)}, JSON.parse(JSON.stringify(editor_tunnelDefaultData)), 'Custom Tunnel '+tag, 5, 1, [], 4, [1], [], 4, 75, pos[0], pos[2], [], `TravelTheGalaxy`));
 		this.readFrom = orderObjects(editor_objects, 6);
 	}
 
 	deleteTunnel() {
-		
-		//you can't delete the last tunnel. It would cause all sorts of problems that I'm too lazy to solve ;)
+		//you can't delete the last tunnel. It would cause all sorts of problems that I don't want to have to solve ;)
 		if (this.tunnel != undefined && editor_objects.length > 1) {
 			//gotta delete it from all the places it's referenced
 			editor_objects.splice(editor_objects.indexOf(this.tunnel), 1);
@@ -1001,7 +1137,7 @@ class State_Edit_Cutscenes extends State_Edit {
 
 	addCutscene() {
 		//generate code
-		var code = "0000";
+		var code = "aaaa";
 		while (editor_cutscenes[code] != undefined) {
 			code = "";
 			for (var n=0; n<4; n++) {
@@ -1080,6 +1216,58 @@ class State_Edit_Cutscenes extends State_Edit {
 		if (super.handleMouseMove(a) == 31) {
 			return;
 		}
+	}
+}
+
+class State_Playtest extends State_World {
+	constructor() {
+		super();
+		this.returnState = undefined;
+		this.readFrom = editor_objects;
+		this.isMainGame = true;
+
+		this.orderWorld();
+	}
+
+	execute() {
+		super.execute();
+		if (this.substate == 1) {
+			drawArrow((canvas.width * 0.5) - (canvas.width * 0.04) + (canvas.width * 0.08 * player.backwards), canvas.height * 0.94, color_grey_light, Math.PI * player.backwards, canvas.width * 0.045, canvas.width * 0.025, canvas.height * 0.03, canvas.height * 0.06);
+			ctx.lineWidth = 2;
+		}
+	}
+
+	handleMouseDown(a) {
+		//regular interactions
+		super.handleMouseDown(a);
+
+		if (this.substate == 1) {
+			//backwards toggle interact
+			if (player.parent != undefined && cursor_x > canvas.width * 0.45 && cursor_x < canvas.width * 0.55 && cursor_y > canvas.height * 0.9 && cursor_y < canvas.height * 0.99) {
+				player.turnAround();
+				player.parent.reset();
+				this.substate = 0;
+				this.execute();
+				this.substate = 1;
+				return;
+			}
+		}
+	}
+
+	handleKeyPress(a) {
+		super.handleKeyPress(a);
+		if (a.keyCode == 82 && this.substate == 0) {
+			this.handlePlayerDeath();
+		}
+	}
+
+	handleEscape() {
+		if (this.substate == 0) {
+			this.substate = 1;
+			return;
+		}
+		loading_state = this.returnState;
+		loading_state.doWorldEffects();
 	}
 }
 
