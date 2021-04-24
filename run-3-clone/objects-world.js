@@ -140,25 +140,29 @@ class Boat {
 			[pos_fronts[2][0][0], pos_fronts[2][0][2]],
 			[pos_fronts[3][0][0], pos_fronts[3][0][2]]
 		]
-		var pos_inTapes = [];
-		this.generateTape(0.5, 1.5, 0.7, pos_contoursL, pos_inTapes);
-		this.generateTape(1.8, 3.2, 0.3, pos_contoursL, pos_inTapes);
-		this.generateTape(0, 1.1, 0.8, pos_contoursR, pos_inTapes);
-		this.generateTape(1.7, 3.1, 0.2, pos_contoursR, pos_inTapes);
+		var pos_inTapesL = [];
+		var pos_inTapesR = [];
+		var pos_outTapesL = [];
+		var pos_outTapesR = [];
 
-		var pos_outTapes = [];
-		this.generateTape(0.4, 1.4, 0.3, pos_contoursL, pos_outTapes);
-		this.generateTape(0.9, 2.2, 0.7, pos_contoursL, pos_outTapes);
-		this.generateTape(2.4, 3.6, 0.4, pos_contoursL, pos_outTapes);
-		this.generateTape(3.3, 3.999, 0.2, pos_contoursL, pos_outTapes);
-		this.generateTape(3.8, 3.999, 0.85, pos_contoursL, pos_outTapes);
+		this.generateTape(0.5, 1.5, 0.7, pos_contoursL, pos_inTapesL);
+		this.generateTape(1.8, 3.2, 0.3, pos_contoursL, pos_inTapesL);
 
-		this.generateTape(0, 0.3, 0.8, pos_contoursR, pos_outTapes);
-		this.generateTape(0, 0.8, 0.4, pos_contoursR, pos_outTapes);
-		this.generateTape(0.7, 2, 0.25, pos_contoursR, pos_outTapes);
-		this.generateTape(1.5, 3.7, 0.7, pos_contoursR, pos_outTapes);
-		this.generateTape(3.5, 3.999, 0.85, pos_contoursR, pos_outTapes);
-		this.generateTape(3.2, 3.999, 0.2, pos_contoursR, pos_outTapes);
+		this.generateTape(0, 1.1, 0.8, pos_contoursR, pos_inTapesR);
+		this.generateTape(1.7, 3.1, 0.2, pos_contoursR, pos_inTapesR);
+		
+		this.generateTape(0.4, 1.4, 0.3, pos_contoursL, pos_outTapesL);
+		this.generateTape(0.9, 2.2, 0.7, pos_contoursL, pos_outTapesL);
+		this.generateTape(2.4, 3.6, 0.4, pos_contoursL, pos_outTapesL);
+		this.generateTape(3.3, 3.999, 0.2, pos_contoursL, pos_outTapesL);
+		this.generateTape(3.8, 3.999, 0.85, pos_contoursL, pos_outTapesL);
+
+		this.generateTape(0, 0.3, 0.8, pos_contoursR, pos_outTapesR);
+		this.generateTape(0, 0.8, 0.4, pos_contoursR, pos_outTapesR);
+		this.generateTape(0.7, 2, 0.25, pos_contoursR, pos_outTapesR);
+		this.generateTape(1.5, 3.7, 0.7, pos_contoursR, pos_outTapesR);
+		this.generateTape(3.5, 3.999, 0.85, pos_contoursR, pos_outTapesR);
+		this.generateTape(3.2, 3.999, 0.2, pos_contoursR, pos_outTapesR);
 
 		pos_lowTiles.forEach(p => {
 			this.transformPointSpecial(p, [this.x, this.y, this.z], this.theta + (Math.PI / 2), this.phi, this.tileSize);
@@ -176,14 +180,24 @@ class Boat {
 				this.transformPointSpecial(q, [this.x, this.y, this.z], this.theta + (Math.PI / 2), this.phi, this.tileSize);
 			});
 		});
-		pos_inTapes.forEach(p => {
+		pos_inTapesL.forEach(p => {
 			p.forEach(q => {
-				this.transformPointSpecial(q, [this.x, this.y, this.z], this.theta + (Math.PI / 2), this.phi, this.tileSize * 0.999);
+				this.transformPointSpecial(q, [this.x, this.y, this.z], this.theta + (Math.PI / 2), this.phi, this.tileSize * 0.9999);
 			});
 		});
-		pos_outTapes.forEach(p => {
+		pos_inTapesR.forEach(p => {
 			p.forEach(q => {
-				this.transformPointSpecial(q, [this.x, this.y, this.z], this.theta + (Math.PI / 2), this.phi, this.tileSize * 1.0001);
+				this.transformPointSpecial(q, [this.x, this.y, this.z], this.theta + (Math.PI / 2), this.phi, this.tileSize * 0.9999);
+			});
+		});
+		pos_outTapesL.forEach(p => {
+			p.forEach(q => {
+				this.transformPointSpecial(q, [this.x, this.y, this.z], this.theta + (Math.PI / 2), this.phi, this.tileSize * 1.00001);
+			});
+		});
+		pos_outTapesR.forEach(p => {
+			p.forEach(q => {
+				this.transformPointSpecial(q, [this.x, this.y, this.z], this.theta + (Math.PI / 2), this.phi, this.tileSize * 1.00001);
 			});
 		});
 
@@ -194,7 +208,6 @@ class Boat {
 		this.top = new B3Node();
 
 		//body
-		var temp = undefined;
 		pos_lowTiles.forEach(p => {
 			this.addToTwoArrs(this.objects, this.body, new Tile(p[0], p[1], p[2], this.tileSize, [this.theta, this.phi], this, undefined, this.color));
 		});
@@ -218,30 +231,30 @@ class Boat {
 		//left side deco:
 
 		//outside
-		for (var a=0; a<5; a++) {
-			this.addToArrAndTree(this.objects, this.top, new FreePoly(pos_outTapes[a], this.tapeColor));
-		}
+		pos_outTapesL.forEach(t => {
+			this.addToArrAndTree(this.objects, this.top, new FreePoly(t, this.tapeColor));
+		});
 
 		//inside
 		this.addToArrAndTree(this.objects, this.top, new Ring(pos_rings[2][0], pos_rings[2][1], pos_rings[2][2], this.theta, this.phi - (Math.PI / 2), render_ringSize));
 		this.addToArrAndTree(this.objects, this.top, new Ring(pos_rings[3][0], pos_rings[3][1], pos_rings[3][2], this.theta, this.phi - (Math.PI / 2), render_ringSize));
-		this.addToArrAndTree(this.objects, this.top, new FreePoly(pos_inTapes[0], this.tapeColor));
-		this.addToArrAndTree(this.objects, this.top, new FreePoly(pos_inTapes[1], this.tapeColor));
+		pos_inTapesL.forEach(t => {
+			this.addToArrAndTree(this.objects, this.top, new FreePoly(t, this.tapeColor));
+		});
 
 		//right side deco:
 
 		//outside
-		for (var a=5; a<11; a++) {
-			this.addToArrAndTree(this.objects, this.top, new FreePoly(pos_outTapes[a], this.tapeColor));
-		}
+		pos_outTapesR.forEach(t => {
+			this.addToArrAndTree(this.objects, this.top, new FreePoly(t, this.tapeColor));
+		});
 
 		//inside
 		this.addToArrAndTree(this.objects, this.top, new Ring(pos_rings[4][0], pos_rings[4][1], pos_rings[4][2], this.theta, this.phi - (Math.PI / 2), render_ringSize));
 		this.addToArrAndTree(this.objects, this.top, new Ring(pos_rings[5][0], pos_rings[5][1], pos_rings[5][2], this.theta, this.phi - (Math.PI / 2), render_ringSize));
-		this.addToArrAndTree(this.objects, this.top, new FreePoly(pos_inTapes[2], this.tapeColor));
-		this.addToArrAndTree(this.objects, this.top, new FreePoly(pos_inTapes[3], this.tapeColor));
-
-		//this.addToArrAndTree(this.objects, this.top, );
+		pos_inTapesR.forEach(t => {
+			this.addToArrAndTree(this.objects, this.top, new FreePoly(t, this.tapeColor));
+		});
 	}
 
 	//transforms a set of points into a tape strip that can go on the edge
@@ -249,39 +262,41 @@ class Boat {
 	then the tape goes for 2 tiles forwards.*/
 	generateTape(tapeTileStart, tapeTileEnd, tapeHeight, contour, arrayToPutResultIn) {
 		var tapePoints = [];
+
+
+
+		
 		
 		//add start point
 		var lerpX = linterp(contour[Math.floor(tapeTileStart)][0], contour[Math.ceil(tapeTileStart)][0], tapeTileStart - Math.floor(tapeTileStart));
 		var lerpZ = linterp(contour[Math.floor(tapeTileStart)][1], contour[Math.ceil(tapeTileStart)][1], tapeTileStart - Math.floor(tapeTileStart));
-		tapePoints.push([lerpX, tapeHeight - 0.5 - (this.tapeHeight / 2), lerpZ]);
-		tapePoints.push([lerpX, tapeHeight - 0.5 + (this.tapeHeight / 2), lerpZ]);
+		//lower
+		tapePoints[3] = [lerpX, tapeHeight - 0.5 - (this.tapeHeight / 2), lerpZ];
+		//upper
+		tapePoints[0] = [lerpX, tapeHeight - 0.5 + (this.tapeHeight / 2), lerpZ];
 		var additive = 1 - (tapeTileStart % 1);
 
 		//add all points before the end
 		while (tapeTileStart + additive < tapeTileEnd) {
 			lerpX = linterp(contour[Math.floor(tapeTileStart+additive)][0], contour[Math.ceil(tapeTileStart+additive)][0], (tapeTileStart+additive) - Math.floor(tapeTileStart+additive));
 			lerpZ = linterp(contour[Math.floor(tapeTileStart+additive)][1], contour[Math.ceil(tapeTileStart+additive)][1], (tapeTileStart+additive) - Math.floor(tapeTileStart+additive));
-			tapePoints.push([lerpX, tapeHeight - 0.5 + (this.tapeHeight / 2), lerpZ]);
+			//if the tape stretches into the front, (curved space), break it off and recurse
+			if (tapeTileStart + additive >= 2) {
+				tapePoints[1] = [lerpX, tapeHeight - 0.5 + (this.tapeHeight / 2), lerpZ];
+				tapePoints[2] = [lerpX, tapeHeight - 0.5 - (this.tapeHeight / 2), lerpZ];
+				arrayToPutResultIn.push(tapePoints);
+				this.generateTape(tapeTileStart + additive, tapeTileEnd, tapeHeight, contour, arrayToPutResultIn);
+				return;
+			}
 			additive += 1;
 		}
-		additive -= 1;
 
-		//if the end isn't whole, there will be stuff left, doing that
-		if (tapeTileEnd % 1 != 0) {
-			lerpX = linterp(contour[Math.floor(tapeTileEnd)][0], contour[Math.ceil(tapeTileEnd)][0], tapeTileEnd - Math.floor(tapeTileEnd));
-			lerpZ = linterp(contour[Math.floor(tapeTileEnd)][1], contour[Math.ceil(tapeTileEnd)][1], tapeTileEnd - Math.floor(tapeTileEnd));
-			tapePoints.push([lerpX, tapeHeight - 0.5 + (this.tapeHeight / 2), lerpZ]);
-			tapePoints.push([lerpX, tapeHeight - 0.5 - (this.tapeHeight / 2), lerpZ]);
-		}
+		//still here? cool
+		lerpX = linterp(contour[Math.floor(tapeTileEnd)][0], contour[Math.ceil(tapeTileEnd)][0], tapeTileEnd - Math.floor(tapeTileEnd));
+		lerpZ = linterp(contour[Math.floor(tapeTileEnd)][1], contour[Math.ceil(tapeTileEnd)][1], tapeTileEnd - Math.floor(tapeTileEnd));
+		tapePoints[1] = [lerpX, tapeHeight - 0.5 + (this.tapeHeight / 2), lerpZ];
+		tapePoints[2] = [lerpX, tapeHeight - 0.5 - (this.tapeHeight / 2), lerpZ];
 
-
-		//add all points before the start
-		while (tapeTileStart + additive > tapeTileStart) {
-			lerpX = linterp(contour[Math.floor(tapeTileStart+additive)][0], contour[Math.ceil(tapeTileStart+additive)][0], (tapeTileStart+additive) - Math.floor(tapeTileStart+additive));
-			lerpZ = linterp(contour[Math.floor(tapeTileStart+additive)][1], contour[Math.ceil(tapeTileStart+additive)][1], (tapeTileStart+additive) - Math.floor(tapeTileStart+additive));
-			tapePoints.push([lerpX, tapeHeight - 0.5 - (this.tapeHeight / 2), lerpZ]);
-			additive -= 1;
-		}
 		arrayToPutResultIn.push(tapePoints);
 	}
 
@@ -1510,6 +1525,22 @@ class Tunnel {
 		while (this.data.length > this.sides * this.tilesPerSide) {
 			this.data.pop();
 		}
+
+		//update tunnel length
+		this.len = 0;
+		for (var z=0; z<this.sides * this.tilesPerSide; z++) {
+			if (this.data[z] != undefined) {
+				//trace backwards until the longest tile is found
+				for (var t=this.data[z].length-1; t>-1; t--) {
+					if (this.data[z][t] != 0) {
+						this.len = Math.max(this.len, t+1);
+						t = -1;
+					}
+				}
+			}
+		}
+		console.log(this.len);
+
 		//fix possible undefineds
 		for (var a=0; a<this.sides * this.tilesPerSide; a++) {
 			if (this.data[a] == undefined) {
