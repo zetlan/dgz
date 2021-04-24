@@ -70,11 +70,27 @@ const color_tape = "#5E6570";
 const color_text = "#424";
 const color_text_bright = "#FAF";
 const color_text_danger = "#F22";
-const color_trigger = "#808";
+const color_trigger = "#A60";
 const color_warning = "#FFDB29";
 const color_warning_secondary = "#8C8C89";
 const colors_powerCells = ["#888888", "#8888FF", "#88FF88", "#88FFFF", "#FF8888", "#FF88FF", "#FFFF88", "#FFFFFF"];
 
+var credits = [
+	`CREDITS:`,
+	`Cynthia Clementine - coding, art, and interface design`,
+	`Joseph Cloutier - design, original art, and story`,
+	`Alex Ostroff - original art/animation`,
+	`Jesse Valentine - music`,
+	``,
+	`ADDITIONAL LEVELS BY:`,
+	`mathwiz100, portugal2000, Farkss, Karsh777,`,
+	`max_blue_01, Precarious, and Gecco.`,
+	``,
+	`SPECIAL THANKS:`,
+	`A*16 - "I barely did anything but I still wanted`,
+	`to be in the credits."`,
+	`Chair - "Chair or LongNeckedChair."`
+]
 var cursor_x = 0;
 var cursor_y = 0;
 var cursor_down = false;
@@ -106,18 +122,7 @@ var data_audio = {
 	"Tone": new Audio('audio/Tone.ogg')
 }
 var data_characters = [`Runner`, `Skater`, `Lizard`, `Bunny`, `Gentleman`, `Duplicator`, `Child`, `Pastafarian`, `Student`, `Angel`];
-var data_characterColors = {
-	"Angel": "#EFF",
-	"Bunny": "#764",
-	"Child": "#8F8",
-	"Duplicator": "#BEE",
-	"Gentleman": "#888",
-	"Lizard": "#5A5",
-	"Pastafarian": "#DCE",
-	"Runner": "#CCC",
-	"Skater": "#DAA",
-	"Student": "#B31"
-};
+var data_characterColors = ["#777", "#DAA", "#5A5", "#764", "#333", "#BEE", "#8F8", "#DBE", "#D64", "#DDF"];
 
 var data_levelSets = [`main`, `boxRoad`, `boxStorage`, `coordination`, `planA`, `planC`, `memory`, `wayBack`, `wayBack2`, `wayBackNot`, `winterGames`, `lowPower`, `new`,
 						`A`, `B`, `C`, `D`, `F`, `G`, `H`, `I`, `L`, `M`, `N`, `T`, `U`, `W`];
@@ -139,6 +144,7 @@ var data_persistent = {
 		highResolution: false,
 		maskCursor: false,
 		volume: 0.5,
+		antiAlias: false,
 	}
 };
 
@@ -429,9 +435,14 @@ var editor_sliderHeight = 0.05;
 var editor_sliderProportion = 0.145;
 var editor_sliderMargin = 0.008;
 var editor_spawn = undefined;
+var editor_substateTravelSpeed = 0.05;
 var editor_topBarHeight = 0.12;
 var editor_tileSize = 0.025;
+var editor_tunnelDefaultData = [[1, 1, 1, 1, 1], [1, 0, 1, 0, 1], [], [], [], [], [], [], [], [], [], [], [], [], [], []];
 var editor_warning = "Warning: Editor data does not save between sessions. If you want to save your data, make sure to export your world before closing the window.";
+var editor_warning_file = `the file you have entered has been detected at over 5000 lines long. 
+This either means you have quite a large file, or something's gone wrong. 
+If you would like to stop processing the file, click cancel. If continuing is alright, hit ok.`;
 var editor_controlText = [
 	`EDIT MODE CONTROLS:`,
 	`< / > - decrement / increment cutscene frame`,
@@ -581,9 +592,6 @@ var haltCollision = false;
 function setup() {
 	canvas = document.getElementById("cornh");
 	ctx = canvas.getContext("2d");
-	ctx.lineWidth = 2;
-	ctx.lineJoin = "round";
-	ctx.lineCap = "round";
 
 	//cursor movements setup
 	document.addEventListener("mousemove", handleMouseMove, false);
@@ -603,11 +611,11 @@ function setup() {
 
 	//edit world objects
 	if (editor_objects.length == 0) {
-		editor_objects.push(new Tunnel(0.00, {h: 120, s: 50, v: 0.8}, [[1, 1, 1, 1, 1], [1, 0, 1, 0, 1]], 'Custom Tunnel IeCo', 5, 1, [], 4, [1], [], 4, 75, 0, 0, [], `TravelTheGalaxy`));
+		editor_objects.push(new Tunnel(0.00, {h: 120, s: 50, v: 0.8}, JSON.parse(JSON.stringify(editor_tunnelDefaultData)), 'Custom Tunnel IeCo', 5, 1, [], 4, [1], [], 4, 75, 0, 0, [], `TravelTheGalaxy`));
 		editor_spawn = editor_objects[0];
 	}
 
-	loading_state = new State_Loading();
+	loading_state = new State_Edit_Tiles();
 
 	//setting up world
 	//as a reminder, tunnels are (x, y, z, angle, tile size, sides, tiles per sides, color, length, data)
