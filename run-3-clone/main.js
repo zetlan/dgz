@@ -24,9 +24,8 @@ var ctx;
 var centerX;
 var centerY;
 
-var challenge_fadeTime = 50;
+var challenge_fadeTime = 40;
 var challenge_opacity = 0.05;
-var challenge_textTime = 280;
 
 var checklist_width = 0.35;
 var checklist_height = 0.45;
@@ -101,12 +100,12 @@ var data_alphaNumerics = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqr
 var data_angelChecklist = [
 	'GOING HOME CHECKLIST',
 	['The Know-It-All', '1st', 'myTurn', false, undefined, []],
-	['The Show-Off', '2nd', 'theNextBigThing', false, 1, []],
-	['The Crackpot', '3rd', 'youThink', true, 7],
-	['The Nerd', '6th', 'discoveries', false, 19, []],
-	['The Sneak', '3rd', 'youThink', true, 7],
-	['The Meddler', '4th', 'friendlyGreeting', true, 10],
-	['The Snob', '5th', 'standardsToUphold', false, 14, []]
+	['The Show-Off', '2nd', 'theNextBigThing', false, 0, []],
+	['The Crackpot', '3rd', 'youThink', true, 6],
+	['The Nerd', '6th', 'discoveries', false, 18, []],
+	['The Sneak', '3rd', 'youThink', true, 6],
+	['The Meddler', '4th', 'friendlyGreeting', true, 9],
+	['The Snob', '5th', 'standardsToUphold', false, 13, []]
 ];
 var data_audio = {
 	//music files
@@ -121,9 +120,50 @@ var data_audio = {
 	//sfx files
 	"Tone": new Audio('audio/Tone.ogg')
 }
-var data_characters = [`Runner`, `Skater`, `Lizard`, `Bunny`, `Gentleman`, `Duplicator`, `Child`, `Pastafarian`, `Student`, `Angel`];
-var data_characterColors = ["#777", "#DAA", "#5A5", "#764", "#333", "#BEE", "#8F8", "#DBE", "#D64", "#DDF"];
-
+var data_characters = {
+	indexes: [`Runner`, `Skater`, `Lizard`, `Bunny`, `Gentleman`, `Duplicator`, `Child`, `Pastafarian`, `Student`, `Angel`],
+	map: {"Runner": 0, "Skater": 1, "Lizard": 2, "Bunny": 3, "Gentleman": 4, "Duplicator": 5, "Child": 6, "Pastafarian": 7, "Student": 8, "Angel": 9},
+	"Angel": {
+		color: "#DDF",
+		text: `He solves practical problems and creates personal ones.`,
+	},
+	"Bunny": {
+		color: "#764",
+		text: `It doesn't care if you call it the "Rabbit" or the "Bunny". All it cares about is bouncing.`,
+	},
+	"Child": {
+		color: "#8F8",
+		text: `Sometimes clever, sometimes immature. For example; he carries a balloon to help him jump further, but it's filled with water so he can splash people.`,
+	},
+	"Duplicator": {
+		color: "#BEE",
+		text: `Suspicious of others, but trusts alien technology that's been lying around for ages. Makes sense.`,
+	},
+	"Gentleman": {
+		color: "#333",
+		text: `Employs magnets for rapid procurement of power cells.`,
+	},
+	"Lizard": {
+		color: "#5A5",
+		text: `Lizards are known for being green and jumping really high.`,
+	},
+	"Pastafarian": {
+		color: "#DBE",
+		text: `Her faith in the Flying Spaghetti Monster allows her to run across empty space. Her faith also allows her to ignore the Student's alternate explanation.`,
+	},
+	"Runner": {
+		color: "#777",
+		text: `Wants to see everything at least once, and she does mean everything.`,
+	},
+	"Skater": {
+		color: "#DAA",
+		text: `Enjoys challenging himself almost as much as he enjoys going fast.`,
+	},
+	"Student": {
+		color: "#D64",
+		text: `Once you figure out how something works, it's yours to use. This includes gravity.`,
+	}
+}
 var data_levelSets = [`main`, `boxRoad`, `boxStorage`, `coordination`, `planA`, `planC`, `memory`, `wayBack`, `wayBack2`, `wayBackNot`, `winterGames`, `lowPower`, `new`,
 						`A`, `B`, `C`, `D`, `F`, `G`, `H`, `I`, `L`, `M`, `N`, `T`, `U`, `W`];
 //data_levelSets = [`main`, `lowPower`, `new`];
@@ -418,7 +458,6 @@ var editor_mapSnapTolerance = 5;
 var editor_thetaCircleRadius = 60;
 var editor_thetaKnobRadius = 10;
 
-
 //for the tunnel editor, try to keep up zozzle
 var editor_buttonHeightPercentage = 0.45;
 var editor_cameraLimit = 300000;
@@ -430,12 +469,14 @@ var editor_cutscenes = {}
 var editor_mapHeight = 10000;
 var editor_maxEditDistance = 1500;
 var editor_objects = [];
-var editor_propertyMenuWidth = 0.3;
+var editor_lPropertyW = 0.3;
+var editor_lTileW = 0.06;
+var editor_lTriggerW = 0.2;
 var editor_sliderHeight = 0.05;
 var editor_sliderProportion = 0.145;
 var editor_sliderMargin = 0.008;
 var editor_spawn = undefined;
-var editor_substateTravelSpeed = 0.05;
+var editor_substateTravelSpeed = 0.07;
 var editor_topBarHeight = 0.12;
 var editor_tileSize = 0.025;
 var editor_tunnelDefaultData = [[1, 1, 1, 1, 1], [1, 0, 1, 0, 1], [], [], [], [], [], [], [], [], [], [], [], [], [], []];
@@ -469,7 +510,7 @@ let loading_state;
 
 var map_height = 120000;
 var map_shift = 57000;
-var map_zOffset = -55200;
+var map_zOffset = -46900;
 var map_zStorage = map_zOffset;
 var map_iconSize = 0.06;
 
@@ -481,14 +522,15 @@ var menu_cutsceneParallax = 0.3;
 
 let page_animation;
 
-var physics_maxBridgeDistance = 400;
+var physics_boxFriction = 0.95;
 var physics_conveyorStrength = 0.05;
 var physics_crumblingShrinkStart = 50;
 var physics_crumblingShrinkTime = 150;
-var physics_gravity = 0.13;
-var physics_jumpTime = 30;
 var physics_graceTime = 6;
 var physics_graceTimeRamp = 10;
+var physics_gravity = 0.13;
+var physics_jumpTime = 30;
+var physics_maxBridgeDistance = 350;
 
 let player;
 var player_radius = 18;
@@ -573,12 +615,13 @@ var render_starOpacity = 0.6;
 var render_voidSpinSpeed = 0.04;
 
 var text_queue = [];
-var text_time = challenge_textTime;
+var text_timeMax = 240;
+var text_time = text_timeMax;
 
 var textures_common = [];
-for (var t=0; t<data_characters.length; t++) {
-	textures_common.push(new Texture(eval(`data_sprites.${data_characters[t]}.sheet`), data_sprites.spriteSize, 2, false, false, eval(`[data_sprites.${data_characters[t]}.back[0], data_sprites.${data_characters[t]}.front[0]]`)));
-}
+data_characters.indexes.forEach(c => {
+	textures_common.push(new Texture(eval(`data_sprites.${c}.sheet`), data_sprites.spriteSize, 2, false, false, eval(`[data_sprites.${c}.back[0], data_sprites.${c}.front[0]]`)));
+});
 
 var times_current = {};
 var times_past = {};
@@ -615,7 +658,7 @@ function setup() {
 		editor_spawn = editor_objects[0];
 	}
 
-	loading_state = new State_Edit_Tiles();
+	loading_state = new State_Loading();
 
 	//setting up world
 	//as a reminder, tunnels are (x, y, z, angle, tile size, sides, tiles per sides, color, length, data)
@@ -728,12 +771,12 @@ function handleKeyPress_player(a) {
 		// a / <--
 		case 65:
 		case 37:
-			player.ax = -1 * player.speed;
+			player.ax = -1 * player.strafeSpeed;
 			break;
 		//d / -->
 		case 68:
 		case 39:
-			player.ax = player.speed;
+			player.ax = player.strafeSpeed;
 			break;
 		// w / ^ / space
 		case 87:
@@ -744,6 +787,7 @@ function handleKeyPress_player(a) {
 				if (loading_state instanceof State_Infinite && loading_state.substate == 2) {
 					loading_state.pushScoreToLeaderboard();
 					loading_state = new State_Infinite();
+					loading_state.doWorldEffects();
 				}
 				player.handleSpace();
 			}
@@ -932,14 +976,11 @@ function updateResolution() {
 */
 function performanceTest() {
 	var perfTime = [performance.now(), 0];
-	var variableName = [0, 0, 0];
+	var variableName = 0;
 	for (var a=0;a<1000000;a++) {
-		if (loading_state instanceof State_Cutscene) {
-			variableName[0] += 1;
-			variableName[0] -= 1;
-		}
+		variableName = Math.random() * 3;
+		variableName = clamp2(variableName, 1, 2);
 	}
-
 
 	perfTime[1] = performance.now();
 	var totalTime = perfTime[1] - perfTime[0];
