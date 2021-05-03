@@ -1,5 +1,5 @@
 class Tile extends FreePoly {
-	constructor(x, y, z, size, normal, parent, tilePosition, color) {
+	constructor(x, y, z, size, normal, parent, color) {
 		super([[0, 0, 0], [0, 0, 1], [0, 1, 1]], color);
 
 		this.x = x;
@@ -16,7 +16,6 @@ class Tile extends FreePoly {
 		this.calculatePointsAndNormal();
 
 		this.parent = parent;
-		this.parentPosition = tilePosition;
 		this.isReal = false;
 	}
 
@@ -90,12 +89,12 @@ class Tile extends FreePoly {
 
 //I just gave up on the tile system with this one and made it its own object
 class Tile_Box extends Tile {
-	constructor(x, y, z, size, normal, parent, tilePosition) {
-		super(x, y, z, size, normal, parent, tilePosition, RGBtoHSV(color_box));
+	constructor(x, y, z, size, normal, parent) {
+		super(x, y, z, size, normal, parent, RGBtoHSV(color_box));
 
 		//all boxes have a left / right tile, for changing rotation
-		this.leftTile = new Tile(x, y, z, size, [normal[0], (normal[1] + (Math.PI * 1.5)) % (Math.PI * 2)], parent, tilePosition, this.color);
-		this.rightTile = new Tile(x, y, z, size, [normal[0], (normal[1] + (Math.PI * 0.5)) % (Math.PI * 2)], parent, tilePosition, this.color);
+		this.leftTile = new Tile(x, y, z, size, [normal[0], (normal[1] + (Math.PI * 1.5)) % (Math.PI * 2)], parent, this.color);
+		this.rightTile = new Tile(x, y, z, size, [normal[0], (normal[1] + (Math.PI * 0.5)) % (Math.PI * 2)], parent, this.color);
 	}
 
 	calculatePointsAndNormal() {
@@ -243,8 +242,8 @@ class Tile_Box extends Tile {
 }
 
 class Tile_Box_Ringed extends Tile_Box {
-	constructor(x, y, z, size, normal, parent, tilePosition) {
-		super(x, y, z, size, normal, parent, tilePosition);
+	constructor(x, y, z, size, normal, parent) {
+		super(x, y, z, size, normal, parent);
 		
 	}
 
@@ -271,23 +270,27 @@ class Tile_Box_Ringed extends Tile_Box {
 			} else {
 				drawWorldPoly([this.points[0], this.points[1], this.points[5], this.points[4]], color);
 			}
-			//left / rightß
+			//left / right
 			if (relCPos[1] > 0) {
 				//change order of ring / face depending on position
 				if (relCPos[1] <= this.size / 2) {
 					this.ringR.beDrawn();
+					//console.log("drawing right ring (before)");
 				}
 				drawWorldPoly([this.points[0], this.points[3], this.points[7], this.points[4]], color);
 				if (relCPos[1] > this.size / 2) {
 					this.ringR.beDrawn();
+					//console.log("drawing right ring (after)");
 				}
 			} else {
 				if (relCPos[1] >= this.size / -2) {
 					this.ringL.beDrawn();
+					//console.log("drawing left ring (before)");
 				}
 				drawWorldPoly([this.points[1], this.points[2], this.points[6], this.points[5]], color);
 				if (relCPos[1] < this.size / -2) {
 					this.ringL.beDrawn();
+					//console.log("drawing left ring (after)");
 				}
 			}
 			return;
@@ -314,8 +317,8 @@ class Tile_Box_Ringed extends Tile_Box {
 }
 
 class Tile_Box_Spun extends Tile_Box {
-	constructor(x, y, z, size, normal, parent, tilePosition) {
-		super(x, y, z, size, [normal[0], normal[1] + (Math.PI * 0.25)], parent, tilePosition);
+	constructor(x, y, z, size, normal, parent) {
+		super(x, y, z, size, [normal[0], normal[1] + (Math.PI * 0.25)], parent);
 		this.collisionMult = 1.414;
 	}
 
@@ -336,8 +339,8 @@ class Tile_Box_Spun extends Tile_Box {
 }
 
 class Tile_Bright extends Tile {
-	constructor(x, y, z, size, normal, parent, tilePosition, color) {
-		super(x, y, z, size, normal, parent, tilePosition, color);
+	constructor(x, y, z, size, normal, parent, color) {
+		super(x, y, z, size, normal, parent, color);
 	}
 
 	getColor() {
@@ -346,8 +349,8 @@ class Tile_Bright extends Tile {
 }
 
 class Tile_Conveyor extends Tile {
-	constructor(x, y, z, size, normal, parent, tilePosition) {
-		super(x, y, z, size, normal, parent, tilePosition, RGBtoHSV(color_conveyor));
+	constructor(x, y, z, size, normal, parent) {
+		super(x, y, z, size, normal, parent, RGBtoHSV(color_conveyor));
 		this.secondaryColor = RGBtoHSV(color_conveyor_secondary);
 		this.time = 0;
 		this.conveyTime = 80;
@@ -411,8 +414,8 @@ class Tile_Conveyor extends Tile {
 }
 
 class Tile_Conveyor_Slow extends Tile_Conveyor {
-	constructor(x, y, z, size, normal, parent, tilePosition) {
-		super(x, y, z, size, normal, parent, tilePosition);
+	constructor(x, y, z, size, normal, parent) {
+		super(x, y, z, size, normal, parent);
 	}
 
 	calculateTriPoints() {
@@ -437,8 +440,8 @@ class Tile_Conveyor_Slow extends Tile_Conveyor {
 }
 
 class Tile_Conveyor_Left extends Tile_Conveyor {
-	constructor(x, y, z, size, normal, parent, tilePosition) {
-		super(x, y, z, size, normal, parent, tilePosition);
+	constructor(x, y, z, size, normal, parent) {
+		super(x, y, z, size, normal, parent);
 	}
 
 	calculatePointsAndNormal() {
@@ -466,8 +469,8 @@ class Tile_Conveyor_Left extends Tile_Conveyor {
 }
 
 class Tile_Conveyor_Right extends Tile_Conveyor {
-	constructor(x, y, z, size, normal, parent, tilePosition) {
-		super(x, y, z, size, normal, parent, tilePosition);
+	constructor(x, y, z, size, normal, parent) {
+		super(x, y, z, size, normal, parent);
 	}
 
 	calculatePointsAndNormal() {
@@ -494,8 +497,9 @@ class Tile_Conveyor_Right extends Tile_Conveyor {
 }
 
 class Tile_Crumbling extends Tile {
-	constructor(x, y, z, size, normal, parent, tilePosition, color) {
-		super(x, y, z, size, normal, parent, tilePosition, RGBtoHSV(color_crumbling));
+	constructor(x, y, z, size, normal, parent, color, tilePosition) {
+		super(x, y, z, size, normal, parent, RGBtoHSV(color_crumbling));
+		this.parentPosition = tilePosition;
 		this.activeSize = this.size;
 
 		this.home = [this.x, this.y, this.z];
@@ -504,7 +508,7 @@ class Tile_Crumbling extends Tile {
 		this.fallRate = -0.52;
 
 		//all crumbling tiles have a plexiglass tile hidden on top of them
-		this.plexiTile = new Tile_Plexiglass(x, y, z, size, normal, parent, tilePosition, color, 0.95);
+		this.plexiTile = new Tile_Plexiglass(x, y, z, size, normal, parent, color, 0.95);
 	}
 
 	calculatePointsAndNormal() {
@@ -539,7 +543,7 @@ class Tile_Crumbling extends Tile {
 		if (this.fallStatus != undefined) {
 			this.fallStatus += 1;
 
-			if (this.fallStatus > 0) {
+			if (this.fallStatus > 0 && this.fallStatus <= physics_crumblingShrinkTime + physics_crumblingShrinkStart) {
 				//only continue falling if large enough
 				if (this.activeSize > 0.01) {
 					//fall downward
@@ -553,19 +557,13 @@ class Tile_Crumbling extends Tile {
 						this.activeSize = linterp(this.size, 0, (this.fallStatus - physics_crumblingShrinkStart) / physics_crumblingShrinkTime);
 					}
 
-
 					//recalculate points
 					this.calculatePointsAndNormal();
 				}
-
-				//if in a tunnel that the player is not in, reset self
-				if (this.parent != player.parent) {
-					this.reset();
-				}
 			}
+			//tick plexiglass
+			this.plexiTile.tick();
 		}
-		//tick plexiglass
-		this.plexiTile.tick();
 	}
 
 	reset() {
@@ -631,8 +629,8 @@ class Tile_Crumbling extends Tile {
 }
 
 class Tile_Ice extends Tile {
-	constructor(x, y, z, size, normal, parent, tilePosition) {
-		super(x, y, z, size, normal, parent, tilePosition, RGBtoHSV(color_ice));
+	constructor(x, y, z, size, normal, parent) {
+		super(x, y, z, size, normal, parent, RGBtoHSV(color_ice));
 	}
 
 	getColor() {
@@ -646,8 +644,8 @@ class Tile_Ice extends Tile {
 }
 
 class Tile_Ice_Ramp extends Tile_Ice {
-	constructor(x, y, z, size, normal, parent, tilePosition) {
-		super(x, y, z, size, normal, parent, tilePosition);
+	constructor(x, y, z, size, normal, parent) {
+		super(x, y, z, size, normal, parent);
 	}
 
 	calculatePointsAndNormal() {
@@ -672,9 +670,9 @@ class Tile_Ice_Ramp extends Tile_Ice {
 	}
 }
 
-class Tile_Movable extends Tile {
-	constructor(x, y, z, size, normal, parent, tilePosition, color) {
-		super(x, y, z, size, normal, parent, tilePosition, color);
+class Tile_Ringed extends Tile {
+	constructor(x, y, z, size, normal, parent, color) {
+		super(x, y, z, size, normal, parent, color);
 		
 	}
 
@@ -706,8 +704,8 @@ class Tile_Movable extends Tile {
 
 //this is called a plexiglass tile because I thought it looked a bit like plexiglass. It's not actually made of plexiglass. don't get confused ;)
 class Tile_Plexiglass extends Tile {
-	constructor(x, y, z, size, normal, parent, tilePosition, color, strength) {
-		super(x, y, z, size, normal, parent, tilePosition, color);
+	constructor(x, y, z, size, normal, parent, color, strength) {
+		super(x, y, z, size, normal, parent, color);
 		this.strength = strength;
 		this.minStrength = 0.04;
 	}
@@ -746,12 +744,12 @@ class Tile_Plexiglass extends Tile {
 }
 
 class Tile_Ramp extends Tile {
-	constructor(x, y, z, size, normal, parent, tilePosition, color) {
-		super(x, y, z, size, normal, parent, tilePosition, color);
+	constructor(x, y, z, size, normal, parent, color) {
+		super(x, y, z, size, normal, parent, color);
 	}
 
 	calculatePointsAndNormal() {
-		this.points = [[-1, 0, -1], [-1, 0, 1], [-1 + (2 / Math.sqrt(2)), (2 / Math.sqrt(2)), 1], [-1 + (2 / Math.sqrt(2)), (2 / Math.sqrt(2)), -1]];
+		this.points = [[-1, 0, -1], [-1, 0, 1], [-1 + (2 / Math.sqrt(2)), 1, 1], [-1 + (2 / Math.sqrt(2)), 1, -1]];
 		this.points.forEach(p => {
 			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 0.5);
 		});
@@ -775,14 +773,15 @@ class Tile_Ramp extends Tile {
 }
 
 class Tile_Vertical extends Tile {
-	constructor(x, y, z, size, normal, parent, tilePosition, color) {
-		super(x, y, z, size, normal, parent, tilePosition, color);
+	constructor(x, y, z, size, normal, parent, color) {
+		super(x, y, z, size, normal, parent, color);
 	}
 }
 
+//TODO: it would probably be easier to just have the vertical component be its own object
 class Tile_Warning extends Tile {
-	constructor(x, y, z, size, normal, parent, tilePosition) {
-		super(x, y, z, size, normal, parent, tilePosition, RGBtoHSV(color_warning));
+	constructor(x, y, z, size, normal, parent) {
+		super(x, y, z, size, normal, parent, RGBtoHSV(color_warning));
 		this.verticalPlayerDist = 1000;
 	}
 
@@ -795,6 +794,11 @@ class Tile_Warning extends Tile {
 		this.verticalPoints.forEach(p => {
 			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 0.5);
 		});
+	}
+
+	doComplexLighting() {
+		super.doComplexLighting();
+		this.verticalPlayerDist = getDistance_LightSource({x: this.verticalCenter[0], y: this.verticalCenter[1], z: this.verticalCenter[2]});
 	}
 
 	tick() {
