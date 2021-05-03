@@ -89,7 +89,6 @@ function updatePlotProgression() {
 		} catch (e) {
 			console.error("couldn't do effects for cutscene " + c)
 		}
-		
 	});
 
 	var discoveredLevels = data_persistent.discovered.split("~");
@@ -102,17 +101,6 @@ function updatePlotProgression() {
 	//if no characters are unlocked, reset to the default
 	if (data_persistent.unlocked == undefined) {
 		data_persistent.unlocked = ["Runner"];
-	}
-
-	//if the end of the low power tunnel hasn't been discovered, move the new tunnel away
-	if (!(getObjectFromID(`Low Power Tunnel, Part 25`).discovered)) {
-		var a = 1;
-		var targetTunnel = getObjectFromID(`New Tunnel, Part ${a}`);
-		while (targetTunnel.id != undefined) {
-			targetTunnel.updatePosition(targetTunnel.x, targetTunnel.y, targetTunnel.z - 30000);
-			a += 1;
-			targetTunnel = getObjectFromID(`New Tunnel, Part ${a}`);
-		}
 	}
 	console.log("applied story progression");
 }
