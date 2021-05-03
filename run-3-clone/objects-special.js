@@ -440,18 +440,7 @@ class SceneBoat extends Scene3dObject {
 class SceneBoxRinged extends Scene3dObject {
 	constructor(x, y, z, size, rot) {
 		super(x, y, z);
-		//figure out parent from closest object
-		var ref = world_objects[0];
-		var reqDist = getDistance(this, ref);
-		for (var a=1; a<world_objects.length; a++) {
-			if (getDistance(this, world_objects[a]) < reqDist) {
-				ref = world_objects[a];
-				reqDist = getDistance(this, world_objects[a]);
-			}
-		}
-
-		
-
+		var ref = pickNewParent({x: this.x, y: this.y, z:this.z}, world_objects[0]);
 		this.box = new Tile_Box_Ringed(this.x, this.y, this.z, size, [(Math.PI * 1.5) - ref.theta, rot], ref, [0, 0]);
 		//fix knobs
 		this.handle1 = polToCart(this.box.normal[0], 0, render_crosshairSize);
