@@ -135,10 +135,11 @@ function getDistance2d(xyP1, xyP2) {
 
 //sets the object's player distance to the closest distance to a light source
 function getDistance_LightSource(obj) {
-	obj.playerDist = render_maxColorDistance * 2;
+	var dist = render_maxColorDistance * 2;
 	world_lightObjects.forEach(l => {
-		obj.playerDist = Math.min(obj.playerDist, getDistance(obj, l));
+		dist = Math.min(dist, getDistance(obj, l));
 	});
+	return dist;
 }
 
 //determines if a point will be clipped due to being behind / too close to the camera
@@ -175,7 +176,12 @@ function orderObjects(array, places) {
 		//push objects to buckets
 		for (var m=0; m<unsorted_objects.length; m++) {
 			//formula determines which bucket to push into
-			buckets[Math.floor(((unsorted_objects[m].cameraDist) % Math.pow(10, pos) / Math.pow(10, pos-1)))].push(unsorted_objects[m]);
+			try {
+				buckets[Math.floor(((unsorted_objects[m].cameraDist) % Math.pow(10, pos) / Math.pow(10, pos-1)))].push(unsorted_objects[m]);
+			} catch(er) {
+				console.error(`cannot sort tunnel "${unsorted_objects[m].id}" with cameraDist ${unsorted_objects[m].cameraDist}`);
+				runCrash();
+			}
 		}
 
 		//clear unsorted
