@@ -56,7 +56,7 @@ function drawInfiniteEndScreen() {
 		drawingCharacters.push(c);
 	});
 
-	data_characters.forEach(c => {
+	data_characters.indexes.forEach(c => {
 		if (!drawingCharacters.includes(c)) {
 			drawingCharacters.push(c);
 		}
@@ -97,7 +97,7 @@ function drawInfiniteEndScreen() {
 			ctx.fillText(`power cells:`, canvas.width * 0.12, (canvas.height * 0.13) + offY + textOffset2 + (3 * textOffset));
 			ctx.fillText(`power cells / min:`, canvas.width * 0.12, (canvas.height * 0.13) + offY + textOffset2 + (4 * textOffset));
 		}
-		var index = data_characters.indexOf(drawingCharacters[a]);
+		var index = data_characters.map[drawingCharacters[a]];
 
 		if (textures_common[index] != undefined) {
 			textures_common[index].frame = 0;
@@ -235,7 +235,7 @@ function drawPlayerWithTunnel(obj) {
 
 		if ((lowerStrips.length + upperStrips.length) == Math.floor(obj.strips.length / 2)) {
 			//if the camera is outside the tunnel then reorganize strips to half be below, half above. If the camera's inside the tunnel it's fine, all the strips can be below. 
-			if (!obj.coordinateIsInTunnel(world_camera.x, world_camera.y, world_camera.z)) {
+			if (!obj.coordinateIsInTunnel_Boundless(world_camera.x, world_camera.y, world_camera.z)) {
 				target = upperStrips;
 			}
 		}
@@ -492,7 +492,7 @@ function drawAngelPanel(time) {
 		}
 		//keep searching button
 		if (data_persistent.goingHomeProgress < challengeData_angelMissions.length) {
-			checklist_searchButton.y = checklist_height + ((yDefault + yOffset) / canvas.height) - 0.06;
+			checklist_searchButton.y = checklist_height + ((yDefault + yOffset) / canvas.height) - 0.05;
 			checklist_searchButton.tick();
 			checklist_searchButton.beDrawn();
 		}
@@ -524,7 +524,7 @@ function drawCharacterLock(x, y, width, height) {
 }
 
 function drawCharacterText() {
-	var yOffset = Math.pow((text_time / (challenge_textTime / 2)) - 1, 12);
+	var yOffset = Math.pow((text_time / (text_timeMax / 2)) - 1, 12);
 
 	var yPos = (canvas.height * 0.92) + (yOffset * canvas.width * 0.08);
 	ctx.fillStyle = color_grey_light;
@@ -555,12 +555,13 @@ function drawCharacterText() {
 		}
 	}
 	for (var a=0; a<text_queue[0][1].length; a++) {
-		ctx.fillText(text_queue[0][1][a], (canvas.width * 0.5) + menu_characterSize, yPos + (menu_characterSize * 0.25) + (menu_characterSize * 1.1 * ((a + 1) / (text_queue[0][1].length + 1))));
+		ctx.fillText(text_queue[0][1][a], (canvas.width * 0.5) + menu_characterSize, yPos + (menu_characterSize * 0.1) + (menu_characterSize * 1.25 * ((a + 1) / (text_queue[0][1].length + 1))));
 	}
 }
 
 function drawCrosshair() {
 	ctx.strokeStyle = "#FFF";
+	ctx.lineWidth = 2;
 	//starting pos
 	var center = polToCart(world_camera.theta, world_camera.phi, 5);
 	center = [center[0] + world_camera.x, center[1] + world_camera.y, center[2] + world_camera.z];
