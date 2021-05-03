@@ -24,8 +24,9 @@ class State_Edit {
 			]);
 		}
 		//rotate
+		
 		for (var b=0; b<this.tunnelPoints.length; b++) {
-			[this.tunnelPoints[b][0], this.tunnelPoints[b][1]] = rotate(this.tunnelPoints[b][0], this.tunnelPoints[b][1], (Math.PI * 2) - this.tunnel.theta);
+			[this.tunnelPoints[b][0], this.tunnelPoints[b][2]] = rotate(this.tunnelPoints[b][0], this.tunnelPoints[b][2], this.tunnel.theta);
 		}
 	}
 
@@ -134,7 +135,7 @@ class State_Edit {
 		//tunnel functions are [z, result value, type];
 		//if the area isn't clipped, render the function
 		var zOff = [0, 0, tunnelFunction[0] * this.tunnel.tileSize];
-		[zOff[0], zOff[2]] = rotate(zOff[0], zOff[2], (Math.PI * 2) - this.tunnel.theta);
+		[zOff[0], zOff[2]] = rotate(zOff[0], zOff[2], this.tunnel.theta);
 		zOff[0] += this.tunnel.x;
 		zOff[1] += this.tunnel.y;
 		zOff[2] += this.tunnel.z;
@@ -199,6 +200,10 @@ class State_Edit_Tiles extends State_Edit {
 		this.substateTravel = 0;
 
 		this.lowButton = new PropertyButton(0.91, 0.96, 0.16, 0.05, "Triggers", `loading_state.switchSubstates();`);
+		this.funcButtons = [
+			new PropertyButton(editor_lTriggerW - 0.075, 0.12, 0.04, 0.05, "-", ``),
+			new PropertyButton(editor_lTriggerW - 0.03, 0.12, 0.04, 0.05, "+", ``)
+		];
 
 		this.tileSelected = 0;
 		this.animTileSelected = 0;
@@ -209,7 +214,6 @@ class State_Edit_Tiles extends State_Edit {
 		this.selectedTileExtra.playerDist = 50;
 		this.selectedTileExtra.cameraDist = 50;
 		this.cameraMovement = 0;
-		this.display = [[0, 0], [0, 0], [0, 0], [0, 0]];
 		this.calculateTunnelPoints();
 	}
 
@@ -223,6 +227,69 @@ class State_Edit_Tiles extends State_Edit {
 			this.lowButton.label = "Tiles";
 			this.substateTravel = -editor_substateTravelSpeed;
 		}
+	}
+
+	drawTileSidebar() {
+		ctx.globalAlpha = 1 - this.substate;
+		//update the tile icon selected
+		this.animTileSelected = (this.animTileSelected * (render_animSteps - 1) + this.tileSelected) / render_animSteps;
+		//draw tile coordinates
+		if (this.targetTile != undefined) {
+			ctx.fillStyle = color_text_bright;
+			ctx.textAlign = "right";
+			ctx.font = `${canvas.height / 40}px Comfortaa`;
+			ctx.fillText(JSON.stringify(this.targetTile), canvas.width * 0.99, canvas.height * 0.92);
+			ctx.textAlign = "center";
+		}
+
+		//selection box
+		ctx.lineWidth = canvas.height / 200;
+		drawSelectionBox((canvas.width * (0.015 + editor_tileSize / 2)), ((canvas.height / 17) * (this.animTileSelected + 2)) + (canvas.width * editor_tileSize / 2), 
+						canvas.width * editor_tileSize * 1.6, canvas.width * editor_tileSize * 1.6);
+		ctx.lineWidth = 2;
+
+		//tile listing
+		for (var a=0; a<15; a++) {
+			drawTile2d(canvas.width * 0.015, (canvas.height / 17) * (a + 2), canvas.width * editor_tileSize, a);
+		}
+	}
+
+	drawTriggerSidebar() {
+		ctx.globalAlpha = this.substate;
+		ctx.lineWidth = 2;
+
+		var ribX = canvas.width * 0.01;
+		var minH = canvas.height * (editor_topBarHeight + 0.02);
+		var maxH = canvas.height * 0.98;
+		var totalH = maxH - minH;
+		var zScale = totalH / ((this.tunnel.len * this.tunnel.tileSize) + tunnel_transitionLength);
+
+		//tunnel line
+		var color = `hsl(${this.tunnel.color.h}, ${this.tunnel.color.s}%, ${this.tunnel.color.v * 85}%)`;
+		ctx.strokeStyle = color;
+		ctx.fillStyle = color;
+		ctx.beginPath();
+		ctx.moveTo(ribX, minH + (zScale * tunnel_transitionLength));
+		ctx.lineTo(ribX, maxH);
+		ctx.stroke();
+
+		//circles
+
+		//draw tile snappers
+		for (var z=zScale*this.tunnel.tileSize*0.5; canvas.height-(z/zScale)>minH; z+=zScale*this.tunnel.tileSize) {
+			drawCircle(color, ribX, maxH - z, canvas.height / 240);
+		}
+
+		//draw triggers
+		for (var f=0; f<this.tunnel.functions.length; f++) {
+			//determine height from z-index
+			var height = maxH - (zScale * this.tunnel.tileSize * (this.tunnel.functions[f][0] + 0.5));
+		}
+
+		this.funcButtons.forEach(f => {
+			f.tick();
+			f.beDrawn();
+		});
 	}
 
 	execute() {
@@ -267,67 +334,18 @@ class State_Edit_Tiles extends State_Edit {
 
 		//side bar bg
 		ctx.fillStyle = color_editor_bg;
-		ctx.fillRect(0, canvas.height * (editor_topBarHeight - 0.01), canvas.width * (0.06 + (0.14 * this.substate)), canvas.height);
+		ctx.fillRect(0, canvas.height * (editor_topBarHeight - 0.01), canvas.width * linterp(editor_lTileW, editor_lTriggerW, this.substate), canvas.height);
 
 		//tile sidebar
 		if (this.substate < 1) {
-			ctx.globalAlpha = 1 - this.substate;
-			//update the tile selected
-			this.animTileSelected = (this.animTileSelected * (render_animSteps - 1) + this.tileSelected) / render_animSteps;
-			//draw tile coordinates
-			if (this.targetTile != undefined) {
-				ctx.fillStyle = color_text_bright;
-				ctx.textAlign = "right";
-				ctx.font = `${canvas.height / 40}px Comfortaa`;
-				ctx.fillText(JSON.stringify(this.targetTile), canvas.width * 0.99, canvas.height * 0.92);
-				ctx.textAlign = "center";
-			}
-
-			//selection box
-			ctx.lineWidth = canvas.height / 200;
-			drawSelectionBox((canvas.width * (0.015 + editor_tileSize / 2)), ((canvas.height / 17) * (this.animTileSelected + 2)) + (canvas.width * editor_tileSize / 2), 
-							canvas.width * editor_tileSize * 1.6, canvas.width * editor_tileSize * 1.6);
-			ctx.lineWidth = 2;
-
-			//tile listing
-			for (var a=0; a<15; a++) {
-				drawTile2d(canvas.width * 0.015, (canvas.height / 17) * (a + 2), canvas.width * editor_tileSize, a);
-			}
+			this.drawTileSidebar();
 		}
 
 		//trigger sidebar
 		if (this.substate > 0) {
-			ctx.globalAlpha = this.substate;
-			ctx.lineWidth = 2;
-
-			var totalHeight = (1 - editor_topBarHeight - 0.04);
-			var heightOffset = editor_topBarHeight + 0.02;
-
-			//tunnel line
-			var color = `hsl(${this.tunnel.color.h}, ${this.tunnel.color.s}%, ${this.tunnel.color.v * 85}%)`;
-			ctx.strokeStyle = color;
-			ctx.fillStyle = color;
-			ctx.beginPath();
-			var endPercent = (tunnel_transitionLength / ((this.tunnel.len * this.tunnel.tileSize) + tunnel_transitionLength));
-			ctx.moveTo(canvas.width * 0.01, canvas.height * (heightOffset + (totalHeight * endPercent)));
-			ctx.lineTo(canvas.width * 0.01, canvas.height * (heightOffset + totalHeight));
-			ctx.stroke();
-
-			//circles
-			var numTiles = this.tunnel.len + (tunnel_transitionLength / this.tunnel.tileSize);
-			
-			for (var t=0; t<numTiles; t++) {
-				var height = canvas.height * (heightOffset + ((t + 0.5) * (totalHeight / numTiles)));
-				ctx.beginPath();
-				ctx.ellipse(canvas.width * 0.01, height, canvas.height / 240, canvas.height / 240, 0, 0, Math.PI * 2);
-				ctx.fill();
-			}
-
+			this.drawTriggerSidebar();
 		}
-		ctx.globalAlpha = 0.2;
-		drawPoly("#FFF", this.display);
 		ctx.globalAlpha = 1;
-		
 	}
 
 	getSelectedTile() {
@@ -372,13 +390,12 @@ class State_Edit_Tiles extends State_Edit {
 				
 				//if the cursor is inside the tile, make that selected and then break out
 				if (inPoly([cursor_x, cursor_y], polyPoints)) {
-					this.display = polyPoints;
 					this.targetTile[1] = t;
 					t = end + 1;
 				}
 			}
 			var tileCoords = tRef.worldPositionOfTile(this.targetTile[0], this.targetTile[1] + 1);
-			this.selectedTileExtra = new Tile_Plexiglass(tileCoords[0], tileCoords[1], tileCoords[2], tRef.tileSize, tRef.strips[this.targetTile[0]].normal, tRef, this.targetTile, tRef.color, 0.5);
+			this.selectedTileExtra = new Tile_Plexiglass(tileCoords[0], tileCoords[1], tileCoords[2], tRef.tileSize, tRef.strips[this.targetTile[0]].normal, tRef, tRef.color, 0.5);
 			this.selectedTileExtra.playerDist = 50;
 			this.selectedTileExtra.cameraDist = 50;
 		}
@@ -391,8 +408,8 @@ class State_Edit_Tiles extends State_Edit {
 			return;
 		}
 
-		//if the cursor is over the menu to the left
-		if (cursor_x < canvas.width * 0.05) {
+		//if the cursor is over the menu to the left or changing states
+		if (cursor_x < canvas.width * 0.05 || this.substateTravel != 0) {
 			return;
 		}
 
@@ -494,7 +511,7 @@ class State_Edit_Tiles extends State_Edit {
 		if (this.targetTile[1]+1 > this.tunnel.len) {
 			this.tunnel.endSpawns = [];
 		}
-		
+
 		//basically just uh... kinda sorta... replace the tile
 		this.tunnel.data[this.targetTile[0]][this.targetTile[1]] = this.tileSelected;
 		var coords = this.tunnel.worldPositionOfTile(this.targetTile[0], this.targetTile[1] + 1);
@@ -515,35 +532,35 @@ class State_Edit_Properties extends State_Edit {
 		this.propertyModifiers = [
 			//ew, this is verbose
 			//hue + saturation + value
-			new PropertySlider(0.01, 0.14 + (0 * editor_sliderHeight), editor_propertyMenuWidth - (editor_sliderMargin * 2), editor_sliderProportion, `hue`, `loading_state.tunnel.color.h = value;`, `loading_state.tunnel.color.h`, 0, 360, 1, false),
-			new PropertySlider(0.01, 0.14 + (1 * editor_sliderHeight), editor_propertyMenuWidth - (editor_sliderMargin * 2), editor_sliderProportion, `sat.`, `loading_state.tunnel.color.s = value;`, `loading_state.tunnel.color.s`, 0, 80, 1, false),
-			new PropertySlider(0.01, 0.14 + (2 * editor_sliderHeight), editor_propertyMenuWidth - (editor_sliderMargin * 2), editor_sliderProportion, `val.`, `loading_state.tunnel.color.v = value;`, `loading_state.tunnel.color.v`, 0, 0.9, 0.001, false),
+			new PropertySlider(0.01, 0.14 + (0 * editor_sliderHeight), editor_lPropertyW - (editor_sliderMargin * 2), editor_sliderProportion, `hue`, `loading_state.tunnel.color.h = value;`, `loading_state.tunnel.color.h`, 0, 360, 1, false),
+			new PropertySlider(0.01, 0.14 + (1 * editor_sliderHeight), editor_lPropertyW - (editor_sliderMargin * 2), editor_sliderProportion, `sat.`, `loading_state.tunnel.color.s = value;`, `loading_state.tunnel.color.s`, 0, 80, 1, false),
+			new PropertySlider(0.01, 0.14 + (2 * editor_sliderHeight), editor_lPropertyW - (editor_sliderMargin * 2), editor_sliderProportion, `val.`, `loading_state.tunnel.color.v = value;`, `loading_state.tunnel.color.v`, 0, 0.9, 0.001, false),
 
 			//power
-			new PropertySlider(0.01, 0.14 + (4 * editor_sliderHeight), editor_propertyMenuWidth - (editor_sliderMargin * 2), editor_sliderProportion, `power`, `loading_state.tunnel.powerBase = value;`, `loading_state.tunnel.powerBase`, 0, 1, 0.01, false),
+			new PropertySlider(0.01, 0.14 + (4 * editor_sliderHeight), editor_lPropertyW - (editor_sliderMargin * 2), editor_sliderProportion, `power`, `loading_state.tunnel.powerBase = value;`, `loading_state.tunnel.powerBase`, 0, 1, 0.01, false),
 
 			//tile properties
-			new PropertySlider(0.01, 0.14 + (6 * editor_sliderHeight), editor_propertyMenuWidth - (editor_sliderMargin * 2), editor_sliderProportion, `tile size`, `loading_state.tunnel.tileSize = value; loading_state.calculateTunnelPoints();`, `loading_state.tunnel.tileSize`, 15, 220, 5, true),
-			new PropertySlider(0.01, 0.14 + (7 * editor_sliderHeight), editor_propertyMenuWidth - (editor_sliderMargin * 2), editor_sliderProportion / 2, `tiles / side`, `loading_state.tunnel.tilesPerSide = value; loading_state.tunnel.repairData(); loading_state.calculateTunnelPoints();`, `loading_state.tunnel.tilesPerSide`, 1, 8, 1, true),
-			new PropertySlider(0.01, 0.14 + (8 * editor_sliderHeight), editor_propertyMenuWidth - (editor_sliderMargin * 2), editor_sliderProportion, `sides`, `loading_state.tunnel.sides = value; loading_state.tunnel.repairData(); loading_state.calculateTunnelPoints();`, `loading_state.tunnel.sides`, 3, 50, 1, true),
+			new PropertySlider(0.01, 0.14 + (6 * editor_sliderHeight), editor_lPropertyW - (editor_sliderMargin * 2), editor_sliderProportion, `tile size`, `loading_state.tunnel.tileSize = value; loading_state.calculateTunnelPoints();`, `loading_state.tunnel.tileSize`, 15, 220, 5, true),
+			new PropertySlider(0.01, 0.14 + (7 * editor_sliderHeight), editor_lPropertyW - (editor_sliderMargin * 2), editor_sliderProportion / 2, `tiles / side`, `loading_state.tunnel.tilesPerSide = value; loading_state.tunnel.repairData(); loading_state.calculateTunnelPoints();`, `loading_state.tunnel.tilesPerSide`, 1, 8, 1, true),
+			new PropertySlider(0.01, 0.14 + (8 * editor_sliderHeight), editor_lPropertyW - (editor_sliderMargin * 2), editor_sliderProportion, `sides`, `loading_state.tunnel.sides = value; loading_state.tunnel.repairData(); loading_state.calculateTunnelPoints();`, `loading_state.tunnel.sides`, 3, 50, 1, true),
 
 			//music
 			new PropertyButton(0.025, 0.14 + (10 * editor_sliderHeight), 0.04, 0.05, '<', `loading_state.tunnel.music = data_musics[(data_musics.indexOf(loading_state.tunnel.music)+(data_musics.length-1)) % data_musics.length];`),
-			new PropertyButton(editor_propertyMenuWidth - 0.025, 0.14 + (10 * editor_sliderHeight), 0.04, 0.05, '>', `loading_state.tunnel.music = data_musics[(data_musics.indexOf(loading_state.tunnel.music)+1) % data_musics.length];`),
+			new PropertyButton(editor_lPropertyW - 0.025, 0.14 + (10 * editor_sliderHeight), 0.04, 0.05, '>', `loading_state.tunnel.music = data_musics[(data_musics.indexOf(loading_state.tunnel.music)+1) % data_musics.length];`),
 
 			//banned characters
 
 			//tunnel name
-			new PropertyTextBox(0.01, 0.14 + (15 * editor_sliderHeight), editor_propertyMenuWidth - (editor_sliderMargin * 2), `id~`, `loading_state.tunnel.id = value;`, `loading_state.tunnel.id`, `New Tunnel Name: `, ``, false),
+			new PropertyTextBox(0.01, 0.14 + (15 * editor_sliderHeight), editor_lPropertyW - (editor_sliderMargin * 2), `id~`, `loading_state.tunnel.id = value;`, `loading_state.tunnel.id`, `New Tunnel Name: `, ``, false),
 			
 			//save / load individual level
-			new PropertyTextBox(0.01, 								   0.14 + (16 * editor_sliderHeight), (editor_propertyMenuWidth / 2) - editor_sliderMargin, `load`, `loading_state.newTunnelData = value;`, `""`, `Input Tunnel Data: `, ``, true),
-			new PropertyTextBox(0.01 + (editor_propertyMenuWidth / 2), 0.14 + (16 * editor_sliderHeight), (editor_propertyMenuWidth / 2) - (editor_sliderMargin * 2), `save`, ``, `""`, `Don't type in the box, just copy this string:`, `loading_state.tunnel.giveStringData();`, true),
+			new PropertyTextBox(0.01,							0.14 + (16 * editor_sliderHeight), (editor_lPropertyW / 2) - editor_sliderMargin, `load`, `loading_state.newTunnelData = value;`, `""`, `Input Tunnel Data: `, ``, true),
+			new PropertyTextBox(0.01 + (editor_lPropertyW / 2), 0.14 + (16 * editor_sliderHeight), (editor_lPropertyW / 2) - (editor_sliderMargin * 2), `save`, ``, `""`, `Don't type in the box, just copy this string:`, `loading_state.tunnel.giveStringData();`, true),
 		];
 
 		this.banButtons = [
-			new PropertyButton(0.5 + (editor_propertyMenuWidth / 2), 0.95, 0.04, 0.05, '+', `loading_state.banStorage.push(["the ~~character~~ isn't here!", []])`),
-			new PropertyButton(0.5 + (editor_propertyMenuWidth / 2), 0.533, 0.06, 0.08, 'X', `loading_state.banSelected = undefined;`)
+			new PropertyButton(0.5 + (editor_lPropertyW / 2), 0.95, 0.04, 0.05, '+', `loading_state.banStorage.push(["the ~~character~~ isn't here!", []])`),
+			new PropertyButton(0.5 + (editor_lPropertyW / 2), 0.533, 0.06, 0.08, 'X', `loading_state.banSelected = undefined;`)
 		];
 
 		this.banStorage = undefined;
@@ -576,7 +593,7 @@ class State_Edit_Properties extends State_Edit {
 	}
 
 	drawCharacterBans() {
-		var centerX = (0.5 + (editor_propertyMenuWidth / 2)) * canvas.width;
+		var centerX = (0.5 + (editor_lPropertyW / 2)) * canvas.width;
 		var centerY = (0.5 + 0.035) * canvas.height;
 		var height = (canvas.height - centerY) * 2;
 
@@ -596,7 +613,7 @@ class State_Edit_Properties extends State_Edit {
 			var baseY;
 			var textWidth;
 			for (var r=0; r<this.banStorage.length; r++) {
-				baseX = canvas.width * (editor_propertyMenuWidth + 0.03);
+				baseX = canvas.width * (editor_lPropertyW + 0.03);
 				baseY = canvas.height * (0.1 + (r * 0.0775));
 				textWidth = ctx.measureText(this.banStorage[r][0]).width + 10;
 				//box
@@ -608,8 +625,8 @@ class State_Edit_Properties extends State_Edit {
 
 				//characters it applies to
 				for (var c=0; c<this.banStorage[r][1].length; c++) {
-					textures_common[data_characters.indexOf(this.banStorage[r][1][c])].frame = 0;
-					textures_common[data_characters.indexOf(this.banStorage[r][1][c])].beDrawn(baseX + (canvas.height * 0.04 * (c+1)), baseY + (canvas.height * 0.0375), 0, canvas.height * 0.035);
+					textures_common[data_characters.map[this.banStorage[r][1][c]]].frame = 0;
+					textures_common[data_characters.map[this.banStorage[r][1][c]]].beDrawn(baseX + (canvas.height * 0.04 * (c+1)), baseY + (canvas.height * 0.0375), 0, canvas.height * 0.035);
 				}
 			}
 			//+ button at the bottom
@@ -619,6 +636,8 @@ class State_Edit_Properties extends State_Edit {
 		}
 		
 		//character selection
+		ctx.fillStyle = color_editor_bg;
+		ctx.fillRect(0, 0, canvas.width, canvas.height);
 
 		//characters that the ban can't apply to (because they're in another ban) are skipped.
 		//characters that are affected by the current ban are drawn with a dark grey background, 
@@ -627,37 +646,36 @@ class State_Edit_Properties extends State_Edit {
 		var rightOff;
 		var centerOff;
 		var theta;
-		var wedgeAngle = Math.PI * 2 / data_characters.length;
-		for (var c=0; c<data_characters.length; c++) {
-			theta = wedgeAngle * (c - 0.5);
+		var wedgeAngle = Math.PI * 2 / data_characters.indexes.length;
+		for (var c=0; c<data_characters.indexes.length; c++) {
+			theta = wedgeAngle * c;
 
-			leftOff = [height * 1.5 * Math.cos(theta), height * 1.5 * Math.sin(theta)];
-			rightOff = [height * 1.5 * Math.cos(theta + wedgeAngle), height * 1.5 * Math.sin(theta + wedgeAngle)];
-			centerOff = [height * 0.3 * Math.cos(theta + (wedgeAngle / 2)), height * 0.3 * Math.sin(theta + (wedgeAngle / 2))];
-
+			leftOff = [height * 1.5 * Math.cos(theta - (wedgeAngle / 2)), height * 1.5 * Math.sin(theta - (wedgeAngle / 2))];
+			centerOff = [height * 0.3 * Math.cos(theta), height * 0.3 * Math.sin(theta)];
+			rightOff = [height * 1.5 * Math.cos(theta + (wedgeAngle / 2)), height * 1.5 * Math.sin(theta + (wedgeAngle / 2))];
 
 			//bg
-			if (this.allowStorage.includes(data_characters[c]) || this.banStorage[this.banSelected][1].includes(data_characters[c])) {
-				ctx.fillStyle = color_grey_light;
-				if (!this.allowStorage.includes(data_characters[c])) {
-					ctx.fillStyle = data_characterColors[c];
+			if (this.allowStorage.includes(data_characters.indexes[c]) || this.banStorage[this.banSelected][1].includes(data_characters.indexes[c])) {
+				//select color and draw wedge
+				if (this.allowStorage.includes(data_characters.indexes[c])) {
+					ctx.fillStyle = color_grey_light;
+				} else {
+					ctx.fillStyle = data_characters[data_characters.indexes[c]].color;
 				}
-				
+
 				ctx.beginPath();
 				ctx.moveTo(centerX, centerY);
 				ctx.lineTo(centerX + leftOff[0], centerY + leftOff[1]);
 				ctx.lineTo(centerX + rightOff[0], centerY + rightOff[1]);
 				ctx.lineTo(centerX, centerY);
 				ctx.fill();
+
+				//draw character
+				drawSelectionBox(centerX + centerOff[0], centerY + centerOff[1], menu_characterSize * 1.25, menu_characterSize * 1.25);
+				textures_common[c].beDrawn(centerX + centerOff[0], centerY + centerOff[1], 0, menu_characterSize);
 			}
 
-			//draw character
-			drawSelectionBox(centerX + centerOff[0], centerY + centerOff[1], menu_characterSize * 1.25, menu_characterSize * 1.25);
-			textures_common[c].beDrawn(centerX + centerOff[0], centerY + centerOff[1], 0, menu_characterSize);
-
-
-
-			//draw line outwards
+			//draw line outwards (I put this here because I want a constant thickness)
 			ctx.strokeStyle = color_editor_bg;
 			ctx.beginPath();
 			ctx.moveTo(centerX, centerY);
@@ -685,7 +703,7 @@ class State_Edit_Properties extends State_Edit {
 			this.drawCharacterBans();
 			//sidebar
 			ctx.fillStyle = color_editor_bg;
-			ctx.fillRect(0, 0, canvas.width * editor_propertyMenuWidth, canvas.height);
+			ctx.fillRect(0, 0, canvas.width * editor_lPropertyW, canvas.height);
 		} else {
 			this.tunnel.power = this.tunnel.powerBase;
 
@@ -707,7 +725,7 @@ class State_Edit_Properties extends State_Edit {
 
 			//side bar
 			ctx.fillStyle = color_editor_bg;
-			ctx.fillRect(0, (canvas.height * editor_topBarHeight) - 1, canvas.width * editor_propertyMenuWidth, (canvas.height * (1 - editor_topBarHeight)) + 1);
+			ctx.fillRect(0, (canvas.height * editor_topBarHeight) - 1, canvas.width * editor_lPropertyW, (canvas.height * (1 - editor_topBarHeight)) + 1);
 
 			if (this.newTunnelData != undefined) {
 				this.createTunnel();
@@ -723,15 +741,15 @@ class State_Edit_Properties extends State_Edit {
 			ctx.fillStyle = color_text_bright;
 			ctx.font = `${canvas.height / 45}px Comfortaa`;
 			ctx.textAlign = "center";
-			ctx.fillText(this.tunnel.music, canvas.width * (editor_propertyMenuWidth / 2), canvas.height * (0.1475 + (10 * editor_sliderHeight)));
+			ctx.fillText(this.tunnel.music, canvas.width * (editor_lPropertyW / 2), canvas.height * (0.1475 + (10 * editor_sliderHeight)));
 		}
 
 		//drawing banned character toggle
-		drawSelectionBox((editor_propertyMenuWidth / 2) * canvas.width, (0.14 + (14 * editor_sliderHeight)) * canvas.height, editor_propertyMenuWidth * 0.75 * canvas.width, editor_sliderHeight * 0.75 * canvas.height);
+		drawSelectionBox((editor_lPropertyW / 2) * canvas.width, (0.14 + (14 * editor_sliderHeight)) * canvas.height, editor_lPropertyW * 0.75 * canvas.width, editor_sliderHeight * 0.75 * canvas.height);
 		ctx.font = `${canvas.height / 45}px Comfortaa`;
 		ctx.textAlign = "center";
 		ctx.fillStyle = color_text_bright;
-		ctx.fillText("banned characters", (editor_propertyMenuWidth / 2) * canvas.width, (0.15 + (14 * editor_sliderHeight)) * canvas.height);
+		ctx.fillText("banned characters", (editor_lPropertyW / 2) * canvas.width, (0.15 + (14 * editor_sliderHeight)) * canvas.height);
 	}
 
 	parseBanned() {
@@ -777,7 +795,7 @@ class State_Edit_Properties extends State_Edit {
 			}
 		}
 		//switching out of / into banned character mode
-		if (cursor_x < canvas.width * editor_propertyMenuWidth && cursor_y > (0.14 + (13.5 * editor_sliderHeight)) * canvas.height && cursor_y < (0.14 + (14.5 * editor_sliderHeight)) * canvas.height) {
+		if (cursor_x <= canvas.width * editor_lPropertyW && cursor_y > (0.14 + (13.5 * editor_sliderHeight)) * canvas.height && cursor_y < (0.14 + (14.5 * editor_sliderHeight)) * canvas.height) {
 			this.substate = (!this.substate) * 1;
 
 			//if switching out of banned character mode
@@ -792,7 +810,7 @@ class State_Edit_Properties extends State_Edit {
 			//if in viewing, select rule
 			if (this.banSelected == undefined) {
 				for (var r=0; r<this.banStorage.length; r++) {
-					if (cursor_x > canvas.width * (editor_propertyMenuWidth + 0.03) && 
+					if (cursor_x > canvas.width * (editor_lPropertyW + 0.03) && 
 					cursor_y && cursor_y >= canvas.height * (0.08 + (r * 0.0775)) && 
 					cursor_y <= canvas.height * (0.12 + (r * 0.0775))) {
 						this.banSelected = r;
@@ -817,28 +835,28 @@ class State_Edit_Properties extends State_Edit {
 			}
 
 			//select x
-			if (this.banSelected != undefined && getDistance2d([cursor_x, cursor_y], [(0.5 + (editor_propertyMenuWidth / 2)) * canvas.width, 0.535 * canvas.height]) < canvas.height / 10) {
+			if (this.banSelected != undefined && getDistance2d([cursor_x, cursor_y], [(0.5 + (editor_lPropertyW / 2)) * canvas.width, 0.535 * canvas.height]) < canvas.height / 10) {
 				this.banButtons[1].handleClick();
 				return;
 			}
 
 			//select character
-			var angle = Math.atan2((canvas.height * 0.5) - cursor_y, (canvas.width * (0.5 + (editor_propertyMenuWidth / 2))) - cursor_x) + Math.PI;
-			var character = Math.floor(((angle / (Math.PI * 2)) * data_characters.length) + 0.5);
-			if (character > data_characters.length - 1) {
+			var angle = Math.atan2((canvas.height * 0.5) - cursor_y, (canvas.width * (0.5 + (editor_lPropertyW / 2))) - cursor_x) + Math.PI;
+			var character = Math.floor(((angle / (Math.PI * 2)) * data_characters.indexes.length) + 0.5);
+			if (character > data_characters.indexes.length - 1) {
 				character = 0;
 			}
 
 			//toggle whether the rule applies
-			if (this.banStorage[this.banSelected][1].includes(data_characters[character]) || this.allowStorage.includes(data_characters[character])) {
+			if (this.banStorage[this.banSelected][1].includes(data_characters.indexes[character]) || this.allowStorage.includes(data_characters.indexes[character])) {
 				//if allowed, ban them
-				if (this.allowStorage.includes(data_characters[character])) {
-					this.allowStorage.splice(this.allowStorage.indexOf(data_characters[character]), 1);
-					this.banStorage[this.banSelected][1].push(data_characters[character]);
+				if (this.allowStorage.includes(data_characters.indexes[character])) {
+					this.allowStorage.splice(this.allowStorage.indexOf(data_characters.indexes[character]), 1);
+					this.banStorage[this.banSelected][1].push(data_characters.indexes[character]);
 				} else {
 					//if banned, allow them again
-					this.banStorage[this.banSelected][1].splice(this.banStorage[this.banSelected][1].indexOf(data_characters[character]), 1);
-					this.allowStorage.push(data_characters[character]);
+					this.banStorage[this.banSelected][1].splice(this.banStorage[this.banSelected][1].indexOf(data_characters.indexes[character]), 1);
+					this.allowStorage.push(data_characters.indexes[character]);
 				}
 			}
 			return;
@@ -847,7 +865,7 @@ class State_Edit_Properties extends State_Edit {
 		
 		
 		//property menu
-		if (cursor_x < canvas.width * editor_propertyMenuWidth) {
+		if (cursor_x < canvas.width * editor_lPropertyW) {
 			this.propertyModifiers.forEach(p => {
 				if (p.constructor.name == "PropertyButton") {
 					p.handleClick();
@@ -1221,6 +1239,7 @@ class State_Edit_Cutscenes extends State_Edit {
 
 class State_Playtest extends State_World {
 	constructor() {
+		console.log("b", render_maxColorDistance);
 		super();
 		this.returnState = undefined;
 		this.readFrom = editor_objects;
