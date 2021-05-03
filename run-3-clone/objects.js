@@ -194,6 +194,7 @@ class Character {
 		
 		this.gravStrength = physics_gravity;
 		this.speed = 0.12;
+		this.strafeSpeed = this.speed * 1.1;
 		this.dMax = 3.74;
 		this.fallMax = this.dMax * 1.4;
 		this.jumpStrength = 2;
@@ -201,6 +202,7 @@ class Character {
 		this.coyote = 0;
 		this.coyoteSet = player_coyote;
 
+		this.onIce = false;
 		this.onGround = 0;
 		this.jumpTime = physics_jumpTime;
 
@@ -315,7 +317,7 @@ class Character {
 			if (this.parent != undefined) {
 				//colliding with tiles
 				this.collide();
-				if (!this.parent.playerIsInTunnel()) {
+				if (!this.parent.coordinateIsInTunnel_Bounded(this.x, this.y, this.z)) {
 					//if in the void, change physics
 					var voidStrength = spaceToRelativeRotless(this.parent.centerPos, [this.x, this.y, this.z], this.dir_down)[2] / this.parent.r;
 					if (this.parent.playerTilePos > this.parent.len - 0.5) {
@@ -333,18 +335,8 @@ class Character {
 					if (Math.abs(this.textureRot - this.dir_down[1]) > render_voidSpinSpeed * 3) {
 						this.textureRot = (this.textureRot + (render_voidSpinSpeed * 3)) % (Math.PI * 2);
 					}
-					if (!this.onIce) {
-						//regular tiles
-						//don't accelerate if dz is too great
-						if (Math.abs(this.dz) > this.dMax * 1.1) {
-							this.modifyDerivitives(this.gravStrength, this.friction, this.naturalFriction, this.ax, 0);
-						} else {
-							this.modifyDerivitives(this.gravStrength, this.friction, this.naturalFriction, this.ax, this.speed);
-						}
-					} else {
-						//ice tiles
-						this.modifyDerivitives(this.gravStrength, Math.min(0.995, this.friction * 1.05), this.naturalFriction, this.ax * 0.8, this.speed);
-					}
+					//don't accelerate if dz is too great, and reduce friction if on ice
+					this.modifyDerivitives(this.gravStrength, this.friction, this.naturalFriction, this.ax * (1 - (0.2 * this.onIce)), this.speed * (Math.abs(this.dz) <= this.dMax * 1.1));
 				}
 			}
 
@@ -695,6 +687,7 @@ class Child extends Character {
 		this.jumpStrength = 3.14;
 		this.jumpBoostStrength = 0.082;
 		this.speed = 0.048;
+		this.strafeSpeed = this.speed;
 		this.dMax = 3.2;
 		this.trueFallMax = 1.13;
 
@@ -777,25 +770,14 @@ class Duplicator extends Character {
 		this.duplicatesMaxDistance = 900;
 		this.duplicateGenerationTime = 150;
 		this.duplicateGenerationCountup = 0;
-
-		this.addSelfToDuplicateArray();
-	}
-
-	//this function exists because constructors are scary
-	addSelfToDuplicateArray() {
-		this.duplicates.push(this);
 	}
 
 	beDrawn() {
+		super.beDrawn();
 		//drawing duplicates, they have a lesser opacity, those fakers >:(
 		this.duplicates.forEach(d => {
-			if (d == this) {
-				ctx.globalAlpha = 1;
-				super.beDrawn();
-			} else {
-				ctx.globalAlpha = linterp(0.5, 0, (getDistance(this, d) / this.duplicatesMaxDistance) + 0.05);
-				d.beDrawn();
-			}
+			ctx.globalAlpha = clamp(linterp(0.5, 0, (getDistance(this, d) / this.duplicatesMaxDistance) + 0.1), 0, 0.5);
+			d.beDrawn();
 		});
 
 		ctx.globalAlpha = 1;
@@ -806,6 +788,7 @@ class Duplicator extends Character {
 		//updating properties to function
 		friend.parent = this.parent;
 		friend.parentPrev = this.parentPrev;
+		friend.backwards = this.backwards;
 		friend.dx = this.dx + randomBounded(-0.3, 0.3);
 		friend.dy = this.dy + randomBounded(0.1, 0.7);
 		friend.dz = this.dz + randomBounded(-0.3, 0.3);
@@ -816,40 +799,55 @@ class Duplicator extends Character {
 		this.duplicates.push(friend);
 	}
 
-	tick() {
-		if (this.duplicates.length == 0) {
-			this.duplicates = [this];
+	//the duplicator has less of a window outside of the tunnel to work with
+	isOutOfParent() {
+		if (this.parent == undefined) {
+			return true;
 		}
+		var par = this.parent;
+		var newCoords = [this.x - par.x, this.y - par.y, this.z - par.z];
+		[newCoords[0], newCoords[2]] = rotate(newCoords[0], newCoords[2], par.theta * -1);
+
+		if (getDistance2d([newCoords[0], newCoords[1]], [0, 0]) < par.r + tunnel_voidWidth - this.r && 
+		newCoords[2] > 0 && 
+		newCoords[2] < (par.len * par.tileSize) + tunnel_transitionLength * 2) {
+			return false;
+		}
+		return true;
+	}
+
+	tick() {
+		super.tick();
 		//only do tick if close enough
-		if (this.cameraDist < 1000 && !editor_active) {
-			this.duplicateGenerationCountup += 1;
+		if (this.cameraDist < 1500) {
+			if (!editor_active) {
+				this.duplicateGenerationCountup += 1;
+			}
+			
 
 			//if self has fallen out of the world, replace self with a duplicate
-			if (this.parent == undefined) {
-				var replacement = -1;
+			if (this.isOutOfParent()) {
+				var replacement = undefined;
+
+				//for loop goes backwards so the closest one is chosen
 				for (var g=this.duplicates.length-1; g>=0; g--) {
-					if (replacement == -1 || this.duplicates[g].parent != undefined) {
-						replacement = g;
+					if (this.duplicates[g].parent != undefined) {
+						//swap player with new duplicate, then replace duplicate with real duplicator
+						replacement = this.duplicates[g];
+						player = replacement;
+						replacePlayer(data_characters.map["Duplicator"]);
+						//populate player's duplicate array with every duplicate except the one that's being killed (self) and the one being swapped to
+						player.duplicates = [];
+						this.duplicates.forEach(d => {
+							if (d != this && d != replacement) {
+								player.duplicates.push(d);
+							}
+						});
+						return;
 					}
 				}
-
-				//only replace if not the placeholder
-				if (replacement != -1) {
-					replacement = this.duplicates[replacement];
-					this.x = replacement.x;
-					this.y = replacement.y;
-					this.z = replacement.z;
-
-					this.dx = replacement.dx;
-					this.dy = replacement.dy;
-					this.dz = replacement.dz;
-
-					this.onGround = replacement.onGround;
-					this.parent = replacement.parent;
-
-					//kill replaced duplicate
-					this.duplicates.splice(replacement, 1);
-				}
+				//if none has been chosen, kill the player
+				return;
 			}
 
 			//ordering duplicates
@@ -859,20 +857,17 @@ class Duplicator extends Character {
 
 			//killing duplicates / ticking duplicates
 			for (var d=0; d<this.duplicates.length; d++) {
-				//only apply to non-self
-				if (this.duplicates[d] != this) {
-					//kill a duplicate if they fall out of the world and self is also not out of the world
-					if (this.duplicates[d].parent == undefined || getDistance(this.duplicates[d], this) > this.duplicatesMaxDistance) {
-						this.duplicates.splice(d, 1);
-						d -= 1;
-					} else {
-						//make sure duplicates have the same strafing as self and they're transferring tunnels as well
-						if (this.parent != undefined) {
-							this.duplicates[d].parent = this.parent;
-						}
-						this.duplicates[d].ax = this.ax;
-						this.duplicates[d].tick();
+				//kill a duplicate if they fall out of the world and self is also not out of the world
+				if (this.duplicates[d].parent == undefined || getDistance(this.duplicates[d], this) > this.duplicatesMaxDistance) {
+					this.duplicates.splice(d, 1);
+					d -= 1;
+				} else {
+					//make sure duplicates have the same strafing as self and they're transferring tunnels as well
+					if (this.parent != undefined) {
+						this.duplicates[d].parent = this.parent;
 					}
+					this.duplicates[d].ax = this.ax;
+					this.duplicates[d].tick();
 				}
 			}
 
@@ -882,14 +877,12 @@ class Duplicator extends Character {
 				this.createDuplicate();
 			}
 		}
-
-		super.tick();
 	}
 
 	handleSpace() {
 		//if a duplicate is close enough to self, change whether it can jump
 		this.duplicates.forEach(d => {
-			if (getDistance(this, d) < this.r * 2 && d != this) {
+			if (getDistance(this, d) < this.r * 2) {
 				//if the duplicate is above self, give the duplicate jump ability. If not, give self the jump ability
 				if (spaceToRelativeRotless([d.x, d.y, d.z], [this.x, this.y, this.z], this.dir_down)[2] > 0) {
 					//the jump ability comes with a penalty to self
@@ -903,9 +896,7 @@ class Duplicator extends Character {
 		});
 		super.handleSpace();
 		this.duplicates.forEach(d => {
-			if (d != this) {
-				d.handleSpace();
-			}
+			d.handleSpace();
 		})
 	}
 }
@@ -936,6 +927,9 @@ class DuplicatorDuplicate extends Character {
 		this.parent.strips[tunnelStrip].collideWithEntity(this);
 		this.parent.strips[(tunnelStrip - 1 + this.parent.strips.length) % this.parent.strips.length].collideWithEntity(this);
 		this.parent.strips[(tunnelStrip + 1) % this.parent.strips.length].collideWithEntity(this);
+	}
+
+	setCameraPosition() {
 	}
 }
 
@@ -1180,6 +1174,12 @@ class Runner extends Character {
 		this.speed = 0.12;
 		this.dMax = 3.73;
 	}
+
+	tick() {
+		//strafe speed is greater on ground
+		this.strafeSpeed = this.speed * (1.1 + (0.4 * (this.onGround > 0)));
+		super.tick();
+	}
 }
 
 
@@ -1187,9 +1187,11 @@ class Skater extends Character {
 	constructor(x, y, z) {
 		super(x, y, z, `Skater`);
 
+		this.gravStrength += 0.01;
 		this.jumpStrength = 2.5;
 		this.jumpBoostStrength = 0.06;
-		this.speed = 0.08;
+		this.speed = 0.07;
+		this.strafeSpeed = this.speed * 1.6;
 		this.dMax = 11;
 		this.fallMax = this.r * 0.46;
 	}
