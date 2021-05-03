@@ -11,6 +11,7 @@ class State_World {
 		this.parentControlsAudio = true;
 
 		this.orderWorld();
+		resetAllTunnels();
 
 		//make sure to switch into substate 3 if the player is in a bad tunnel
 		if (player.parentPrev != undefined) {
@@ -36,7 +37,7 @@ class State_World {
 					if (!player.parent.playerIsInBounds()) {
 						player.parentPrev = player.parent;
 						player.parent = undefined;
-					} else if (!player.parent.playerIsInTunnel()) {
+					} else if (!player.parent.coordinateIsInTunnel_Bounded(player.x, player.y, player.z)) {
 						//if the player is in the void, try to change parent without the whole jazzy reshuffling
 						this.changePlayerParentUnofficial();
 					}
@@ -82,6 +83,7 @@ class State_World {
 				if (this.toPause) {
 					this.toPause = false;
 					this.substate = 1;
+					ctx.lineWidth = canvas.height / 240;
 					//play button
 					drawTriangle(canvas.width * 0.03, canvas.height * 0.05, canvas.height * 0.04, 0);
 					ctx.stroke();
@@ -143,13 +145,13 @@ class State_World {
 					var targetX = (canvas.width * 0.125) + (charWidth * c) + (charWidth * 0.5);
 					
 					//draw selection box if selectable
-					if (data_persistent.unlocked.includes(data_characters[c]) && player.parentPrev.bannedCharacters[data_characters[c]] == undefined) {
+					if (data_persistent.unlocked.includes(data_characters.indexes[c]) && player.parentPrev.bannedCharacters[data_characters.indexes[c]] == undefined) {
 						drawSelectionBox(targetX, targetY, menu_characterSize * 1.5, menu_characterSize * 1.5);
 					}
 					textures_common[c].beDrawn(targetX, targetY, 0, menu_characterSize * multiplier);
 
 					//draw lock if locked
-					if (!data_persistent.unlocked.includes(data_characters[c])) {
+					if (!data_persistent.unlocked.includes(data_characters.indexes[c])) {
 						drawCharacterLock(targetX, targetY, menu_characterSize * 0.7, menu_characterSize * 0.7);
 					}
 				}
@@ -158,18 +160,23 @@ class State_World {
 		//logTimeEnd("total", "avg. frame time");
 	}
 
+	changePlayerParent(newParent) {
+		if (player.parentPrev != undefined) {
+			player.parentPrev.resetWithoutPlayer();
+		}
+		player.parent = newParent;
+		player.parentPrev = player.parent;
+		newParent.resetWithoutPlayer();
+		this.orderWorld();
+	}
+
 	changePlayerParentOfficial() {
 		this.orderWorld();
 		//try the player in the closest tunnels
 		for (var v=this.nearObjs.length-1; v>=0; v--) {
 			if (this.nearObjs[v].playerIsInBounds()) {
-				player.parent = this.nearObjs[v];
-				player.parentPrev = player.parent;
+				this.changePlayerParent(this.nearObjs[v]);
 				v = -1;
-
-				//reset player's new tunnel
-				player.parent.resetWithoutPlayer();
-				this.orderWorld();
 			}
 		}
 		//if they're still undefined, kill them
@@ -191,15 +198,9 @@ class State_World {
 	changePlayerParentUnofficial() {
 		//try the player in the closest few tunnels
 		for (var v=this.nearObjs.length-1; v>=0; v--) {
-			if (this.nearObjs[v].playerIsInTunnel()) {
-				player.parent = this.nearObjs[v];
-				player.parentPrev = player.parent;
+			if (this.nearObjs[v].coordinateIsInTunnel_Bounded(player.x, player.y, player.z)) {
+				this.changePlayerParent(this.nearObjs[v]);
 				v = -1;
-
-				player.parent.resetWithoutPlayer();
-
-				//reorder objects anyways if found a new tunnel
-				this.orderWorld();
 
 				//display text
 				this.text = player.parent.id;
@@ -222,6 +223,11 @@ class State_World {
 			self.orderWorld();
 		}, 100);
 		player.parent = player.parentPrev;
+		player.dx = 0;
+		player.dy = 0;
+		player.dz = 0;
+
+		player.ax = 0;
 	}
 
 	handleMouseDown(a) {
@@ -231,17 +237,13 @@ class State_World {
 		if (this.substate == 3) {
 			var charWidth = (canvas.width * 0.75) / textures_common.length;
 			var targetY = canvas.height * 0.6;
-			for (var c=0; c<data_characters.length; c++) {
+			for (var c=0; c<data_characters.indexes.length; c++) {
 				var targetX = (canvas.width * 0.125) + (charWidth * c) + (charWidth * 0.5);
 				//if selectable and the cursor is on top, select it
-				if (data_persistent.unlocked.includes(data_characters[c]) && player.parentPrev.bannedCharacters[data_characters[c]] == undefined) {
+				if (data_persistent.unlocked.includes(data_characters.indexes[c]) && player.parentPrev.bannedCharacters[data_characters.indexes[c]] == undefined) {
 					if (cursor_x > targetX - menu_characterSize * 1.5 && cursor_x < targetX + menu_characterSize * 1.5 && cursor_y > targetY - menu_characterSize * 1.5 && cursor_y < targetY + menu_characterSize * 1.5) {
-						var pastPlayer = player;
-						player = eval(`new ${data_characters[c]}(player.x, player.y, player.z)`);
+						replacePlayer(c);
 						this.substate = 0;
-						player.parentPrev = pastPlayer.parentPrev;
-						player.parent = pastPlayer.parent;
-						return;
 					}
 				}
 			}
@@ -306,7 +308,14 @@ class State_World {
 						if (loading_state.constructor.name == "State_Infinite" && this.substate == 2) {
 							this.pushScoreToLeaderboard();
 							loading_state = new State_Infinite();
+							loading_state.doWorldEffects();
 						}
+					}
+					break;
+				case 13:
+					//enter, return to 0 state
+					if (this.substate == 1) {
+						this.substate = 0;
 					}
 					break;
 			}
@@ -335,37 +344,49 @@ class State_Challenge extends State_World {
 
 		this.substate = 0;
 		this.fadeTime = challenge_fadeTime;
-		this.texture = new Texture(data_sprites[this.data[0]].sheet, data_sprites.spriteSize, 1e1001, false, false, data_sprites[this.data[0]].front);
-
-		this.lowerTextTime = challenge_textTime;
 		this.addTextToQueue();
 
 		//place player
-		this.targetParent = getObjectFromID(this.data[this.line][0]);
+		
+		this.targetParent = getObjectFromID(this.data[this.line].level);
 		this.placePlayer();
 	}
 
 	addTextToQueue() {
+		//escape if there's no text
+		if (this.data[this.line].text == undefined) {
+			return;
+		}
+
 		//split the input text
-		var split = this.data[this.line][4].split("|");
+		var split = this.data[this.line].text.split("|");
 		//add it all
 		split.forEach(s => {
 			if (s != "") {
-				text_queue.push([data_characters.indexOf(this.data[0]), s]);	
+				text_queue.push([this.data[this.line].char, s]);	
 			}
 		});
 	}
 
 	doTunnelStartEffects() {
-		eval(this.data[this.line][2]);
+		eval(this.data[this.line].startCode);
 
 		//if the next line exists, do that as well
 		if (this.data[this.line+1] != undefined) {
-			eval(this.data[this.line+1][2]);
+			eval(this.data[this.line+1].startCode);
 		}
 	}
 
+	lineIsComplete() {
+		//if the tunnel is complete, move on to the next one
+		return (player.parentPrev != this.targetParent);
+	}
+
 	execute() {
+		if (this.lineIsComplete()) {
+			this.updateLine();
+		}
+
 		if (this.substate == 2) {
 			//draw the fade out
 			ctx.globalAlpha = challenge_opacity;
@@ -377,32 +398,18 @@ class State_Challenge extends State_World {
 			if (this.fadeTime <= 0) {
 				this.fadeTime = challenge_fadeTime;
 				this.substate = 0;
-
-				//replace player
-				this.placePlayer();
 			}
 			return;
 		}
 		
 		super.execute();
-		
-
-
-		if (this.substate < 2 && player.parentPrev != this.targetParent) {
-			this.updateLine();
-			//if the player's parent / direction is different from the target, do a fadeout
-			if (player.parentPrev != this.targetParent || player.backwards != this.data[this.line][1]) {
-				this.substate = 2;
-			}
-		}
 	}
 
 	handlePlayerDeath() {
 		//if off the end of the tunnel but not out of the tunnel, count the tunnel as completed
-		if (player.parentPrev.coordinateIsInTunnel(player.x, player.y, player.z)) {
+		if (player.parentPrev.coordinateIsInTunnel_Boundless(player.x, player.y, player.z)) {
 			player.parentPrev.resetWithoutPlayer();
 			this.updateLine();
-			this.substate = 2;
 			return;
 		}
 
@@ -411,10 +418,10 @@ class State_Challenge extends State_World {
 	}
 
 	placePlayer() {
-		player = eval(`new ${this.data[0]}(player.x, player.y, player.z)`);
+		replacePlayer(this.data[this.line].char);
 		player.parent = this.targetParent;
 		player.parentPrev = player.parent;
-		player.backwards = this.data[this.line][1];
+		player.backwards = this.data[this.line].backwards;
 		player.parent.reset();
 		player.tick();
 
@@ -426,23 +433,27 @@ class State_Challenge extends State_World {
 		this.text = player.parent.id;
 		this.textTime = tunnel_textTime;
 		this.orderWorld();
-
 		this.doTunnelStartEffects();
 	}
 
 	updateLine() {
 		this.line += 1;
 
-		if (this.line > this.data.length-1) {
+		if (this.line > this.data.length - 1) {
 			//leave challenge mode if out of lines
 			loading_state = new State_Map();
-			player = new Runner(0, 0, 0);
+			replacePlayer(0);
 			return;
 		}
 
-		this.targetParent = getObjectFromID(this.data[this.line][0]);
+		this.targetParent = getObjectFromID(this.data[this.line].level);
 		this.addTextToQueue();
-
+		//if the player's parent / direction is different from the target, do special placement
+		if (player.parentPrev != this.targetParent || player.backwards != this.data[this.line].backwards) {
+			this.substate = 2;
+			this.placePlayer();
+			return;
+		}
 		this.doTunnelStartEffects();
 	}
 }
@@ -680,11 +691,6 @@ class State_Cutscene extends State_World {
 					this.selected = undefined;
 				}
 			}
-			//move player towards parent
-			player.x = world_camera.x;
-			player.y = world_camera.y;
-			player.z = world_camera.z;
-
 			world_camera.targetX = world_camera.x;
 			world_camera.targetY = world_camera.y;
 			world_camera.targetZ = world_camera.z;
@@ -806,7 +812,7 @@ var outputString = `{
 			//texture objects
 			for (var a=0; a<10; a++) {
 				if (getDistance2d([cursor_x, cursor_y], [targetX, ((canvas.height / 11) * a) + (canvas.height / 22)]) < canvas.height / 35) {
-					this.ref.frames[this.frame][1].push(new SceneSprite(0.5, 0.5, 0.1, `data_sprites.${data_characters[a]}.sheet`, 0, false, 0, 0));
+					this.ref.frames[this.frame][1].push(new SceneSprite(0.5, 0.5, 0.1, `data_sprites.${data_characters.indexes[a]}.sheet`, 0, false, 0, 0));
 					return;
 				}
 			}
@@ -936,11 +942,6 @@ var outputString = `{
 		world_camera.reconcileTargets();
 		world_camera.tick();
 
-		//player properties
-		player.x = world_camera.x;
-		player.y = world_camera.y;
-		player.z = world_camera.z;
-
 		world_lightObjects = [];
 		//special object effects
 		this.ref.frames[this.frame][1].forEach(v => {
@@ -1028,12 +1029,6 @@ class State_Infinite extends State_World {
 	constructor() {
 		super();
 
-		//move camera to start so objects are ordered properly, but I also want that nice zoom in effect, so the camera is far away
-		world_camera.x = -100;
-		world_camera.y = 400;
-		world_camera.z = -42000;
-		player.backwards = false;
-
 		//data for each individual run
 		this.time = 0;
 		this.distance = 0;
@@ -1041,8 +1036,7 @@ class State_Infinite extends State_World {
 		this.difficulty = 0;
 		this.difficultyBoost = 3.5;
 
-		this.characterData = {
-		};
+		this.characterData = {};
 
 		this.charactersUsed = [];
 
@@ -1053,14 +1047,6 @@ class State_Infinite extends State_World {
 		this.lastTunnelLine = -1;
 		this.objs = [];
 		this.readFrom = this.objs;
-		for (var a=0; a<9; a++) {
-			this.addTunnel();
-		}
-		this.placePlayer();
-		setTimeout(() => {
-			loading_state.orderWorld();
-		}, 100);
-		
 	}
 
 	addTunnel() {
@@ -1092,6 +1078,23 @@ class State_Infinite extends State_World {
 			this.difficulty = this.data.length - 1 - infinite_levelRange;
 		}
 		this.orderWorld();
+	}
+
+	doWorldEffects() {
+		//move camera to start so objects are ordered properly, but I also want that nice zoom in effect, so the camera is far away
+		world_camera.x = -100;
+		world_camera.y = 400;
+		world_camera.z = -42000;
+		player.backwards = false;
+
+		for (var a=0; a<9; a++) {
+			loading_state.addTunnel();
+		}
+		loading_state.placePlayer();
+
+		setTimeout(() => {
+			loading_state.orderWorld();
+		}, 100);
 	}
 
 	placePlayer() {
@@ -1154,12 +1157,12 @@ class State_Infinite extends State_World {
 				ctx.fillStyle = color_text_bright;
 				ctx.textAlign = "left";
 				ctx.font = `${canvas.height / 22}px Comfortaa`;
-				ctx.fillText(`${this.distance.toFixed(0)} m`, canvas.width * 0.06, canvas.height * 0.05);
+				ctx.fillText(`${this.distance.toFixed(0)} m`, canvas.width * 0.07, canvas.height * 0.05);
 				var add = "";
 				if (this.powercells != 1) {
 					add = "s";
 				}
-				ctx.fillText(`${this.powercells} power cell${add}`, canvas.width * 0.06, (canvas.height * 0.05) + (canvas.height / 21));
+				ctx.fillText(`${this.powercells} power cell${add}`, canvas.width * 0.07, (canvas.height * 0.05) + (canvas.height / 21));
 				ctx.textAlign = "center";
 
 				//add tunnel and remove previous tunnel after displaying text
@@ -1187,8 +1190,7 @@ class State_Infinite extends State_World {
 			this.substate = 2;
 			data_persistent.powercells += this.characterData[player.constructor.name].powercells;
 		} else {
-			player.parentPrev.reset();
-			player.parent = player.parentPrev;
+			super.handlePlayerDeath();
 			this.distance = 0;
 			this.characterData[player.constructor.name].distance = 0;
 		}
@@ -1206,6 +1208,7 @@ class State_Infinite extends State_World {
 			case 2:
 				this.pushScoreToLeaderboard();
 				loading_state = new State_Infinite();
+				loading_state.doWorldEffects();
 				break;
 		}
 	}
@@ -1222,7 +1225,7 @@ class State_Infinite extends State_World {
 				characterList.push(c);
 			});
 
-			data_characters.forEach(c => {
+			data_characters.indexes.forEach(c => {
 				if (!characterList.includes(c)) {
 					characterList.push(c);
 				}
@@ -1232,8 +1235,8 @@ class State_Infinite extends State_World {
 				var offY = canvas.height * 0.25 * Math.floor(a / 5);
 				var offX = canvas.width * 0.6 * ((a % 5) / 5);
 
-				//only continue if the character at the specified index is real
-				if (textures_common[data_characters.indexOf(characterList[a])] != undefined && data_persistent.unlocked.includes(characterList[a])) {
+				//only continue if the character
+				if (textures_common[data_characters.map[characterList[a]]] != undefined && data_persistent.unlocked.includes(characterList[a])) {
 					//if the player has clicked on the box for the character, send them into the infinite mode thingy again
 					if (cursor_x > (canvas.width * 0.35) + offX - menu_characterSize && cursor_x < (canvas.width * 0.35) + offX + menu_characterSize && 
 						cursor_y > (canvas.height * 0.13) + offY && cursor_y < (canvas.height * 0.13) + offY + (menu_characterSize * 2)) {
@@ -1287,6 +1290,7 @@ class State_Loading {
 		}
 		if (this.time > 540) {
 			loading_state = new State_Menu();
+			resetAllTunnels();
 		}
 	}
 
@@ -1629,8 +1633,8 @@ class State_Menu {
 		this.displayCharacterSelected = 0;
 
 		//switch character selected
-		for (var t=0; t<data_characters.length; t++) {
-			if (player.constructor.name == data_characters[t]) {
+		for (var t=0; t<data_characters.indexes.length; t++) {
+			if (player.constructor.name == data_characters.indexes[t]) {
 				this.characterSelected = t;
 				this.displayCharacterSelected = t;
 			}
@@ -1650,7 +1654,7 @@ class State_Menu {
 
 		];
 		this.buttons = [
-			new PropertyButton(0.5, 0.5 - ((menu_buttonHeight * 0.75) * 3) + 						   (menu_characterSize / canvas.height), menu_buttonWidth, menu_buttonHeight, "Infinite Mode", `loading_state = new State_Infinite();`),
+			new PropertyButton(0.5, 0.5 - ((menu_buttonHeight * 0.75) * 3) + 						   (menu_characterSize / canvas.height), menu_buttonWidth, menu_buttonHeight, "Infinite Mode", `loading_state = new State_Infinite(); loading_state.doWorldEffects();`),
 			new PropertyButton(0.5, 0.5 - ((menu_buttonHeight * 0.75) * 3) + (menu_buttonHeight * 2) + (menu_characterSize / canvas.height), menu_buttonWidth, menu_buttonHeight, "Explore Mode", `loading_state = new State_Map();`),
 			new PropertyButton(0.5, 0.5 - ((menu_buttonHeight * 0.75) * 3) + (menu_buttonHeight * 4) + (menu_characterSize / canvas.height), menu_buttonWidth, menu_buttonHeight, "Edit Mode", `loading_state = new State_Edit_Tiles(); alert(editor_warning);`),
 		];
@@ -1703,17 +1707,17 @@ class State_Menu {
 				//drawing characters
 
 				//selection box
-				var offX = menu_characterCircleRadius * canvas.height * Math.cos((Math.PI * 2 * (1 / data_characters.length) * this.displayCharacterSelected) - (Math.PI * 0.5));
-				var offY = menu_characterCircleRadius * canvas.height * Math.sin((Math.PI * 2 * (1 / data_characters.length) * this.displayCharacterSelected) - (Math.PI * 0.5));
+				var offX = menu_characterCircleRadius * canvas.height * Math.cos((Math.PI * 2 * (1 / data_characters.indexes.length) * this.displayCharacterSelected) - (Math.PI * 0.5));
+				var offY = menu_characterCircleRadius * canvas.height * Math.sin((Math.PI * 2 * (1 / data_characters.indexes.length) * this.displayCharacterSelected) - (Math.PI * 0.5));
 				drawSelectionBox((canvas.width * 0.5) + offX, (canvas.height * 0.5) + offY + menu_characterSize - 5, menu_characterSize * 2, menu_characterSize * 2);
 
-				for (var h=0; h<data_characters.length; h++) {
-					offX = menu_characterCircleRadius * canvas.height * Math.cos((Math.PI * 2 * (1 / data_characters.length) * h) - (Math.PI * 0.5));
-					offY = menu_characterCircleRadius * canvas.height * Math.sin((Math.PI * 2 * (1 / data_characters.length) * h) - (Math.PI * 0.5));
+				for (var h=0; h<data_characters.indexes.length; h++) {
+					offX = menu_characterCircleRadius * canvas.height * Math.cos((Math.PI * 2 * (1 / data_characters.indexes.length) * h) - (Math.PI * 0.5));
+					offY = menu_characterCircleRadius * canvas.height * Math.sin((Math.PI * 2 * (1 / data_characters.indexes.length) * h) - (Math.PI * 0.5));
 					//character texture
-					textures_common[h].frame = 0 + (modularDifference(this.displayCharacterSelected, h, data_characters.length) < 0.5 && data_persistent.unlocked.includes(data_characters[h]));
+					textures_common[h].frame = 0 + (modularDifference(this.displayCharacterSelected, h, data_characters.indexes.length) < 0.5 && data_persistent.unlocked.includes(data_characters.indexes[h]));
 					textures_common[h].beDrawn((canvas.width * 0.5) + offX, (canvas.height * 0.5) + offY + menu_characterSize, 0, menu_characterSize * 1.7);
-					if (!data_persistent.unlocked.includes(data_characters[h])) {
+					if (!data_persistent.unlocked.includes(data_characters.indexes[h])) {
 						drawCharacterLock((canvas.width * 0.5) + offX, (canvas.height * 0.5) + offY + (menu_characterSize * 0.75), menu_characterSize, menu_characterSize);
 					}
 				}
@@ -1741,7 +1745,7 @@ class State_Menu {
 
 					//characters used
 					for (var k=0; k<data_persistent.highscores[j][3].length; k++) {
-						var charIndex = data_characters.indexOf(data_persistent.highscores[j][3][k]);
+						var charIndex = data_characters.map[data_persistent.highscores[j][3][k]];
 						textures_common[charIndex].frame = 0;
 						textures_common[charIndex].beDrawn((canvas.width * 0.65) + (menu_characterSize * 0.8 * (k + 0.5)), (canvas.height * 0.2) + (canvas.width * 0.05 * j), 0, menu_characterSize * 0.75);
 					}
@@ -1826,21 +1830,21 @@ class State_Menu {
 				}
 
 				//collision with characters.
-				for (var h=0; h<data_characters.length; h++) {
-					var posX = (canvas.width * 0.5) + (menu_characterCircleRadius * canvas.height * Math.cos((Math.PI * 2 * (1 / data_characters.length) * h) - (Math.PI * 0.5)));
-					var posY = (canvas.height * 0.5) + menu_characterSize + (menu_characterCircleRadius * canvas.height * Math.sin((Math.PI * 2 * (1 / data_characters.length) * h) - (Math.PI * 0.5)));
+				for (var h=0; h<data_characters.indexes.length; h++) {
+					var posX = (canvas.width * 0.5) + (menu_characterCircleRadius * canvas.height * Math.cos((Math.PI * 2 * (1 / data_characters.indexes.length) * h) - (Math.PI * 0.5)));
+					var posY = (canvas.height * 0.5) + menu_characterSize + (menu_characterCircleRadius * canvas.height * Math.sin((Math.PI * 2 * (1 / data_characters.indexes.length) * h) - (Math.PI * 0.5)));
 
 					//selection box
 					if (cursor_x > posX - menu_characterSize && cursor_x < posX + menu_characterSize &&
 					cursor_y > posY - menu_characterSize && cursor_y < posY + menu_characterSize &&
-					data_persistent.unlocked.includes(data_characters[h])) {
+					data_persistent.unlocked.includes(data_characters.indexes[h])) {
 						this.characterSelected = h;
-						player = eval(`new ${data_characters[h]}(0, 0, 0)`);
-						if (Math.abs(this.characterSelected - this.displayCharacterSelected) > data_characters.length / 2) {
+						player = eval(`new ${data_characters.indexes[h]}(0, 0, 0)`);
+						if (Math.abs(this.characterSelected - this.displayCharacterSelected) > data_characters.indexes.length / 2) {
 							if (this.characterSelected < this.displayCharacterSelected) {
-								this.displayCharacterSelected -= data_characters.length;
+								this.displayCharacterSelected -= data_characters.indexes.length;
 							} else {
-								this.displayCharacterSelected += data_characters.length;
+								this.displayCharacterSelected += data_characters.indexes.length;
 							}
 						}
 						return;
