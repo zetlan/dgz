@@ -2,10 +2,15 @@
 /* 
 	generateStarSphere();
 
-	addCharacterEncounter();
+	addBox();
 	activateCutsceneFromTunnel();
 	avgArray();
 	clamp();
+
+	challenge_addEncounter();
+	challenge_crumble();
+	challenge_changeSpawn();
+
 	compressCutsceneData();
 	crumbleTileSets();
 
@@ -25,6 +30,7 @@
 	modularDifference();
 	outputWorld();
 	outputTunnel();
+	pickNewParent();
 
 	power_falseAlarm();
 	power_fast();
@@ -37,6 +43,7 @@
 
 	randomBounded();
 	randomSeeded();
+	replacePlayer();
 	RGBtoHSV();
 	rotate();
 	runCrash();
@@ -82,8 +89,21 @@ function generateStarSphere() {
 
 
 //utility functions
-function addCharacterEncounter(levelID, strip, tile, characterName, cutsceneName) {
-	getObjectFromID(levelID).freeObjs.push(new StaticCharacter(getObjectFromID(levelID), strip, tile, characterName, cutsceneName));
+function addBox(levelID, x, y, z, size, rot) {
+	var ref = getObjectFromID(levelID);
+	if (ref.id == undefined) {
+		console.error(`ERROR: Level ${levelID} doesn't exist!`);
+		return;
+	}
+
+	//don't add if box already exists
+	getObjectFromID(ref).freeObjs.forEach(f => {
+		if (f.constructor.name == "PushableBox") {
+			return;
+		}
+	});
+
+	ref.freeObjs.push(new PushableBox(x, y, z, ref, size, rot));
 }
 
 function activateCutsceneFromEditorTunnel(start, end, time) {
@@ -135,6 +155,52 @@ function avgArray(array) {
 	return finArr;
 }
 
+
+
+
+
+
+function challenge_addEncounter(levelID, strip, tile, characterName, cutsceneName) {
+	//loop through the free objects. If there's a character already on that strip + tile, don't add the character
+	var objs = getObjectFromID(levelID).freeObjs;
+	for (var f=0; f<objs.length; f++) {
+		if (objs[f].strip == strip && objs[f].tile == tile) {
+			return;
+		}
+	}
+	getObjectFromID(levelID).freeObjs.push(new StaticCharacter(getObjectFromID(levelID), strip, tile, characterName, cutsceneName));
+}
+//respawns the player at a certain strip / tile
+function challenge_changeSpawn(strip, tile) {
+	var spawnObj = player.parent.strips[strip].tiles[tile];
+	spawnObj.doRotationEffects(player);
+
+	var offsetCoords = polToCart(spawnObj.normal[0], spawnObj.normal[1], 10);
+	player.x = spawnObj.x + offsetCoords[0];
+	player.y = spawnObj.y + offsetCoords[1];
+	player.z = spawnObj.z + offsetCoords[2];
+}
+
+//crumbles different tiles
+function challenge_crumble(tunnelID, posArray) {
+	tunnelID = getObjectFromID(tunnelID);
+	posArray.forEach(p => {
+		try {
+			tunnelID.strips[p[0]].tiles[p[1]].fallStatus = physics_crumblingShrinkTime + physics_crumblingShrinkStart - 1;
+			tunnelID.strips[p[0]].tiles[p[1]].propogateCrumble();
+		} catch (error) {
+			console.log(`Error crumbling tile with strip ${p[0]} and tile ${p[1]} at tunnel ${tunnelID.id}`);
+		}
+		
+	});
+}
+
+
+
+
+
+
+
 function changeTile(tunnel, tileCoords, newTileID) {
 	var reference = getObjectFromID(tunnel);
 	reference.data[tileCoords[0]][tileCoords[1]] = newTileID;
@@ -170,20 +236,6 @@ function compressCutsceneData(reference) {
 			reference.frames[f] = camData + objData;
 		}
 	}
-}
-
-function crumbleTileSets(tunnelID, posArray) {
-	tunnelID = getObjectFromID(tunnelID);
-	posArray.forEach(p => {
-		try {
-			tunnelID.strips[p[0]].tiles[p[1]].fallStatus = physics_crumblingShrinkTime + physics_crumblingShrinkStart - 1;
-			tunnelID.strips[p[0]].tiles[p[1]].propogateCrumble();
-		} catch (error) {
-			console.log(`Error crumbling tile with strip ${p[0]} and tile ${p[1]} at tunnel ${tunnelID.id}`);
-		}
-		
-	});
-	
 }
 
 //generate file from editor world
@@ -447,14 +499,13 @@ function handleAudio() {
 function handleTextDisplay() {
 	//only do if things in the queue
 	if (text_queue.length > 0) {
-		//draw
 		drawCharacterText();
 
 		//choosing text
 		if (loading_state.substate == 0) {
 			text_time -= 1;
 			if (text_time == 0) {
-				text_time = challenge_textTime;
+				text_time = text_timeMax;
 				text_queue.splice(0, 1);
 			}
 		}
@@ -633,6 +684,20 @@ function outputTunnel(prefix) {
 	return output;
 }
 
+//picks a new parent tunnel for free objects, given an old one
+function pickNewParent(object, oldParent) {
+	var reqDist = getDistance(object, oldParent);
+	for (var a=0; a<world_objects.length; a++) {
+		if (world_objects[a] != oldParent) {
+			if (getDistance(object, world_objects[a]) < reqDist) {
+				oldParent = world_objects[a];
+				reqDist = getDistance(object, world_objects[a]);
+			}
+		}
+	}
+	return oldParent;
+}
+
 function placeTunnelSet(setName) {
 	var setSplit = setName.split("\n");
 	for (var g=0; g<setSplit.length-1; g++) {
@@ -734,6 +799,32 @@ function randomSeeded(min, max) {
 	return ((world_pRandValue % 1) * (max - min)) + min;
 }
 
+//replaces the current player with a new player object, with all the same properties that matter
+function replacePlayer(characterIDNum) {
+	var playerStore = player;
+	var str = `new ${data_characters.indexes[characterIDNum]}(player.x, player.y, player.z);`
+	player = eval(str);
+	player.dx = playerStore.dx;
+	player.dy = playerStore.dy;
+	player.dz = playerStore.dz;
+
+	player.dir_down = playerStore.dir_down;
+	player.dir_side = playerStore.dir_side;
+	player.dir_front = playerStore.dir_front;
+
+	player.parent = playerStore.parentPrev;
+	player.parentPrev = playerStore.parentPrev;
+}
+
+//does a reset without the player for all tunnels
+function resetAllTunnels() {
+	world_objects.forEach(t => {
+		if (t.freeObjs.length > 0) {
+			t.resetWithoutPlayer();
+		}
+	});
+}
+
 //takes in a six digit RGB hex code and outputs an HSV code in object form.
 function RGBtoHSV(sixDigitRGBHexCode) {
 	//first get the seperate red, green, and blue values
@@ -785,7 +876,8 @@ function RGBtoHSV(sixDigitRGBHexCode) {
 }
 
 function runCrash() {
-	ctx.fillStyle = "#00";
+	ctx.globalAlpha = 0.8;
+	ctx.fillStyle = "#000";
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 	
 	//loop through all lines
@@ -796,13 +888,13 @@ function runCrash() {
 		}
 	}
 
-	window.cancelAnimationFrame(game_animation);
+	window.cancelAnimationFrame(page_animation);
 }
 
 function sigmoid(input, lowerBound, upperBound) {
 	//haha good luck reading this ;)
 	return ((1 / (1+Math.pow(Math.E, -input))) + lowerBound) * (upperBound - lowerBound);
-  }
+}
 
 function spliceIn(string, charStart, string2) {
 	return string.slice(0, charStart) + string2 + string.slice(charStart, string.length);
