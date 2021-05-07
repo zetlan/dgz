@@ -33,10 +33,16 @@ class Tile extends FreePoly {
 
 	doRotationEffects(entity) {
 		var cameraRotAttempt;
+		if (entity.dy < 0) {
+			entity.dy = -1;
+		} else {
+			//if player is jumping, keep their relative velocity
+			entity.dy = Math.cos(modularDifference(entity.dir_down[1], this.dir_down[1], Math.PI * 2)) * entity.dy;
+		}
 		entity.dir_front = [(Math.PI * 2) - this.parent.theta + (Math.PI * player.backwards), 0];
 		entity.dir_side = [this.dir_right[0], this.dir_right[1] + (Math.PI * player.backwards)];
-		entity.dir_down = this.dir_down;
-		entity.dy = -1;
+		entity.dir_down[0] = this.dir_down[0];
+		entity.dir_down[1] = this.dir_down[1];
 
 		//TODO: find a way to refactor the if/else out of this
 		if (player.backwards) {
@@ -746,10 +752,11 @@ class Tile_Plexiglass extends Tile {
 class Tile_Ramp extends Tile {
 	constructor(x, y, z, size, normal, parent, color) {
 		super(x, y, z, size, normal, parent, color);
+		this.tolerance = player.r * 0.8;
 	}
 
 	calculatePointsAndNormal() {
-		this.points = [[-1, 0, -1], [-1, 0, 1], [-1 + (2 / Math.sqrt(2)), 1, 1], [-1 + (2 / Math.sqrt(2)), 1, -1]];
+		this.points = [[-1, 0, -1], [-1, 0, 1], [1, 1, 1], [1, 1, -1]];
 		this.points.forEach(p => {
 			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 0.5);
 		});
@@ -763,7 +770,7 @@ class Tile_Ramp extends Tile {
 	doCollisionEffects(entity) {
 		super.doCollisionEffects(entity);
 		//push player up a bit
-		entity.dy = entity.dz * 0.7 * ((!player.backwards * 2) - 1);
+		entity.dy = entity.dz * 0.5 * ((!player.backwards * 2) - 1);
 		entity.onground = physics_graceTimeRamp;
 	}
 
@@ -834,11 +841,5 @@ class Tile_Warning extends Tile {
 	beDrawn() {
 		super.beDrawn();
 		drawWorldPoly(this.verticalPoints, this.getVerticalColor());
-		if (editor_active) {
-			//draw sideways normal
-			var cXYZ = polToCart(this.dir_down[0] + (Math.PI / 2), 0, 5);
-			cXYZ = [this.verticalCenter[0] + cXYZ[0], this.verticalCenter[1] + cXYZ[1], this.verticalCenter[2] + cXYZ[2]];
-			drawWorldLine(this.verticalCenter, cXYZ);
-		}
 	}
 }
