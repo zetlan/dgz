@@ -1,19 +1,24 @@
 //here are all the functions that deal with 3d coordinates 
 /*overview:
-	calculateNormal();
-	cameraToScreen();
-	cartToPol();
-	clipToZ0();
-	getDistance();
-	isClipped();
-	orderObjects();
-	polToCart();
-	relativeToSpace();
-	rotate();
-	spaceToRelative();
-	spaceToRelativeRotless();
-	spaceToScreen();
-	transformPoint();
+	calculateNormal(points);
+	cameraToScreen(point);
+	cartToPol(x, y, z);
+	clipToZ0(polyPoints, tolerance, invertClipDirection);
+	getDistance(obj1, obj2);
+	getDistance2d(xyP1, xyP2);
+	getDistance_Tunnel(tunnel, obj2);
+	getDistance_LightSource(obj);
+	isClipped(pointArr);
+	orderObjects(array, places);
+	polToCart(theta, phi, radius);
+	relativeToSpace(pointToTransform, point, normal);
+	relativeToSpaceRot(pointToTransform, point, normal);
+	rotate(x, z, radians);
+	screenToSpace(screenSpot, targetZ);
+	spaceToRelative(pointToChange, point, normal);
+	spaceToRelativeRotless(pointToChange, point, normal);
+	spaceToScreen(point);
+	transformPoint(pointToTransform, addPoint, normal, size);
 */
 
 //calculates a normal from an array of points
@@ -131,6 +136,14 @@ function getDistance(obj1, obj2) {
 //returns the pythagorean xy distance between two objects 
 function getDistance2d(xyP1, xyP2) {
 	return Math.sqrt(((xyP1[0] - xyP2[0]) * (xyP1[0] - xyP2[0])) + ((xyP1[1] - xyP2[1]) * (xyP1[1] - xyP2[1])));
+}
+
+function getDistance_Tunnel(tunnel, obj2) {
+	var relPos = spaceToRelativeRotless([obj2.x, obj2.y, obj2.z], [tunnel.x, tunnel.y, tunnel.z], [-1 * tunnel.theta, 0]);
+	if (relPos[2] > 0) {
+		relPos[2] = Math.max(relPos[2] - (tunnel.tileSize * tunnel.len) - tunnel_transitionLength, 0);
+	}
+	return Math.sqrt((relPos[0] * relPos[0]) + (relPos[1] * relPos[1]) + (relPos[2] * relPos[2]));
 }
 
 //sets the object's player distance to the closest distance to a light source
