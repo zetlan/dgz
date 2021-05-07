@@ -180,6 +180,15 @@ class Camera {
 		this.targetRot = this.rot;
 	}
 
+	snapToTargets() {
+		this.x = this.targetX;
+		this.y = this.targetY;
+		this.z = this.targetZ;
+		this.theta = this.targetTheta;
+		this.phi = this.targetPhi;
+		this.rot = this.targetRot;
+	}
+
 	handleSpace() {
 		this.targetRot = 0;
 	}
@@ -327,7 +336,7 @@ class Character {
 							voidStrength *= 1.8;
 						}
 					}
-					this.modifyDerivitives(this.gravStrength * 0.7 * (voidStrength), 0.96, this.naturalFriction, this.ax * 2, this.speed / 2);
+					this.modifyDerivitives(this.gravStrength * 0.7 * (voidStrength), 0.95 + (0.04 * (this.onGround <= 0)), this.naturalFriction, this.ax * 1.5, this.speed / 2);
 					//void spin
 					this.textureRot += render_voidSpinSpeed;
 				} else {
@@ -434,7 +443,7 @@ class Character {
 	}
 
 	setCameraPosition() {
-		var vertOffset = polToCart(this.dir_down[0], this.dir_down[1], 70);
+		var vertOffset = polToCart(this.dir_down[0], (!data_persistent.settings.altCamera * this.dir_down[1]) + (data_persistent.settings.altCamera * (world_camera.rot + (Math.PI / 2))), 70);
 		var horizOffset = polToCart(this.dir_front[0], this.dir_front[1], -95);
 		world_camera.targetX = this.x + vertOffset[0] + horizOffset[0];
 		world_camera.targetY = this.y + vertOffset[1] + horizOffset[1];
@@ -625,7 +634,7 @@ class Bunny extends Character {
 		this.boostFriction = 0.995;
 		this.speed = 0.13;
 		this.trueSpeed = 0.9;
-		this.dMax = 10.12;
+		this.dMax = 11.5;
 		this.dMin = 2;
 	}
 
@@ -873,7 +882,7 @@ class Duplicator extends Character {
 
 			
 			//creating new duplicates
-			if (this.duplicates.length < this.duplicatesMax && this.duplicateGenerationCountup % Math.floor(this.duplicateGenerationTime / this.parentPrev.power) == 10) {
+			if (this.duplicates.length < this.duplicatesMax && this.duplicateGenerationCountup % Math.floor(this.duplicateGenerationTime / this.parentPrev.power) == Math.floor(this.duplicateGnerationTime * 0.8)) {
 				this.createDuplicate();
 			}
 		}
@@ -1192,8 +1201,8 @@ class Skater extends Character {
 		this.jumpBoostStrength = 0.06;
 		this.speed = 0.07;
 		this.strafeSpeed = this.speed * 1.6;
-		this.dMax = 11;
-		this.fallMax = this.r * 0.46;
+		this.dMax = 11.1;
+		this.fallMax = this.r * 0.5;
 	}
 }
 
@@ -1203,8 +1212,9 @@ class Student extends Character {
 
 		this.jumpStrength = 2.2;
 		this.jumpBoostStrength = 0.05;
-		this.speed = 0.11;
-		this.dMax = 2.96;
+		this.speed = 0.10;
+		this.strafeSpeed = this.speed * 1.2;
+		this.dMax = 3.2;
 		this.r -= 2;
 		this.fallMax = 5.5;
 
@@ -1270,7 +1280,7 @@ class Student extends Character {
 	}
 
 	setCameraPosition() {
-		var vertOffset = polToCart(this.dir_trueDown[0], this.dir_trueDown[1], 70);
+		var vertOffset = polToCart(this.dir_trueDown[0], (!data_persistent.settings.altCamera * this.dir_trueDown[1]) + (data_persistent.settings.altCamera * (world_camera.rot + (Math.PI / 2))), 70);
 		var horizOffset = polToCart(this.dir_front[0], this.dir_front[1], -95);
 		world_camera.targetX = this.x + vertOffset[0] + horizOffset[0];
 		world_camera.targetY = this.y + vertOffset[1] + horizOffset[1];
