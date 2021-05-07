@@ -51,9 +51,12 @@ const color_crumbling = "#CCCCCC";
 const color_crumbling_secondary = "#808080";
 const color_cutsceneBox = "#FFF";
 const color_cutsceneLink = "#404";
+
+const color_editor_bg = "#335";
 const color_editor_border = "#F8F";
 const color_editor_cursor = "#0FF";
-const color_editor_bg = "#335";
+const color_editor_normal = "#F80";
+
 const color_grey_dark = "#888";
 const color_grey_light = "#CCC";
 const color_grey_lightest = "#FEF";
@@ -82,8 +85,8 @@ var credits = [
 	`Jesse Valentine - music`,
 	``,
 	`ADDITIONAL LEVELS BY:`,
-	`mathwiz100, portugal2000, Farkss, Karsh777,`,
-	`max_blue_01, Precarious, and Gecco.`,
+	`Karsh777, mathwiz100, portugal2000,`,
+	`Huggaso, StarsOfTheSky, Fivebee2, and Gecco.`,
 	``,
 	`SPECIAL THANKS:`,
 	`A*16 - "I barely did anything but I still wanted`,
@@ -105,7 +108,7 @@ var data_angelChecklist = [
 	['The Nerd', '6th', 'discoveries', false, 18, []],
 	['The Sneak', '3rd', 'youThink', true, 6],
 	['The Meddler', '4th', 'friendlyGreeting', true, 9],
-	['The Snob', '5th', 'standardsToUphold', false, 13, []]
+	['The Snob', '5th', 'standardsToUphold', false, 11, []]
 ];
 var data_audio = {
 	//music files
@@ -126,47 +129,137 @@ var data_characters = {
 	"Angel": {
 		color: "#DDF",
 		text: `He solves practical problems and creates personal ones.`,
+		trivia: [
+			`The Angel's philosophy: People are stupid, but that's no reason not to help them.`,
+			`Both the Runner and the Angel have leadership skills, but you wouldn't know it from listening to the Angel.`,
+			`Gravity is different outside the tunnel, so dashing gives the Angel more lift.`,
+			`The Angel can jump farther than almost anyone else, but it requires planning.`,
+			`After dashing, the Angel can use his ability again to slow down.`,
+			`He's probably lost the position by now, but the Angel used to have an important job at the Factory.`,
+			`The Angel tells people that his wings are real. If they happen to miss the sarcasm, that's their problem.`,
+			`Dashing into a ramp gives a huge boost and restores the dash at the same time.`,
+			`The Angel could "cut" a tunnel if he wanted, but why would he? It would be a waste of time and a huge inconvenience.`,
+			`Whoever made the Tunnels was an idiot. Space is naturally frictionless, but they added air--and therefore air friction--intentionally.`
+		]
 	},
 	"Bunny": {
 		color: "#764",
 		text: `It doesn't care if you call it the "Rabbit" or the "Bunny". All it cares about is bouncing.`,
+		trivia: [
+			`The Bunny's philosophy: standing is bad, bouncing is good.`,
+			`The Bunny and the Lizard can jump so high as a result of their strength and weight.`,
+			`Don't call it "the Rabbit" or the Child will hate you for it forever.`,
+			`Use high jumps if you want to slow down, but be sure not to slow down too much.`,
+			`Each bounce speeds you up a little. Use small bounces to gain lots of speed!`,
+			`Aim for the corners of the tunnel to bounce twice in a row.`
+		]
 	},
 	"Child": {
 		color: "#8F8",
 		text: `Sometimes clever, sometimes immature. For example; he carries a balloon to help him jump further, but it's filled with water so he can splash people.`,
+		trivia: [
+			`The Child's Philosophy: books are boring and stupid unless they have pictures, then they're fun!`,
+			`The Child is practicing his jumps, so that he can be like his hero, the Bunny!`,
+			`The Child asked the Student why the gray squares sometimes fall, but she went on and talked about Re Action Force and never answered his question.`,
+			`The Child loves jumping off of ramps and boxes and floating down.`,
+			`The candy tasted bad but it burned ok. The Child likes watching things burn.`,
+			`The Child says thank you to whoever left water bottles in all the boxes. He needed water to fill his balloons with.`,
+			`Sometimes he leaves his balloon behind and hides. The adults never notice because he's so clever.`
+		]
 	},
 	"Duplicator": {
 		color: "#BEE",
 		text: `Suspicious of others, but trusts alien technology that's been lying around for ages. Makes sense.`,
+		trivia: [
+			`The Duplicator's philosophy: if someone gives you parenting advice, say thanks and ignore them.`,
+			`All solid objects - including duplicates - can change the tunnel's gravity.`,
+			`Duplicates can jump off of one another in midair.`,
+			`For some reason, it's hard to make new duplicates when the power is out. At least the existing ones stay around.`,
+			`The Duplicator trusts himself, his son, and the animals. Everyone else keeps telling him he's wrong.`,
+			`Duplicates jump higher than you do.`,
+			`The Duplicator can instantly swap places with any duplicate. He doesn't know how, and unlike the Student, he doesn't care.`,
+			`His duplicates are like solid mirror images... that aren't mirrored. (The Duplicator isn't much good at similes.)`
+		]
 	},
 	"Gentleman": {
 		color: "#333",
 		text: `Employs magnets for rapid procurement of power cells.`,
+		trivia: [
+			`The Gentleman’s philosophy: the correlation between vocabulary and social standing is not coincidental.`,
+			`The Gentleman retains partial maneuverability with his electromagnet engaged. By maneuvering left and right, he can influence his eventual motion upon reaching the power cell.`,
+			`The Gentleman will not abandon a power cell he has already claimed, but he exercises discretion in claiming the cells in the first place.`,
+			`The lower classes have their uses.`,
+			`The Gentleman sees fit to contribute a generous 10 percent of his power cells to the group. He reserves the remainder for his own use.`,
+			`Wait until the Gentleman falls below the level of the proximal power cell before energizing his electromagnet to ensure he is propelled upwards.`,
+			`In what he considers to be a mildly amusing symmetry, the Gentleman's electromagnet is activated by electromagnetic waves.`
+		]
 	},
 	"Lizard": {
 		color: "#5A5",
 		text: `Lizards are known for being green and jumping really high.`,
+		trivia: [
+			`The Lizard’s philosophy: find somewhere bright and sit there for hours.`,
+			`The Lizard does not, and perhaps, can not, understand the concept of jumping low.`,
+			`Like many animals, lizards have personalities. This one just happens to be boring.`,
+			`No one’s claiming the Lizard as their pet. It seems to have wandered out here on its own.`,
+			`The Bunny and the Lizard can jump so high as a result of their strength and weight.`
+		]
 	},
 	"Pastafarian": {
 		color: "#DBE",
 		text: `Her faith in the Flying Spaghetti Monster allows her to run across empty space. Her faith also allows her to ignore the Student's alternate explanation.`,
+		trivia: [
+			`The Pastafarian's philosophy: The Flying Spaghetti Monster created a flawed world. It's up to us to make it better.`,
+			`Back home, the Pastafarian led a small congregation. When she saw the first tunnel, she took it as a sign, and immediately left to explore space.`,
+			`The Flying Spaghetti Monster makes this bridge. It is NOT merely a 'feature of the tunnels'.`,
+			`The branching and twisting tunnels vaguely resemble the Flying Spaghetti Monster. Coincidence?`,
+			`Applying excessive pressure to the Flying Spaghetti Monster's bridge offends him. To show your devotion, refrain from jumping from it or onto it.`
+		]
 	},
 	"Runner": {
 		color: "#777",
 		text: `Wants to see everything at least once, and she does mean everything.`,
+		trivia: [
+			`The Runner’s philosophy: you can’t plan for everything. Instead, plan for the fact that you can’t plan for everything.`,
+			`Who needs flashy special abilities when you have precision and agility?`,
+			`Both the Runner and the Angel have leadership skills, but you wouldn't know it from listening to the Angel.`,
+			`True to her name, the Runner performs best on the ground, where she can move and change directions faster.`,
+			`As the oldest one here, the Runner naturally has the best strength and agility.`,
+			`The Runner may not like people doodling on her map, but she doesn't want to offend them by erasing their work.`,
+			`Her map only stores 1GB, but the Runner has never even come close to running out. She doesn't see what the fuss is over 8GB paper.`,
+			`The Runner supervised the construction of the City, and several smaller cities.`
+		]
 	},
 	"Skater": {
 		color: "#DAA",
 		text: `Enjoys challenging himself almost as much as he enjoys going fast.`,
+		trivia: [
+			`The Skater’s philosophy: challenging yourself helps you improve. Once you improve, you can challenge yourself even more!`,
+			`Since he wanders so much, there was a brief time when the Skater had met everyone on the Planet.`,
+			`The Skater likes to travel, but mostly he just hates staying still.`,
+			`Tunnel running could be the next big sport, and the Skater intends to get a head start.`,
+			`The Skater is faster than anyone here. Well, maybe not that rabbit, but animals don’t count.`,
+			`The Skater takes a few minutes each day to maintain his skates. His last pair ran out at a bad time, and he can't afford to lose this pair.`,
+			`Ramps convert speed into jump height. Guess who benefits most?`
+		]
 	},
 	"Student": {
 		color: "#D64",
 		text: `Once you figure out how something works, it's yours to use. This includes gravity.`,
+		trivia: [
+			`The Student's philosophy: Always try to think of different explanations. If you already know the answer, do it anyway for practice.`,
+			`The Student loves Sci-fi movies, but she's annoyed by the usual portrayal of aliens as tall red men.`,
+			`The Student may be the least athletic person here, but she makes up for it by finding easier ways to get around.`,
+			`Whoever made the tunnels was clever. Since tiles attract each other, tunnels can repair themselves automatically. It also means assembling a tunnel is as easy as tossing a stack of tiles into space.`,
+			`What's the point of taking finals? The Student is learning just fine on her own, thank you very much.`,
+			`The Student knows she promised to explain how she controls gravity, but the device is so poorly built that she'd be embarrassed to let anyone see. Maybe once she has time to make a better one.`,
+			`A good way to learn how something works is to pay attention to when it doesn't. For instance, Gravity gets weaker when the power goes out.`,
+		]
 	}
 }
-var data_levelSets = [`main`, `boxRoad`, `boxStorage`, `coordination`, `planA`, `planC`, `memory`, `wayBack`, `wayBack2`, `wayBackNot`, `winterGames`, `lowPower`, `new`,
+var data_levelSets = [`main`, `boxRoad`, `boxStorage`, `planA`, `planC`, `wayBack`, `wayBackNot`, `winterGames`, `lowPower`, `new`,
 						`A`, `B`, `C`, `D`, `F`, `G`, `H`, `I`, `L`, `M`, `N`, `T`, `U`, `W`];
-//data_levelSets = [`main`, `lowPower`, `new`];
+//data_levelSets = [`main`, `lowPower`, `new`, `F`, `U`, `wayBack`, `wayBack2`, `planA`, `planC`];
 var data_musics = ['CrumblingWalls', 'LeaveTheSolarSystem', 'MapOfTheStars', 'TheVoid', 'TravelTheGalaxy', 'WormholeToSomewhere', 'None'];
 
 var data_persistent = {
@@ -178,13 +271,15 @@ var data_persistent = {
 	goingHomeProgress: undefined,
 	bridgeBuildingProgress: undefined,
 	unlocked: [`Runner`],
-	version: 1,
+	version: 1.1,
 	settings: {
+		altCamera: false,
 		altRender: false,
+		antiAlias: false,
+		enableOutlines: true,
 		highResolution: false,
 		maskCursor: false,
 		volume: 0.5,
-		antiAlias: false,
 	}
 };
 
@@ -518,11 +613,15 @@ var menu_buttonWidth = 0.25;
 var menu_buttonHeight = 0.06;
 var menu_characterCircleRadius = 0.3;
 var menu_characterSize = 30;
+var menu_characterTextTime = 140;
+var menu_characterTextWidth = 0.7;
 var menu_cutsceneParallax = 0.3;
 
 let page_animation;
 
 var physics_boxFriction = 0.95;
+var physics_boxMultiplier = 6.5;
+var physics_boxSidePush = 0.75;
 var physics_conveyorStrength = 0.05;
 var physics_crumblingShrinkStart = 50;
 var physics_crumblingShrinkTime = 150;
@@ -600,7 +699,7 @@ let world_lightObjects = [];
 let world_objects = [];
 let active_objects = [];
 let world_wormhole;
-var world_version = 1;
+var world_version = 1.1;
 
 
 var render_animSteps = 9;
@@ -608,7 +707,7 @@ var render_crosshairSize = 10;
 var render_clipDistance = 0.1;
 var render_identicalPointTolerance = 0.0001;
 var render_maxColorDistance = 950;
-var render_maxDistance = 15000;
+var render_maxDistance = 17000;
 var render_minTileSize = 8;
 var render_ringSize = 18;
 var render_starOpacity = 0.6;
@@ -974,12 +1073,19 @@ function updateResolution() {
 
 
 */
-function performanceTest() {
+function performanceTest1() {
 	var perfTime = [performance.now(), 0];
-	var variableName = 0;
-	for (var a=0;a<1000000;a++) {
-		variableName = Math.random() * 3;
-		variableName = clamp2(variableName, 1, 2);
+	var storage = {
+		"1": 10,
+		"2": 16,
+		"3": 24,
+		"4": 58,
+		"5": 57,
+		"6": 852,
+	};
+	var sum = 0;
+	for (var a=0; a<1000000; a++) {
+		sum += storage[Math.floor((Math.random() * 4) + 1)];
 	}
 
 	perfTime[1] = performance.now();
