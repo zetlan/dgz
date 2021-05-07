@@ -45,6 +45,12 @@ class State_World {
 					//if the player isn't in a tunnel, try to get them in one
 					this.changePlayerParentOfficial();
 				}
+
+				//every once in a while, order the near objects
+				if (world_time % 50 == 24) {
+					this.nearObjs = orderObjects(this.nearObjs, 5);
+				}
+
 				//ticking near objects
 				this.nearObjs.forEach(n => {
 					n.tick();
@@ -217,11 +223,7 @@ class State_World {
 
 	handlePlayerDeath() {
 		player.parentPrev.reset();
-		this.orderWorld();
-		var self = this;
-		window.setTimeout(() => {
-			self.orderWorld();
-		}, 100);
+		this.nearObjs = orderObjects(this.nearObjs, 5);
 		player.parent = player.parentPrev;
 		player.dx = 0;
 		player.dy = 0;
@@ -274,6 +276,7 @@ class State_World {
 			this.toPause = true;
 		} else {
 			loading_state = new State_Map();
+			loading_state.doWorldEffects();
 		}
 	}
 
@@ -347,7 +350,7 @@ class State_Challenge extends State_World {
 		this.addTextToQueue();
 
 		//place player
-		
+		this.oldPlayerType = data_characters.indexes(player.constructor.name);	
 		this.targetParent = getObjectFromID(this.data[this.line].level);
 		this.placePlayer();
 	}
@@ -369,24 +372,31 @@ class State_Challenge extends State_World {
 	}
 
 	doTunnelStartEffects() {
-		eval(this.data[this.line].startCode);
+		if (this.data[this.line].startCode != undefined) {
+			this.data[this.line].startCode.split("|").forEach(l => {
+				eval(l);
+			});
+		}
 
-		//if the next line exists, do that as well
+		//if the next line exists, do that as well (but only the first part)
 		if (this.data[this.line+1] != undefined) {
-			eval(this.data[this.line+1].startCode);
+			if (this.data[this.line+1].startCode != undefined) {
+				eval(this.data[this.line+1].startCode.split("|")[0]);
+			}
 		}
 	}
 
 	lineIsComplete() {
-		//if the tunnel is complete, move on to the next one
-		return (player.parentPrev != this.targetParent);
+		//regular case
+		if (this.data[this.line].endCode == undefined) {
+			return chalCondition_isComplete();
+		}
+
+		//case of having different conditionals
+		return eval(this.data[this.line].endCode);
 	}
 
 	execute() {
-		if (this.lineIsComplete()) {
-			this.updateLine();
-		}
-
 		if (this.substate == 2) {
 			//draw the fade out
 			ctx.globalAlpha = challenge_opacity;
@@ -396,6 +406,8 @@ class State_Challenge extends State_World {
 
 			this.fadeTime -= 1;
 			if (this.fadeTime <= 0) {
+				this.placePlayer();
+				this.addTextToQueue();
 				this.fadeTime = challenge_fadeTime;
 				this.substate = 0;
 			}
@@ -403,6 +415,10 @@ class State_Challenge extends State_World {
 		}
 		
 		super.execute();
+
+		if (this.lineIsComplete()) {
+			this.updateLine();
+		}
 	}
 
 	handlePlayerDeath() {
@@ -415,6 +431,11 @@ class State_Challenge extends State_World {
 
 		super.handlePlayerDeath();
 		this.doTunnelStartEffects();
+	}
+
+	//so that the chalConditions can access it
+	handlePlayerDeath_SUPER() {
+		super.handlePlayerDeath();
 	}
 
 	placePlayer() {
@@ -442,17 +463,18 @@ class State_Challenge extends State_World {
 		if (this.line > this.data.length - 1) {
 			//leave challenge mode if out of lines
 			loading_state = new State_Map();
+			loading_state.doWorldEffects();
 			replacePlayer(0);
 			return;
 		}
 
 		this.targetParent = getObjectFromID(this.data[this.line].level);
-		this.addTextToQueue();
 		//if the player's parent / direction is different from the target, do special placement
 		if (player.parentPrev != this.targetParent || player.backwards != this.data[this.line].backwards) {
 			this.substate = 2;
-			this.placePlayer();
 			return;
+		} else {
+			this.addTextToQueue();
 		}
 		this.doTunnelStartEffects();
 	}
@@ -462,6 +484,7 @@ class State_Challenge extends State_World {
 class State_Cutscene extends State_World {
 	constructor(data) {
 		super();
+		player.drawR = 0;
 		this.parentControlsAudio = false;
 		//if there's no data, make sure there is data
 		if (data == undefined) {
@@ -497,8 +520,6 @@ class State_Cutscene extends State_World {
 			`new SceneBoxRinged(world_camera.x + polToCart(world_camera.theta, world_camera.phi, 5)[0], world_camera.y + polToCart(world_camera.theta, world_camera.phi, 5)[1], world_camera.z + polToCart(world_camera.theta, world_camera.phi, 5)[2], 100, 0)`,
 			`new SceneBoat(world_camera.x + polToCart(world_camera.theta, world_camera.phi, 5)[0], world_camera.y + polToCart(world_camera.theta, world_camera.phi, 5)[1], world_camera.z + polToCart(world_camera.theta, world_camera.phi, 5)[2], 0, 0)`
 		];
-
-		
 
 
 		//loop through frames, if it's a string convert to objects
@@ -540,6 +561,9 @@ class State_Cutscene extends State_World {
 				return;
 			}
 		}
+	}
+
+	changePlayerParent(newParent) {
 	}
 
 	convertStringData(line) {
@@ -968,6 +992,7 @@ var outputString = `{
 
 		//tick all objects
 		this.nearObjs.forEach(n => {
+			removeInvalidObjects(n);
 			n.tick();
 		});
 
@@ -988,6 +1013,13 @@ class State_Game extends State_World {
 		this.orderWorld();
 	}
 
+	doWorldEffects() {
+		world_camera.targetTheta = player.dir_front[0];
+		world_camera.targetPhi = 0;
+		player.setCameraPosition();
+		world_camera.snapToTargets();
+	}
+
 	execute() {
 		super.execute();
 		if (this.substate == 1) {
@@ -997,6 +1029,25 @@ class State_Game extends State_World {
 				ctx.lineWidth = 2;
 			}
 		}
+	}
+
+	changePlayerParent(newParent) {
+		if (player.backwards) {
+			//make sure player isn't being backwards when they shouldn't be
+			newParent.calculateBackwardsAllow();
+			if (!newParent.allowBackwards) {
+				player.backwards = false;
+				console.log("new parent doesn't allow it");
+			}
+			
+
+			//also for convience's sake, if entering a new tunnel, always be forwards
+			if (newParent.id.replaceAll(/[A-z]/g, '').replaceAll(',', '').replaceAll('-', '') * 1 == 1 && player.parentPrev.id.replaceAll(/[0-9]/g, '') != newParent.id.replaceAll(/[0-9]/g, '')) {
+				player.backwards = false;
+			}
+		}
+		
+		super.changePlayerParent(newParent);
 	}
 
 	handleMouseDown(a) {
@@ -1314,12 +1365,9 @@ class State_Loading {
 	}
 }
 
-//I am terrified that this is a giant pile of spaghetti that will break at any moment but I also just want to finish the project at this point
+
 class State_Map {
 	constructor() {
-		//change camera and player
-		this.doWorldEffects();
-
 		this.objSelected = undefined;
 		this.changingTheta = false;
 		this.cursorPos = [-100, -100];
@@ -1645,20 +1693,27 @@ class State_Menu {
 
 		//settings for settings menu
 		this.settings = [
-			new PropertySlider(0.05, 0.2, 0.4, 0.2, 'music volume', `audio_channel1.volume = value;`, `audio_channel1.volume`, 0, 1, 0.01, false),
-			new PropertySlider(0.05, 0.3, 0.4, 0.2, 'effects volume', `audio_channel2.volume = value;`, `audio_channel2.volume`, 0, 1, 0.01, false),
-			new PropertyToggle(0.05, 0.4, 0.4, `high resolution`, `data_persistent.settings.highResolution`),
-			new PropertyToggle(0.05, 0.5, 0.4, `anti-aliasing for sprites`, `data_persistent.settings.antiAlias`),
-			new PropertyToggle(0.05, 0.6, 0.4, `alternate tunnel rendering`, `data_persistent.settings.altRender`),
-			new PropertyToggle(0.05, 0.7, 0.4, `contain mouse inputs to canvas`, `data_persistent.settings.maskCursor`)
+			new PropertySlider(0.05, 0.15, 0.4, 0.2, 'music volume', `audio_channel1.volume = value;`, `audio_channel1.volume`, 0, 1, 0.01, false),
+			new PropertySlider(0.05, 0.25, 0.4, 0.2, 'effects volume', `audio_channel2.volume = value;`, `audio_channel2.volume`, 0, 1, 0.01, false),
+
+			new PropertyToggle(0.05, 0.45, 0.4, `high resolution`, `data_persistent.settings.highResolution`),
+			new PropertyToggle(0.05, 0.55, 0.4, `anti-aliasing for sprites`, `data_persistent.settings.antiAlias`),
+			new PropertyToggle(0.05, 0.65, 0.4, `precise tunnel rendering`, `data_persistent.settings.altRender`),
+			new PropertyToggle(0.05, 0.75, 0.4, `alternate camera rotation`, `data_persistent.settings.altCamera`),
+			new PropertyToggle(0.05, 0.85, 0.4, `polygon outlines in editor`, `data_persistent.settings.enableOutlines`),
+
+			new PropertyToggle(0.525, 0.15, 0.4, `contain mouse inputs to canvas`, `data_persistent.settings.maskCursor`),
 
 		];
 		this.buttons = [
 			new PropertyButton(0.5, 0.5 - ((menu_buttonHeight * 0.75) * 3) + 						   (menu_characterSize / canvas.height), menu_buttonWidth, menu_buttonHeight, "Infinite Mode", `loading_state = new State_Infinite(); loading_state.doWorldEffects();`),
-			new PropertyButton(0.5, 0.5 - ((menu_buttonHeight * 0.75) * 3) + (menu_buttonHeight * 2) + (menu_characterSize / canvas.height), menu_buttonWidth, menu_buttonHeight, "Explore Mode", `loading_state = new State_Map();`),
+			new PropertyButton(0.5, 0.5 - ((menu_buttonHeight * 0.75) * 3) + (menu_buttonHeight * 2) + (menu_characterSize / canvas.height), menu_buttonWidth, menu_buttonHeight, "Explore Mode", `loading_state = new State_Map(); loading_state.doWorldEffects();`),
 			new PropertyButton(0.5, 0.5 - ((menu_buttonHeight * 0.75) * 3) + (menu_buttonHeight * 4) + (menu_characterSize / canvas.height), menu_buttonWidth, menu_buttonHeight, "Edit Mode", `loading_state = new State_Edit_Tiles(); alert(editor_warning);`),
 		];
 		this.readFrom = orderObjects(world_objects, 6);
+
+		this.characterTextTime = undefined;
+		this.characterTextObj = undefined;
 	}
 	execute() {
 		//bege
@@ -1720,6 +1775,25 @@ class State_Menu {
 					if (!data_persistent.unlocked.includes(data_characters.indexes[h])) {
 						drawCharacterLock((canvas.width * 0.5) + offX, (canvas.height * 0.5) + offY + (menu_characterSize * 0.75), menu_characterSize, menu_characterSize);
 					}
+				}
+
+				//drawing character text, if there is any
+				if (this.characterTextTime != undefined) {
+					this.characterTextTime -= 1;
+
+					ctx.globalAlpha = 1 - Math.pow(1.8 * (this.characterTextTime / menu_characterTextTime) - 1, 10);
+					//box
+					ctx.fillStyle = color_grey_dark;
+					ctx.strokeStyle = color_grey_dark;
+					drawRoundedRectangle(canvas.width * (0.5 - (menu_characterTextWidth / 2)), canvas.height * 0.74, canvas.width * menu_characterTextWidth, canvas.height * (0.01 + (0.03 * this.characterTextObj.processedContent.length)), canvas.height / 96);
+
+					//text
+					this.characterTextObj.beDrawn();
+
+					if (this.characterTextTime <= 0) {
+						this.characterTextTime = undefined;
+					}
+					ctx.globalAlpha = 1;
 				}
 				break;
 			case 1:
@@ -1838,6 +1912,11 @@ class State_Menu {
 					if (cursor_x > posX - menu_characterSize && cursor_x < posX + menu_characterSize &&
 					cursor_y > posY - menu_characterSize && cursor_y < posY + menu_characterSize &&
 					data_persistent.unlocked.includes(data_characters.indexes[h])) {
+						if (this.characterSelected == h || this.characterTextTime != undefined) {
+							//if the character is already selected, display their text box
+							this.characterTextTime = menu_characterTextTime;
+							this.characterTextObj = new SceneText(0.5, 0.75, menu_characterTextWidth / 2.02, 1 / 35, data_characters[data_characters.indexes[h]].text, true);
+						}
 						this.characterSelected = h;
 						player = eval(`new ${data_characters.indexes[h]}(0, 0, 0)`);
 						if (Math.abs(this.characterSelected - this.displayCharacterSelected) > data_characters.indexes.length / 2) {
