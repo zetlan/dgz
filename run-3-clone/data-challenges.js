@@ -56,6 +56,7 @@ var challengeData_angelMissions = [{
 		level: "Level 48",
 		backwards: true,
 		startCode: `challenge_crumble("Level 48", [[13, 0], [8, 5], [5, 8], [4, 15], [2, 19], [14, 22], [1, 25], [14, 31], [11, 36], [9, 44], [9, 56], [12, 61], [13, 68], [9, 70]]);`,
+		endCode: `chalCondition_onlyTunnel("Level 47");`,
 		text: `For once I'm glad I'm single. I won't have a spouse trying to rip out MY antennae when I get back.|Although, hm...|If my friends miss me as much as I miss them...`
 	}, {
 		level: "Level 47",
@@ -66,11 +67,12 @@ var challengeData_angelMissions = [{
 	{
 		level: "Level 33",
 		backwards: true,
+		endCode: `chalCondition_onlyTunnel("Level 32");`,
 		text: `That went well!|Except for the part where she wants me to change.|Oh well, I'll just have to ignore her.`
 	}, {
 		level: "Level 16",
 		backwards: true,
-		startCode: `challenge_addEncounter("Level 16", 0, 1, undefined, "indecision");`,
+		endCode: `chalCondition_cutscene(3, true, "indecision");`
 	},
 
 	{
@@ -81,7 +83,7 @@ var challengeData_angelMissions = [{
 	}, {
 		level: "Level 27",
 		backwards: false,
-		startCode: `challenge_crumble("Level 27", [[11, 4], [6, 11], [11, 23], [5, 31], [10, 39], [4, 47], [10, 52], [4, 58]])`
+		startCode: `challenge_crumble("Level 27", [[11, 4], [6, 11], [11, 23], [5, 31], [10, 39], [4, 47], [10, 52], [4, 58]]);`
 	},
 
 	{
@@ -106,7 +108,7 @@ var challengeData_angelMissions = [{
 	}, {
 		level: "M-4",
 		backwards: false,
-		startCode: `console.log("activating"); challenge_crumble("M-4", [[5, 1], [13, 4], [8, 7]]); challenge_addEncounter("M-4", 15, 53, "Lizard", "itsJustYou");`,
+		startCode: `challenge_crumble("M-4", [[5, 1], [13, 4], [8, 7]]); challenge_addEncounter("M-4", 15, 53, "Lizard", "itsJustYou", true);`,
 		text: `Hey, knocked-out tiles. I'm in luck!`
 	},
 
@@ -132,6 +134,7 @@ var challengeData_angelMissions = [{
 	}, {
 		level: "U-9",
 		backwards: true,
+		endCode: `chalCondition_onlyTunnel("U-8");`,
 	}, {
 		level: "U-5",
 		backwards: true,
@@ -158,25 +161,26 @@ var challengeData_bridgeBuilding = [
 	}, {
 		level: "Box Storage Area, Part 6",
 		backwards: false,
-		startCode: `challenge_addEncounter("Box Storage Area, Part 6", 1, 35, undefined, "somethingWeird");`,
+		endCode: `chalCondition_cutscene(37, false, "somethingWeird");`,
 		text: `All I do is follow the steps they taught us in school.`
 	},
 
 	{
 		level: "Box Storage Area, Part 6",
 		backwards: true,
-		startCode: `if (player.backwards) {challenge_changeSpawn(1, 24);}`,
-		endCode: undefined,
+		startCode: `|challenge_changeSpawn(1, 24); challenge_addBox("Box Storage Area, Part 6", 1, 19, 120, 70, 0);`,
+		endCode: `chalCondition_oops();`,
 		text: `It moves!|I have no idea how I missed this the first time, but who cares?!|This box moves!`
 	}, {
 		level: "Box Storage Area, Part 5",
 		backwards: true,
-		startCode: undefined,
-		endCode: undefined,
+		startCode: `|challenge_addBox("Box Storage Area, Part 5", 7, 56, 120, 70, 0);`,
+		endCode: `chalCondition_oops();`,
 		text: undefined
 	}, {
 		level: "Box Storage Area, Part 2",
 		backwards: true,
+		endCode: `chalCondition_oops();`,
 		text: `Anyway, where was I...|The next step is a class presentation, or a research paper.|Or worse, both. Bad memories...`
 	}, {
 		level: "Level 35",
@@ -188,28 +192,27 @@ var challengeData_bridgeBuilding = [
 		level: "Level 36",
 		backwards: false,
 		startCode: `challenge_crumble("Level 36", [[14, 3], [7, 8], [5, 21], [1, 28], [8, 30], [4, 34]]);`,
-		endCode: undefined,
 	},
+	//tell a friend
 
+	["Level 39", true, ``, ``, ],
+	["Level 38", true, ``, ``, ``],
+	["Box Storage Area, Part 1", false, ``, ``, ],
+	//lightning strikes twice
 	{
-		level: "levelName",
-		backwards: undefined,
-		startCode: undefined,
-		endCode: undefined,
-		text: undefined
+		level: "Level 39",
+		backwards: true,
+		text: `You know, that one box could be some sort of fluke.|Or could it? Whatever, let's say it could.|One box isn't enough. I need to prove that lightning strikes twice.`
 	}, {
-		level: "levelName",
-		backwards: undefined,
-		startCode: undefined,
-		endCode: undefined,
-		text: undefined
+		level: "Level 38",
+		backwards: true,
 	}, {
-		level: "levelName",
-		backwards: undefined,
-		startCode: undefined,
+		level: "Box Storage Area, Part 1",
+		backwards: false,
 		endCode: undefined,
-		text: undefined
+		text: `I think there might have been another one around here...`
 	},
+	//lightning strikes twice
 
 	{
 		level: "levelName",
@@ -336,17 +339,6 @@ challengeData_bridgeBuilding.forEach(e => {
 
 //incomplete message: "Oops! Forgot the box."
 var challengeData_bridgeBuilding1 = [
-	"Student",
-	
-	//something weird
-
-
-	//tell a friend
-
-	["Level 39", true, ``, ``, `You know, that one box could be some sort of fluke.|Or could it? Whatever, let's say it could.|One box isn't enough. I need to prove that lightning strikes twice.`],
-	["Level 38", true, ``, ``, ``],
-	["Box Storage Area, Part 1", false, ``, ``, `I think there might have been another one around here...`],
-	//lightning strikes twice
 
 	["Box Storage Area, Part 6", false, ``, ``, `She's right. Two isn't enough either.|If they're different, then we wouldn't know which was the "normal" one!`],
 	["Box Storage Area, Part 7", false, ``, ``, ``],
