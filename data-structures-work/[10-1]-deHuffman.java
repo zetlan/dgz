@@ -21,7 +21,7 @@ public class deHuffman {
    }
    public static TreeNode huffmanTree(Scanner huffLines) {
       //create base node
-      TreeNode base = new TreeNode(null);
+      TreeNode base = new TreeNode("");
 
       //loop through lines of the coding
       while (huffLines.hasNext()) {
@@ -35,13 +35,13 @@ public class deHuffman {
             if (controlChr == '0') {
                //if there's already a node to the left, move to it. If not, create node
                if (ref.getLeft() == null) {
-                  ref.setLeft(new TreeNode(null));
+                  ref.setLeft(new TreeNode(""));
                }
                ref = ref.getLeft();
             } else {
                //same thing but mirror mode
                if (ref.getRight() == null) {
-                  ref.setRight(new TreeNode(null));
+                  ref.setRight(new TreeNode(""));
                }
                ref = ref.getRight();
             }
@@ -63,7 +63,7 @@ public class deHuffman {
          }
 
          //if there's a value, append and reset
-         if (ref.getValue() != null) {
+         if (ref.getValue() != "") {
             finalStr += ref.getValue();
             ref = root;
          }
