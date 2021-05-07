@@ -48,14 +48,16 @@ var cutsceneData_boring = {
 
 var cutsceneData_candy = {
 	id: 'Candy',
-	//unlock child and move new tunnel forwards
+	//unlock child and move new tunnel forwards, this is a super hacky solution but whatever
 	effects: `unlockCharacter("Child");
-		var a = 1;
-		var targetTunnel = getObjectFromID(\`New Tunnel, Part \${a}\`);
-		while (targetTunnel.id != undefined) {
-			targetTunnel.updatePosition(targetTunnel.x, targetTunnel.y, targetTunnel.z + 30000);
-			a += 1;
-			targetTunnel = getObjectFromID(\`New Tunnel, Part \${a}\`);
+		if (getObjectFromID("New Tunnel, Part 1").z < -160000) {
+			var a = 1;
+			var targetTunnel = getObjectFromID(\`New Tunnel, Part \${a}\`);
+			while (targetTunnel.id != undefined) {
+				targetTunnel.updatePosition(targetTunnel.x, targetTunnel.y, targetTunnel.z + 30000);
+				a += 1;
+				targetTunnel = getObjectFromID(\`New Tunnel, Part \${a}\`);
+			}
 		}`,
 	frames: [
 		`CAM~-32105.7141~46.6653~-119622.2184~6.3737~0.0108~1.7800|LGT~-32200.6863~66.5684~-118958.5940|SPR~0.5148~0.5938~0.0188~data_sprites.Angel.sheet~0.0000~true~0~4|LGT~-32241.5849~74.8115~-119359.3878|SPR~0.5164~0.7271~0.0188~data_sprites.Child.sheet~0.0000~false~0~9|SPR~0.5164~0.7104~0.0516~data_sprites.Child.sheet~0.0000~false~15~9|BUB~0.8023~0.5302~0.1641~0.0792|TRI~0.6992~0.5656~0.5719~0.6896~0.0086|TXT~0.7992~0.5000~0.1461~0.0500~Hey, look what I found...~false`, 
@@ -707,9 +709,12 @@ var cutsceneData_stopSolvingProblems = {
 //cutscenes that disrupt gameplay unlock the next level
 var cutsceneData_superpowers = {
 	id: 'Superpowers',
-	effects: `getObjectFromID("Plan C, Part 9").discovered = true;
-			getObjectFromID("Launch Site C").discovered = true;
-			unlockCharacter("Pastafarian");`,
+	effects: `getObjectFromID("Launch Site C").discovered = true;
+			unlockCharacter("Pastafarian");
+			if (getObjectFromID("Coordination Challenge, Part 1").id == undefined) {
+				placeTunnelSet(levelData_coordination);
+				console.log("placed coordination");
+			}`,
 	frames: [
 		`CAM~29730.1620~-168.5712~-257636.8263~3.2064~0.7600~0.0000|LGT~29664.8492~-97.0927~-257818.6860|LGT~29596.1280~-85.6042~-257849.0006|SPR~0.5936~0.6698~0.0375~data_sprites.Pastafarian.sheet~0.0000~false~11~8|SPR~0.6584~0.6438~0.0406~data_sprites.Child.sheet~0.0000~false~10~6|LGT~29072.7532~-76.4232~-257811.0762|BUB~0.5170~0.2000~0.3617~0.0740|TRI~0.6014~0.2562~0.6428~0.5604~0.0084|BUB~0.3022~0.5406~0.1422~0.0365|TRI~0.4295~0.5437~0.5451~0.6281~0.0094|TXT~0.2998~0.5250~0.1344~0.0500~I don't know.~false|TXT~0.5233~0.1677~0.3414~0.0500~If you could have any superpower, what would you have?~false`, 
 		`CAM~29730.1620~-168.5712~-257636.8263~3.2064~0.7600~0.0000|LGT~29664.8492~-97.0927~-257818.6860|LGT~29596.1280~-85.6042~-257849.0006|SPR~0.5936~0.6698~0.0375~data_sprites.Pastafarian.sheet~0.0000~false~10~8|SPR~0.6584~0.6438~0.0406~data_sprites.Child.sheet~0.0000~false~10~6|LGT~29265.7003~-85.0193~-257833.4884|BUB~0.6248~0.1969~0.2391~0.0427|BUB~0.2873~0.4729~0.2383~0.0771|BUB~0.4178~0.8729~0.3016~0.0708|TRI~0.7068~0.2313~0.6522~0.5594~0.0108|TXT~0.2858~0.4417~0.2344~0.0479~Well... I wasn't prepared for this question.~false|LIN~0.2045~0.5313~0.2037~0.8250|TRI~0.5022~0.5000~0.5717~0.6125~0.0092|TXT~0.4209~0.8396~0.2539~0.0500~Please give me a moment to think of a reply.~false|TXT~0.6256~0.1812~0.2172~0.0500~Why don't you know?~false`, 
@@ -870,7 +875,11 @@ var cutsceneData_lightningStrikesTwice = {
 
 var cutsceneData_affliction = {
 	id: `Affliction`,
-	effects: ``,
+	//gentleman creates the memory evaluation tunnel after this
+	effects: `if (getObjectFromID("Memory Evaluation, Part 1").id == undefined) {
+				placeTunnelSet(levelData_memory); 
+				console.log("placed memory");
+			}`,
 	frames: [
 		`CAM~23649.7873~180.6173~-43642.3607~7.7455~-0.2000~0.0000|LGT~23947.3238~260.2876~-43609.9489|LGT~23887.1101~266.5398~-43582.4310|SPR~0.5047~0.2917~0.0242~data_sprites.Student.sheet~3.1935~false~13~6|SPR~0.4430~0.2531~0.0391~data_sprites.Gentleman.sheet~3.1521~false~0~4|BUB~0.3883~0.0948~0.3727~0.0500|BUB~0.7875~0.7083~0.1320~0.0406|BUB~0.3063~0.5740~0.2859~0.0823|LIN~0.2305~0.1167~0.2281~0.4979|TXT~0.3891~0.0771~0.3570~0.0500~Ah, we meet again. Good morning.~false|TXT~0.3078~0.5333~0.2703~0.0500~I take it you've arrived at a solution to my affliction?~false|TXT~0.7844~0.6917~0.1203~0.0500~Not quite.~false|TRI~0.7289~0.6802~0.5430~0.3573~0.0094`, 
 		`CAM~23650.9382~180.3827~-43642.2368~7.7455~-0.2000~0.0000|LGT~23915.3019~268.1403~-43609.9489|LGT~23887.1101~266.5398~-43582.4310|SPR~0.5031~0.2802~0.0281~data_sprites.Student.sheet~3.1568~false~15~1|SPR~0.4430~0.2531~0.0391~data_sprites.Gentleman.sheet~3.1521~false~0~4|TXT~0.5016~0.0094~0.5057~0.0300~We might be getting close. See, I found these boxes with a couple gold rings attached to them. Wait, that wasn't the first thing. I'll get back to that later. Before that, I was thinking about the law of action and reaction. These batteries are what, a few grams apiece? If you and the battery were the only things in the equation, there's no way it could pull you around, much less that electromagnet. There has to be something holding the batteries in place. My first thought was air friction, because that's exactly what air friction does. Except it's not; air friction would apply to you too. Except maybe it is, if you take wind into account? I just don't know, and I haven't sat down to do the math because I've been busy with those boxes I mentined. Speaking of which, these boxes have a bunch of interesting features. They float in midair and you can push them around, but the important thing is that it's hard to push them in certain directions. Not impossible, just hard to pull like the batteries: the float down the middle of the tunnel, or whatever. I think the simplest explanation is that~true|TRI~0.4516~0.3969~0.4430~0.3240~0.0094|BUB~0.2813~0.3917~0.2109~0.0552|BUB~0.2758~0.5917~0.2641~0.0698|BUB~0.6477~0.6958~0.0547~0.0385|BUB~0.6977~0.8812~0.2219~0.0458|LIN~0.2656~0.5354~0.2649~0.4354|TRI~0.6383~0.6656~0.5735~0.4521~0.0094|LIN~0.6555~0.8573~0.6555~0.7188|TXT~0.2828~0.3698~0.1813~0.0781~Excuse me.~false|TXT~0.2774~0.5552~0.2352~0.0500~Do you have a solution or don't you?~false|TXT~0.6430~0.6771~0.1000~0.0500~...~false|TXT~0.6969~0.8677~0.2094~0.0500~Hold onto the floor.~false`, 
