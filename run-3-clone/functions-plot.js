@@ -13,21 +13,21 @@ function placeOneTimeCutsceneTriggers() {
 
 	//overworld
 	getObjectFromID("Level 1").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("Level 1"), 0.5, true, "planetMissing"));
-	getObjectFromID("F-4").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("F-4"), 1.1, false, "river"));
-	getObjectFromID("U-1").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("U-1"), 0.2, false, "planetStolen"));
-	getObjectFromID("New Tunnel, Part 1").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("New Tunnel, Part 1"), 0.1, false, "selfAssembly"));
+	getObjectFromID("F-4").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("F-4"), 1.1, false, "river", true));
+	getObjectFromID("U-1").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("U-1"), 0.2, false, "planetStolen", true));
+	getObjectFromID("New Tunnel, Part 1").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("New Tunnel, Part 1"), 0.1, false, "selfAssembly", true));
 
 
 	//the way back
-	getObjectFromID("The Way Back, Part 1").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("The Way Back, Part 1"), 0.5, false, "angelVsBunny"));
+	getObjectFromID("The Way Back, Part 1").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("The Way Back, Part 1"), 0.5, false, "angelVsBunny", true));
 	getObjectFromID("The Way Back, Part 8").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("The Way Back, Part 8"), 0.5, false, "boatRide"));
 	
 	getObjectFromID("Plan A, Part 8").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("Plan A, Part 8"), 54.5, false, "wait"));
 
-	getObjectFromID("Plan C, Part 8").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("Plan C, Part 8"), 97, false, "superpowers"));
-	getObjectFromID("Plan C, Part 9").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("Plan C, Part 9"), 110, false, "twoMonthWait1"));
-	getObjectFromID("Plan C, Part 12").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("Plan C, Part 12"), 86, false, "twoMonthWait2"));
-	getObjectFromID("Plan C, Part 14").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("Plan C, Part 14"), 69.4, false, "twoMonthWait3"));
+	getObjectFromID("Plan C, Part 8").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("Plan C, Part 8"), 97, false, "superpowers", true));
+	getObjectFromID("Plan C, Part 9").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("Plan C, Part 9"), 110, false, "twoMonthWait1", true));
+	getObjectFromID("Plan C, Part 12").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("Plan C, Part 12"), 86, false, "twoMonthWait2", true));
+	getObjectFromID("Plan C, Part 14").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("Plan C, Part 14"), 69.4, false, "twoMonthWait3", true));
 
 	//hard-coded values ew
 	var level = getObjectFromID("Level X");
@@ -37,6 +37,11 @@ function placeOneTimeCutsceneTriggers() {
 	level.freeObjs.push(new Boat(77892, 44, -270906, (Math.PI * 2.5) - level.theta, 0.6));
 
 	//the way onwards
+	getObjectFromID("C-1").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("C-1"), 60.5, false, "morningHypothesis1", true));
+	getObjectFromID("C-2").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("C-2"), 84, false, "morningHypothesis2", true));
+	getObjectFromID("C-3").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("C-3"), 99, false, "morningHypothesis3", true));
+	getObjectFromID("C-4").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("C-4"), 97.4, false, "morningHypothesis4", true));
+	getObjectFromID("C-5").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("C-5"), 115.5, false, "morningHypothesis5", true));
 
 	//character encounters
 	getObjectFromID("Level 10").freeObjs.push(new StaticCharacterPermanent(getObjectFromID("Level 10"), 12, 58, "Skater", "comingThrough"));
