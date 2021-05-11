@@ -52,7 +52,7 @@ class Tile extends FreePoly {
 		}
 
 		world_camera.targetPhi = 0;
-		world_camera.targetTheta = entity.dir_front[0];
+		world_camera.targetTheta = entity.dir_front[0] % (Math.PI * 2);
 		//if the difference is too great, fix that
 		if (Math.abs(world_camera.theta - world_camera.targetTheta) > Math.PI) {
 			if (world_camera.theta > Math.PI) {
@@ -265,6 +265,12 @@ class Tile_Box_Ringed extends Tile_Box {
 		if ((this.size / this.cameraDist) * world_camera.scale > render_minTileSize * 0.5 && this.cameraDist < render_maxColorDistance * 2) {
 			var relCPos = spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], this.normal);
 			var color = this.getColor();
+			//always draw two rings
+			if (relCPos[1] <= 0) {
+				this.ringR.beDrawn();
+			} else {
+				this.ringL.beDrawn();
+			}
 			if (relCPos[2] > 0) {
 				drawWorldPoly([this.points[0], this.points[1], this.points[2], this.points[3]], color);
 			} else {
@@ -350,7 +356,36 @@ class Tile_Bright extends Tile {
 	}
 
 	getColor() {
-		return `hsl(${this.color.h}, ${this.color.s}%, ${linterp(75, 5, clamp((this.playerDist / render_maxColorDistance) * 0.75, 0, 1))}%)`
+		return `hsl(${this.color.h}, ${this.color.s}%, ${linterp(75, 0, clamp((this.playerDist / render_maxColorDistance) * (this.playerDist / render_maxColorDistance), 0, 1))}%)`
+	}
+}
+
+class Tile_Bright_Ringed extends Tile_Bright {
+	constructor(x, y, z, size, normal, parent, color) {
+		super(x, y, z, size, normal, parent, color);
+	}
+
+	calculatePointsAndNormal() {
+		super.calculatePointsAndNormal();
+		var ringOffset = polToCart(this.normal[0], this.normal[1], 2);
+		this.ring = new Ring(this.x + ringOffset[0], this.y + ringOffset[1], this.z + ringOffset[2], this.normal[0], this.normal[1], render_ringSize);
+	}
+
+	doComplexLighting() {
+		super.doComplexLighting();
+		this.ring.playerDist = this.playerDist;
+	}
+
+	beDrawn() {
+		super.beDrawn();
+		if (spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], this.normal)[2] > 0) {
+			this.ring.beDrawn();
+		}
+	}
+
+	tick() {
+		super.tick();
+		this.ring.tick();
 	}
 }
 
@@ -679,7 +714,6 @@ class Tile_Ice_Ramp extends Tile_Ice {
 class Tile_Ringed extends Tile {
 	constructor(x, y, z, size, normal, parent, color) {
 		super(x, y, z, size, normal, parent, color);
-		
 	}
 
 	calculatePointsAndNormal() {
