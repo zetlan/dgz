@@ -437,22 +437,19 @@ class SceneBoat extends Scene3dObject {
 }
 
 
-class SceneBoxRinged extends Scene3dObject {
-	constructor(x, y, z, size, rot) {
+class SceneTile extends Scene3dObject {
+	constructor(x, y, z, type, size, rot) {
 		super(x, y, z);
+		this.type = type;
 		var ref = pickNewParent({x: this.x, y: this.y, z:this.z}, world_objects[0]);
-		this.box = new Tile_Box_Ringed(this.x, this.y, this.z, size, [(Math.PI * 1.5) - ref.theta, rot], ref, [0, 0]);
-		//fix knobs
-		this.handle1 = polToCart(this.box.normal[0], 0, render_crosshairSize);
-		this.handle2 = [0, render_crosshairSize, 0];
-		this.handle3 = polToCart(this.box.normal[0] + (Math.PI / 2), 0, render_crosshairSize);
-		this.handle4 = polToCart(this.box.normal[0], this.box.normal[1], this.box.size * 0.5);
+		this.tile = ref.generateTile(this.type, x, y, z, size, [(Math.PI * 1.5) - ref.theta, rot], ref.color, 0, 0);
+		this.updateHandles();
 	}
 
 	beDrawn() {
-		this.box.tick();
-		this.box.doComplexLighting();
-		this.box.beDrawn();
+		this.tile.tick();
+		this.tile.doComplexLighting();
+		this.tile.beDrawn();
 		super.beDrawn();
 	}
 
@@ -463,6 +460,7 @@ class SceneBoxRinged extends Scene3dObject {
 		var screenYup = spaceToScreen([this.x + this.handle2[0], this.y + this.handle2[1], this.z + this.handle2[2]]);
 		var screenZup = spaceToScreen([this.x + this.handle3[0], this.y + this.handle3[1], this.z + this.handle3[2]]);
 		var screenRup = spaceToScreen([this.x + this.handle4[0], this.y + this.handle4[1], this.z + this.handle4[2]]);
+		var apparentSize = (this.tile.size / this.tile.cameraDist) * world_camera.scale;
 		//transforming lines to screen coordinates
 
 		//drawing lines
@@ -481,7 +479,8 @@ class SceneBoxRinged extends Scene3dObject {
 		drawCircle(color_grey_dark, screenYup[0], screenYup[1], editor_handleRadius);
 		drawCircle(color_grey_dark, screenZup[0], screenZup[1], editor_handleRadius);
 		drawCircle(color_grey_dark, screenRup[0], screenRup[1], editor_handleRadius);
-		drawCircle(color_grey_dark, screenCenter[0], screenCenter[1] + ((this.box.size / this.box.cameraDist) * world_camera.scale), editor_handleRadius);
+		drawCircle(color_grey_dark, screenCenter[0], screenCenter[1] + apparentSize, editor_handleRadius);
+		drawCircle(color_grey_dark, screenCenter[0] - (apparentSize / 2), screenCenter[1] - (apparentSize / 2), editor_handleRadius);
 
 		//selection circles
 		switch (this.selectedPart) {
@@ -498,7 +497,10 @@ class SceneBoxRinged extends Scene3dObject {
 				drawCircle(color_editor_cursor, screenRup[0], screenRup[1], editor_handleRadius);
 				break;
 			case 4:
-				drawCircle(color_editor_cursor, screenCenter[0], screenCenter[1] + ((this.box.size / this.box.cameraDist) * world_camera.scale), editor_handleRadius);
+				drawCircle(color_editor_cursor, screenCenter[0], screenCenter[1] + apparentSize, editor_handleRadius);
+				break;
+			case 5:
+				drawCircle(color_editor_cursor, screenCenter[0] - (apparentSize / 2), screenCenter[1] - (apparentSize / 2), editor_handleRadius);
 				break;
 		}
 	}
@@ -527,8 +529,8 @@ class SceneBoxRinged extends Scene3dObject {
 				var selfRot = Math.atan2(ctrXY[1] - rotXY[1], ctrXY[0] - rotXY[0]) + Math.PI;
 
 				//actual updating
-				this.box.normal[1] = selfRot - cursorRot;
-				this.handle4 = polToCart(this.box.normal[0], this.box.normal[1], this.box.size * 0.6);
+				this.tile.normal[1] = selfRot - cursorRot;
+				this.updateHandle(4);
 				break;
 			case 4:
 				//size
@@ -536,9 +538,21 @@ class SceneBoxRinged extends Scene3dObject {
 				var centerPos = spaceToScreen([this.x, this.y, this.z]);
 				var cursorDist = Math.abs(centerPos[1] - cursor_y);
 				//turn cursor distance into real distance, then clamp that
-				cursorDist = (cursorDist / world_camera.scale) * this.box.cameraDist;
-				this.box.size = Math.round(clamp(cursorDist, 5, 300));
+				cursorDist = (cursorDist / world_camera.scale) * this.tile.cameraDist;
+				this.tile.size = Math.round(clamp(cursorDist, 5, 300));
 				break;
+			case 5:
+				//tile type
+				//this is just lazy input, but I'm trusting people for the most part.
+				var result = prompt("Please enter a new tile type (positive integer between 1 and 16, inclusive)", this.type);
+				while (!isValidString(result) || result * 1 < 0 || result * 1 > 16 || result % 1 != 0) {
+					result = prompt("That is not a valid number. Please enter a positive integer between 1 and 16, inclusive");
+				}
+				this.type = result * 1;
+				//update tile type
+				this.tile = this.tile.parent.generateTile(this.type, this.x, this.y, this.z, this.tile.size, [(Math.PI * 1.5) - this.tile.parent.theta, this.tile.normal[1]], this.tile.parent.color, 0, 0);
+				this.updateHandles();
+				this.selectedPart = undefined;
 		}
 		
 
@@ -546,10 +560,18 @@ class SceneBoxRinged extends Scene3dObject {
 			//if the cursor's not down, stop being moved
 			this.selectedPart = undefined;
 		}
-		this.box.x = this.x;
-		this.box.y = this.y;
-		this.box.z = this.z;
-		this.box.calculatePointsAndNormal();
+		this.tile.x = this.x;
+		this.tile.y = this.y;
+		this.tile.z = this.z;
+
+		//if the tile's not in their parent, try to get a new one
+		if (!this.tile.parent.coordinateIsInTunnel_Bounded(this.x, this.y, this.z)) {
+			this.tile.parent = pickNewParent(this.tile, this.tile.parent);
+			this.tile.color = this.tile.parent.color;
+			this.tile.normal[0] = (Math.PI * 1.5) - this.tile.parent.theta;
+			this.updateHandles();
+		}
+		this.tile.calculatePointsAndNormal();
 	}
 
 	giveHandles() {
@@ -559,12 +581,36 @@ class SceneBoxRinged extends Scene3dObject {
 			spaceToScreen([this.x + this.handle2[0], this.y + this.handle2[1], this.z + this.handle2[2]]),
 			spaceToScreen([this.x + this.handle3[0], this.y + this.handle3[1], this.z + this.handle3[2]]),
 			spaceToScreen([this.x + this.handle4[0], this.y + this.handle4[1], this.z + this.handle4[2]]),
-			[sizeHandlePos[0], sizeHandlePos[1] + (this.box.size / this.box.cameraDist) * world_camera.scale]
+			[sizeHandlePos[0], sizeHandlePos[1] + (this.tile.size / this.tile.cameraDist) * world_camera.scale],
+			[sizeHandlePos[0] - ((this.tile.size / this.tile.cameraDist) * world_camera.scale * 0.5), sizeHandlePos[1] - ((this.tile.size / this.tile.cameraDist) * world_camera.scale * 0.5)]
 		];
 	}
 
 	giveStringData() {
-		return `3BR~${this.x.toFixed(4)}~${this.y.toFixed(4)}~${this.z.toFixed(4)}~${this.box.size}~${this.box.normal[1].toFixed(4)}`;
+		return `3TL~${this.x.toFixed(4)}~${this.y.toFixed(4)}~${this.z.toFixed(4)}~${this.type}~${this.tile.size}~${this.tile.normal[1].toFixed(4)}`;
+	}
+
+	updateHandles() {
+		for (var a=1; a<=4; a++) {
+			this.updateHandle(a);
+		}
+	}
+
+	updateHandle(handleNum) {
+		switch (handleNum) {
+			case 1:
+				this.handle1 = polToCart(this.tile.normal[0], 0, render_crosshairSize);
+				break;
+			case 2:
+				this.handle2 = [0, render_crosshairSize, 0];
+				break;
+			case 3:
+				this.handle3 = polToCart(this.tile.normal[0] + (Math.PI / 2), 0, render_crosshairSize);
+				break;
+			case 4:
+				this.handle4 = polToCart(this.tile.normal[0], this.tile.normal[1], this.tile.size * 0.5);
+				break;
+		}
 	}
 }
 
@@ -681,6 +727,7 @@ class SceneLine {
 		return `LIN~${this.x.toFixed(4)}~${this.y.toFixed(4)}~${this.endX.toFixed(4)}~${this.endY.toFixed(4)}`;
 	}
 }
+
 //acts as a light source, as the player normally would
 class SceneLight extends Scene3dObject {
 	constructor(x, y, z) {
