@@ -717,7 +717,7 @@ class PushableBox {
 		this.dz = 0;
 
 		this.box = new Tile_Box_Ringed(x, y, z, size, [(Math.PI * 2.5) - parent.theta, rot], parent);
-		this.houseState = loading_state;
+		this.houseState = undefined;
 	}
 
 	chooseParent() {
@@ -754,6 +754,10 @@ class PushableBox {
 		this.cameraDist = getDistance(this, world_camera);
 		this.playerDist = getDistance(this, player);
 		this.box.tick();
+
+		if (this.houseState == undefined) {
+			this.houseState = loading_state;
+		}
 
 		//collision if close enough
 		if (this.playerDist < render_maxColorDistance * 1.5) {
@@ -830,6 +834,10 @@ class PushableBox {
 		this.dx *= physics_boxFriction;
 		this.dy *= physics_boxFriction;
 		this.dz *= physics_boxFriction;
+	}
+
+	doComplexLighting() {
+		this.playerDist = getDistance_LightSource(this);
 	}
 
 	beDrawn() {
@@ -952,11 +960,6 @@ class Star {
 				var smearAmount = world_wormhole.arcAtRadius / Math.pow((wormDist / world_wormhole.drawR), 4);
 				var angle = Math.atan2(world_wormhole.screenPos[1] - tY, world_wormhole.screenPos[0] - tX) + Math.PI;
 
-				//correcting smear amount if it's too small to display the star correctly
-				if (smearAmount < 1) {
-					//length = pi2r * (2pi / )
-				}
-
 				//modify distance to be closer to 1 if inside the wormhole
 				if (wormDist < world_wormhole.drawR) {
 					wormDist *= Math.sqrt((world_wormhole.drawR / wormDist));
@@ -971,6 +974,43 @@ class Star {
 			}
 			drawCircle(this.color, tX, tY, this.drawR);
 		}
+	}
+}
+
+class Star_Special extends Star {
+	constructor(x, y, z) {
+		super(x, y, z);
+		this.color = color_star_special;
+		this.r = 8000;
+	}
+
+	beDrawn() {
+		var tempOpacity = ctx.globalAlpha;
+		ctx.globalAlpha = tempOpacity * 1.5;
+		if (!isClipped([this.x, this.y, this.z])) {
+			this.drawR = (this.r / getDistance(this, world_camera)) * world_camera.scale;
+			var screenPoint = spaceToScreen([this.x, this.y, this.z]);
+			var wormDist = getDistance2d(screenPoint, world_wormhole.screenPos);
+			if (wormDist < world_wormhole.drawR * world_wormhole.maxRadiusMult) {
+				//use radius to determine amount of smearing
+				var smearAmount = world_wormhole.arcAtRadius / Math.pow((wormDist / world_wormhole.drawR), 4);
+				var angle = Math.atan2(world_wormhole.screenPos[1] - screenPoint[1], world_wormhole.screenPos[0] - screenPoint[0]) + Math.PI;
+
+				//modify distance to be closer to 1 if inside the wormhole
+				if (wormDist < world_wormhole.drawR) {
+					wormDist *= Math.sqrt((world_wormhole.drawR / wormDist));
+				}
+				//figure out 
+				ctx.strokeStyle = this.color;
+				ctx.lineWidth = this.drawR * 2;
+				ctx.beginPath();
+				ctx.arc(world_wormhole.screenPos[0], world_wormhole.screenPos[1], wormDist, angle - smearAmount, angle + smearAmount);
+				ctx.stroke();
+				return;
+			}
+			drawCircle(this.color, screenPoint[0], screenPoint[1], this.drawR);
+		}
+		ctx.globalAlpha = tempOpacity;
 	}
 }
 
@@ -1168,7 +1208,7 @@ class Tunnel {
 
 		this.generate();
 		//stop rendering individual tiles when they're less than 1 unit per tile
-		this.maxTileRenderDist = Math.min(render_maxDistance, (this.tileSize / 4) * world_camera.scale);
+		this.maxTileRenderDist = Math.min(render_maxDistance, (this.tileSize * world_camera.scale) / render_minPolySize);
 
 		//map stuffies
 		this.map_startCoords = spaceToScreen([this.x, this.y, this.z]);
@@ -1199,7 +1239,7 @@ class Tunnel {
 		//corner clip check, various medium levels
 		if (spaceToRelativeRotless([this.x, this.y, this.z], [world_camera.x, world_camera.y, world_camera.z], [world_camera.theta, world_camera.phi])[2] + this.r > 0 || 
 		spaceToRelativeRotless(this.endPos, [world_camera.x, world_camera.y, world_camera.z], [world_camera.theta, world_camera.phi])[2] + this.r > 0) {
-			if (this.cameraDist < render_maxColorDistance + this.r) {
+			if (this.cameraDist < render_maxColorDistance + (this.r * 2.5)) {
 				this.beDrawn_HighDetail();
 				return;
 			}
@@ -1294,13 +1334,12 @@ class Tunnel {
 			return;
 		}
 		//figure out whether to do free objects in the center or not
-		var doFreeObjsHalfway = false;
+		var doFreeObjsHalfway = !this.coordinateIsInTunnel_Boundless(world_camera.x, world_camera.y, world_camera.z);
 		var drawPlayer = true;
 
 		//determine what the closest side is 
 		var relCameraPos = spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], [-1 * this.theta, this.phi]);
 		var closestSide = Math.floor((((Math.atan2(-relCameraPos[1], -relCameraPos[0]) + (Math.PI * 1.25)) / (Math.PI * 2)) % 1) * this.sides);
-		var closestStrip;
 		var trueSideStrip;
 		var centerStripOffset;
 		var nowDrawing;
@@ -1383,61 +1422,30 @@ class Tunnel {
 	}
 
 	beDrawn_HighDetail() {
+		//copy + modify from playerParent drawing
 		this.farPolys.forEach(f => {
 			f.beDrawn();
 		});
 
-		//copy + modify from playerParent
+		var tunnelSize = this.strips.length;
 		var tunnelStrip = getClosestObject(this.strips);
-		var trackL = tunnelStrip - Math.floor(this.strips.length / 2);
-		var trackR = tunnelStrip + Math.floor(this.strips.length / 2);
-		var stripsDrawn = 0;
-		
-		if (this.strips.length % 2 == 0) {
-			this.strips[(tunnelStrip + (this.strips.length / 2)) % this.strips.length].beDrawn();
-			stripsDrawn += 1;
-			trackL = tunnelStrip - ((this.strips.length / 2) - 1);
-			trackR = tunnelStrip + (this.strips.length / 2) - 1;
+		var freeObjsInMiddle = !this.coordinateIsInTunnel_Boundless(world_camera.x, world_camera.y, world_camera.z);
+
+		for (var n=tunnelSize; n>tunnelSize / 2; n--) {
+			this.strips[((tunnelStrip + (Math.floor(n / 2) * boolToSigned(n % 2 == 1))) + tunnelSize) % tunnelSize].beDrawn();
 		}
 
-
-		//tunnel part 1
-		while (stripsDrawn <= Math.floor(this.strips.length / 2)) {
-			if (stripsDrawn % 2 == 0) {
-				this.strips[trackR % this.strips.length].beDrawn();;
-				trackR -= 1;
-			} else {
-				this.strips[(trackL + this.strips.length) % this.strips.length].beDrawn();;
-				trackL += 1;
-			}
-			stripsDrawn += 1;
-		}
-
-		//if the camera is outside the tunnel do the hybrid approach. If not, do the normal way.
-		if (!this.coordinateIsInTunnel_Boundless(world_camera.x, world_camera.y, world_camera.z)) {
+		if (freeObjsInMiddle) {
 			this.freeObjs.forEach(f => {
 				f.beDrawn();
 			});
-			stripsDrawn += 1000;
 		}
 
-		//tunnel part 2
-		while (stripsDrawn < this.strips.length - 1 || (stripsDrawn > 999 && stripsDrawn < this.strips.length + 999)) {
-			if (stripsDrawn % 2 == 0) {
-				this.strips[trackR % this.strips.length].beDrawn();
-				trackR -= 1;
-			} else {
-				this.strips[(trackL + this.strips.length) % this.strips.length].beDrawn();;
-				trackL += 1;
-			}
-			stripsDrawn += 1;
+		for (var n=Math.floor(tunnelSize / 2); n>0; n--) {
+			this.strips[((tunnelStrip + (Math.floor(n / 2) * boolToSigned(n % 2 == 1))) + tunnelSize) % tunnelSize].beDrawn();
 		}
 
-		this.strips[tunnelStrip].beDrawn();
-		stripsDrawn += 1;
-
-		//if the free objects still aren't drawn, draw them
-		if (stripsDrawn == this.strips.length) {
+		if (!freeObjsInMiddle) {
 			this.freeObjs.forEach(f => {
 				f.beDrawn();
 			});
@@ -1555,9 +1563,13 @@ class Tunnel {
 		this.generateFarPolys();
 	}
 
+	//this function is a mess. It shoul probably be rewritten from scratch.
 	generateFarPolys() {
 		this.farPolys = [];
 		var actualPolyPoints = [];
+		//this is so the first strip has something to look at
+		this.farPolys[-1] = [];
+
 		//strip by strip
 		this.strips.forEach(s => {
 			//create bin for farPolys
@@ -1565,11 +1577,19 @@ class Tunnel {
 			if (s.realTiles[0] == undefined) {
 				return;
 			}
+
+			var lastBin = this.farPolys[this.farPolys.length-2];
+			var lastBinIndex = 0;
 			
 			var bin = this.farPolys[this.farPolys.length-1];
 			var lastIndex = s.tiles.indexOf(s.realTiles[0]);
+			
 			var polyRegister = [];
 			var minMax = [];
+
+			//merge controls
+			var possibleMerge = (lastBin.length > 0) && ((this.farPolys.length - 1) % this.tilesPerSide != 0);
+			var merged = false;
 
 			//start behavior
 			polyRegister.push(s.realTiles[0].points[0]);
@@ -1591,7 +1611,49 @@ class Tunnel {
 						minMax: minMax,
 						quarterPoint: polyRegister[3],
 					});
-					actualPolyPoints.push(polyRegister);
+					//do merge behavior
+					if (possibleMerge) {
+						merged = false;
+						var newPoly = bin[bin.length-1];
+						var oldPoly = lastBin[lastBinIndex];
+						var doneEarly = false;
+						//loop until has a polygon that matches up
+						while (oldPoly != undefined && oldPoly.minMax[0] <= newPoly.minMax[1] && !doneEarly) {
+							//if the polygon's max is greater / equal to old's min, it can be merged
+							if (oldPoly.minMax[1] >= newPoly.minMax[0]) {
+								merged = true;
+								//special case for if the mins / maxes are the same, otherwise simply add after quarter point
+								var quarterIndex = oldPoly.points.indexOf(oldPoly.quarterPoint) + 1;
+								//if the mins are the same, merge the lower points
+								if (oldPoly.minMax[0] == newPoly.minMax[0]) {
+									oldPoly.points.splice(quarterIndex, 1);
+								} else {
+									oldPoly.points.splice(quarterIndex, 0, newPoly.points[1]);
+								}
+								oldPoly.points.splice(quarterIndex, 0, newPoly.points[0]);
+								oldPoly.points.splice(quarterIndex, 0, newPoly.points[3]);
+								if (oldPoly.minMax[1] == newPoly.minMax[1]) {
+									oldPoly.points.splice(quarterIndex-1, 1);
+								} else {
+									oldPoly.points.splice(quarterIndex, 0, newPoly.points[2]);
+								}
+
+								//fill next object's row with the same
+								newPoly.points = oldPoly.points;
+								doneEarly = true;
+							} else {
+								//increment last polygon
+								lastBinIndex += 1;
+								oldPoly = lastBin[lastBinIndex];
+							}
+							
+						}
+					}
+
+					//if merged, don't add new array of points as it's already in there
+					if (!merged) {
+						actualPolyPoints.push(polyRegister);
+					}
 					polyRegister = [];
 					minMax = [];
 
@@ -1613,58 +1675,43 @@ class Tunnel {
 					minMax: minMax,
 					quarterPoint: polyRegister[3],
 				});
-				actualPolyPoints.push(polyRegister);
-			}
-		});
 
-
-		//this part is horribly inefficient, TODO: optimize later? I've convinced myself it's not a problem because it only happens when creating tunnels from scratch
-
-		//merging polygons
-		//loop through all strips
-		for (var s=1; s<this.farPolys.length; s++) {
-			if (this.farPolys[s].length > 0) {
-				var canMerge = (s % this.tilesPerSide != 0);
-				var nextPoly = 0;
-				var nextObj = this.farPolys[s][nextPoly];
-				//loop through all polygons in the last strip
-				for (var mergePoly=0; mergePoly<this.farPolys[s-1].length; mergePoly++) {
-					var mergeObj = this.farPolys[s-1][mergePoly];
-					//loop through all polygons in the current strip
-					//if the (current strip) polygon's min is greater than self's max, move on to the (last strip) next polygon.
-					while (nextObj != undefined && nextObj.minMax[0] <= mergeObj.minMax[1]) {
-						//if the polygon's max is greater / equal to self's min, it can be merged
-						if (nextObj.minMax[1] >= mergeObj.minMax[0] && canMerge) {
-							//special case for if the mins / maxes are the same, otherwise simply add after quarter point
-							var index = mergeObj.points.indexOf(mergeObj.quarterPoint) + 1;
-							//if the mins are the same, merge the lower points
-							if (mergeObj.minMax[0] == nextObj.minMax[0]) {
-								mergeObj.points.splice(index, 1);
+				//more merge behavior
+				if (possibleMerge) {
+					merged = false;
+					var newPoly = bin[bin.length-1];
+					var oldPoly = lastBin[lastBinIndex];
+					var doneEarly = false;
+					while (oldPoly != undefined && oldPoly.minMax[0] <= newPoly.minMax[1] && !doneEarly) {
+						if (oldPoly.minMax[1] >= newPoly.minMax[0]) {
+							merged = true;
+							var quarterIndex = oldPoly.points.indexOf(oldPoly.quarterPoint) + 1;
+							if (oldPoly.minMax[0] == newPoly.minMax[0]) {
+								oldPoly.points.splice(quarterIndex, 1);
 							} else {
-								mergeObj.points.splice(index, 0, nextObj.points[1]);
+								oldPoly.points.splice(quarterIndex, 0, newPoly.points[1]);
 							}
-							
-							mergeObj.points.splice(index, 0, nextObj.points[0]);
-							mergeObj.points.splice(index, 0, nextObj.points[3]);
-							if (mergeObj.minMax[1] == nextObj.minMax[1]) {
-								mergeObj.points.splice(index-1, 1);
+							oldPoly.points.splice(quarterIndex, 0, newPoly.points[0]);
+							oldPoly.points.splice(quarterIndex, 0, newPoly.points[3]);
+							if (oldPoly.minMax[1] == newPoly.minMax[1]) {
+								oldPoly.points.splice(quarterIndex-1, 1);
 							} else {
-								mergeObj.points.splice(index, 0, nextObj.points[2]);
+								oldPoly.points.splice(quarterIndex, 0, newPoly.points[2]);
 							}
-							
-
-							//remove object's merged points from the array
-							actualPolyPoints.splice(actualPolyPoints.indexOf(nextObj.points), 1);
-
-							//fill next object's row with the same
-							nextObj.points = mergeObj.points;
+							newPoly.points = oldPoly.points;
+							doneEarly = true;
+						} else {
+							lastBinIndex += 1;
+							oldPoly = lastBin[lastBinIndex];
 						}
-						nextPoly += 1;
-						nextObj = this.farPolys[s][nextPoly];
+						
 					}
 				}
+				if (!merged) {
+					actualPolyPoints.push(polyRegister);
+				}
 			}
-		}
+		});
 
 		//dereference the complex objects, then all that's left is the set of points from before. Turn those into FarPolys.
 		this.farPolys = [];
@@ -1791,6 +1838,8 @@ class Tunnel {
 			case 14: 
 				return new Tile_Box_Ringed(x, y, z, size, normal, this);
 			case 15:
+				return new Tile_Bright_Ringed(x, y, z, size, normal, this, color);
+			case 16:
 				return new Tile_Warning(x, y, z, size, normal, this);
 			default:
 				return undefined;
@@ -1798,7 +1847,7 @@ class Tunnel {
 	}
 
 	getCameraDist() {
-		var relPos = spaceToRelativeRotless([world_camera.targetX, world_camera.targetY, world_camera.targetZ], [this.x, this.y, this.z], [-1 * this.theta, 0]);
+		var relPos = spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], [-1 * this.theta, 0]);
 		if (relPos[2] > 0) {
 			relPos[2] = Math.max(relPos[2] - (this.tileSize * this.len) - tunnel_transitionLength, 0);
 		}
@@ -1836,7 +1885,8 @@ class Tunnel {
 		this.repairData();
 		output += tunnelData_parseDataReverse(this.data);
 
-		//functions
+		//power + functions
+		output += `|power~${this.power.toFixed(4)}`;
 
 		//banned characters
 		var reverseBanned = flipObject(this.bannedCharacters);
@@ -1875,6 +1925,7 @@ class Tunnel {
 		player.x = spawnObj.x + offsetCoords[0];
 		player.y = spawnObj.y + offsetCoords[1];
 		player.z = spawnObj.z + offsetCoords[2];
+		player.dz = 0;
 		this.playerTilePos = rotate(player.x - this.x, player.z - this.z, this.theta * -1)[1] / this.tileSize;
 
 		//character specfic stuff
@@ -2302,12 +2353,6 @@ class Tunnel_Strip {
 			if (t.playerDist < render_maxColorDistance + t.size || (t.size / t.cameraDist) * world_camera.scale > render_minTileSize) {
 				t.beDrawn();
 			}
-		});
-	}
-
-	collideWithEntity(entity) {
-		this.realTiles.forEach(r => {
-			r.collideWithEntity(entity);
 		});
 	}
 
