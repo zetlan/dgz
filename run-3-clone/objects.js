@@ -252,19 +252,30 @@ class Character {
 
 	collide() {
 		//get closest tunnel strip
-		var tunnelStrip = 0;
 
 		//get the closest strip
-		for (var a=0; a<this.parent.strips.length; a++) {
-			if (this.parent.strips[a].playerDist < this.parent.strips[tunnelStrip].playerDist) {
-				tunnelStrip = a;
+		var ref = this.parentPrev;
+		var relPos = spaceToRelativeRotless([this.x, this.y, this.z], [ref.x, ref.y, ref.z], [-1 * ref.theta, 0]);
+		var trueSideStrip = Math.floor((((Math.atan2(relPos[1], relPos[0]) + (Math.PI * (2 + (1 / ref.sides)))) / (Math.PI * 2)) % 1) * ref.sides);
+		trueSideStrip = modulate(trueSideStrip * ref.tilesPerSide, ref.sides * ref.tilesPerSide);
+		//center strip offset is the number of the strip that the camera is on top of
+		var centerStripOffset = Math.floor((spaceToRelativeRotless([this.x, this.y, this.z], [ref.strips[trueSideStrip].x, ref.strips[trueSideStrip].y, ref.strips[trueSideStrip].z], ref.strips[trueSideStrip].normal)[1] / ref.tileSize) + 0.5);
+		centerStripOffset = clamp(centerStripOffset + trueSideStrip, trueSideStrip, trueSideStrip + ref.tilesPerSide - 1);
+		//add in side by side strips and collide with them
+		//get the closest tile
+		var selfTile = Math.floor(relPos[2] / ref.tileSize);
+
+		for (var n=-1; n<2; n++) {
+			if (ref.strips[centerStripOffset].tiles[selfTile+n] != undefined) {
+				ref.strips[centerStripOffset].tiles[selfTile+n].collideWithEntity(this);
+			}
+			if (ref.strips[(centerStripOffset - 1 + ref.strips.length) % ref.strips.length].tiles[selfTile+n] != undefined) {
+				ref.strips[(centerStripOffset - 1 + ref.strips.length) % ref.strips.length].tiles[selfTile+n].collideWithEntity(this);
+			}
+			if (ref.strips[(centerStripOffset + 1) % ref.strips.length].tiles[selfTile+n] != undefined) {
+				ref.strips[(centerStripOffset + 1) % ref.strips.length].tiles[selfTile+n].collideWithEntity(this);
 			}
 		}
-
-		//add in side by side strips and collide with them
-		this.parent.strips[tunnelStrip].collideWithEntity(this);
-		this.parent.strips[(tunnelStrip - 1 + this.parent.strips.length) % this.parent.strips.length].collideWithEntity(this);
-		this.parent.strips[(tunnelStrip + 1) % this.parent.strips.length].collideWithEntity(this);
 	}
 
 	modifyDerivitives(activeGravity, activeFriction, naturalFriction, activeAX, activeAZ) {
@@ -324,8 +335,6 @@ class Character {
 
 			//TODO: this code is ugly and also probably slow. Refactor when / if possible
 			if (this.parent != undefined) {
-				//colliding with tiles
-				this.collide();
 				if (!this.parent.coordinateIsInTunnel_Bounded(this.x, this.y, this.z)) {
 					//if in the void, change physics
 					var voidStrength = spaceToRelativeRotless(this.parent.centerPos, [this.x, this.y, this.z], this.dir_down)[2] / this.parent.r;
@@ -336,7 +345,7 @@ class Character {
 							voidStrength *= 1.8;
 						}
 					}
-					this.modifyDerivitives(this.gravStrength * 0.7 * (voidStrength), 0.95 + (0.04 * (this.onGround <= 0)), this.naturalFriction, this.ax * 1.5, this.speed / 2);
+					this.modifyDerivitives(this.gravStrength * 0.7 * (voidStrength), 0.95 + (0.0501 * (this.onGround <= 0)), this.naturalFriction, this.ax * 1.5, this.speed / 2);
 					//void spin
 					this.textureRot += render_voidSpinSpeed;
 				} else {
@@ -358,9 +367,13 @@ class Character {
 			this.y += gravForce[1] + turnForce[1] + frontForce[1];
 			this.z += gravForce[2] + turnForce[2] + frontForce[2];
 
+			//colliding with tiles
+			this.collide();
+
 			//choose texture
 			this.chooseTexture();
 		}
+		this.collide();
 	}
 
 	beDrawn() {
@@ -921,23 +934,6 @@ class DuplicatorDuplicate extends Character {
 		this.dMax = 3.75;
 	}
 
-	collide() {
-		//get closest tunnel strip
-		var tunnelStrip = 0;
-
-		//get the closest strip
-		for (var a=0; a<this.parent.strips.length; a++) {
-			if (getDistance(this.parent.strips[a], this) < getDistance(this.parent.strips[tunnelStrip], this)) {
-				tunnelStrip = a;
-			}
-		}
-
-		//add in side by side strips and collide with them
-		this.parent.strips[tunnelStrip].collideWithEntity(this);
-		this.parent.strips[(tunnelStrip - 1 + this.parent.strips.length) % this.parent.strips.length].collideWithEntity(this);
-		this.parent.strips[(tunnelStrip + 1) % this.parent.strips.length].collideWithEntity(this);
-	}
-
 	setCameraPosition() {
 	}
 }
@@ -1224,6 +1220,10 @@ class Student extends Character {
 		this.doAbility = true;
 
 		this.dir_trueDown = this.dir_down;
+	}
+
+	tick() {
+		super.tick();
 	}
 
 	modifyDerivitives(activeGravity, activeFriction, naturalFriction, activeAX, activeAZ) {
