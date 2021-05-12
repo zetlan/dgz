@@ -276,6 +276,7 @@ class Character {
 				ref.strips[(centerStripOffset + 1) % ref.strips.length].tiles[selfTile+n].collideWithEntity(this);
 			}
 		}
+		haltRotation = false;
 	}
 
 	modifyDerivitives(activeGravity, activeFriction, naturalFriction, activeAX, activeAZ) {
@@ -373,7 +374,6 @@ class Character {
 			//choose texture
 			this.chooseTexture();
 		}
-		this.collide();
 	}
 
 	beDrawn() {
@@ -486,7 +486,6 @@ class Character {
 	turnAround() {
 		//switch direction and change down angle so the tiles are a w a r e
 		this.backwards = !this.backwards;
-		haltCollision = false;
 		this.dir_down = [this.dir_down[0], this.dir_down[1] + 0.02];
 	}
 
@@ -790,7 +789,7 @@ class Duplicator extends Character {
 		this.duplicates = [];
 		this.duplicatesMax = 10;
 		this.duplicatesMaxDistance = 900;
-		this.duplicateGenerationTime = 150;
+		this.duplicateGenerationTime = 140;
 		this.duplicateGenerationCountup = 0;
 	}
 
@@ -805,8 +804,16 @@ class Duplicator extends Character {
 		ctx.globalAlpha = 1;
 	}
 
+	updateDuplicateDirs() {
+		this.duplicates.forEach(d => {
+			d.dir_down = this.dir_down;
+			d.dir_side = this.dir_side;
+			d.dir_front = this.dir_front;
+		});
+	}
+
 	createDuplicate() {
-		var friend = new DuplicatorDuplicate(this.x, this.y, this.z);
+		var friend = new DuplicatorDuplicate(this.x, this.y, this.z, this);
 		//updating properties to function
 		friend.parent = this.parent;
 		friend.parentPrev = this.parentPrev;
@@ -819,6 +826,14 @@ class Duplicator extends Character {
 		friend.dir_side = this.dir_side;
 		friend.dir_front = this.dir_front;
 		this.duplicates.push(friend);
+	}
+
+	collide() {
+		var tempDir = this.dir_down;
+		super.collide();
+		if (this.dir_down != tempDir) {
+			this.updateDuplicateDirs();
+		}
 	}
 
 	//the duplicator has less of a window outside of the tunnel to work with
@@ -844,8 +859,7 @@ class Duplicator extends Character {
 		if (this.cameraDist < 1500) {
 			if (!editor_active) {
 				this.duplicateGenerationCountup += 1;
-			}
-			
+			}	
 
 			//if self has fallen out of the world, replace self with a duplicate
 			if (this.isOutOfParent()) {
@@ -888,6 +902,7 @@ class Duplicator extends Character {
 					if (this.parent != undefined) {
 						this.duplicates[d].parent = this.parent;
 					}
+					this.duplicates[d].parentPrev = this.parentPrev;
 					this.duplicates[d].ax = this.ax;
 					this.duplicates[d].tick();
 				}
@@ -895,7 +910,7 @@ class Duplicator extends Character {
 
 			
 			//creating new duplicates
-			if (this.duplicates.length < this.duplicatesMax && this.duplicateGenerationCountup % Math.floor(this.duplicateGenerationTime / this.parentPrev.power) == Math.floor(this.duplicateGnerationTime * 0.8)) {
+			if (this.duplicates.length < this.duplicatesMax && this.duplicateGenerationCountup % Math.floor(this.duplicateGenerationTime / this.parentPrev.power) == Math.floor(this.duplicateGenerationTime * 0.8)) {
 				this.createDuplicate();
 			}
 		}
@@ -925,13 +940,25 @@ class Duplicator extends Character {
 
 //no thoughts in this brian
 class DuplicatorDuplicate extends Character {
-	constructor(x, y, z) {
+	constructor(x, y, z, parentDuplicator) {
 		super(x, y, z, `Duplicator`);
 
 		this.jumpStrength = 3;
 		this.jumpBoostStrength = 0.095;
 		this.speed = 0.15;
 		this.dMax = 3.75;
+		this.trueDuplicator = parentDuplicator;
+	}
+
+	collide() {
+		var tempDir = this.dir_down;
+		super.collide();
+		if (this.dir_down != tempDir) {
+			this.trueDuplicator.dir_down = this.dir_down;
+			this.trueDuplicator.dir_side = this.dir_side;
+			this.trueDuplicator.dir_front = this.dir_front;
+			this.trueDuplicator.updateDuplicateDirs();
+		}
 	}
 
 	setCameraPosition() {
