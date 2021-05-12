@@ -41,8 +41,8 @@ class Tile extends FreePoly {
 		}
 		entity.dir_front = [(Math.PI * 2) - this.parent.theta + (Math.PI * player.backwards), 0];
 		entity.dir_side = [this.dir_right[0], this.dir_right[1] + (Math.PI * player.backwards)];
-		entity.dir_down[0] = this.dir_down[0];
-		entity.dir_down[1] = this.dir_down[1];
+		entity.dir_down = this.dir_down;
+		haltRotation = true;
 
 		//TODO: find a way to refactor the if/else out of this
 		if (player.backwards) {
@@ -73,14 +73,6 @@ class Tile extends FreePoly {
 					world_camera.rot += Math.PI * 2;
 				}
 			}
-			haltCollision = true;
-		}
-	}
-
-	collideWithEntity(entity) {
-		//only collide if player is within certain distance
-		if (this.playerDist < this.size * 2) {
-			super.collideWithEntity(entity);
 		}
 	}
 
@@ -166,7 +158,7 @@ class Tile_Box extends Tile {
 
 	collideWithEntity(entity) {
 		//only collide if within a certain distance of the player
-		if (this.playerDist < this.size * 3) {
+		if (getDistance(this, entity) < this.size * 3) {
 			//transforming player coordinates to self
 			var entityCoords = spaceToRelativeRotless([entity.x, entity.y, entity.z], [this.x, this.y, this.z], this.normal);
 
@@ -214,7 +206,7 @@ class Tile_Box extends Tile {
 
 		if (entityCoords[2] > 0) {
 			entityCoords[2] =  0.5 * this.size + this.tolerance;
-			if (Math.abs(entityCoords[2]) < this.size * 0.95 && !haltCollision && (entity.dir_down[0] != this.dir_down[0] || entity.dir_down[1] != this.dir_down[1])) {
+			if (Math.abs(entityCoords[2]) < this.size * 0.95 && !haltRotation && (entity.dir_down[0] != this.dir_down[0] || entity.dir_down[1] != this.dir_down[1])) {
 				this.doRotationEffects(entity);
 			}
 		} else {
@@ -229,14 +221,13 @@ class Tile_Box extends Tile {
 
 		//this solution is sort of hacky, but the box is already ridiculously laggy so I don't particularly care
 		if (entityCoords[1] > 0) {
-			if (Math.abs(entityCoords[1]) < this.size * 0.95 && !haltCollision && (entity.dir_down[0] != this.rightTile.dir_down[0] || entity.dir_down[1] != this.rightTile.dir_down[1])) {
+			if (Math.abs(entityCoords[1]) < this.size * 0.95 && !haltRotation && (entity.dir_down[0] != this.rightTile.dir_down[0] || entity.dir_down[1] != this.rightTile.dir_down[1])) {
 				this.rightTile.doRotationEffects(entity);
 			}
 			entityCoords[1] = 0.5 * this.size + this.tolerance;
 			return;
 		} 
-
-		if (Math.abs(entityCoords[1]) < this.size * 0.95 && !haltCollision && (entity.dir_down[0] != this.leftTile.dir_down[0] || entity.dir_down[1] != this.leftTile.dir_down[1])) {
+		if (Math.abs(entityCoords[1]) < this.size * 0.95 && !haltRotation && (entity.dir_down[0] != this.leftTile.dir_down[0] || entity.dir_down[1] != this.leftTile.dir_down[1])) {
 			this.leftTile.doRotationEffects(entity);
 		}
 		entityCoords[1] = -0.5 * this.size - this.tolerance;
@@ -287,22 +278,18 @@ class Tile_Box_Ringed extends Tile_Box {
 				//change order of ring / face depending on position
 				if (relCPos[1] <= this.size / 2) {
 					this.ringR.beDrawn();
-					//console.log("drawing right ring (before)");
 				}
 				drawWorldPoly([this.points[0], this.points[3], this.points[7], this.points[4]], color);
 				if (relCPos[1] > this.size / 2) {
 					this.ringR.beDrawn();
-					//console.log("drawing right ring (after)");
 				}
 			} else {
 				if (relCPos[1] >= this.size / -2) {
 					this.ringL.beDrawn();
-					//console.log("drawing left ring (before)");
 				}
 				drawWorldPoly([this.points[1], this.points[2], this.points[6], this.points[5]], color);
 				if (relCPos[1] < this.size / -2) {
 					this.ringL.beDrawn();
-					//console.log("drawing left ring (after)");
 				}
 			}
 			return;
@@ -571,7 +558,7 @@ class Tile_Crumbling extends Tile {
 
 	collideWithEntity(entity) {
 		//only do if large enough
-		if (this.activeSize > 0.01 && this.playerDist < this.size * 2) {
+		if (this.activeSize > 0.01 && getDistance(this, entity) < this.size * 2) {
 			super.collideWithEntity(entity);
 		}
 
