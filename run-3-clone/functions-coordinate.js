@@ -249,8 +249,7 @@ function relativeToSpaceRot(pointToTransform, point, normal) {
 }
 
 function rotate(x, z, radians) {
-	[x, z] = [(x * Math.cos(radians)) - (z * Math.sin(radians)), (z * Math.cos(radians)) + (x * Math.sin(radians))];
-	return [x, z];
+	return [(x * Math.cos(radians)) - (z * Math.sin(radians)), (z * Math.cos(radians)) + (x * Math.sin(radians))];;
 }
 
 //takes in a screen point, and returns the spot on the world that would get you that point at a certain Z;
