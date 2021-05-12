@@ -382,7 +382,7 @@ class FreePoly {
 				//inside the tunnel
 				entityCoords[2] = this.tolerance;
 				//r o t a t e   P D F
-				if (!haltCollision && (entity.dir_down[0] != this.dir_down[0] || entity.dir_down[1] != this.dir_down[1])) {
+				if (!haltRotation && (entity.dir_down[0] != this.dir_down[0] || entity.dir_down[1] != this.dir_down[1])) {
 					this.doRotationEffects(entity);
 				}
 
@@ -558,11 +558,8 @@ class OneTimeCutsceneTrigger {
 		if (winCondition) {
 			//put cutscene in the 'activated cutscenes' array
 			data_persistent.effectiveCutscenes.push(this.cutscene);
-			var newState = new State_Cutscene(eval(`cutsceneData_${this.cutscene}`));
-			if (this.immersive) {
-				newState.destinationState = loading_state;
-			}
-			loading_state = newState;
+			//sets the destination state to the current state if it's immersive
+			loading_state = new State_Cutscene(eval(`cutsceneData_${this.cutscene}`), this.immersive && loading_state)
 		}
 	}
 
@@ -724,7 +721,6 @@ class PushableBox {
 		var ref = this.box.parent;
 		var tunnelZ = spaceToRelativeRotless([this.x, this.y, this.z], [ref.x, ref.y, ref.z], [-1 * ref.theta, 0])[2]
 		if (tunnelZ > (ref.len * ref.tileSize) + tunnel_transitionLength || tunnelZ < 0) {
-			console.log("changing box parent (:");
 			this.box.parent = pickNewParent(this.box, this.box.parent);
 
 			ref.freeObjs.splice(ref.freeObjs.indexOf(this), 1);
@@ -985,8 +981,6 @@ class Star_Special extends Star {
 	}
 
 	beDrawn() {
-		var tempOpacity = ctx.globalAlpha;
-		ctx.globalAlpha = tempOpacity * 1.5;
 		if (!isClipped([this.x, this.y, this.z])) {
 			this.drawR = (this.r / getDistance(this, world_camera)) * world_camera.scale;
 			var screenPoint = spaceToScreen([this.x, this.y, this.z]);
@@ -1006,11 +1000,15 @@ class Star_Special extends Star {
 				ctx.beginPath();
 				ctx.arc(world_wormhole.screenPos[0], world_wormhole.screenPos[1], wormDist, angle - smearAmount, angle + smearAmount);
 				ctx.stroke();
+				ctx.lineWidth = this.drawR;
+				ctx.beginPath();
+				ctx.arc(world_wormhole.screenPos[0], world_wormhole.screenPos[1], wormDist, angle - smearAmount, angle + smearAmount);
+				ctx.stroke();
 				return;
 			}
 			drawCircle(this.color, screenPoint[0], screenPoint[1], this.drawR);
+			drawCircle(this.color, screenPoint[0], screenPoint[1], this.drawR / 2);
 		}
-		ctx.globalAlpha = tempOpacity;
 	}
 }
 
@@ -1084,11 +1082,7 @@ class StaticCharacter {
 		if (!data_persistent.effectiveCutscenes.includes(this.cutscene)) {
 			data_persistent.effectiveCutscenes.push(this.cutscene);
 		}
-		var newState = new State_Cutscene(eval(`cutsceneData_${this.cutscene}`));
-		if (this.immersive) {
-			newState.destinationState = loading_state;
-		}
-		loading_state = newState;
+		loading_state = new State_Cutscene(eval(`cutsceneData_${this.cutscene}`), this.immersive && loading_state);
 	}
 
 	placeSelf() {
@@ -1339,7 +1333,7 @@ class Tunnel {
 
 		//determine what the closest side is 
 		var relCameraPos = spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], [-1 * this.theta, this.phi]);
-		var closestSide = Math.floor((((Math.atan2(-relCameraPos[1], -relCameraPos[0]) + (Math.PI * 1.25)) / (Math.PI * 2)) % 1) * this.sides);
+		var closestSide = Math.floor((((Math.atan2(relCameraPos[1], relCameraPos[0]) + (Math.PI * (2 + (1 / this.sides)))) / (Math.PI * 2)) % 1) * this.sides);
 		var trueSideStrip;
 		var centerStripOffset;
 		var nowDrawing;
@@ -2106,7 +2100,6 @@ class Tunnel {
 			this.strips.forEach(s => {
 				s.tick();
 			});
-			haltCollision = false;
 
 			//handling functions
 			if (player.parent == this && this.functions.length > 0) {
