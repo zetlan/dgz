@@ -42,25 +42,27 @@ interface Floyd
 
 
 
-public class AdjMat implements AdjacencyMatrix, Warshall//,Floyd 
-{
+public class AdjMat implements AdjacencyMatrix, Warshall, Floyd {
    private int[][] grid = null;
-   private Map<String, Integer> vertices = null;   // name maps to index (for Warshall & Floyd)
-   ArrayList<String> nameList = null;  //reverses the map, index-->name
+   //maps name to index
+   private Map<String, Integer> vertices = null;
+   //list of names (can map index to name)
+   ArrayList<String> nameList = null;
+   //the cost at which going to a different node is impossible
+   private int stopCost = 9999;
 
    public AdjMat(int size) {
       this.grid = new int[size][size];
       //populate grid with 0s
       for (int column=0; column<this.grid.length; column++) {
          for (int row=0; row<this.grid[column].length; row++) {
-            this.grid[column][row] = 0;
+            this.grid[column][row] = this.stopCost;
          }
       }
    }
 
    //utility functions
-   //this is n^3, gotta throw the whole function away
-   //just kidding, don't do that, this is Warshall's algorithm
+   //warsaw
    public void allPairsReachability() {
       //loop through all cities
       for (int mid=0; mid<this.grid.length; mid++) {
@@ -79,6 +81,26 @@ public class AdjMat implements AdjacencyMatrix, Warshall//,Floyd
       }
    }
 
+   //pink
+   public void allPairsWeighted() {
+      //see above
+      //instead of appending a simple 0 or 1, append if the cost is low enough
+      for (int mid=0; mid<this.grid.length; mid++) {
+         for (int from=0; from<this.grid.length; from++) {
+            if (this.grid[from][mid] < this.stopCost) {
+               for (int to=0; to<this.grid.length; to++) {
+                  if (this.grid[mid][to] < this.stopCost) {
+                     //add costs together, cost can never go up
+                     if (this.grid[from][to] > this.grid[from][mid] + this.grid[mid][to]) {
+                        this.grid[from][to] = this.grid[from][mid] + this.grid[mid][to];
+                     }
+                  }
+               }
+            }
+         }
+      }
+   }
+
 
    //getters
    //returns the number of edges in the graph
@@ -86,8 +108,10 @@ public class AdjMat implements AdjacencyMatrix, Warshall//,Floyd
       int numEdges = 0;
       for (int a=0; a<this.grid.length; a++) {
          for (int b=0; b<this.grid[a].length; b++) {
-            //0 represents no edge, and the only other option is 1, so I can get away with this
-            numEdges += this.grid[a][b];
+            //stopCost represents no edge, 0 cost means links to self and doesn't count
+            if (this.grid[a][b] < this.stopCost && this.grid[a][b] != 0) {
+               numEdges += 1;
+            }
          }
       }
       return numEdges;
@@ -99,11 +123,23 @@ public class AdjMat implements AdjacencyMatrix, Warshall//,Floyd
       }
    }
 
+   //these only work with weighted graphs
+   public int getCost(int from, int to) {
+      return this.grid[from][to];
+   }
+
+   public int getCost(String from, String to) {
+      if (this.vertices == null) {
+         return this.stopCost;
+      }
+      return this.grid[this.vertices.get(from)][this.vertices.get(to)];
+   }
+
    public List<Integer> getNeighbors(int source) {
       //loop through the source line and add all neighbors to the list
       ArrayList<Integer> toReturn = new ArrayList<Integer>();
       for (int v=0; v<this.grid[source].length; v++) {
-         if (this.grid[source][v] == 1) {
+         if (this.grid[source][v] < this.stopCost) {
             //if there's a neighbor, add to the list
             toReturn.add(v);
          }
@@ -116,7 +152,7 @@ public class AdjMat implements AdjacencyMatrix, Warshall//,Floyd
       List<String> reachCities = new ArrayList<String>();
       int cityIndex = this.vertices.get(city);
       for (int u=0; u<this.grid.length; u++) {
-         if (this.grid[cityIndex][u] > 0) {
+         if (this.grid[cityIndex][u] < this.stopCost) {
             reachCities.add(this.nameList.get(u));
          }
       }
@@ -128,14 +164,14 @@ public class AdjMat implements AdjacencyMatrix, Warshall//,Floyd
    }
 
    public boolean isEdge(int node, int neighbor) {
-      return (this.grid[node][neighbor] == 1);
+      return (this.grid[node][neighbor] < this.stopCost);
    }
 
    public boolean isEdge(String cityName, String neighborName) {
       if (this.vertices == null) {
          return false;
       }
-      return (this.grid[this.vertices.get(cityName)][this.vertices.get(neighborName)] == 1);
+      return (this.grid[this.vertices.get(cityName)][this.vertices.get(neighborName)] < this.stopCost);
    }
 
    public String toString() {
@@ -143,7 +179,17 @@ public class AdjMat implements AdjacencyMatrix, Warshall//,Floyd
       //loop loop
       for (int a=0; a<this.grid.length; a++) {
          for (int b=0; b<this.grid[a].length; b++) {
-            finalStr += " " + this.grid[a][b];
+            //spacing correctly. 9999 is the max, so they're all capped at 5 spaces
+            if (this.grid[a][b] < 1000) {
+               finalStr += " ";
+            }
+            if (this.grid[a][b] < 100) {
+               finalStr += " ";
+            }
+            if (this.grid[a][b] < 10) {
+               finalStr += " ";
+            }
+            finalStr += "  " + this.grid[a][b];
          }
          finalStr += "\n";
       }
@@ -155,6 +201,7 @@ public class AdjMat implements AdjacencyMatrix, Warshall//,Floyd
 
 
    //setters
+   //these do not work with weighted graphs
    public void toggleEdge(int node, int neighborToToggle) {
       this.grid[node][neighborToToggle] = (this.grid[node][neighborToToggle] + 1) % 2;
    }
@@ -180,19 +227,8 @@ public class AdjMat implements AdjacencyMatrix, Warshall//,Floyd
       for (int n=0; n<num; n++) {
          String line = fileViewer.nextLine();
          String[] vals = line.split(" ");
-         //System.out.println("zero is zero: " + ("0" == "0"));
          for (int r=0; r<num; r++) {
-            /*I hate java so much. Why doesn't == work here? That was rhetorical, I don't care, it's stupid either way. 
-            I read a String "0" from the file, I compare it to a String "0", strings work with ==, but I can't compare the read value to the "0" with ==. this is a stupid language 
-            
-            I am not insulting the teachers or the course curriculum. However, this syntactical choice utterly confounds me, and the amount of frustration I experience from not being able to go 
-            == or array[0] or .push on everything, and having to instead always go .equals and .add and .get or .push or .set, it's so many functions for tons of slightly different syntax goodness gracious,
-            it makes me want to scream. I used to think there was a god but then I saw java, and I realized that at the very least if there is a god it is a vengeful one.*/
-            if (vals[r].equals("0")) {
-               this.grid[n][r] = 0;
-            } else {
-               this.grid[n][r] = 1;
-            }
+            this.grid[n][r] = Integer.parseInt(vals[r]);
          }
       }
    }
