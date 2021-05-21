@@ -64,10 +64,13 @@ const color_ice = "#D1E4E6";
 const color_keyPress = "#8FC";
 const color_keyUp = "#666";
 const color_map_bg = "#FEA";
+const color_map_bg_dark = "#DCC";
 const color_map_writing = "#010";
 const color_menuSelectionOutline = "#88F";
 const color_ring = "#FEEC00";
 const color_stars = "#44A";
+const color_star_special = "#88F";
+const color_star_wormhole = "#F88";
 const color_tape = "#5E6570";
 const color_text = "#424";
 const color_text_bright = "#FAF";
@@ -123,6 +126,18 @@ var data_audio = {
 	//sfx files
 	"Tone": new Audio('audio/Tone.ogg')
 }
+//[tunnel position of the box, data object, line, progress requirement]
+var data_bridgeBuilding = [
+	//required
+	["Box Storage Area, Part 6", challengeData_bridgeBuilding, 0, 0],
+	["Box Storage Area, Part 7", challengeData_bridgeBuilding, 9, 1],
+	["U-8", 					challengeData_bridgeBuilding, 17, 3],
+
+	//optional
+	["Box Storage Area, Part 1", challengeData_bridgeBuildingRunner, 0, 2],
+	["T-4", 					challengeData_bridgeBuildingRunner, 6, 3],
+	["M-4", 					challengeData_bridgeBuildingSkater, 0, 3]
+]
 var data_characters = {
 	indexes: [`Runner`, `Skater`, `Lizard`, `Bunny`, `Gentleman`, `Duplicator`, `Child`, `Pastafarian`, `Student`, `Angel`],
 	map: {"Runner": 0, "Skater": 1, "Lizard": 2, "Bunny": 3, "Gentleman": 4, "Duplicator": 5, "Child": 6, "Pastafarian": 7, "Student": 8, "Angel": 9},
@@ -274,8 +289,10 @@ var data_persistent = {
 	version: 1.1,
 	settings: {
 		altCamera: false,
-		altRender: false,
-		antiAlias: false,
+		/*I was debating for a while whether I wanted this to be true as a default. I decided on yes, because I want people to see the highest quality version 
+		of the rendering. If their computers can't handle it, they can always turn it off. */
+		altRender: true,
+		antiAlias: true,
 		enableOutlines: true,
 		highResolution: false,
 		maskCursor: false,
@@ -303,6 +320,7 @@ var data_sprites = {
 		batteryName: [[4, 0]],
 		onwards: [[5, 0], [6, 0]],
 		snowflakes: [[0, 1], [1, 1], [2, 1], [3, 1], [4, 1]],
+		boxes: [[0, 4], [1, 4]],
 	},
 
 	Angel: {
@@ -451,13 +469,10 @@ new CNode(-0.3351, -0.2068, 'comingThrough', [
 			new CNode(-0.1889, -0.0327, 'socraticMethod', [])
 		])
 	]), 
-	new CNode(-0.1777, -0.2619, 'grandOpening', [
-		new CNode(-0.1253, -0.3616, 'thanksForPlaytesting', [])
-	]), 
 	new CNode(-0.3887, -0.1369, 'batteries', []), 
 	new CNode(-0.4422, -0.1741, 'planetMissing', [
 		new CNode(-0.1074, -0.1399, 'planetStolen', [
-			new CNode(-0.1163, 0.0595, 'naming', []), 
+				new CNode(-0.1163, 0.0595, 'naming', []), 
 			new CNode(-0.0739, 0.1324, 'orbits', [])
 		])
 	]), 
@@ -472,20 +487,25 @@ new CNode(-0.3351, -0.2068, 'comingThrough', [
 		new CNode(0.0622, 0.0759, 'inflation', []), 
 		new CNode(0.2408, 0.0640, 'wormholeInSight', [
 			new CNode(0.2084, -0.2887, 'theGap', [
-				new CNode(0.2073, -0.4018, 'somethingWeird', [
+				new CNode(0.2007, -0.4135, 'somethingWeird', [
 					new CNode(0.2308, -0.4405, 'tellAFriend', [
-						new CNode(0.3390, -0.4658, 'lightningStrikesTwice', [
-							new CNode(0.4116, -0.4241, 'affliction', [
-								new CNode(0.4116, -0.4241, 'protip', [
-									new CNode(0.4618, -0.0759, 'dontQuestionIt', []),
+						new CNode(0.3233, -0.4647, 'lightningStrikesTwice', [
+							new CNode(0.3810, -0.4231, 'affliction', [
+								new CNode(-0.0360, -0.3061, 'revision', [
+									new CNode(-0.0336, -0.4087, 'grandOpening', [])
+								]), 
+								new CNode(0.3991, -0.4006, 'protip', [
+									new CNode(0.3582, -0.3702, 'leaveItHere', []), 
+									new CNode(0.4868, -0.3750, 'dontQuestionIt', []), 
 									new CNode(0.4462, -0.3006, 'crossingTheGap', [
+										new CNode(0.4976, -0.3253, 'skates', []), 
 										new CNode(0.4618, -0.0759, 'fame', []), 
 										new CNode(0.5812, -0.3080, 'truancy', []), 
 										new CNode(0.5380, -0.2634, 'morningHypothesis1', [
-											new CNode(0.5536, -0.2455, 'morningHypothesis2', [
-												new CNode(0.5714, -0.2277, 'morningHypothesis3', [
-													new CNode(0.5938, -0.2098, 'morningHypothesis4', [
-														new CNode(0.6172, -0.1905, 'morningHypothesis5', [])
+											new CNode(0.5536, -0.2334, 'morningHypothesis2', [
+												new CNode(0.5714, -0.2034, 'morningHypothesis3', [
+													new CNode(0.5938, -0.1734, 'morningHypothesis4', [
+														new CNode(0.6172, -0.1434, 'morningHypothesis5', [])
 													])
 												])
 											])
@@ -502,30 +522,33 @@ new CNode(-0.3351, -0.2068, 'comingThrough', [
 	new CNode(-0.3016, -0.3497, 'candy', [
 		new CNode(-0.3719, -0.4182, 'selfAssembly', [
 			new CNode(-0.4645, -0.4539, 'conspiracy', [])
-		]), 
-		new CNode(-0.1878, 0.1905, 'myTurn', [
-			new CNode(-0.0876, 0.4033, 'theNextBigThing', [
-				new CNode(-0.0664, 0.4449, 'youThink', [
-					new CNode(-0.0368, 0.4732, 'friendlyGreeting', [
-						new CNode(-0.0301, 0.5045, 'indecision', [
-							new CNode(-0.0290, 0.5342, 'standardsToUphold', [
-								new CNode(-0.0245, 0.5670, 'itsJustYou', [
-									new CNode(-0.0647, 0.5997, 'discoveries', [
-										new CNode(-0.2053, 0.5804, 'angelVsBunny', [
-											new CNode(-0.2924, 0.5565, 'ofCourse', []), 
-											new CNode(-0.2132, 0.6324, 'sneaking', []), 
-											new CNode(-0.1797, 0.5134, 'obvious', [
-												new CNode(-0.3147, 0.5342, 'boatRide', [
-													new CNode(-0.3739, 0.5060, 'fourthCondiment', [
-														new CNode(-0.5033, 0.5164, 'wait', [
-															new CNode(-0.4710, 0.4613, 'stopSolvingProblems', [
-																new CNode(-0.3024, 0.3601, 'ABCD', [])
-															]), 
-															new CNode(-0.5993, 0.4658, 'cantWait', [
-																new CNode(-0.4207, 0.3601, 'twoMonthWait1', [
-																	new CNode(-0.4553, 0.3363, 'twoMonthWait2', [
-																		new CNode(-0.4866, 0.3140, 'twoMonthWait3', [])
-																	])
+		])
+	]),
+	new CNode(-0.1878, 0.1905, 'myTurn', [
+		new CNode(-0.0876, 0.4033, 'theNextBigThing', [
+			new CNode(-0.0664, 0.4449, 'youThink', [
+				new CNode(-0.0368, 0.4732, 'friendlyGreeting', [
+					new CNode(-0.0301, 0.5045, 'indecision', [
+						new CNode(-0.0290, 0.5342, 'standardsToUphold', [
+							new CNode(-0.0245, 0.5670, 'itsJustYou', [
+								new CNode(-0.0647, 0.5997, 'discoveries', [
+									new CNode(-0.2053, 0.5804, 'angelVsBunny', [
+										new CNode(-0.2924, 0.5565, 'ofCourse', []), 
+										new CNode(-0.2132, 0.6324, 'sneaking', []), 
+										new CNode(-0.1797, 0.5134, 'obvious', [
+											new CNode(-0.3147, 0.5342, 'boatRide', [
+												new CNode(-0.3739, 0.5060, 'fourthCondiment', [
+													new CNode(-0.3870, 0.4054, 'superpowers', [
+														new CNode(-0.1253, -0.3616, 'thanksForPlaytesting', [])
+													]), 
+													new CNode(-0.5033, 0.5164, 'wait', [
+														new CNode(-0.4868, 0.4519, 'stopSolvingProblems', [
+															new CNode(-0.4086, 0.3718, 'ABCD', [])
+														]), 
+														new CNode(-0.6214, 0.4663, 'cantWait', [
+															new CNode(-0.4699, 0.3301, 'twoMonthWait1', [
+																new CNode(-0.5072, 0.3077, 'twoMonthWait2', [
+																	new CNode(-0.5493, 0.2821, 'twoMonthWait3', [])
 																])
 															])
 														])
@@ -542,13 +565,13 @@ new CNode(-0.3351, -0.2068, 'comingThrough', [
 			])
 		])
 	])
-]);
+])
 
 //for the map editor
 var editor_active = false;
 var editor_changingTheta = false;
 var editor_clickTolerance = 5;
-var editor_cutsceneSnapTolerance = 30;
+var editor_cutsceneSnapTolerance = 36;
 var editor_mapSnapTolerance = 5;
 var editor_thetaCircleRadius = 60;
 var editor_thetaKnobRadius = 10;
@@ -573,7 +596,8 @@ var editor_sliderMargin = 0.008;
 var editor_spawn = undefined;
 var editor_substateTravelSpeed = 0.07;
 var editor_topBarHeight = 0.12;
-var editor_tileSize = 0.025;
+var editor_tileSize = 0.02;
+var editor_triggerRibX = 0.0075;
 var editor_tunnelDefaultData = [[1, 1, 1, 1, 1], [1, 0, 1, 0, 1], [], [], [], [], [], [], [], [], [], [], [], [], [], []];
 var editor_warning = "Warning: Editor data does not save between sessions. If you want to save your data, make sure to export your world before closing the window.";
 var editor_warning_file = `the file you have entered has been detected at over 5000 lines long. 
@@ -613,14 +637,15 @@ var menu_buttonWidth = 0.25;
 var menu_buttonHeight = 0.06;
 var menu_characterCircleRadius = 0.3;
 var menu_characterSize = 30;
-var menu_characterTextTime = 140;
+var menu_characterTextTime = 160;
 var menu_characterTextWidth = 0.7;
-var menu_cutsceneParallax = 0.3;
+var menu_cutsceneParallax = 0.4;
+var menu_propertyHeight = 0.07;
 
 let page_animation;
 
-var physics_boxFriction = 0.95;
-var physics_boxMultiplier = 6.5;
+var physics_boxFriction = 0.96;
+var physics_boxMultiplier = 9;
 var physics_boxSidePush = 0.75;
 var physics_conveyorStrength = 0.05;
 var physics_crumblingShrinkStart = 50;
@@ -633,7 +658,7 @@ var physics_maxBridgeDistance = 350;
 
 let player;
 var player_radius = 18;
-var player_coyote = 6;
+var player_coyote = 12;
 var player_maxNameWidth = 0.28;
 
 var powercells_acquireDistance = player_radius * 6;
@@ -675,10 +700,12 @@ var tunnel_tileAssociation = {
 	"~rotatedZBox": 10, 
 	"~steepRamp": 11, 
 	"~ramp": 12, //ice ramp
-	"~movable": 13, 
-	"~movableBox": 14,
-	"~warning": 15,
-	"~battery": 16
+	"~warning": 13,
+
+	//movable tiles all start with 100 because. Just because.
+	"~movable": 101, 
+	"~movableGlow": 102,
+	"~movableBox": 109
 };
 var tunnel_translation = {
 	"0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9,
@@ -689,14 +716,33 @@ var tunnel_translation = {
 	"b": 50, "c": 51, "d": 52, "e": 53, "f": 54, "g": 55, "h": 56, "i": 57, "j": 58, "k": 59,
 	"l": 60, "m": 61, "n": 62, "o": 63,
 };
+var tunnel_validIndeces = {
+	0: true,
+	1: true,
+	2: true,
+	3: true,
+	4: true,
+	5: true,
+	6: true,
+	7: true,
+	8: true,
+	9: true,
+	10: true,
+	11: true,
+	12: true,
+	13: true,
+
+	101: true,
+	102: true,
+	109: true,
+}
 
 let world_camera;
 var world_pRandValue = 1.2532;
-var world_starDistance = 2300;
-var world_starNumber = 500;
 var world_time = 0;
 let world_lightObjects = [];
 let world_objects = [];
+var world_specialStar;
 let active_objects = [];
 let world_wormhole;
 var world_version = 1.1;
@@ -707,11 +753,16 @@ var render_crosshairSize = 10;
 var render_clipDistance = 0.1;
 var render_identicalPointTolerance = 0.0001;
 var render_maxColorDistance = 950;
-var render_maxDistance = 17000;
+var render_maxDistance = 25000;
 var render_minTileSize = 8;
+var render_minPolySize = 4;
 var render_ringSize = 18;
 var render_starOpacity = 0.6;
 var render_voidSpinSpeed = 0.04;
+
+let star_arr = [];
+var star_distance = 2300;
+var star_number = 500;
 
 var text_queue = [];
 var text_timeMax = 240;
@@ -722,10 +773,14 @@ data_characters.indexes.forEach(c => {
 	textures_common.push(new Texture(eval(`data_sprites.${c}.sheet`), data_sprites.spriteSize, 2, false, false, eval(`[data_sprites.${c}.back[0], data_sprites.${c}.front[0]]`)));
 });
 
+var times_holiday = undefined;
 var times_current = {};
 var times_past = {};
 
-var haltCollision = false;
+//misc variables I couldn't be bothered giving prefixes to
+var haltRotation = false;
+var drawPlayer = false;
+var deathCount = 0;
 
 
 
@@ -762,14 +817,22 @@ function setup() {
 	//setting up world
 	//as a reminder, tunnels are (x, y, z, angle, tile size, sides, tiles per sides, color, length, data)
 	world_objects = []; 
-	world_stars = [];
 
 	generateStarSphere();
 	generateAngelLines();
 	localStorage_read();
 
+	//seasons
+	var date = new Date();
+	if (date.getMonth() + 1 == 10 && date.getDate() == 31) {
+		star_arr.forEach(s => {
+			s.color = "#FC8";
+		});
+	}
+
 	//the wavy air
-	//navigator.mediaDevices.getUserMedia({speakers: true});
+	//navigator.mediaDevices.getUserMedia({audio: true});
+	
 	page_animation = window.requestAnimationFrame(main);
 }
 
@@ -803,10 +866,11 @@ function handleKeyPress(a) {
 			controls_shiftPressed = true;
 			break;
 		case 27:
+			
 			try {
 				loading_state.handleEscape();
 			} catch (er) {
-				console.log(`No escape function defined for the current game state peko`);
+				console.log(`No escape / invalid function defined for the current game state peko`);
 			}
 			break;
 		case 32:
@@ -1043,7 +1107,7 @@ function updateResolution() {
 	}
 
 	//updating star size
-	world_stars.forEach(w => {
+	star_arr.forEach(w => {
 		w.tick();
 	});
 }
@@ -1070,25 +1134,18 @@ function updateResolution() {
 	instanceof tests are SLOW! avoid them
 	increasing the length of an array is slow
 	forEach loops are approximately 3 times faster than for loops (107 ms vs 315 ms)
-
+	binary search is indeed, much faster than linear search. For an array of 300 elements, it is at least 20 times as fast.
 
 */
-function performanceTest1() {
-	var perfTime = [performance.now(), 0];
-	var storage = {
-		"1": 10,
-		"2": 16,
-		"3": 24,
-		"4": 58,
-		"5": 57,
-		"6": 852,
-	};
-	var sum = 0;
+function performanceTest() {
+	var perfTime = [0, 0];
+	var totalTime = 0;
+	perfTime = [performance.now(), 0];
 	for (var a=0; a<1000000; a++) {
-		sum += storage[Math.floor((Math.random() * 4) + 1)];
+		spaceToRelative([randomBounded(-10, 10), randomBounded(-10, 10), randomBounded(-10, 10)], [randomBounded(-10, 10), randomBounded(-10, 10), randomBounded(-10, 10)], [randomBounded(0, 6.28), randomBounded(Math.PI / -2, Math.PI / 2)]);
 	}
 
 	perfTime[1] = performance.now();
-	var totalTime = perfTime[1] - perfTime[0];
+	totalTime = perfTime[1] - perfTime[0];
 	console.log(`performance test took ${totalTime} ms`);
 }
