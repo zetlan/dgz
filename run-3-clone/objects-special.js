@@ -120,15 +120,12 @@ class CNode {
 			this.x = this.trueX + 0.5 - (((cursor_x - (canvas.width / 2)) / canvas.width) * menu_cutsceneParallax);
 			this.y = this.trueY + 0.5- (((cursor_y - (canvas.height / 2)) / canvas.height) * menu_cutsceneParallax);
 
-			if (Math.abs(cursor_x - (this.x * canvas.width)) < editor_handleRadius * 9 && Math.abs(cursor_y - (this.y * canvas.height)) < editor_handleRadius * 3) {
+			if (Math.abs(cursor_x - (this.x * canvas.width)) < editor_handleRadius * 9 && Math.abs(cursor_y - (this.y * canvas.height)) < editor_handleRadius * 2.375) {
 				this.time = linterp(this.time, 2, 0.15);
 			} else {
 				this.time = linterp(this.time, 1, 0.15);
 			}
 		}
-
-		
-		
 		
 		this.children.forEach(c => {
 			c.tick();
@@ -136,17 +133,27 @@ class CNode {
 	}
 
 	becomeSelected(tolerance) {
-		//if close enough, become selected
-		if (getDistance2d([this.x * canvas.width, this.y * canvas.height], [cursor_x, cursor_y]) < tolerance) {
-			return this;
-		}
-
+		var selfDistance = getDistance2d([this.x * canvas.width, this.y * canvas.height], [cursor_x, cursor_y]);
+		var childSelected = undefined;
 		//try selecting children
 		for (var c=0; c<this.children.length; c++) {
-			var testSelect = this.children[c].becomeSelected(tolerance);
+			var testSelect = this.children[c].becomeSelected(selfDistance);
 			if (testSelect != undefined) {
-				return testSelect;
+				childSelected = testSelect;
+				selfDistance = getDistance2d([testSelect.x * canvas.width, testSelect.y * canvas.height], [cursor_x, cursor_y]);
 			}
+		}
+		//if nothing's good, exit
+		if (selfDistance > tolerance) {
+			return undefined;
+		}
+
+		//if a child's been selected, return that. If not, return the self.
+		if (childSelected) {
+			return childSelected;
+		}
+		if (this.time > 1.02) {
+			return this;
 		}
 	}
 
@@ -442,8 +449,13 @@ class SceneTile extends Scene3dObject {
 		super(x, y, z);
 		this.type = type;
 		var ref = pickNewParent({x: this.x, y: this.y, z:this.z}, world_objects[0]);
-		this.tile = ref.generateTile(this.type, x, y, z, size, [(Math.PI * 1.5) - ref.theta, rot], ref.color, 0, 0);
-		this.updateHandles();
+		try {
+			this.tile = ref.generateTile(this.type, x, y, z, size, [(Math.PI * 1.5) - ref.theta, rot], ref.color, 0, 0);
+			this.updateHandles();
+		} catch (error) {
+			console.error(`couldn't generate tile with properties - ${x}~${y}~${z}~${this.type}~${rot}`);
+		}
+		
 	}
 
 	beDrawn() {
@@ -544,9 +556,9 @@ class SceneTile extends Scene3dObject {
 			case 5:
 				//tile type
 				//this is just lazy input, but I'm trusting people for the most part.
-				var result = prompt("Please enter a new tile type (positive integer between 1 and 16, inclusive)", this.type);
-				while (!isValidString(result) || result * 1 < 0 || result * 1 > 16 || result % 1 != 0) {
-					result = prompt("That is not a valid number. Please enter a positive integer between 1 and 16, inclusive");
+				var result = prompt("Please enter a new tile type (positive integer 1-13, 101, 102, or 109)", this.type);
+				while (!isValidString(result) || tunnel_validIndeces[result] == undefined || result == "0") {
+					result = prompt("That is not a valid number. Please enter a positive integer between 1 and 13, 101, 102, or 109");
 				}
 				this.type = result * 1;
 				//update tile type
@@ -1424,11 +1436,16 @@ class PropertySlider {
 	}
 
 	beDrawn() {
+		var propertyValue = eval(this.property);
+		var displayValue = propertyValue;
+		if (this.snapTo % 1 != 0) {
+			displayValue = displayValue.toFixed(2);
+		}
 		//text
 		ctx.fillStyle = color_text_bright;
-		ctx.font = `${canvas.height / 36}px Comfortaa`;
+		ctx.font = `${canvas.height / 40}px Comfortaa`;
 		ctx.textAlign = "left";
-		ctx.fillText(this.label, canvas.width * this.x, (canvas.height * this.y) + (canvas.height / 108));
+		ctx.fillText(`${this.label} (${displayValue})`, canvas.width * this.x, (canvas.height * this.y) + (canvas.height / 108));
 
 
 
@@ -1439,7 +1456,7 @@ class PropertySlider {
 		ctx.moveTo(canvas.width * (this.x + this.textSpace), canvas.height * this.y);
 		ctx.lineTo(canvas.width * (this.x + this.width), canvas.height * this.y);
 		ctx.stroke();
-		drawCircle(color_grey_light, canvas.width * (this.x + this.textSpace + (getPercentage(this.min, this.max, eval(this.property)) * (this.width - this.textSpace))), canvas.height * this.y, 4);
+		drawCircle(color_grey_light, canvas.width * (this.x + this.textSpace + (getPercentage(this.min, this.max, propertyValue) * (this.width - this.textSpace))), canvas.height * this.y, 4);
 		//drawCircle(color_grey_light, canvas.width * (this.x + this.textSpace), canvas.height * this.y, 4);
 		ctx.stroke();
 	}
