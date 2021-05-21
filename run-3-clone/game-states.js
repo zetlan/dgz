@@ -21,7 +21,7 @@ class State_World {
 		}
 
 		//audio slider
-		this.audioSlider = new PropertySlider(0.4, 0.85, 0.2, 0.14, "vol", `audio_channel1.volume = value; audio_channel2.volume = value;`, `audio_channel1.volume`, 0, 1, 0.01, false);
+		this.audioSlider = new PropertySlider(0.39, 0.85, 0.22, 0.13, "vol", `audio_channel1.volume = value; audio_channel2.volume = value;`, `audio_channel1.volume`, 0, 1, 0.01, false);
 	}
 
 	execute() {
@@ -44,6 +44,11 @@ class State_World {
 				} else {
 					//if the player isn't in a tunnel, try to get them in one
 					this.changePlayerParentOfficial();
+				}
+
+				//order entire world if camera is too far away from the player
+				if (player.cameraDist > render_maxColorDistance && world_time % 10 == 2) {
+					this.orderWorld();
 				}
 
 				//every once in a while, order the near objects
@@ -70,7 +75,8 @@ class State_World {
 
 				//GUI
 				if (editor_active) {
-					drawCrosshair();
+					var center = polToCart(world_camera.theta, world_camera.phi, 5);
+					drawCrosshair([center[0] + world_camera.x, center[1] + world_camera.y, center[2] + world_camera.z]);
 				}
 				drawKeys();
 
@@ -105,7 +111,7 @@ class State_World {
 				ctx.lineWidth = canvas.height / 240;
 				ctx.fillStyle = color_grey_lightest;
 				ctx.strokeStyle = color_menuSelectionOutline;
-				drawRoundedRectangle((canvas.width * 0.5) - (canvas.width * 0.11), (canvas.height * 0.85) - (canvas.height * 0.03), canvas.width * 0.22, canvas.height * 0.06, canvas.width * 0.02);
+				drawRoundedRectangle((canvas.width * 0.5) - (canvas.width * 0.12), (canvas.height * 0.85) - (canvas.height * 0.03), canvas.width * 0.24, canvas.height * 0.06, canvas.width * 0.02);
 
 				//audio slider
 				this.audioSlider.beDrawn();
@@ -158,7 +164,7 @@ class State_World {
 
 					//draw lock if locked
 					if (!data_persistent.unlocked.includes(data_characters.indexes[c])) {
-						drawCharacterLock(targetX, targetY, menu_characterSize * 0.7, menu_characterSize * 0.7);
+						drawLock(targetX, targetY, menu_characterSize * 0.7, menu_characterSize * 0.7);
 					}
 				}
 				break;
@@ -172,7 +178,13 @@ class State_World {
 		}
 		player.parent = newParent;
 		player.parentPrev = player.parent;
-		newParent.resetWithoutPlayer();
+
+		//reset all nearby objects if they're a pastafarian
+		if (player.constructor.name == "Pastafarian") {
+			this.nearObjs.forEach(t => {
+				t.resetWithoutPlayer();
+			});
+		}
 		this.orderWorld();
 	}
 
@@ -287,10 +299,9 @@ class State_World {
 		this.readFrom.forEach(v => {
 			//get camera distance, then sort
 			v.getCameraDist();
-			if (v.cameraDist > render_maxDistance * 1.01) {
+			if (v.cameraDist > render_maxDistance) {
 				this.farObjs.push(v);
 			} else {
-				
 				this.nearObjs.push(v);
 			}
 		});
@@ -340,6 +351,8 @@ class State_Challenge extends State_World {
 	constructor(data, startLine) {
 		super();
 		this.readFrom = world_objects;
+
+		this.codeOnExit = ``;
 		
 
 		this.data = data;
@@ -350,7 +363,7 @@ class State_Challenge extends State_World {
 		this.addTextToQueue();
 
 		//place player
-		this.oldPlayerType = data_characters.indexes(player.constructor.name);	
+		this.oldPlayerType = data_characters.map[player.constructor.name];
 		this.targetParent = getObjectFromID(this.data[this.line].level);
 		this.placePlayer();
 	}
@@ -377,8 +390,10 @@ class State_Challenge extends State_World {
 				eval(l);
 			});
 		}
+	}
 
-		//if the next line exists, do that as well (but only the first part)
+	doTunnelStartEffects_Next() {
+		//if the next line exists, do that as well (but only if the line allows it)
 		if (this.data[this.line+1] != undefined) {
 			if (this.data[this.line+1].startCode != undefined) {
 				eval(this.data[this.line+1].startCode.split("|")[0]);
@@ -389,7 +404,7 @@ class State_Challenge extends State_World {
 	lineIsComplete() {
 		//regular case
 		if (this.data[this.line].endCode == undefined) {
-			return chalCondition_isComplete();
+			return challenge_isComplete();
 		}
 
 		//case of having different conditionals
@@ -413,27 +428,41 @@ class State_Challenge extends State_World {
 			}
 			return;
 		}
-		
-		super.execute();
 
 		if (this.lineIsComplete()) {
 			this.updateLine();
+			return;
 		}
+		
+		super.execute();
+	}
+
+	handleEscape() {
+		if (this.substate == 1) {
+			replacePlayer(this.oldPlayerType);
+			eval(this.codeOnExit);
+		}
+		super.handleEscape();
 	}
 
 	handlePlayerDeath() {
 		//if off the end of the tunnel but not out of the tunnel, count the tunnel as completed
 		if (player.parentPrev.coordinateIsInTunnel_Boundless(player.x, player.y, player.z)) {
-			player.parentPrev.resetWithoutPlayer();
-			this.updateLine();
-			return;
+			//don't complete if there's an extra end code
+			if (this.data[this.line].endCode == undefined || eval(this.data[this.line].endCode)) {
+				player.parentPrev.resetWithoutPlayer();
+				this.updateLine();
+				return;
+			}
 		}
 
+		
 		super.handlePlayerDeath();
 		this.doTunnelStartEffects();
+		this.doTunnelStartEffects_Next();
 	}
 
-	//so that the chalConditions can access it
+	//so that the challenge functions can access it
 	handlePlayerDeath_SUPER() {
 		super.handlePlayerDeath();
 	}
@@ -443,8 +472,11 @@ class State_Challenge extends State_World {
 		player.parent = this.targetParent;
 		player.parentPrev = player.parent;
 		player.backwards = this.data[this.line].backwards;
+		player.dz = 0;
 		player.parent.reset();
 		player.tick();
+
+		
 
 		world_camera.x = world_camera.targetX;
 		world_camera.y = world_camera.targetY;
@@ -455,6 +487,7 @@ class State_Challenge extends State_World {
 		this.textTime = tunnel_textTime;
 		this.orderWorld();
 		this.doTunnelStartEffects();
+		this.doTunnelStartEffects_Next();
 	}
 
 	updateLine() {
@@ -473,18 +506,18 @@ class State_Challenge extends State_World {
 		if (player.parentPrev != this.targetParent || player.backwards != this.data[this.line].backwards) {
 			this.substate = 2;
 			return;
-		} else {
-			this.addTextToQueue();
 		}
-		this.doTunnelStartEffects();
+		this.addTextToQueue();
+		this.doTunnelStartEffects_Next();
 	}
 }
 
 
 class State_Cutscene extends State_World {
-	constructor(data) {
+	constructor(data, optionalExitState) {
 		super();
-		player.drawR = 0;
+		this.playerStore = player;
+		player = new Runner(0, -10000, 0);
 		this.parentControlsAudio = false;
 		//if there's no data, make sure there is data
 		if (data == undefined) {
@@ -517,7 +550,7 @@ class State_Cutscene extends State_World {
 		this.objs3d = [
 			`new SceneLight(world_camera.x + polToCart(world_camera.theta, world_camera.phi, 5)[0], world_camera.y + polToCart(world_camera.theta, world_camera.phi, 5)[1], world_camera.z + polToCart(world_camera.theta, world_camera.phi, 5)[2])`,
 			`new ScenePowercell(world_camera.x + polToCart(world_camera.theta, world_camera.phi, 5)[0], world_camera.y + polToCart(world_camera.theta, world_camera.phi, 5)[1], world_camera.z + polToCart(world_camera.theta, world_camera.phi, 5)[2])`,
-			`new SceneBoxRinged(world_camera.x + polToCart(world_camera.theta, world_camera.phi, 5)[0], world_camera.y + polToCart(world_camera.theta, world_camera.phi, 5)[1], world_camera.z + polToCart(world_camera.theta, world_camera.phi, 5)[2], 100, 0)`,
+			`new SceneTile(world_camera.x + polToCart(world_camera.theta, world_camera.phi, 5)[0], world_camera.y + polToCart(world_camera.theta, world_camera.phi, 5)[1], world_camera.z + polToCart(world_camera.theta, world_camera.phi, 5)[2], 1, 100, 0)`,
 			`new SceneBoat(world_camera.x + polToCart(world_camera.theta, world_camera.phi, 5)[0], world_camera.y + polToCart(world_camera.theta, world_camera.phi, 5)[1], world_camera.z + polToCart(world_camera.theta, world_camera.phi, 5)[2], 0, 0)`
 		];
 
@@ -534,7 +567,7 @@ class State_Cutscene extends State_World {
 			}
 		}
 		this.doSidebar = true;
-		this.destinationState = new State_Map();
+		this.destinationState = optionalExitState || new State_Map();
 		this.allowDebug = false;
 		this.debugButton = new PropertyButton(0.74, 0.95, 0.25, 0.05, "toggle editor", "editor_active = !editor_active;");
 		this.skipping = false;
@@ -581,7 +614,7 @@ class State_Cutscene extends State_World {
 		COD - code block		code
 
 		POW - powercell			x~y~z 
-		3BR - ringed box		x~y~z~size~rot
+		3TL - tile				x~y~z~type~size~rot
 		3BT - boat				x~y~z~theta~phi
 		
 		*/
@@ -623,8 +656,8 @@ class State_Cutscene extends State_World {
 				case "POW":
 					objData.push(new ScenePowercell(s[1] * 1, s[2] * 1, s[3] * 1, s[4]));
 					break;
-				case "3BR":
-					objData.push(new SceneBoxRinged(s[1] * 1, s[2] * 1, s[3] * 1, s[4] * 1, s[5] * 1));
+				case "3TL":
+					objData.push(new SceneTile(s[1] * 1, s[2] * 1, s[3] * 1, s[4] * 1, s[5] * 1, s[6] * 1));
 					break;
 				case "3BT":
 					objData.push(new SceneBoat(s[1] * 1, s[2] * 1, s[3] * 1, s[4] * 1, s[5] * 1));
@@ -651,6 +684,11 @@ class State_Cutscene extends State_World {
 	}
 
 	execute() {
+		//a frame less than 0 is the exit code
+		if (this.frame < 0) {
+			this.exit();
+			return;
+		}
 		//'background' objects
 		drawSky(color_bg);
 		this.farObjs.forEach(f => {
@@ -743,6 +781,7 @@ class State_Cutscene extends State_World {
 	}
 
 	exit() {
+		player = this.playerStore;
 		loading_state = this.destinationState;
 		try {
 			loading_state.doWorldEffects();
@@ -952,7 +991,7 @@ var outputString = `{
 	updateFrame() {
 		//if data is undefined, exit
 		if (this.ref.frames[this.frame] == undefined) {
-			this.exit();
+			this.frame = -1;
 			return;
 		}
 
@@ -1016,6 +1055,7 @@ class State_Game extends State_World {
 	doWorldEffects() {
 		world_camera.targetTheta = player.dir_front[0];
 		world_camera.targetPhi = 0;
+		world_camera.targetRot = (player.dir_down[1] + (Math.PI * 1.5)) % (Math.PI * 2);
 		player.setCameraPosition();
 		world_camera.snapToTargets();
 	}
@@ -1037,7 +1077,6 @@ class State_Game extends State_World {
 			newParent.calculateBackwardsAllow();
 			if (!newParent.allowBackwards) {
 				player.backwards = false;
-				console.log("new parent doesn't allow it");
 			}
 			
 
@@ -1094,6 +1133,7 @@ class State_Infinite extends State_World {
 		this.drawEnding = true;
 
 		//game stuff
+		this.lastPlayerPos = [undefined, 0];
 		this.data = levelData_infinite.split("\n");
 		this.lastTunnelLine = -1;
 		this.objs = [];
@@ -1139,13 +1179,10 @@ class State_Infinite extends State_World {
 		player.backwards = false;
 
 		for (var a=0; a<9; a++) {
-			loading_state.addTunnel();
+			this.addTunnel();
 		}
-		loading_state.placePlayer();
-
-		setTimeout(() => {
-			loading_state.orderWorld();
-		}, 100);
+		this.placePlayer();
+		this.orderWorld();
 	}
 
 	placePlayer() {
@@ -1166,10 +1203,6 @@ class State_Infinite extends State_World {
 			time: 0
 		};
 		this.charactersUsed.push(player.constructor.name);
-
-		player.parent.strips.forEach(s => {
-			s.collideWithEntity(player);
-		});
 	}
 
 	pushScoreToLeaderboard() {
@@ -1198,9 +1231,22 @@ class State_Infinite extends State_World {
 		switch (this.substate) {
 			case 0:
 				//update run data
-				this.distance += player.dz / 30;
+				//calculate distance
+				var newPlayerPos = [player.x - player.parentPrev.x, player.z - player.parentPrev.z];
+				newPlayerPos = rotate(newPlayerPos[0], newPlayerPos[1], player.parentPrev.theta * -1);
+
+				//ignore if crossing tunnels
+				if (this.lastPlayerPos[0] == player.parentPrev) {
+					//disregard x, z is the distance, and there are 30 units in a meter
+					var difference = Math.abs(this.lastPlayerPos[1] - newPlayerPos[1]);
+					this.distance += difference / 30;
+					this.characterData[player.constructor.name].distance += difference / 30;
+				}
+				this.lastPlayerPos[0] = player.parentPrev;
+				this.lastPlayerPos[1] = newPlayerPos[1];
+				
+				//calculate time
 				this.time += 1;
-				this.characterData[player.constructor.name].distance += player.dz / 30;
 				this.characterData[player.constructor.name].time += 1;
 
 				super.execute();
@@ -1385,10 +1431,11 @@ class State_Map {
 			new MapTexture(63112, -149194, [data_sprites.Map.snowflakes[3]], undefined, `getObjectFromID("Winter Games, Part 11").discovered`),
 			new MapTexture(46575, -126244, [data_sprites.Map.snowflakes[4]], undefined, `getObjectFromID("Winter Games, Part 7").discovered`),
 		];
+		this.boxIcon_lower = new Texture(data_sprites.Map.sheet, data_sprites.spriteSize * 2, 1e1001, false, false, [data_sprites.Map.boxes[1]]);
+		this.boxIcon_tunnel = new Texture(data_sprites.Map.sheet, data_sprites.spriteSize * 2, 1e1001, false, false, [data_sprites.Map.boxes[0]]);
 		this.readFrom = loading_state.readFrom;
 		this.dir_held = false;
 		this.substate = 0;
-		this.angelPanelTime = 0;
 		this.angelPanelSpeed = 0;
 
 		this.mouseDownZ;
@@ -1424,26 +1471,15 @@ class State_Map {
 
 	execute() {
 		world_camera.tick();
-
-		if (this.mouseDownZ != undefined) {
-			world_camera.targetZ += this.mouseChangeZ;
-			world_camera.targetZ = clamp(world_camera.targetZ, (-2 * map_shift) + map_zOffset, (2 * map_shift) + map_zOffset);
-			world_camera.z = world_camera.targetZ;
-
-			if (!cursor_down) {
-				this.mouseChangeZ = Math.floor(this.mouseChangeZ * 0.9);
-				if (Math.abs(this.mouseChangeZ) < 15) {
-					this.mouseDownZ = undefined;
-				}
-			} else {
-				this.mouseChangeZ *= 0.85;
-			}
-		}
 		
 		//store camera pos
 		map_zStorage = world_camera.z;
 		//draw sky
-		drawSky(color_map_bg);
+		if (this.substate < 2) {
+			drawSky(color_map_bg);
+		} else {
+			drawSky(color_map_bg_dark);
+		}
 
 		//draw world objects
 		ctx.lineWidth = canvas.height / 480;
@@ -1466,9 +1502,38 @@ class State_Map {
 			ctx.ellipse(orbitCoords[0], orbitCoords[1], editor_thetaCircleRadius * multiplier, editor_thetaCircleRadius * multiplier, 0, 0, Math.PI * 2);
 			ctx.stroke();
 		}
+
+
+		//game state specific things
+		if (this.substate != 2) {
+			if (this.mouseDownZ != undefined) {
+				world_camera.targetZ += this.mouseChangeZ;
+				world_camera.targetZ = clamp(world_camera.targetZ, (-2 * map_shift) + map_zOffset, (2 * map_shift) + map_zOffset);
+				world_camera.z = world_camera.targetZ;
+	
+				if (!cursor_down) {
+					this.mouseChangeZ = Math.floor(this.mouseChangeZ * 0.9);
+					if (Math.abs(this.mouseChangeZ) < 15) {
+						this.mouseDownZ = undefined;
+					}
+				} else {
+					this.mouseChangeZ *= 0.85;
+				}
+			}
+
+			//angel going home panel
+			if (data_persistent.goingHomeProgress != undefined) {
+				this.substate += this.angelPanelSpeed;
+				if (this.substate > 1 || this.substate < 0) {
+					this.substate = clamp(this.substate, 0, 1);
+					this.angelPanelSpeed = 0;
+				}
+				drawAngelPanel(this.substate);
+			}
+		}
 		
 
-		var fontSize = Math.floor(canvas.height / 24);
+		var fontSize = Math.floor(canvas.height / 22);
 		ctx.font = `${fontSize}px Comfortaa`;
 		ctx.textAlign = "center";
 
@@ -1509,14 +1574,25 @@ class State_Map {
 			ctx.fillText(this.objSelected.id, canvas.width * 0.5, canvas.height * 0.1);
 		}
 
-		//angel going home panel
-		if (data_persistent.goingHomeProgress != undefined) {
-			this.angelPanelTime += this.angelPanelSpeed;
-			if (this.angelPanelTime > 1 || this.angelPanelTime < 0) {
-				this.angelPanelTime = clamp(this.angelPanelTime, 0, 1);
-				this.angelPanelSpeed = 0;
+		//box drawings
+		if (data_persistent.bridgeBuildingProgress != undefined) {
+			this.boxIcon_lower.beDrawn(canvas.width * 0.95, canvas.height * 0.94, 0, canvas.height * 0.125);
+			if (this.substate == 2) {
+				//draw all visible boxes
+				ctx.font = `${Math.floor(canvas.height / 50)}px Permanent Marker`;
+				ctx.fillStyle = color_cutsceneBox;
+				var ref = undefined;
+				var tnRef = undefined;
+				for (var k=0; k<data_bridgeBuilding.length; k++) {
+					ref = data_bridgeBuilding[k];
+					if (data_persistent.bridgeBuildingProgress >= ref[3]) {
+						tnRef = getObjectFromID(ref[0]);
+						this.boxIcon_tunnel.beDrawn(tnRef.map_circleCoords[0], tnRef.map_circleCoords[1], 0, canvas.height / 30);
+						ctx.fillText(`box ${k+1}`, tnRef.map_circleCoords[0] + (canvas.height / 20), tnRef.map_circleCoords[1] + (canvas.height / 50));
+					}
+					
+				}
 			}
-			drawAngelPanel(this.angelPanelTime);
 		}
 	}
 
@@ -1530,45 +1606,24 @@ class State_Map {
 		//update cursor position
 		updateCursorPos(a);
 
-		//going home checklist things
-		if (data_persistent.goingHomeProgress != undefined) {
-			//flip note up
-			if (this.angelPanelTime < 0.04 && cursor_x > canvas.width * checklist_margin && cursor_x < canvas.width * (checklist_margin + checklist_width) && cursor_y > canvas.height * 0.95) {
-				this.angelPanelSpeed = checklist_speed;
+		//box things
+		if (data_persistent.bridgeBuildingProgress != undefined) {
+			if (this.handleMD_Box() == 31) {
 				return;
 			}
+		}
+		if (this.substate == 2) {
+			return;
+		}
 
-			//flip note down
-			if (this.angelPanelTime > 0.96) {
-				//flip note down
-				if (cursor_x > canvas.width * checklist_margin && cursor_x < canvas.width * (checklist_margin + checklist_width) && 
-				cursor_y > canvas.height * (1 - checklist_height) && cursor_y < canvas.height * (1.05 - checklist_height)) {
-					this.angelPanelSpeed = -1 * checklist_speed;
-					return;
-				}
-
-				//button
-				if (data_persistent.goingHomeProgress < challengeData_angelMissions.length) {
-					checklist_searchButton.handleClick();
-					return;
-				}
-
-				for (var a=1; a<data_angelChecklist.length; a++) {
-					var midY = canvas.height * ((1 - checklist_height) + ((a+2) * (checklist_height / (data_angelChecklist.length + 2))));
-					var minX = canvas.width * (checklist_margin + (checklist_width / 5) - (checklist_width / 25));
-					var maxX = canvas.width * (checklist_margin + checklist_width - (checklist_width / 10));
-
-					if (cursor_x > minX && cursor_x < maxX && cursor_y > midY - (canvas.height / 50) && cursor_y < midY + (canvas.height / 50)) {
-						if (data_angelChecklist[a][4] != undefined) {
-							loading_state = new State_Challenge(challengeData_angelMissions, data_angelChecklist[a][4]);
-						}
-						return;
-					}
-				}
+		//going home checklist things
+		if (data_persistent.goingHomeProgress != undefined) {
+			if (this.handleMD_Angel() == 31) {
+				return;
 			}
 		}
 
-		if (this.objSelected == undefined) {
+		if (this.objSelected == undefined && !editor_active) {
 			//if clicked just over the map, select z pos
 			this.mouseDownZ = screenToSpace([cursor_x, cursor_y], world_camera.y)[2];
 		}
@@ -1584,8 +1639,85 @@ class State_Map {
 		}
 	}
 
+	handleMD_Angel() {
+		//flip note up
+		if (this.substate < 0.04 && cursor_x > canvas.width * checklist_margin && cursor_x < canvas.width * (checklist_margin + checklist_width) && cursor_y > canvas.height * 0.95) {
+			this.angelPanelSpeed = checklist_speed;
+			return 31;
+		}
+
+		//flip note down
+		if (this.substate > 0.96) {
+			//flip note down
+			if (cursor_x > canvas.width * checklist_margin && cursor_x < canvas.width * (checklist_margin + checklist_width) && 
+			cursor_y > canvas.height * (1 - checklist_height) && cursor_y < canvas.height * (1.05 - checklist_height)) {
+				this.angelPanelSpeed = -1 * checklist_speed;
+				return 31;
+			}
+
+			//button
+			if (data_persistent.goingHomeProgress < challengeData_angelMissions.length) {
+				checklist_searchButton.handleClick();
+				return 31;
+			}
+
+			for (var a=1; a<data_angelChecklist.length; a++) {
+				var midY = canvas.height * ((1 - checklist_height) + ((a+2) * (checklist_height / (data_angelChecklist.length + 2))));
+				var minX = canvas.width * (checklist_margin + (checklist_width / 5) - (checklist_width / 25));
+				var maxX = canvas.width * (checklist_margin + checklist_width - (checklist_width / 10));
+
+				if (cursor_x > minX && cursor_x < maxX && cursor_y > midY - (canvas.height / 50) && cursor_y < midY + (canvas.height / 50)) {
+					if (data_angelChecklist[a][4] != undefined) {
+						loading_state = new State_Challenge(challengeData_angelMissions, data_angelChecklist[a][4]);
+					}
+					return 31;
+				}
+			}
+		}
+	}
+
+	handleMD_Box() {
+		//toggling substate
+		if (cursor_x > canvas.width * 0.88 && cursor_y > canvas.height * 0.85) {
+			//flip substate between 0 and 2 when clicked
+			this.substate = (this.substate != 2) * 2;
+
+			if (this.substate == 2) {
+				//center camera on overworld
+				world_camera.targetZ = map_zOffset;
+
+				//de-select things
+				this.objSelected = undefined;
+				this.cursorPos = [-100, -100];
+			}
+			return;
+		}
+
+		if (this.substate == 2) {
+			//try to enter challenge mode of the boxes
+			var minDistStorage = [cursor_hoverTolerance, -1];
+			var tnRef;
+			for (var k=0; k<data_bridgeBuilding.length; k++) {
+				if (data_persistent.bridgeBuildingProgress >= data_bridgeBuilding[k][3]) {
+					tnRef = getObjectFromID(data_bridgeBuilding[k][0]);
+					if (getDistance2d(tnRef.map_circleCoords, [cursor_x, cursor_y]) < minDistStorage[0]) {
+						minDistStorage = [getDistance2d(tnRef.map_circleCoords, [cursor_x, cursor_y]), k];
+					}
+				}
+			}
+
+			if (minDistStorage[1] != -1) {
+				loading_state = new State_Challenge(data_bridgeBuilding[minDistStorage[1]][1], data_bridgeBuilding[minDistStorage[1]][2]);
+			}
+		}
+	}
+
 	handleMouseMove(a) {
 		updateCursorPos(a);
+
+		if (this.substate == 2) {
+			return;
+		}
 
 		//if the cursor's down, move map
 		if (this.mouseDownZ != undefined && cursor_down) {
@@ -1600,7 +1732,7 @@ class State_Map {
 			this.cursorPos = [-100, -100];
 			if (data_persistent.goingHomeProgress != undefined) {
 				//if cursor is on the note, don't select an object
-				if (this.angelPanelTime > 0 && cursor_x > canvas.width * checklist_margin && cursor_x < canvas.width * (checklist_margin + checklist_width) && cursor_y > canvas.height * (1 - checklist_height)) {
+				if (this.substate > 0 && cursor_x > canvas.width * checklist_margin && cursor_x < canvas.width * (checklist_margin + checklist_width) && cursor_y > canvas.height * (1 - checklist_height)) {
 					return;
 				}
 			}
@@ -1621,6 +1753,9 @@ class State_Map {
 	handleKeyPress(a) {
 		if (editor_active) {
 			handleKeyPress_camera(a);
+		}
+		if (this.substate == 2) {
+			return;
 		}
 		if (!this.dir_held) {
 			switch (a.keyCode) {
@@ -1693,16 +1828,16 @@ class State_Menu {
 
 		//settings for settings menu
 		this.settings = [
-			new PropertySlider(0.05, 0.15, 0.4, 0.2, 'music volume', `audio_channel1.volume = value;`, `audio_channel1.volume`, 0, 1, 0.01, false),
-			new PropertySlider(0.05, 0.25, 0.4, 0.2, 'effects volume', `audio_channel2.volume = value;`, `audio_channel2.volume`, 0, 1, 0.01, false),
+			new PropertySlider(0.05, 0.15 + (0 * menu_propertyHeight), 0.4, 0.2, 'music volume', `audio_channel1.volume = value;`, `audio_channel1.volume`, 0, 1, 0.01, false),
+			new PropertySlider(0.05, 0.15 + (1 * menu_propertyHeight), 0.4, 0.2, 'effects volume', `audio_channel2.volume = value;`, `audio_channel2.volume`, 0, 1, 0.01, false),
 
-			new PropertyToggle(0.05, 0.45, 0.4, `high resolution`, `data_persistent.settings.highResolution`),
-			new PropertyToggle(0.05, 0.55, 0.4, `anti-aliasing for sprites`, `data_persistent.settings.antiAlias`),
-			new PropertyToggle(0.05, 0.65, 0.4, `precise tunnel rendering`, `data_persistent.settings.altRender`),
-			new PropertyToggle(0.05, 0.75, 0.4, `alternate camera rotation`, `data_persistent.settings.altCamera`),
-			new PropertyToggle(0.05, 0.85, 0.4, `polygon outlines in editor`, `data_persistent.settings.enableOutlines`),
+			new PropertyToggle(0.05, 0.15 + (3 * menu_propertyHeight), 0.4, `high resolution`, `data_persistent.settings.highResolution`),
+			new PropertyToggle(0.05, 0.15 + (4 * menu_propertyHeight), 0.4, `anti-aliasing for sprites`, `data_persistent.settings.antiAlias`),
+			new PropertyToggle(0.05, 0.15 + (5 * menu_propertyHeight), 0.4, `precise tunnel rendering`, `data_persistent.settings.altRender`),
+			new PropertyToggle(0.05, 0.15 + (6 * menu_propertyHeight), 0.4, `alternate camera rotation`, `data_persistent.settings.altCamera`),
+			new PropertyToggle(0.05, 0.15 + (7 * menu_propertyHeight), 0.4, `polygon outlines in editor`, `data_persistent.settings.enableOutlines`),
 
-			new PropertyToggle(0.525, 0.15, 0.4, `contain mouse inputs to canvas`, `data_persistent.settings.maskCursor`),
+			new PropertyToggle(0.525, 0.15 + (0 * menu_propertyHeight), 0.4, `contain mouse inputs to canvas`, `data_persistent.settings.maskCursor`),
 
 		];
 		this.buttons = [
@@ -1773,7 +1908,7 @@ class State_Menu {
 					textures_common[h].frame = 0 + (modularDifference(this.displayCharacterSelected, h, data_characters.indexes.length) < 0.5 && data_persistent.unlocked.includes(data_characters.indexes[h]));
 					textures_common[h].beDrawn((canvas.width * 0.5) + offX, (canvas.height * 0.5) + offY + menu_characterSize, 0, menu_characterSize * 1.7);
 					if (!data_persistent.unlocked.includes(data_characters.indexes[h])) {
-						drawCharacterLock((canvas.width * 0.5) + offX, (canvas.height * 0.5) + offY + (menu_characterSize * 0.75), menu_characterSize, menu_characterSize);
+						drawLock((canvas.width * 0.5) + offX, (canvas.height * 0.5) + offY + (menu_characterSize * 0.75), menu_characterSize, menu_characterSize);
 					}
 				}
 
@@ -1907,18 +2042,26 @@ class State_Menu {
 				for (var h=0; h<data_characters.indexes.length; h++) {
 					var posX = (canvas.width * 0.5) + (menu_characterCircleRadius * canvas.height * Math.cos((Math.PI * 2 * (1 / data_characters.indexes.length) * h) - (Math.PI * 0.5)));
 					var posY = (canvas.height * 0.5) + menu_characterSize + (menu_characterCircleRadius * canvas.height * Math.sin((Math.PI * 2 * (1 / data_characters.indexes.length) * h) - (Math.PI * 0.5)));
-
+					var charRef = data_characters.indexes[h];
 					//selection box
 					if (cursor_x > posX - menu_characterSize && cursor_x < posX + menu_characterSize &&
 					cursor_y > posY - menu_characterSize && cursor_y < posY + menu_characterSize &&
-					data_persistent.unlocked.includes(data_characters.indexes[h])) {
-						if (this.characterSelected == h || this.characterTextTime != undefined) {
-							//if the character is already selected, display their text box
+					data_persistent.unlocked.includes(charRef)) {
+						//if the character is already selected, display their text box
+						if (this.characterSelected == h) {
+							var text = data_characters[charRef].text;
+							if (this.characterTextTime != undefined) {
+								//if the text is already being displayed, switch to a different text
+								text = data_characters[charRef].trivia[Math.floor(randomBounded(0, data_characters[charRef].trivia.length-0.01))];
+							}
+							
 							this.characterTextTime = menu_characterTextTime;
-							this.characterTextObj = new SceneText(0.5, 0.75, menu_characterTextWidth / 2.02, 1 / 35, data_characters[data_characters.indexes[h]].text, true);
+							this.characterTextObj = new SceneText(0.5, 0.75, menu_characterTextWidth / 2.02, 1 / 35, text, true);
+						} else {
+							this.characterTextTime = undefined;
 						}
 						this.characterSelected = h;
-						player = eval(`new ${data_characters.indexes[h]}(0, 0, 0)`);
+						player = eval(`new ${charRef}(0, 0, 0)`);
 						if (Math.abs(this.characterSelected - this.displayCharacterSelected) > data_characters.indexes.length / 2) {
 							if (this.characterSelected < this.displayCharacterSelected) {
 								this.displayCharacterSelected -= data_characters.indexes.length;
@@ -1953,13 +2096,12 @@ class State_Menu {
 			case 3:
 				//try to select a cutscene node
 				this.nodeSelected = undefined;
-				this.nodeSelected = data_cutsceneTree.becomeSelected(editor_cutsceneSnapTolerance);
+				this.nodeSelected = data_cutsceneTree.becomeSelected(canvas.height / 10);
 				//cutscene viewer
 				if (!editor_active) {
 					//activating cutscene
 					if (this.nodeSelected != undefined) {
-						loading_state = new State_Cutscene(this.nodeSelected.cutsceneRef);
-						loading_state.destinationState = this;
+						loading_state = new State_Cutscene(this.nodeSelected.cutsceneRef, this);
 						loading_state.readFrom = world_objects;
 						loading_state.orderWorld();
 					}
