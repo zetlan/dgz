@@ -331,6 +331,57 @@ class Boat {
 
 
 
+class CustomCutsceneTrigger {
+	constructor() {
+
+	}
+}
+//one-time class, if I ever add more triggers I'll do more of these
+class CutsceneTrigger_NoJumpWithChar extends CustomCutsceneTrigger {
+	constructor(tunnel, charactersNameArr, cutscene) {
+		super();
+		this.parent = tunnel;
+		this.charactersArr = charactersNameArr;
+		this.cutscene = cutscene;
+
+		this.cameraDist = 1000;
+
+		this.validCondition = true;
+	}
+
+	tick() {
+		//only work if player isn't backwards and is in the array
+		if (!player.backwards && player.parentPrev == this.parent && this.charactersArr.includes(player.constructor.name)) {
+			//if the player has passed the finish without failing, they've done it
+			if (this.parent.playerTilePos > this.parent.len && this.validCondition) {
+				activateCutsceneFromTunnel(1, this.cutscene, 1);
+			}
+			//reset player if stopped
+			if (player.dz == 0 || player.dz - player.az == 0) {
+				this.validCondition = true;
+			}
+
+			//cause player to fail
+			if (player.dy > 0) {
+				this.validCondition = false;
+			}
+		}
+	}
+
+	beDrawn() {
+
+	}
+
+	doComplexLighting() {
+
+	}
+
+	getCameraDist() {
+
+	}
+}
+
+
 
 
 class FreePoly {
@@ -360,11 +411,6 @@ class FreePoly {
 		var cross = [(v1[1] * v2[2]) - (v1[2] * v2[1]), (v1[2] * v2[0]) - (v1[0] * v2[2]), (v1[0] * v2[1]) - (v1[1] * v2[0])];
 		
 		cross = cartToPol(cross[0], cross[1], cross[2]);
-		
-		//checking for alignment with camera
-		// if (spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], [cross[0], cross[1]])[2] < 0) {
-		// 	cross[0] = (cross[0] + Math.PI) % (Math.PI * 2);
-		// }
 		this.normal = [cross[0], cross[1]];
 	}
 
@@ -381,19 +427,9 @@ class FreePoly {
 			} else {
 				//inside the tunnel
 				entityCoords[2] = this.tolerance;
-				//r o t a t e   P D F
-				if (!haltRotation && (entity.dir_down[0] != this.dir_down[0] || entity.dir_down[1] != this.dir_down[1])) {
-					this.doRotationEffects(entity);
-				}
 
 				//special collision effects in general
 				this.doCollisionEffects(entity);
-
-				//slow entity down if the movement has jumped them too far
-				//var temp = entityCoords[2];
-				//if (Math.abs(temp - entityCoords[2]) >= entity.r * 0.3 && Math.abs(entityCoords[0]) > this.size / 4 && Math.abs(entityCoords[1] > this.size / 4)) {
-				//	entity.dz *= 1 - (Math.abs(temp - entityCoords[2]) / player.r);
-				//}
 			}
 
 			//transforming back to regular coordinates
@@ -402,18 +438,21 @@ class FreePoly {
 	}
 
 	doCollisionEffects(entity) {
-		entity.onGround = physics_graceTime;
-		entity.onIce = false;
+		//filled out in tile class
 	}
 
 	doComplexLighting() {
 		this.playerDist = getDistance_LightSource(this);
 	}
 
+	doRotationEffects(entity) {
+		//filled out in tile class
+	}
+
 	//clips self and returns an array with two polygons, clipped at the input plane.
 	//always returns [polygon inside plane, polgyon outside plane]
 	//if self polygon does not intersect the plane, then one of the two return values will be undefined.
-	clipAtPlane(planePoint, planeNormal) {
+	/*clipAtPlane(planePoint, planeNormal) {
 		var inPart = undefined;
 		var outPart = undefined;
 
@@ -465,7 +504,7 @@ class FreePoly {
 			}
 		}
 		return [inPart, outPart];
-	}
+	}*/
 
 	tick() {
 		this.getCameraDist();
@@ -486,7 +525,46 @@ class FreePoly {
 			ctx.lineWidth = 1;
 			ctx.strokeStyle = color_editor_cursor;
 			ctx.stroke();
+
+			var offset = polToCart(this.normal[0], this.normal[1], render_crosshairSize);
+			drawWorldLine([this.x, this.y, this.z], [this.x + offset[0], this.y + offset[1], this.z + offset[2]]);
 		}
+	}
+}
+
+class FreePoly_Vertical extends FreePoly {
+	constructor(points, color) {
+		super(points, color);
+		this.calculateNormal();
+		this.calculateCollisionPoints();
+	}
+
+	calculateCollisionPoints() {
+		this.collisionPoints = [];
+		this.points.forEach(p => {
+			var coordinate = spaceToRelativeRotless(p, [this.x, this.y, this.z], this.normal);
+			this.collisionPoints.push([coordinate[0] * 1.05, coordinate[1] * 1.05]);
+		});
+	}
+
+	collideWithEntity(entity) {
+		//vertical freePolys are expected to collide with the player and have irregular shapes. Because of this, 2d polygon checking is useful.
+		var entityCoords = spaceToRelativeRotless([entity.x, entity.y, entity.z], [this.x, this.y, this.z], this.normal);
+
+		if (Math.abs(entityCoords[2]) < this.tolerance && inPoly(entityCoords, this.collisionPoints)) {
+			if (entityCoords[2] < 0) {
+				entityCoords[2] = -1 * this.tolerance;
+			} else {
+				entityCoords[2] = this.tolerance;
+			}
+			this.doCollisionEffects(entity);
+			[entity.x, entity.y, entity.z] = relativeToSpace(entityCoords, [this.x, this.y, this.z], this.normal);
+		}
+	}
+
+	doCollisionEffects(entity) {
+		entity.dz = 0;
+		entity.onIce = false;
 	}
 }
 
@@ -585,7 +663,9 @@ class Powercell {
 		this.normalSpin = [randomBounded(-powercells_spinSpeed, powercells_spinSpeed), randomBounded(-powercells_spinSpeed, powercells_spinSpeed)];
 		this.calculatePoints();
 
-		this.pushForce = polToCart(-1 * this.parent.theta, 0, 0.3);
+
+		this.speed = 1.3;
+		this.pushForce = polToCart(-1 * this.parent.theta, 0, this.speed);
 		this.friction = 0.89;
 		
 		this.playerDist = 1000;
@@ -602,12 +682,46 @@ class Powercell {
 		}
 	}
 
+	changePushForce() {
+		//friction
+		this.pushForce[0] *= this.friction;
+		this.pushForce[1] *= this.friction;
+		this.pushForce[2] *= this.friction;
+
+		//player attraction
+		if (this.succ) {
+			this.pushForce[0] += ((player.x - this.x) / this.playerDist) * 2.3;
+			this.pushForce[1] += ((player.y - this.y) / this.playerDist) * 2.3;
+			this.pushForce[2] += ((player.z - this.z) / this.playerDist) * 2.3;
+			return;
+		}
+
+		//correcting for outside of tunnel
+		if (!this.parent.coordinateIsInTunnel_Boundless(this.x, this.y, this.z)) {
+			var relPos = dirToTunnelCenter(this.parent, this.speed * (1 - this.friction) * -4, this.x, this.y, this.z);
+			this.pushForce[0] += relPos[0];
+			this.pushForce[1] += relPos[1];
+			this.pushForce[2] += relPos[2];
+		}
+
+		var target = polToCart(-1 * this.parent.theta, 0, this.speed * (1 - this.friction));
+		this.pushForce[0] += target[0];
+		this.pushForce[1] += target[1];
+		this.pushForce[2] += target[2];
+	}
+
 	doComplexLighting() {
 		this.playerDist = getDistance_LightSource(this);
 	}
 
 	tick() {
 		this.playerDist = getDistance(this, player);
+		//if player is a duplicator
+		if (player.duplicates != undefined) {
+			player.duplicates.forEach(d => {
+				this.playerDist = Math.min(getDistance(this, d), this.playerDist);
+			});
+		}
 		this.cameraDist = getDistance(this, world_camera);
 		this.normal[0] += this.normalSpin[0];
 		this.normal[1] += this.normalSpin[1];
@@ -650,26 +764,21 @@ class Powercell {
 						}
 					}
 				}
-
-				if (this.succ) {
-					//changing force
-					this.pushForce[0] *= this.friction;
-					this.pushForce[1] *= this.friction;
-					this.pushForce[2] *= this.friction;
-					
-					this.pushForce[0] += ((player.x - this.x) / this.playerDist) * 2.3;
-					this.pushForce[1] += ((player.y - this.y) / this.playerDist) * 2.3;
-					this.pushForce[2] += ((player.z - this.z) / this.playerDist) * 2.3;
-				}
+				this.changePushForce();
 				
 				//moving along tunnel
 				this.x += this.pushForce[0];
 				this.y += this.pushForce[1];
 				this.z += this.pushForce[2];
 
-				//if off the edge of the tunnel, put self back and set force to net 0
-				if (spaceToRelativeRotless([this.x, this.y, this.z], this.parent.endPos, [(Math.PI * 2) - this.parent.theta, 0])[2] > 0) {
-					this.pushForce = [0, 0, 0];
+				//if off the edge of the tunnel, move into next tunnel
+				if (spaceToRelativeRotless([this.x, this.y, this.z], this.parent.endPos, [-this.parent.theta, 0])[2] > tunnel_transitionLength) {
+					var ref = this.parent;
+					this.parent = pickNewParent(this, this.parent);
+					if (ref != this.parent) {
+						ref.freeObjs.splice(ref.freeObjs.indexOf(this), 1);
+						this.parent.freeObjs.push(this);
+					}
 				}
 			}
 		}
@@ -726,6 +835,9 @@ class PushableBox {
 			ref.freeObjs.splice(ref.freeObjs.indexOf(this), 1);
 			this.box.parent.freeObjs.push(this);
 			this.box.normal[0] = (Math.PI * 2.5) - this.box.parent.theta;
+
+			//decrease dz based on normal change
+			this.dz *= (Math.cos(ref.theta - this.box.parent.theta) + 0.3) / 1.3;
 		}
 	}
 	
@@ -778,6 +890,18 @@ class PushableBox {
 					if (Math.abs(relPos[0]) > (this.box.size - player.r) / 2) {
 						this.dz = player.dz * physics_boxMultiplier * boolToSigned(relPos[0] > 0);
 						player.dz *= 0.03125;
+
+						//if player's moving away from the box, make the push smaller
+						var pZOff = polToCart(player.dir_front[0], player.dir_front[1], player.dz);
+						var playerMoved = [player.x + pZOff[0], player.y + pZOff[1], player.z + pZOff[2]];
+						if (getDistancePoint([this.x, this.y, this.z], playerMoved) > getDistancePoint([this.x, this.y, this.z], [player.x, player.y, player.z])) {
+							this.dz /= 4;
+							player.dz *= 8;
+						}
+
+						//also cap dz
+						this.dz = clamp(this.dz, -1 * 9 * physics_boxMultiplier, 9 * physics_boxMultiplier);
+						
 					}
 
 					if (Math.abs(relPos[2]) > (this.box.size - player.r) / 2) {
@@ -790,10 +914,25 @@ class PushableBox {
 						this.dy = boolToSigned(relPos[1] < 0) * (physics_boxSidePush + (physics_boxSidePush * (Math.abs(relPos[1]) > this.box.size)));
 						this.dz *= 0.95 + (0.025 * (Math.abs(relPos[1]) < this.box.size));
 					}
+					deathCount = 0;
 				}
 				//regular'ol good'ol box collisin
 				this.box.collideWithEntity(player);
 			}
+		}
+
+		//if outside of the tunnel, don't be
+		if (this.dx != 0 || this.dy != 0 || this.dz != 0) {
+			this.box.parent.r -= this.box.size / 2;
+			if (!this.box.parent.coordinateIsInTunnel_Boundless(this.x, this.y, this.z)) {
+				var relPos = dirToTunnelCenter(this.box.parent, -0.5, this.x, this.y, this.z);
+				//transform world direction to relative direction
+				relPos = spaceToRelativeRotless(relPos, [0, 0, 0], [this.box.normal[0] - (Math.PI / 2), this.box.normal[1] * -1]);
+				this.dx += relPos[0];
+				this.dy += relPos[1];
+				this.dz += relPos[2];
+			}
+			this.box.parent.r += this.box.size / 2;
 		}
 
 		//movement
@@ -956,9 +1095,14 @@ class Star {
 				var smearAmount = world_wormhole.arcAtRadius / Math.pow((wormDist / world_wormhole.drawR), 4);
 				var angle = Math.atan2(world_wormhole.screenPos[1] - tY, world_wormhole.screenPos[0] - tX) + Math.PI;
 
-				//modify distance to be closer to 1 if inside the wormhole
+				//don't smear more than a circle's worth
+				if (smearAmount > Math.PI) {
+					smearAmount = Math.PI;
+				}
+
+				//don't have star inside the wormhole
 				if (wormDist < world_wormhole.drawR) {
-					wormDist *= Math.sqrt((world_wormhole.drawR / wormDist));
+					wormDist = world_wormhole.drawR;
 				}
 				//figure out 
 				ctx.strokeStyle = this.color;
@@ -986,15 +1130,17 @@ class Star_Special extends Star {
 			var screenPoint = spaceToScreen([this.x, this.y, this.z]);
 			var wormDist = getDistance2d(screenPoint, world_wormhole.screenPos);
 			if (wormDist < world_wormhole.drawR * world_wormhole.maxRadiusMult) {
-				//use radius to determine amount of smearing
 				var smearAmount = world_wormhole.arcAtRadius / Math.pow((wormDist / world_wormhole.drawR), 4);
 				var angle = Math.atan2(world_wormhole.screenPos[1] - screenPoint[1], world_wormhole.screenPos[0] - screenPoint[0]) + Math.PI;
 
-				//modify distance to be closer to 1 if inside the wormhole
-				if (wormDist < world_wormhole.drawR) {
-					wormDist *= Math.sqrt((world_wormhole.drawR / wormDist));
+				if (smearAmount > Math.PI) {
+					smearAmount = Math.PI
 				}
-				//figure out 
+
+				//don't have star inside the wormhole
+				if (wormDist < world_wormhole.drawR) {
+					wormDist = world_wormhole.drawR;
+				}
 				ctx.strokeStyle = this.color;
 				ctx.lineWidth = this.drawR * 2;
 				ctx.beginPath();
@@ -1008,6 +1154,66 @@ class Star_Special extends Star {
 			}
 			drawCircle(this.color, screenPoint[0], screenPoint[1], this.drawR);
 			drawCircle(this.color, screenPoint[0], screenPoint[1], this.drawR / 2);
+		}
+	}
+}
+
+class Star_Wormhole extends Star {
+	constructor(x, y, z) {
+		super(x, y, z);
+		this.color = color_star_wormhole;
+	}
+
+	//like the original star beDrawn, except the smear is opposite, and doesn't draw self if outside the wormhole
+	beDrawn() {
+		var tX = this.x;
+		var tY = this.y;
+		var tZ = this.z;
+
+		[tX, tZ] = rotate(tX, tZ, world_camera.theta);
+		[tY, tZ] = rotate(tY, tZ, world_camera.phi);
+		[tX, tY] = rotate(tX, tY, world_camera.rot);
+
+		if (tZ >= render_clipDistance) {
+			tX /= tZ;
+			tY /= tZ;
+
+			tX *= world_camera.scale;
+			tY *= -1 * world_camera.scale;
+
+			tX += canvas.width / 2;
+			tY += canvas.height / 2;
+
+			var wormDist = getDistance2d([tX, tY], world_wormhole.screenPos);
+			if (wormDist > world_wormhole.drawR * 2) {
+				return;
+			}
+			if (wormDist > world_wormhole.drawR * 0.5) {
+				//don't draw self outside the wormhole
+				if (wormDist > world_wormhole.drawR) {
+					wormDist = world_wormhole.drawR;
+				}
+				//use radius to determine amount of smearing
+				var fadeAmount = Math.pow(wormDist / world_wormhole.drawR, 7);
+				var smearAmount = world_wormhole.arcAtRadius * fadeAmount;
+				var angle = Math.atan2(world_wormhole.screenPos[1] - tY, world_wormhole.screenPos[0] - tX) + Math.PI;
+
+				if (smearAmount > Math.PI) {
+					smearAmount = Math.PI;
+				}
+
+				
+				//figure out 
+				ctx.strokeStyle = this.color;
+				ctx.lineWidth = this.drawR * 2;
+				ctx.globalAlpha = render_starOpacity * (1 - fadeAmount);
+				ctx.beginPath();
+				ctx.arc(world_wormhole.screenPos[0], world_wormhole.screenPos[1], wormDist, angle - smearAmount, angle + smearAmount);
+				ctx.stroke();
+				ctx.globalAlpha = render_starOpacity;
+				return;
+			}
+			drawCircle(this.color, tX, tY, this.drawR);
 		}
 	}
 }
@@ -1081,6 +1287,10 @@ class StaticCharacter {
 		//put cutscene in the 'activated cutscenes' array
 		if (!data_persistent.effectiveCutscenes.includes(this.cutscene)) {
 			data_persistent.effectiveCutscenes.push(this.cutscene);
+		}
+		//special case for challenge states
+		if (loading_state.constructor.name == "State_Challenge" && !this.immersive) {
+			eval(loading_state.codeOnExit);
 		}
 		loading_state = new State_Cutscene(eval(`cutsceneData_${this.cutscene}`), this.immersive && loading_state);
 	}
@@ -1242,20 +1452,20 @@ class Tunnel {
 	}
 
 	beDrawn_playerParent() {
+		drawPlayer = true;
 		this.farPolys.forEach(f => {
 			f.beDrawn();
 		});
 
-		var tunnelSize = this.strips.length;
+		var tunnelSize = this.sides * this.tilesPerSide;
 		var tunnelStrip = getClosestObject(this.strips);
 		var strip;
 
 		//organize strips based around that
-		var drawPlayer = true;
 		var freeObjsInMiddle = !this.coordinateIsInTunnel_Boundless(world_camera.x, world_camera.y, world_camera.z);
 
 		//back faces
-		for (var n=tunnelSize; n>tunnelSize / 2; n--) {
+		for (var n=tunnelSize; n>Math.floor(tunnelSize / 2); n--) {
 			strip = ((tunnelStrip + (Math.floor(n / 2) * boolToSigned(n % 2 == 1))) + tunnelSize) % tunnelSize;
 			if (drawPlayer) {
 				if (!this.strips[strip].playerIsOnTop()) {
@@ -1317,6 +1527,7 @@ class Tunnel {
 	}
 
 	beDrawn_playerParentAlternate() {
+		drawPlayer = true;
 		//far polygons
 		this.farPolys.forEach(f => {
 			f.beDrawn();
@@ -1329,7 +1540,7 @@ class Tunnel {
 		}
 		//figure out whether to do free objects in the center or not
 		var doFreeObjsHalfway = !this.coordinateIsInTunnel_Boundless(world_camera.x, world_camera.y, world_camera.z);
-		var drawPlayer = true;
+		
 
 		//determine what the closest side is 
 		var relCameraPos = spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], [-1 * this.theta, this.phi]);
@@ -1339,7 +1550,7 @@ class Tunnel {
 		var nowDrawing;
 
 		//zigzag pattern of side (first half)
-		for (var side=this.sides; side>Math.floor(this.sides/2); side--) {
+		for (var side=this.sides; side>Math.floor(this.sides/2)-1; side--) {
 			//true side strip is the index of the strip at the start of the side
 			trueSideStrip = modulate((closestSide + (Math.floor(side / 2) * boolToSigned(side % 2 == 1))) * this.tilesPerSide, this.sides * this.tilesPerSide);
 			//center strip offset is the number of the strip that the camera is on top of
@@ -1366,7 +1577,7 @@ class Tunnel {
 		}
 
 		//same zigzag pattern, but second half
-		for (var side=Math.floor(this.sides/2); side>0; side--) {
+		for (var side=Math.floor(this.sides/2)-1; side>0; side--) {
 			trueSideStrip = modulate((closestSide + (Math.floor(side / 2) * boolToSigned(side % 2 == 1))) * this.tilesPerSide, this.sides * this.tilesPerSide);
 			centerStripOffset = Math.floor((spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.strips[trueSideStrip].x, this.strips[trueSideStrip].y, this.strips[trueSideStrip].z], this.strips[trueSideStrip].normal)[1] / this.tileSize) + 0.5);
 			centerStripOffset = clamp(centerStripOffset, 0, this.tilesPerSide);
@@ -1552,6 +1763,7 @@ class Tunnel {
 
 	//hopefully self-explanatory
 	generate() {
+		this.maxTileRenderDist = Math.min(render_maxDistance, (this.tileSize * world_camera.scale) / render_minPolySize);
 		this.generateTiles();
 		this.generatePlexies();
 		this.generateFarPolys();
@@ -1591,71 +1803,74 @@ class Tunnel {
 			minMax[0] = lastIndex;
 
 			for (var t=1; t<s.realTiles.length; t++) {
-				var index = s.tiles.indexOf(s.realTiles[t]);
+				//skip over plexiglass tiles
+				if (s.realTiles[t].constructor.name != "Tile_Plexiglass") {
+					var index = s.tiles.indexOf(s.realTiles[t]);
 
-				//if there's a greater than 1 gap, end + start another polygon
-				if (index - lastIndex > 1) {
-					polyRegister.push(s.tiles[lastIndex].points[2]);
-					polyRegister.push(s.tiles[lastIndex].points[3]);
-					minMax[1] = lastIndex;
-					
-					//object contains the actual points, the min/max tile range of the strip, and the quarter point (spot to add other polys after)
-					bin.push({
-						points: polyRegister,
-						minMax: minMax,
-						quarterPoint: polyRegister[3],
-					});
-					//do merge behavior
-					if (possibleMerge) {
-						merged = false;
-						var newPoly = bin[bin.length-1];
-						var oldPoly = lastBin[lastBinIndex];
-						var doneEarly = false;
-						//loop until has a polygon that matches up
-						while (oldPoly != undefined && oldPoly.minMax[0] <= newPoly.minMax[1] && !doneEarly) {
-							//if the polygon's max is greater / equal to old's min, it can be merged
-							if (oldPoly.minMax[1] >= newPoly.minMax[0]) {
-								merged = true;
-								//special case for if the mins / maxes are the same, otherwise simply add after quarter point
-								var quarterIndex = oldPoly.points.indexOf(oldPoly.quarterPoint) + 1;
-								//if the mins are the same, merge the lower points
-								if (oldPoly.minMax[0] == newPoly.minMax[0]) {
-									oldPoly.points.splice(quarterIndex, 1);
-								} else {
-									oldPoly.points.splice(quarterIndex, 0, newPoly.points[1]);
-								}
-								oldPoly.points.splice(quarterIndex, 0, newPoly.points[0]);
-								oldPoly.points.splice(quarterIndex, 0, newPoly.points[3]);
-								if (oldPoly.minMax[1] == newPoly.minMax[1]) {
-									oldPoly.points.splice(quarterIndex-1, 1);
-								} else {
-									oldPoly.points.splice(quarterIndex, 0, newPoly.points[2]);
-								}
+					//if there's a greater than 1 gap, end + start another polygon
+					if (index - lastIndex > 1) {
+						polyRegister.push(s.tiles[lastIndex].points[2]);
+						polyRegister.push(s.tiles[lastIndex].points[3]);
+						minMax[1] = lastIndex;
+						
+						//object contains the actual points, the min/max tile range of the strip, and the quarter point (spot to add other polys after)
+						bin.push({
+							points: polyRegister,
+							minMax: minMax,
+							quarterPoint: polyRegister[3],
+						});
+						//do merge behavior
+						if (possibleMerge) {
+							merged = false;
+							var newPoly = bin[bin.length-1];
+							var oldPoly = lastBin[lastBinIndex];
+							var doneEarly = false;
+							//loop until has a polygon that matches up
+							while (oldPoly != undefined && oldPoly.minMax[0] <= newPoly.minMax[1] && !doneEarly) {
+								//if the polygon's max is greater / equal to old's min, it can be merged
+								if (oldPoly.minMax[1] >= newPoly.minMax[0]) {
+									merged = true;
+									//special case for if the mins / maxes are the same, otherwise simply add after quarter point
+									var quarterIndex = oldPoly.points.indexOf(oldPoly.quarterPoint) + 1;
+									//if the mins are the same, merge the lower points
+									if (oldPoly.minMax[0] == newPoly.minMax[0]) {
+										oldPoly.points.splice(quarterIndex, 1);
+									} else {
+										oldPoly.points.splice(quarterIndex, 0, newPoly.points[1]);
+									}
+									oldPoly.points.splice(quarterIndex, 0, newPoly.points[0]);
+									oldPoly.points.splice(quarterIndex, 0, newPoly.points[3]);
+									if (oldPoly.minMax[1] == newPoly.minMax[1]) {
+										oldPoly.points.splice(quarterIndex-1, 1);
+									} else {
+										oldPoly.points.splice(quarterIndex, 0, newPoly.points[2]);
+									}
 
-								//fill next object's row with the same
-								newPoly.points = oldPoly.points;
-								doneEarly = true;
-							} else {
-								//increment last polygon
-								lastBinIndex += 1;
-								oldPoly = lastBin[lastBinIndex];
+									//fill next object's row with the same
+									newPoly.points = oldPoly.points;
+									doneEarly = true;
+								} else {
+									//increment last polygon
+									lastBinIndex += 1;
+									oldPoly = lastBin[lastBinIndex];
+								}
+								
 							}
-							
 						}
-					}
 
-					//if merged, don't add new array of points as it's already in there
-					if (!merged) {
-						actualPolyPoints.push(polyRegister);
-					}
-					polyRegister = [];
-					minMax = [];
+						//if merged, don't add new array of points as it's already in there
+						if (!merged) {
+							actualPolyPoints.push(polyRegister);
+						}
+						polyRegister = [];
+						minMax = [];
 
-					polyRegister.push(s.realTiles[t].points[0]);
-					polyRegister.push(s.realTiles[t].points[1]);
-					minMax[0] = index;
+						polyRegister.push(s.realTiles[t].points[0]);
+						polyRegister.push(s.realTiles[t].points[1]);
+						minMax[0] = index;
+					}
+					lastIndex = index;
 				}
-				lastIndex = index;
 			}
 
 			//if a poly is partially finished, finish it
@@ -1760,29 +1975,21 @@ class Tunnel {
 				//if it's undefined the plexiglass algorithm can be run
 				if (this.strips[s].tiles[t] == undefined) {
 					//determining strength
-					var tileOffset = Math.floor(physics_maxBridgeDistance / this.tileSize);
+					var tileOffset = Math.min(Math.floor(physics_maxBridgeDistance / this.tileSize), Math.floor(this.sides * this.tilesPerSide * 0.5));
 					var tileStrength = 0;
 
 					for (var x=s-tileOffset; x<s+tileOffset; x++) {
-						for (var y=t-tileOffset; y<t+tileOffset; y++) {
-							var realStrip = x;
-							//sanitize x
-							while (realStrip < 0) {
-								realStrip += this.strips.length;
-							}
-							realStrip = realStrip % this.strips.length;
+						for (var y=t-tileOffset+Math.floor(Math.abs(s - x) / 2); y<t+tileOffset-Math.floor(Math.abs(s - x) / 2); y++) {
+							var realStrip = (x + this.strips.length) % this.strips.length;
 							//first convert coordinates into true coordinates, then check if there's a tile there
 							if (y > -1 && y < this.strips[realStrip].tiles.length) {
-								//undefineds cannot give strength
-								if (this.strips[realStrip].tiles[y] != undefined) {
-									//bridge tiles cannot give strength
-									if (this.strips[realStrip].tiles[y].constructor.name != "Tile_Plexiglass") {
-										//the strength that tile gives is proportional to the distance to that tile
-										var distance = (Math.abs(x - s) + Math.abs(y - t)) * this.tileSize;
-	
-										//upgrade strength if necessary
-										tileStrength = Math.max(tileStrength, 1 - (distance / physics_maxBridgeDistance));
-									}
+								//cannot get strength from tiles that don't exist
+								if (this.data[realStrip][y] > 0) {
+									//the strength that tile gives is proportional to the distance to that tile
+									var distance = (Math.abs(x - s) + Math.abs(y - t)) * this.tileSize;
+
+									//upgrade strength if necessary
+									tileStrength = Math.max(tileStrength, 1 - (distance / physics_maxBridgeDistance));
 								}
 							}
 						}
@@ -1828,13 +2035,16 @@ class Tunnel {
 			case 12: 
 				return new Tile_Ice_Ramp(x, y, z, size, normal, this, color);
 			case 13:
-				return new Tile_Ringed(x, y, z, size, normal, this, color);
-			case 14: 
-				return new Tile_Box_Ringed(x, y, z, size, normal, this);
-			case 15:
-				return new Tile_Bright_Ringed(x, y, z, size, normal, this, color);
-			case 16:
 				return new Tile_Warning(x, y, z, size, normal, this);
+
+
+			case 101:
+				return new Tile_Ringed(x, y, z, size, normal, this, color);
+			case 102:
+				return new Tile_Bright_Ringed(x, y, z, size, normal, this, color);
+
+			case 109:
+				return new Tile_Box_Ringed(x, y, z, size, normal, this);
 			default:
 				return undefined;
 		}
@@ -1857,30 +2067,31 @@ class Tunnel {
 		output += `|pos-x~${this.x.toFixed(4)}`;
 		output += `|pos-z~${this.z.toFixed(4)}`;
 		output += `|direction~${this.theta.toFixed(4)}`;
-		output += `|layout-tunnel~${this.sides}~${this.tilesPerSide}`;
+		output += `|tube~${this.sides}~${this.tilesPerSide}`;
 		output += `|color~${HSVtoRGB(this.color)}`;
-		output += `|tileWidth~${this.tileSize}`;
 		if (this.spawns.length > 0) {
 			output += `|spawn`;
 			this.spawns.forEach(s => {
 				output += `~${s}`;
 			});
 		}
-		
 		if (this.endSpawns.length > 0) {
 			output += `|endSpawn`;
 			this.endSpawns.forEach(s => {
 				output += `~${s}`;
 			});
 		}
-		
+		output += `|tileWidth~${this.tileSize}`;
 
 		//tile data
 		this.repairData();
 		output += tunnelData_parseDataReverse(this.data);
 
 		//power + functions
-		output += `|power~${this.power.toFixed(4)}`;
+		if (this.powerBase != 1) {
+			output += `|power~${this.power.toFixed(4)}`;
+		}
+		
 
 		//banned characters
 		var reverseBanned = flipObject(this.bannedCharacters);
@@ -2245,18 +2456,166 @@ class Tunnel_Blocker {
 		this.x;
 		this.y;
 		this.z;
+		this.houseState = undefined;
 
-		this.tileData = data;
+		this.tileData = [[]];
+		tunnelData_parseData(data, this.tileData, 1, 1);
 		this.tileZ = tileZ;
+		this.tiles = [];
 
 		this.cameraDist = 1000;
 		this.playerDist = 1000;
 
 		this.parent = parent;
+		this.generate();
+	}
+
+	doComplexLighting() {
+		this.tiles.forEach(t => {
+			t.doComplexLighting();
+		})
 	}
 
 	generate() {
+		this.tiles = [];
+		//quick access variables
+		var internalR = (this.parent.tilesPerSide * this.parent.tileSize) / (2 * Math.tan(Math.PI / this.parent.sides));
+		var externalR = this.parent.r;
+		var dir = 0;
+		var dirLen = 1;
+		var lenUsed = 0;
 
+		var xInTiles = 0;
+		var yInTiles = 0;
+		var dataChar = 0;
+
+		var xOff = polToCart((this.parent.theta * -1) + (Math.PI / 2), 0, this.parent.tileSize);
+		var yOff = [0, this.parent.tileSize, 0];
+		var zOff = polToCart(this.parent.theta * -1, 0, this.tileZ * this.parent.tileSize);
+		this.x = this.parent.x + zOff[0];
+		this.y = this.parent.y + zOff[1];
+		this.z = this.parent.z + zOff[2];
+
+		//if there's an even number of tiles, center is offset
+		if (this.parent.tilesPerSide % 2 == 0) {
+			xInTiles -= 0.5;
+			yInTiles -= 0.5;
+		}
+
+		//loop through all tiles
+		while (dataChar < this.tileData[0].length) {
+			//if the data says so, place a tile. It's a freePoly so it won't have rotational effects.
+			if (this.tileData[0][dataChar]) {
+				//create points
+				var points = [[0.51 + xInTiles, 0.51 + yInTiles, 0], [0.51 + xInTiles, -0.51 + yInTiles, 0], [-0.51 + xInTiles, -0.51 + yInTiles, 0], [-0.51 + xInTiles, 0.51 + yInTiles, 0]];
+
+				//clip if necessary
+				var centerDist = getDistance2d([0, 0], [Math.abs(xInTiles), Math.abs(yInTiles)]);
+				if (centerDist + 0.5 > internalR / this.parent.tileSize) {
+					if (centerDist - 0.5 > externalR / this.parent.tileSize) {
+						points = [];
+					} else {
+						//this is overkill but I'm lazy
+						//figure out angle
+						//snap to nearest side
+						var offsetAngle = (Math.PI * 2) / this.parent.sides;
+						var angle = 0;
+						var falseLength = internalR / this.parent.tileSize;
+						//clipping polygon
+						
+						for (var n=0; n<this.parent.sides; n++) {
+							points = clipToPlane(points, 0, [falseLength * Math.cos(n * offsetAngle), falseLength * Math.sin(n * offsetAngle), 0], [Math.PI / 2, (n * offsetAngle) + Math.PI]);
+						}
+					}
+				}
+				
+
+				if (points.length > 2) {
+					//place tile
+					var realPoints = [];
+					points.forEach(q => {
+						realPoints.push([
+							this.parent.x + (xOff[0] * q[0]) + (yOff[0] * q[1]) + zOff[0], 
+							this.parent.y + (xOff[1] * q[0]) + (yOff[1] * q[1]) + zOff[1], 
+							this.parent.z + (xOff[2] * q[0]) + (yOff[2] * q[1]) + zOff[2]
+						]);
+					});
+					this.tiles.push(new FreePoly_Vertical(realPoints, this.parent.color));
+				}
+				
+			}
+
+			//movement stuffies, every 180 degrees the line gets 1 longer to make a spiral pattern
+			lenUsed += 1;
+			var endDir = (lenUsed >= dirLen);
+			switch (dir) {
+				case 0:
+					xInTiles += 1;
+					break;
+				case 1:
+					yInTiles += 1;
+					if (endDir) {
+						dirLen += 1;
+					}
+					break;
+				case 2:
+					xInTiles -= 1;
+					break;
+				case 3:
+					yInTiles -= 1;
+					if (endDir) {
+						dirLen += 1;
+					}
+					break;
+			}
+			if (endDir) {
+				dir = (dir + 1) % 4;
+				lenUsed = 0;
+			}
+			dataChar += 1;
+		}
+	}
+
+	getCameraDist() {
+		//imprecise but whatever
+		this.cameraDist = getDistance(this, world_camera);
+		this.tiles.forEach(t => {
+			t.getCameraDist();
+		});
+	}
+
+	tick() {
+		this.getCameraDist();
+
+		if (this.cameraDist < render_maxColorDistance) {
+			this.tiles.forEach(t => {
+				t.tick();
+			});
+	
+			//collide with player if close enough
+			if (Math.abs(this.parent.playerTilePos - this.tileZ) < (render_maxColorDistance * 0.4) / this.parent.tileSize) {
+				this.tiles.forEach(t => {
+					t.collideWithEntity(player);
+				});
+			}
+		}
+	}
+
+	beDrawn() {
+		//if the player needs to be drawn
+		if (drawPlayer) {
+			//ignore player if they're outside the tunnel
+			if (this.parent.coordinateIsInTunnel_Bounded(player.x, player.y, player.z)) {
+				//if self is in between the camera and the player, draw the player before self
+				if (spaceToRelative([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], [-1 * this.parent.theta, 0])[2] * spaceToRelative([player.x, player.y, player.z], [this.x, this.y, this.z], [-1 * this.parent.theta, 0])[2] < 0) {
+					player.beDrawn();
+					drawPlayer = false;
+				}
+			}
+		}
+		this.tiles.forEach(t => {
+			t.beDrawn();
+		});
 	}
 }
 
@@ -2294,8 +2653,8 @@ class Tunnel_Strip {
 
 		//if player is within self's intersection possibility, continue
 		if (Math.abs(playerRelPos[1]) < (this.tileSize * 0.5) + player.r) { 
-			//if no tile there, ignore the player
-			if (this.tiles[Math.floor(this.parent.playerTilePos - 0.5)] == undefined || this.tiles[Math.floor(this.parent.playerTilePos - 0.5)].leftTile != undefined) {
+			//if no tile there (or box, or plexiglass), ignore the player
+			if (this.tiles[Math.floor(this.parent.playerTilePos - 0.5)] == undefined || this.tiles[Math.floor(this.parent.playerTilePos - 0.5)].leftTile != undefined || this.tiles[Math.floor(this.parent.playerTilePos - 0.5)].constructor.name == "Tile_Plexiglass") {
 				return true;
 			}
 
@@ -2401,12 +2760,12 @@ class Wormhole {
 		this.r = 6000;
 		this.drawR = 1;
 		this.screenPos = [];
-		this.arcAtRadius = 0.8;
-		this.maxRadiusMult = 4;
+		this.arcAtRadius = 1.3;
+		this.maxRadiusMult = 4.3;
 	}
 
 	beDrawn() {
-		drawCircle("#F0F", this.screenPos[0], this.screenPos[1], this.drawR);
+		drawCircle("#000", this.screenPos[0], this.screenPos[1], this.drawR);
 	}
 
 	tick() {
@@ -2415,6 +2774,7 @@ class Wormhole {
 		} else {
 			this.screenPos = [-1e7, -1e7];
 		}
+		
 		this.drawR = (this.r / getDistance(this, world_camera)) * world_camera.scale;
 	}
 }
