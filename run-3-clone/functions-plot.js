@@ -3,7 +3,7 @@
 INDEX:
 	placeOneTimeCutsceneTriggers();
 	trueReset();
-	unlockCharacter();
+	unlockCharacter(characterName);
 	updatePlotProgression();
 */
 
@@ -17,6 +17,11 @@ function placeOneTimeCutsceneTriggers() {
 	getObjectFromID("U-1").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("U-1"), 0.2, false, "planetStolen", true));
 	getObjectFromID("New Tunnel, Part 1").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("New Tunnel, Part 1"), 0.1, false, "selfAssembly", true));
 
+	getObjectFromID("Launch Site A").freeObjs.push(new Tunnel_Blocker(getObjectFromID("Launch Site A"), 6, `3Woooo`));
+	getObjectFromID("Launch Site C").freeObjs.push(new Tunnel_Blocker(getObjectFromID("Launch Site C"), 15, `3ooooo`));
+
+	getObjectFromID("B-4").freeObjs.push(new CutsceneTrigger_NoJumpWithChar(getObjectFromID("B-4"), ["Runner", "Skater", "Child"], "cheating"));
+	getObjectFromID("N-2").freeObjs.push(new CutsceneTrigger_NoJumpWithChar(getObjectFromID("N-2"), ["Skater"], "skates"));
 
 	//the way back
 	getObjectFromID("The Way Back, Part 1").freeObjs.push(new OneTimeCutsceneTrigger(getObjectFromID("The Way Back, Part 1"), 0.5, false, "angelVsBunny", true));
