@@ -51,7 +51,6 @@ class State_Edit {
 	}
 
 	enterPlaytestMode() {
-		render_maxColorDistance /= this.lightMultiplier;
 		editor_objects.forEach(u => {
 			u.getCameraDist();
 		});
@@ -134,7 +133,7 @@ class State_Edit {
 	renderFunction(tunnelFunction) {
 		//tunnel functions are [z, result value, type];
 		//if the area isn't clipped, render the function
-		var zOff = [0, 0, tunnelFunction[0] * this.tunnel.tileSize];
+		var zOff = [0, 0, (tunnelFunction[0] + 1) * this.tunnel.tileSize];
 		[zOff[0], zOff[2]] = rotate(zOff[0], zOff[2], this.tunnel.theta);
 		zOff[0] += this.tunnel.x;
 		zOff[1] += this.tunnel.y;
@@ -201,12 +200,18 @@ class State_Edit_Tiles extends State_Edit {
 
 		this.lowButton = new PropertyButton(0.91, 0.96, 0.16, 0.05, "Triggers", `loading_state.switchSubstates();`);
 		this.funcButtons = [
-			new PropertyButton(editor_lTriggerW - 0.075, 0.12, 0.04, 0.05, "-", ``),
-			new PropertyButton(editor_lTriggerW - 0.03, 0.12, 0.04, 0.05, "+", ``)
+			new PropertyButton(editor_lTriggerW + 0.025, 0.97, 0.04, 0.05, "-", `if (loading_state.triggerSelected != undefined) {
+				loading_state.tunnel.functions.splice(loading_state.tunnel.functions.indexOf(loading_state.triggerSelected), 1);
+				loading_state.triggerSelected = undefined;
+			}`),
+			new PropertyButton(editor_lTriggerW + 0.07, 0.97, 0.04, 0.05, "+", `loading_state.tunnel.functions.splice(0, 0, [0, 1, "instant"]);`)
 		];
 
 		this.tileSelected = 0;
+		this.tileIsRing = false;
 		this.animTileSelected = 0;
+
+		this.triggerSelected = undefined;
 
 		this.targetTile = [3, 15];
 		var tileCoords = this.tunnel.worldPositionOfTile(this.targetTile[0], this.targetTile[1] + 1);
@@ -232,7 +237,12 @@ class State_Edit_Tiles extends State_Edit {
 	drawTileSidebar() {
 		ctx.globalAlpha = 1 - this.substate;
 		//update the tile icon selected
-		this.animTileSelected = (this.animTileSelected * (render_animSteps - 1) + this.tileSelected) / render_animSteps;
+		if (this.tileSelected < 100) {
+			this.animTileSelected = (this.animTileSelected * (render_animSteps - 1) + this.tileSelected) / render_animSteps;
+		} else {
+			this.animTileSelected = (this.animTileSelected * (render_animSteps - 1) + this.tileSelected - 100) / render_animSteps;	
+		}
+		
 		//draw tile coordinates
 		if (this.targetTile != undefined) {
 			ctx.fillStyle = color_text_bright;
@@ -249,17 +259,19 @@ class State_Edit_Tiles extends State_Edit {
 		ctx.lineWidth = 2;
 
 		//tile listing
-		for (var a=0; a<15; a++) {
-			drawTile2d(canvas.width * 0.015, (canvas.height / 17) * (a + 2), canvas.width * editor_tileSize, a);
+		for (var a=1; a<=13; a++) {
+			drawTile2d(canvas.width * 0.015, (canvas.height / 17) * (a + 2), canvas.width * editor_tileSize, a + (100 * this.tileIsRing));
 		}
+
+		drawTile2d(canvas.width * 0.015, canvas.height * 0.95, canvas.width * editor_tileSize, 0);
 	}
 
 	drawTriggerSidebar() {
 		ctx.globalAlpha = this.substate;
 		ctx.lineWidth = 2;
 
-		var ribX = canvas.width * 0.01;
-		var minH = canvas.height * (editor_topBarHeight + 0.02);
+		var ribX = canvas.width * editor_triggerRibX;
+		var minH = canvas.height * (editor_topBarHeight - 0.01);
 		var maxH = canvas.height * 0.98;
 		var totalH = maxH - minH;
 		var zScale = totalH / ((this.tunnel.len * this.tunnel.tileSize) + tunnel_transitionLength);
@@ -268,22 +280,54 @@ class State_Edit_Tiles extends State_Edit {
 		var color = `hsl(${this.tunnel.color.h}, ${this.tunnel.color.s}%, ${this.tunnel.color.v * 85}%)`;
 		ctx.strokeStyle = color;
 		ctx.fillStyle = color;
+		ctx.lineWidth = 1;
 		ctx.beginPath();
 		ctx.moveTo(ribX, minH + (zScale * tunnel_transitionLength));
 		ctx.lineTo(ribX, maxH);
 		ctx.stroke();
 
 		//circles
+		//this line isn't confusing at all, size is height/240 unless there are a large amount of tiles, then it's 1/5th of the tiles, unless that makes it smaller than 1 pixel, in which case it's 1 pixel.
+		var circleSize = Math.max(Math.min((canvas.height / 240), zScale * this.tunnel.tileSize * 0.2), 1);
 
 		//draw tile snappers
-		for (var z=zScale*this.tunnel.tileSize*0.5; canvas.height-(z/zScale)>minH; z+=zScale*this.tunnel.tileSize) {
-			drawCircle(color, ribX, maxH - z, canvas.height / 240);
+		var numTiles = this.tunnel.len + Math.ceil(tunnel_transitionLength / this.tunnel.tileSize);
+		for (var n=0; n<numTiles; n++) {
+			drawCircle(color, ribX, maxH - ((n + 0.5) * zScale * this.tunnel.tileSize), circleSize);
 		}
 
 		//draw triggers
 		for (var f=0; f<this.tunnel.functions.length; f++) {
+			var objRef = this.tunnel.functions[f];
 			//determine height from z-index
-			var height = maxH - (zScale * this.tunnel.tileSize * (this.tunnel.functions[f][0] + 0.5));
+			var height = maxH - ((objRef[0] + 0.5) * zScale * this.tunnel.tileSize);
+			if (this.triggerSelected == objRef) {
+				drawCircle(color_editor_cursor, ribX, height, circleSize);
+			} else {
+				drawCircle(color_trigger, ribX, height, circleSize);
+			}
+
+			//the box
+			drawSelectionBox(canvas.width * editor_lTriggerW * 0.56, height, canvas.width * editor_lTriggerW * 0.825, canvas.height * 0.02);
+			
+			ctx.fillStyle = color_text_bright;
+			ctx.font = `${canvas.height / 80}px Comfortaa`;
+			ctx.textAlign = "left";
+			var textOffset = canvas.height / 300;
+
+			//z
+			ctx.fillText(objRef[0], ribX + (canvas.width * 0.005), height + textOffset);
+
+			//type
+			if (objRef[2] == "cutscene") {
+				ctx.fillText("cutscene", ribX + (canvas.width * 0.025), height + textOffset);
+			} else {
+				ctx.fillText(`power (${objRef[2]})`, ribX + (canvas.width * 0.025), height + textOffset);
+			}
+
+			//value
+			ctx.textAlign = "right";
+			ctx.fillText(objRef[1], canvas.width * (editor_lTriggerW - 0.01), height + textOffset);
 		}
 
 		this.funcButtons.forEach(f => {
@@ -404,13 +448,45 @@ class State_Edit_Tiles extends State_Edit {
 	handleMouseMove(a) {
 		updateCursorPos(a);
 		//if cursor is up top
-		if (super.handleMouseMove(a) == 31) {
+		if (super.handleMouseMove(a) == 31 && this.substate != 1) {
+			return;
+		}
+		
+
+		//if changing states
+		if (this.substateTravel != 0) {
 			return;
 		}
 
-		//if the cursor is over the menu to the left or changing states
-		if (cursor_x < canvas.width * 0.05 || this.substateTravel != 0) {
-			return;
+		//tile mode
+		if (this.substate == 0) {
+			//if the cursor is over the menu to the left
+			if (cursor_x < canvas.width * editor_lTileW) {
+				return;
+			}
+		} else {
+			//if the cursor is over the tunnel rib with cursor down
+			if (cursor_x < canvas.width * editor_lTileW) {
+				if (cursor_down && this.triggerSelected != undefined) {
+					//get new position for the trigger based on cursor position
+					var minH = canvas.height * (editor_topBarHeight - 0.01);
+					var maxH = canvas.height * 0.98;
+					var totalH = maxH - minH;
+					var numTiles = this.tunnel.len + Math.ceil(tunnel_transitionLength / this.tunnel.tileSize);
+					var cursorTilePos = clamp(cursor_y - minH, 0, totalH);
+					this.triggerSelected[0] = Math.floor((totalH - cursorTilePos) / (totalH / numTiles));
+					//special case
+					if (this.triggerSelected[0] > numTiles - 1) {
+						this.triggerSelected[0] = numTiles - 1;
+					}
+
+					//reorder triggers just to be safe
+					this.tunnel.functions.sort(function(a, b) {
+						return a[0] - b[0];
+					});
+				}
+				return;
+			}
 		}
 
 		//if still here...
@@ -420,10 +496,11 @@ class State_Edit_Tiles extends State_Edit {
 		if (cursor_down) {
 			this.modifySelectedTile();
 		}
+ 		
 	}
 
 	handleMouseDown(a) {
-		if (super.handleMouseDown(a) == 31) {
+		if (super.handleMouseDown(a) == 31 && this.substate != 1) {
 			return;
 		}
 
@@ -434,7 +511,23 @@ class State_Edit_Tiles extends State_Edit {
 			if (this.substate == 0) {
 				//changing tile selected
 				if (cursor_x < canvas.width * 0.06) {
-					this.tileSelected = clamp(Math.floor((cursor_y - (canvas.height / 17))  / (canvas.height / 17)) - 1, 0, 15);
+					if (cursor_y > canvas.height * 0.95) {
+						this.tileIsRing = !this.tileIsRing;
+						this.tileSelected += boolToSigned(this.tileIsRing) * 100;
+						if (!tunnel_validIndeces[this.tileSelected]) {
+							this.tileSelected = 0;
+						}
+						return;
+					}
+
+					//select new tile and make sure it's valid
+					var targetVal = clamp(Math.floor((cursor_y - (canvas.height / 17)) / (canvas.height / 17)) - 1, 0, 13);
+					if (this.tileIsRing && targetVal > 0) {
+						targetVal += 100;
+					}
+					if (tunnel_validIndeces[targetVal]) {
+						this.tileSelected = targetVal;
+					}
 					return;
 				}
 
@@ -454,7 +547,28 @@ class State_Edit_Tiles extends State_Edit {
 
 			//trigger stuff
 			if (this.substate == 1) {
-				//determine tile selected
+				//buttons
+				this.funcButtons.forEach(f => {
+					f.handleClick();
+				});
+				
+				var reqDist = editor_handleRadius;
+				var ribX = canvas.width * editor_triggerRibX;
+				var minH = canvas.height * (editor_topBarHeight - 0.01);
+				var maxH = canvas.height * 0.98;
+				var totalH = maxH - minH;
+				var zScale = totalH / ((this.tunnel.len * this.tunnel.tileSize) + tunnel_transitionLength);
+
+				this.triggerSelected = undefined;
+				this.tunnel.functions.forEach(f => {
+					var height = maxH - ((f[0] + 0.5) * zScale * this.tunnel.tileSize);
+
+					//actual selection
+					if (getDistance2d([cursor_x, cursor_y], [ribX, height]) < reqDist) {
+						reqDist = getDistance2d([cursor_x, cursor_y], [ribX, height]);
+						this.triggerSelected = f;
+					}
+				});
 			}
 		}
 		
@@ -510,6 +624,11 @@ class State_Edit_Tiles extends State_Edit {
 		//expand array if necessary
 		if (this.targetTile[1]+1 > this.tunnel.len) {
 			this.tunnel.endSpawns = [];
+		}
+
+		//if the tile is already the selected value, do not change
+		if (this.tunnel.data[this.targetTile[0]][this.targetTile[1]] == this.tileSelected) {
+			return;
 		}
 
 		//basically just uh... kinda sorta... replace the tile
@@ -728,7 +847,12 @@ class State_Edit_Properties extends State_Edit {
 			ctx.fillRect(0, (canvas.height * editor_topBarHeight) - 1, canvas.width * editor_lPropertyW, (canvas.height * (1 - editor_topBarHeight)) + 1);
 
 			if (this.newTunnelData != undefined) {
-				this.createTunnel();
+				try {
+					this.createTunnel();
+				} catch (er) {
+					alert("This tunnel data cannot be loaded.");
+					this.newTunnelData = undefined;
+				}
 			}
 
 			//sliders
@@ -1219,8 +1343,7 @@ class State_Edit_Cutscenes extends State_Edit {
 			textWidth = ctx.measureText(editor_cutscenes[this.cutscenes[r]].id).width / 2;
 			if (cursor_x > xOff - textWidth && cursor_x < xOff + textWidth && cursor_y > yOff - (canvas.height / 20) && cursor_y < yOff + (canvas.height / 20)) {
 				//change loading state
-				loading_state = new State_Cutscene(editor_cutscenes[this.cutscenes[r]]);
-				loading_state.destinationState = this;
+				loading_state = new State_Cutscene(editor_cutscenes[this.cutscenes[r]], this);
 				loading_state.allowDebug = true;
 			}
 		}
@@ -1239,12 +1362,10 @@ class State_Edit_Cutscenes extends State_Edit {
 
 class State_Playtest extends State_World {
 	constructor() {
-		console.log("b", render_maxColorDistance);
 		super();
 		this.returnState = undefined;
 		this.readFrom = editor_objects;
 		this.isMainGame = true;
-
 		this.orderWorld();
 	}
 
