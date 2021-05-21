@@ -642,9 +642,10 @@ class Bunny extends Character {
 		this.texture_walkR = undefined;
 
 		this.jumpStrength = 3;
-		this.jumpBoostStrength = 0.13;
-		this.boostFriction = 0.995;
+		this.jumpBoostStrength = 0.14;
+		this.boostFriction = 0.996;
 		this.speed = 0.13;
+		this.strafeSpeed = 0.3;
 		this.trueSpeed = 0.9;
 		this.dMax = 11.5;
 		this.dMin = 2;
@@ -661,6 +662,7 @@ class Bunny extends Character {
 		//space being pressed slows down the bunny
 		if (controls_spacePressed && this.dy > 0 && this.dz > this.dMin) {
 			this.dz *= this.boostFriction;
+			this.dy += 0.01;
 		}
 
 		if (this.dz > this.dMin) {
@@ -1185,9 +1187,22 @@ class Pastafarian extends Character {
 
 	handleSpace() {
 		if (this.onGround > 0) {
-			this.personalBridgeStrength += this.bridgeBoost;
-			if (this.personalBridgeStrength > 1) {
-				this.personalBridgeStrength = 1;
+			//yeah this is a long way to go, sorry. TODO: refactor this? Perhaps into Tunnel class as getClosestTile(x, y, z)
+			var ref = this.parentPrev;
+			var relPos = spaceToRelativeRotless([this.x, this.y, this.z], [ref.x, ref.y, ref.z], [-1 * ref.theta, 0]);
+			var trueSideStrip = Math.floor((((Math.atan2(relPos[1], relPos[0]) + (Math.PI * (2 + (1 / ref.sides)))) / (Math.PI * 2)) % 1) * ref.sides);
+			trueSideStrip = modulate(trueSideStrip * ref.tilesPerSide, ref.sides * ref.tilesPerSide);
+			var centerStripOffset = Math.floor((spaceToRelativeRotless([this.x, this.y, this.z], [ref.strips[trueSideStrip].x, ref.strips[trueSideStrip].y, ref.strips[trueSideStrip].z], ref.strips[trueSideStrip].normal)[1] / ref.tileSize) + 0.5);
+			centerStripOffset = clamp(centerStripOffset + trueSideStrip, trueSideStrip, trueSideStrip + ref.tilesPerSide - 1);
+			var selfTile = Math.floor((relPos[2] / ref.tileSize) - 0.2);
+			if (ref.strips[centerStripOffset].tiles[selfTile] != undefined) {
+				if (ref.strips[centerStripOffset].tiles[selfTile].constructor.name == "Tile_Plexiglass" || ref.strips[centerStripOffset].tiles[selfTile].constructor.name == "Tile_Crumbling") {
+					//if on a bridge tile, boost the bridge strength
+					this.personalBridgeStrength += this.bridgeBoost;
+					if (this.personalBridgeStrength > 1) {
+						this.personalBridgeStrength = 1;
+					}
+				}
 			}
 		}
 		super.handleSpace();
@@ -1200,16 +1215,16 @@ class Runner extends Character {
 	constructor(x, y, z) {
 		super(x, y, z, `Runner`);
 
-		this.jumpStrength = 2.85;
-		this.jumpBoostStrength = 0.09;
+		this.jumpStrength = 2.9;
+		this.jumpBoostStrength = 0.1;
 		this.friction = 0.92;
 		this.speed = 0.12;
-		this.dMax = 3.73;
+		this.dMax = 4;
 	}
 
 	tick() {
 		//strafe speed is greater on ground
-		this.strafeSpeed = this.speed * (1.1 + (0.4 * (this.onGround > 0)));
+		this.strafeSpeed = this.speed * (1.2 + (0.575 * (this.onGround > 0)));
 		super.tick();
 	}
 }
@@ -1277,7 +1292,12 @@ class Student extends Character {
 
 
 					//changing camera target rotation
-					world_camera.targetRot = (this.dir_down[1] + (Math.PI * 1.5)) % (Math.PI * 2);
+					if (this.backwards) {
+						world_camera.targetRot = ((Math.PI * 2.5) - this.dir_down[1]) % (Math.PI * 2);
+					} else {
+						world_camera.targetRot = (this.dir_down[1] + (Math.PI * 1.5)) % (Math.PI * 2);
+					}
+					
 					//if the rotation difference is too great, fix that
 					if (Math.abs(world_camera.rot - world_camera.targetRot) > Math.PI) {
 						if (world_camera.rot > Math.PI) {
