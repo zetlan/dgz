@@ -31,6 +31,15 @@ class Tile extends FreePoly {
 		this.dir_down = this.normal;
 	}
 
+	doCollisionEffects(entity) {
+		//r o t a t e   P D F
+		if (!haltRotation && (entity.dir_down[0] != this.dir_down[0] || entity.dir_down[1] != this.dir_down[1])) {
+			this.doRotationEffects(entity);
+		}
+		entity.onGround = physics_graceTime;
+		entity.onIce = false;
+	}
+
 	doRotationEffects(entity) {
 		var cameraRotAttempt;
 		if (entity.dy < 0) {
@@ -202,7 +211,10 @@ class Tile_Box extends Tile {
 
 	collide_upDown(entity, entityCoords) {
 		//if z is the greatest
+		var haltStore = haltRotation;
+		haltRotation = true;
 		this.doCollisionEffects(entity);
+		haltRotation = haltStore;
 
 		if (entityCoords[2] > 0) {
 			entityCoords[2] =  0.5 * this.size + this.tolerance;
@@ -217,8 +229,10 @@ class Tile_Box extends Tile {
 
 	collide_leftRight(entity, entityCoords) {
 		//if y is the greatest
+		var haltStore = haltRotation;
+		haltRotation = true;
 		this.doCollisionEffects(entity);
-
+		haltRotation = haltStore;
 		//this solution is sort of hacky, but the box is already ridiculously laggy so I don't particularly care
 		if (entityCoords[1] > 0) {
 			if (Math.abs(entityCoords[1]) < this.size * 0.95 && !haltRotation && (entity.dir_down[0] != this.rightTile.dir_down[0] || entity.dir_down[1] != this.rightTile.dir_down[1])) {
