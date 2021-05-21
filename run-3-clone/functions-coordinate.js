@@ -3,9 +3,12 @@
 	calculateNormal(points);
 	cameraToScreen(point);
 	cartToPol(x, y, z);
+	clipToPlane(polyPoints, tolerance, planePoint, planeNormal);
 	clipToZ0(polyPoints, tolerance, invertClipDirection);
+	dirToTunnelCenter(tunnel, x, y, z);
 	getDistance(obj1, obj2);
 	getDistance2d(xyP1, xyP2);
+	getDistancePoint(p1, p2);
 	getDistance_Tunnel(tunnel, obj2);
 	getDistance_LightSource(obj);
 	isClipped(pointArr);
@@ -65,6 +68,22 @@ function cartToPol(x, y, z) {
 	var phi = Math.atan(y / Math.sqrt((z * z) + (x * x)));
 	
 	return [theta, phi, rad];
+}
+
+function clipToPlane(polyPoints, tolerance, planePoint, planeNormal) {
+	//transform to plane coordinates
+	for (var p=0; p<polyPoints.length; p++) {
+		polyPoints[p] = spaceToRelativeRotless(polyPoints[p], planePoint, planeNormal);
+	}
+	//clip
+	polyPoints = clipToZ0(polyPoints, tolerance, false);
+
+	//transform back
+	for (var p=0; p<polyPoints.length; p++) {
+		polyPoints[p] = relativeToSpace(polyPoints[p], planePoint, planeNormal);
+	}
+
+	return polyPoints;
 }
 
 function clipToZ0(polyPoints, tolerance, invertClipDirection) {
@@ -128,6 +147,20 @@ function clipToZ0(polyPoints, tolerance, invertClipDirection) {
 	return polyPoints;
 }
 
+//takes a coordinate and returns the direction needed to move towards the center of that tunnel
+function dirToTunnelCenter(tunnel, speed, x, y, z) {
+	var relPos = spaceToRelativeRotless([x, y, z], [tunnel.x, tunnel.y, tunnel.z], [-1 * tunnel.theta, 0]);
+	relPos[2] = 0;
+	//determine direction to push in
+	var magnitude = Math.sqrt((relPos[0] * relPos[0]) + (relPos[1] * relPos[1]));
+	relPos[0] = (relPos[0] / magnitude) * speed;
+	relPos[1] = (relPos[1] / magnitude) * speed;
+
+	//transform back to real coordinates
+	[relPos[0], relPos[2]] = rotate(relPos[0], relPos[2], tunnel.theta);
+	return relPos;
+}
+
 //returns the distance between two objects
 function getDistance(obj1, obj2) {
 	return Math.sqrt(((obj1.x - obj2.x) * (obj1.x - obj2.x)) + ((obj1.y - obj2.y) * (obj1.y - obj2.y)) + ((obj1.z - obj2.z) * (obj1.z - obj2.z)));
@@ -136,6 +169,10 @@ function getDistance(obj1, obj2) {
 //returns the pythagorean xy distance between two objects 
 function getDistance2d(xyP1, xyP2) {
 	return Math.sqrt(((xyP1[0] - xyP2[0]) * (xyP1[0] - xyP2[0])) + ((xyP1[1] - xyP2[1]) * (xyP1[1] - xyP2[1])));
+}
+
+function getDistancePoint(p1, p2) {
+	return Math.sqrt(((p1[0] - p2[0]) * (p1[0] - p2[0])) + ((p1[1] - p2[1]) * (p1[1] - p2[1])) + ((p1[2] - p2[2]) * (p1[2] - p2[2])));
 }
 
 function getDistance_Tunnel(tunnel, obj2) {
@@ -192,7 +229,7 @@ function orderObjects(array, places) {
 			try {
 				buckets[Math.floor(((unsorted_objects[m].cameraDist) % Math.pow(10, pos) / Math.pow(10, pos-1)))].push(unsorted_objects[m]);
 			} catch(er) {
-				console.error(`cannot sort tunnel "${unsorted_objects[m].id}" with cameraDist ${unsorted_objects[m].cameraDist}`);
+				console.error(`cannot sort object ${unsorted_objects[m].constructor.name} with cameraDist ${unsorted_objects[m].cameraDist}`);
 				runCrash();
 			}
 		}
@@ -249,7 +286,9 @@ function relativeToSpaceRot(pointToTransform, point, normal) {
 }
 
 function rotate(x, z, radians) {
-	return [(x * Math.cos(radians)) - (z * Math.sin(radians)), (z * Math.cos(radians)) + (x * Math.sin(radians))];;
+	var sin = Math.sin(radians);
+	var cos = Math.cos(radians);
+	return [x * cos - z * sin, z * cos + x * sin];
 }
 
 //takes in a screen point, and returns the spot on the world that would get you that point at a certain Z;
