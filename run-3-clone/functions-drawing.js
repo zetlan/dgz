@@ -1,22 +1,26 @@
 /*all the functions that draw things to the screen. Some are generic, some are specific
 INDEX:
 	generics:
-		drawArrow();
-		drawCircle();
-		drawLine();
-	
-		drawQuad();
-		drawPoly();
-		drawWorldLine();
-		drawWorldPoly();
+		drawArrow(x, y, color, rotationInRADIANS, bodyLength, headLength, bodyWidth, headWidth);
+		drawCircle(color, x, y, radius);
+		drawCrosshair(center);
+		drawLine(p1, p2);
+		drawLock(x, y, width, height);
+		drawPoly(color, xyPointsArr);
+		drawRoundedRectangle(x, y, width, height, arcRadius);
+		drawTriangle(x, y, radius, rot);
+		drawWorldLine(worldPoint1, worldPoint2);
+		drawWorldPoly(points, color);
 
 	specifics:
-		drawAngelPanel();
-		drawCharacterLock();
-		drawCrosshair();
+		drawAngelPanel(time);
+		drawCharacterText();
+		drawKeys();
 		drawInfiniteEndScreen();
 		drawKeys();
-		drawSky();
+		drawSelectionBox(x, y, width, height);
+		drawSky(bgColor);
+		drawTiles2d(ex, why, size, type);
 */
 //TODO: reorganize these functions
 
@@ -43,138 +47,23 @@ function drawArrow(x, y, color, rotationInRADIANS, bodyLength, headLength, bodyW
 	ctx.stroke();
 }
 
-function drawInfiniteEndScreen() {
-	//main box
-	ctx.fillStyle = color_grey_lightest;
-	ctx.strokeStyle = color_grey_light;
-	ctx.lineWidth = canvas.height / 50;
-	drawRoundedRectangle(canvas.width * 0.1, canvas.height * 0.1, canvas.width * 0.8, canvas.height * 0.8, canvas.width * 0.04);
-
-	//getting character order to draw them
-	var drawingCharacters = [];
-	loading_state.charactersUsed.forEach(c => {
-		drawingCharacters.push(c);
-	});
-
-	data_characters.indexes.forEach(c => {
-		if (!drawingCharacters.includes(c)) {
-			drawingCharacters.push(c);
-		}
-	});
-
-
-	//labels to the side as final labels
-	ctx.fillStyle = color_text;
-	ctx.font = `${canvas.height / 16}px Comfortaa`;
-	ctx.textAlign = "left";
-
-	ctx.fillText(`Total`, canvas.width * 0.35 + (canvas.width * 0.18), canvas.height * 0.7);
-
-	//character availability boxes
-	ctx.fillStyle = color_grey_light;
-	ctx.strokeStyle = color_menuSelectionOutline;
-	ctx.lineWidth = canvas.height / 96;
-	
-	ctx.font = `${canvas.height / 42}px Comfortaa`;
-
-	for (var a=0; a<11; a++) {
-		var offY = canvas.height * 0.25 * Math.floor(a / 5);
-		var offX = canvas.width * 0.6 * ((a % 5) / 5);
-
-		var textOffset = canvas.height / 40;
-		var textOffset2 = menu_characterSize * 2.3;
-
-		ctx.fillStyle = color_text;
-		
-		
-
-		//labels for every line
-		if (a % 5 == 0) {
-			ctx.textAlign = "left";
-			ctx.fillText(`distance:`, canvas.width * 0.12, (canvas.height * 0.13) + offY + textOffset2);
-			ctx.fillText(`time:`, canvas.width * 0.12, (canvas.height * 0.13) + offY + textOffset2 + textOffset);
-			ctx.fillText(`avg. speed:`, canvas.width * 0.12, (canvas.height * 0.13) + offY + textOffset2 + (2 * textOffset));
-			ctx.fillText(`power cells:`, canvas.width * 0.12, (canvas.height * 0.13) + offY + textOffset2 + (3 * textOffset));
-			ctx.fillText(`power cells / min:`, canvas.width * 0.12, (canvas.height * 0.13) + offY + textOffset2 + (4 * textOffset));
-		}
-		var index = data_characters.map[drawingCharacters[a]];
-
-		if (textures_common[index] != undefined) {
-			textures_common[index].frame = 0;
-			//if the character hasn't been used, display the selection box
-			if (a >= loading_state.charactersUsed.length) {
-				//only draw selection if they can actually be selected
-				if (data_persistent.unlocked.includes(drawingCharacters[a])) {
-					drawSelectionBox((canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + menu_characterSize, menu_characterSize * 2, menu_characterSize * 2);
-				}
-			} else {
-				textures_common[index].frame = 1;
-				//displaying data about their run
-				ctx.textAlign = "center";
-				var charInfo = loading_state.characterData[drawingCharacters[a]];
-				ctx.fillText(`${charInfo.distance.toFixed(0)} m`, (canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + textOffset2);
-				ctx.fillText(`${getTimeFromFrames(charInfo.time)}`, (canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + textOffset2 + textOffset);
-				ctx.fillText(`${((charInfo.distance / charInfo.time) * 60).toFixed(2)} m/s`, (canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + textOffset2 + (2 * textOffset));
-				ctx.fillText(`${charInfo.powercells}`, (canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + textOffset2 + (3 * textOffset));
-				ctx.fillText(`${((charInfo.powercells / charInfo.time) * 3600).toFixed(2)}`, (canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + textOffset2 + (4 * textOffset));
-			}
-			
-			//draw character
-			textures_common[index].beDrawn((canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + menu_characterSize, 0, menu_characterSize * 1.4);
-
-			//if locked, draw a lock
-			if (!data_persistent.unlocked.includes(drawingCharacters[a])) {
-				drawCharacterLock((canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + menu_characterSize, menu_characterSize, menu_characterSize);
-			}
-		}
-		//at the end display totals
-		if (a == 10) {
-			ctx.textAlign = "center";
-			offX = canvas.width * 0.24;
-			ctx.fillText(`${loading_state.distance.toFixed(0)} m`, (canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + textOffset2);
-			ctx.fillText(`${getTimeFromFrames(loading_state.time)}`, (canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + textOffset2 + textOffset);
-			ctx.fillText(`${((loading_state.distance / loading_state.time) * 60).toFixed(2)} m/s`, (canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + textOffset2 + (2 * textOffset));
-			ctx.fillText(`${loading_state.powercells}`, (canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + textOffset2 + (3 * textOffset));
-			ctx.fillText(`${((loading_state.powercells / loading_state.time) * 3600).toFixed(2)}`, (canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + textOffset2 + (4 * textOffset));
-		}
-	}
-}
-
-function drawKeys() {
-	ctx.fillStyle = color_keyUp;
-	var unit = canvas.height / 72;
-	ctx.fillRect(unit * 1, canvas.height - (unit * 3), unit, unit * 2);
-	ctx.fillRect(unit * 6, canvas.height - (unit * 3), unit, unit * 2);
-	ctx.fillRect(unit * 3, canvas.height - (unit * 3), unit * 2, unit * 2);
-
-	ctx.fillStyle = color_keyPress;
-	if (player.ax < 0) {
-		ctx.fillRect(unit * 1, canvas.height - (unit * 3), unit, unit * 2);
-	}
-	if (player.ax > 0) {
-		ctx.fillRect(unit * 6, canvas.height - (unit * 3), unit, unit * 2);
-	}
-
-	if (controls_spacePressed) {
-		ctx.fillRect(unit * 3, canvas.height - (unit * 3), unit * 2, unit * 2);
-	}
-}
-
-function drawPoly(color, xyPointsArr) {
-	ctx.fillStyle = color;
-	ctx.beginPath();
-	//ctx.moveTo(xyPointsArr[0][0], xyPointsArr[0][1]);
-	xyPointsArr.forEach(p => {
-		ctx.lineTo(p[0], p[1]);
-	});
-	ctx.fill();
-}
-
 function drawCircle(color, x, y, radius) {
 	ctx.beginPath();
 	ctx.fillStyle = color;
 	ctx.ellipse(x, y, radius, radius, 0, 0, Math.PI * 2);
 	ctx.fill();
+}
+
+function drawCrosshair(center) {
+	ctx.strokeStyle = "#FFF";
+	ctx.lineWidth = 2;
+	//drawing lines
+	ctx.strokeStyle = "#F00";
+	drawWorldLine(center, [center[0] + (render_crosshairSize / 20), center[1], center[2]]);
+	ctx.strokeStyle = "#0F0";
+	drawWorldLine(center, [center[0], center[1] + (render_crosshairSize / 20), center[2]]);
+	ctx.strokeStyle = "#00F";
+	drawWorldLine(center, [center[0], center[1], center[2] + (render_crosshairSize / 20)]);
 }
 
 function drawLine(p1, p2) {
@@ -184,164 +73,36 @@ function drawLine(p1, p2) {
 	ctx.stroke();
 }
 
-function drawQuad(color, p1, p2, p3, p4) {
-	ctx.fillStyle = color;
+function drawLock(x, y, width, height) {
+	//lock circle
 	ctx.beginPath();
-	ctx.moveTo(p1[0], p1[1]);
-	ctx.lineTo(p2[0], p2[1]);
-	ctx.lineTo(p3[0], p3[1]);
-	ctx.lineTo(p4[0], p4[1]);
-	ctx.lineTo(p1[0], p1[1]);
-	ctx.fill();
+	ctx.strokeStyle = color_grey_light;
+	ctx.lineWidth = width / 8;
+	ctx.ellipse(x, y, width / 3, width / 3, 0, 0, Math.PI * 2);
+	ctx.stroke();
+
+	ctx.strokeStyle = color_grey_dark;
+	ctx.lineWidth = width / 16;
+	ctx.beginPath();
+	ctx.ellipse(x, y, (width / 3) + (width / 10), (width / 3) + (width / 10), 0, 0, Math.PI * 2);
+	ctx.ellipse(x, y, (width / 3) - (width / 10), (width / 3) - (width / 10), 0, 0, Math.PI * 2);
+	ctx.stroke();
+
+	//main lock body
+	ctx.beginPath();
+	ctx.lineWidth = width / 8;
+	ctx.fillStyle = color_grey_light;
+	drawRoundedRectangle(x - (width * 0.5), y, width, height * 0.95, canvas.height / 100);
 }
 
-
-function drawPlayerWithTunnel(obj) {
-	var tunnelSize = obj.strips.length;
-	var tunnelStrip = getClosestObject(obj.strips);
-
-	//STEP 1; draw all strips as far lines, just for funsies (:
-	obj.strips.forEach(s => {
-		s.beDrawn_LineFar();
+function drawPoly(color, xyPointsArr) {
+	ctx.beginPath();
+	ctx.fillStyle = color;
+	//ctx.moveTo(xyPointsArr[0][0], xyPointsArr[0][1]);
+	xyPointsArr.forEach(p => {
+		ctx.lineTo(p[0], p[1]);
 	});
-
-	//STEP 2; determine strip order
-	var lowerStrips = [];
-	var upperStrips = [];
-	var target = lowerStrips;
-	//organize strips based around that
-	var trackL = tunnelStrip - Math.floor(tunnelSize / 2);
-	var trackR = tunnelStrip + Math.floor(tunnelSize / 2);
-	var drawPlayer = true;
-	
-	//if the size is even, trackL has to be one less than trackR
-	//farthest strip + setting variables
-	if (tunnelSize % 2 == 0) {
-		target.push((tunnelStrip + (tunnelSize / 2)) % tunnelSize);
-		trackL = tunnelStrip - ((tunnelSize / 2) - 1);
-		trackR = tunnelStrip + (tunnelSize / 2) - 1;
-	}
-
-	//main choosing loop
-	while (lowerStrips.length + upperStrips.length < tunnelSize - 1) {
-		if ((lowerStrips.length + upperStrips.length) % 2 == 0) {
-			target.push(trackR % tunnelSize);
-			trackR -= 1;
-		} else {
-			
-			target.push((trackL + tunnelSize) % tunnelSize);
-			trackL += 1;
-		}
-
-		if ((lowerStrips.length + upperStrips.length) == Math.floor(obj.strips.length / 2)) {
-			//if the camera is outside the tunnel then reorganize strips to half be below, half above. If the camera's inside the tunnel it's fine, all the strips can be below. 
-			if (!obj.coordinateIsInTunnel_Boundless(world_camera.x, world_camera.y, world_camera.z)) {
-				target = upperStrips;
-			}
-		}
-	}
-
-	target.push(tunnelStrip);
-
-	//STEP 3: draw the things
-
-	//lower strips
-
-	//different case based on tunnel direction
-	if (obj.reverseOrder) {
-		for (var a=obj.len-1; a>=0; a--) {
-			lowerStrips.forEach(n => {
-				if (obj.strips[n].tiles[a] != undefined) {
-					if (obj.strips[n].tiles[a].isReal) {
-						obj.strips[n].tiles[a].beDrawn();
-					}
-				}
-			});
-		}
-	} else {
-		for (var a=0; a<obj.len; a++) {
-			lowerStrips.forEach(n => {
-				if (obj.strips[n].tiles[a] != undefined) {
-					if (obj.strips[n].tiles[a].isReal) {
-						obj.strips[n].tiles[a].beDrawn();
-					}
-				}
-			});
-		}
-	}
-			
-			// if (drawPlayer) {
-			// 	if (!player.parentPrev.strips[(trackL + tunnelSize) % tunnelSize].playerIsOnTop()) {
-			// 		drawPlayer = false;
-			// 		player.beDrawn();
-			// 	}
-			// } 
-
-
-	//free objects
-	obj.freeObjs.forEach(f => {
-		f.beDrawn();
-	});
-
-	//upper strips
-	if (obj.reverseOrder) {
-		for (var a=obj.len-1; a>=0; a--) {
-			upperStrips.forEach(n => {
-				if (obj.strips[n].tiles[a] != undefined) {
-					if (obj.strips[n].tiles[a].isReal) {
-						obj.strips[n].tiles[a].beDrawn();
-					}
-				}
-			});
-		}
-	} else {
-		for (var a=0; a<obj.len; a++) {
-			upperStrips.forEach(n => {
-				if (obj.strips[n].tiles[a] != undefined) {
-					if (obj.strips[n].tiles[a].isReal) {
-						obj.strips[n].tiles[a].beDrawn();
-					}
-				}
-			});
-		}
-	}
-
-	//player if they haven't been drawn yet
-
-	//if the player's still not drawn, finally draw them
-	if (drawPlayer) {
-		player.beDrawn();
-	}
-	
-
-
-
-	//STEP 4: editor stuffies
-	if (editor_active) {
-		//numbering strips
-		ctx.font = `${canvas.height / 48}px Comfortaa`;
-		ctx.fillStyle = color_text_bright;
-		var [tX, tY] = [0, 0];
-		for (var v=0; v<obj.strips.length; v++) {
-			if (!isClipped([obj.strips[v].x, obj.strips[v].y, obj.strips[v].z])) {
-				[tX, tY] = spaceToScreen([obj.strips[v].x, obj.strips[v].y, obj.strips[v].z]);
-
-				//large square for close objects, small square for fars
-				if (lowerStrips.includes(v)) {
-					ctx.fillRect(tX-5, tY-5, 5, 5);
-				}
-				if (upperStrips.includes(v)) {
-					ctx.fillRect(tX-10, tY-10, 10, 10);
-				}
-				ctx.fillText(v, tX + 5, tY);
-			}
-		}
-		//dot for closest spot
-		if (!isClipped([obj.strips[tunnelStrip].x, obj.strips[tunnelStrip].y, obj.strips[tunnelStrip].z])) {
-			[tX, tY] = spaceToScreen([obj.strips[tunnelStrip].x, obj.strips[tunnelStrip].y, obj.strips[tunnelStrip].z]);
-			drawCircle("#FFF", tX, tY, 10);
-		}
-	}
+	ctx.fill();
 }
 
 function drawRoundedRectangle(x, y, width, height, arcRadius) {
@@ -401,17 +162,17 @@ function drawWorldPoly(points, color) {
 	}
 
 	tempPoints = clipToZ0(tempPoints, render_clipDistance, false);
+
+	//don't bother drawing if there's not enough points
+	if (tempPoints.length < 3) {
+		return;
+	}
 	
 	//turn points into screen coordinates
-	var screenPoints = [];
-	screenPoints[tempPoints.length-1] = undefined;
 	for (var a=0; a<tempPoints.length; a++) {
-		screenPoints[a] = cameraToScreen(tempPoints[a]);
+		tempPoints[a] = cameraToScreen(tempPoints[a]);
 	}
-
-	if (screenPoints.length > 2) {
-		drawPoly(color, screenPoints);
-	}
+	drawPoly(color, tempPoints);
 }
 
 
@@ -499,30 +260,6 @@ function drawAngelPanel(time) {
 	}
 }
 
-function drawCharacterLock(x, y, width, height) {
-	//lock circle
-	ctx.beginPath();
-	ctx.strokeStyle = color_grey_light;
-	ctx.lineWidth = width / 8;
-	ctx.ellipse(x, y, width / 3, width / 3, 0, 0, Math.PI * 2);
-	ctx.stroke();
-
-	ctx.strokeStyle = color_grey_dark;
-	ctx.lineWidth = width / 16;
-	ctx.beginPath();
-	ctx.ellipse(x, y, (width / 3) + (width / 10), (width / 3) + (width / 10), 0, 0, Math.PI * 2);
-	ctx.ellipse(x, y, (width / 3) - (width / 10), (width / 3) - (width / 10), 0, 0, Math.PI * 2);
-	ctx.stroke();
-	
-
-
-	//main lock body
-	ctx.beginPath();
-	ctx.lineWidth = width / 8;
-	ctx.fillStyle = color_grey_light;
-	drawRoundedRectangle(x - (width * 0.5), y, width, height * 0.95, canvas.height / 100);
-}
-
 function drawCharacterText() {
 	var yOffset = Math.pow((text_time / (text_timeMax / 2)) - 1, 12);
 
@@ -535,7 +272,7 @@ function drawCharacterText() {
 	}
 	
 	ctx.fillStyle = color_text;
-	ctx.font = `${menu_characterSize / 2}px Comfortaa`;
+	ctx.font = `${menu_characterSize / 2.25}px Comfortaa`;
 	ctx.textAlign = "center";
 
 	//before drawing text, split it if necessary
@@ -559,27 +296,121 @@ function drawCharacterText() {
 	}
 }
 
-function drawCrosshair() {
-	ctx.strokeStyle = "#FFF";
-	ctx.lineWidth = 2;
-	//starting pos
-	var center = polToCart(world_camera.theta, world_camera.phi, 5);
-	center = [center[0] + world_camera.x, center[1] + world_camera.y, center[2] + world_camera.z];
+function drawInfiniteEndScreen() {
+	//main box
+	ctx.fillStyle = color_grey_lightest;
+	ctx.strokeStyle = color_grey_light;
+	ctx.lineWidth = canvas.height / 50;
+	drawRoundedRectangle(canvas.width * 0.1, canvas.height * 0.1, canvas.width * 0.8, canvas.height * 0.8, canvas.width * 0.04);
 
-	//jumping-off points
-	var xPlus = [center[0] + (render_crosshairSize / 20), center[1], center[2]];
-	var yPlus = [center[0], center[1] + (render_crosshairSize / 20), center[2]];
-	var zPlus = [center[0], center[1], center[2] + (render_crosshairSize / 20)];
+	//getting character order to draw them
+	var drawingCharacters = [];
+	loading_state.charactersUsed.forEach(c => {
+		drawingCharacters.push(c);
+	});
 
-	//transforming lines to screen coordinates
+	data_characters.indexes.forEach(c => {
+		if (!drawingCharacters.includes(c)) {
+			drawingCharacters.push(c);
+		}
+	});
 
-	//drawing lines
-	ctx.strokeStyle = "#F00";
-	drawWorldLine(center, xPlus);
-	ctx.strokeStyle = "#0F0";
-	drawWorldLine(center, yPlus);
-	ctx.strokeStyle = "#00F";
-	drawWorldLine(center, zPlus);
+
+	//labels to the side as final labels
+	ctx.fillStyle = color_text;
+	ctx.font = `${canvas.height / 16}px Comfortaa`;
+	ctx.textAlign = "left";
+
+	ctx.fillText(`Total`, canvas.width * 0.35 + (canvas.width * 0.18), canvas.height * 0.7);
+
+	//character availability boxes
+	ctx.fillStyle = color_grey_light;
+	ctx.strokeStyle = color_menuSelectionOutline;
+	ctx.lineWidth = canvas.height / 96;
+	
+	ctx.font = `${canvas.height / 42}px Comfortaa`;
+
+	for (var a=0; a<11; a++) {
+		var offY = canvas.height * 0.25 * Math.floor(a / 5);
+		var offX = canvas.width * 0.6 * ((a % 5) / 5);
+
+		var textOffset = canvas.height / 40;
+		var textOffset2 = menu_characterSize * 2.3;
+
+		ctx.fillStyle = color_text;
+		
+		
+
+		//labels for every line
+		if (a % 5 == 0) {
+			ctx.textAlign = "left";
+			ctx.fillText(`distance:`, canvas.width * 0.12, (canvas.height * 0.13) + offY + textOffset2);
+			ctx.fillText(`time:`, canvas.width * 0.12, (canvas.height * 0.13) + offY + textOffset2 + textOffset);
+			ctx.fillText(`avg. speed:`, canvas.width * 0.12, (canvas.height * 0.13) + offY + textOffset2 + (2 * textOffset));
+			ctx.fillText(`power cells:`, canvas.width * 0.12, (canvas.height * 0.13) + offY + textOffset2 + (3 * textOffset));
+			ctx.fillText(`power cells / min:`, canvas.width * 0.12, (canvas.height * 0.13) + offY + textOffset2 + (4 * textOffset));
+		}
+		var index = data_characters.map[drawingCharacters[a]];
+
+		if (textures_common[index] != undefined) {
+			textures_common[index].frame = 0;
+			//if the character hasn't been used, display the selection box
+			if (a >= loading_state.charactersUsed.length) {
+				//only draw selection if they can actually be selected
+				if (data_persistent.unlocked.includes(drawingCharacters[a])) {
+					drawSelectionBox((canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + menu_characterSize, menu_characterSize * 2, menu_characterSize * 2);
+				}
+			} else {
+				textures_common[index].frame = 1;
+				//displaying data about their run
+				ctx.textAlign = "center";
+				var charInfo = loading_state.characterData[drawingCharacters[a]];
+				ctx.fillText(`${charInfo.distance.toFixed(0)} m`, (canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + textOffset2);
+				ctx.fillText(`${getTimeFromFrames(charInfo.time)}`, (canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + textOffset2 + textOffset);
+				ctx.fillText(`${((charInfo.distance / charInfo.time) * 60).toFixed(2)} m/s`, (canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + textOffset2 + (2 * textOffset));
+				ctx.fillText(`${charInfo.powercells}`, (canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + textOffset2 + (3 * textOffset));
+				ctx.fillText(`${((charInfo.powercells / charInfo.time) * 3600).toFixed(2)}`, (canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + textOffset2 + (4 * textOffset));
+			}
+			
+			//draw character
+			textures_common[index].beDrawn((canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + menu_characterSize, 0, menu_characterSize * 1.4);
+
+			//if locked, draw a lock
+			if (!data_persistent.unlocked.includes(drawingCharacters[a])) {
+				drawLock((canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + menu_characterSize, menu_characterSize, menu_characterSize);
+			}
+		}
+		//at the end display totals
+		if (a == 10) {
+			ctx.textAlign = "center";
+			offX = canvas.width * 0.24;
+			ctx.fillText(`${loading_state.distance.toFixed(0)} m`, (canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + textOffset2);
+			ctx.fillText(`${getTimeFromFrames(loading_state.time)}`, (canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + textOffset2 + textOffset);
+			ctx.fillText(`${((loading_state.distance / loading_state.time) * 60).toFixed(2)} m/s`, (canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + textOffset2 + (2 * textOffset));
+			ctx.fillText(`${loading_state.powercells}`, (canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + textOffset2 + (3 * textOffset));
+			ctx.fillText(`${((loading_state.powercells / loading_state.time) * 3600).toFixed(2)}`, (canvas.width * 0.35) + offX, (canvas.height * 0.13) + offY + textOffset2 + (4 * textOffset));
+		}
+	}
+}
+
+function drawKeys() {
+	ctx.fillStyle = color_keyUp;
+	var unit = canvas.height / 72;
+	ctx.fillRect(unit * 1, canvas.height - (unit * 3), unit, unit * 2);
+	ctx.fillRect(unit * 6, canvas.height - (unit * 3), unit, unit * 2);
+	ctx.fillRect(unit * 3, canvas.height - (unit * 3), unit * 2, unit * 2);
+
+	ctx.fillStyle = color_keyPress;
+	if (player.ax < 0) {
+		ctx.fillRect(unit * 1, canvas.height - (unit * 3), unit, unit * 2);
+	}
+	if (player.ax > 0) {
+		ctx.fillRect(unit * 6, canvas.height - (unit * 3), unit, unit * 2);
+	}
+
+	if (controls_spacePressed) {
+		ctx.fillRect(unit * 3, canvas.height - (unit * 3), unit * 2, unit * 2);
+	}
 }
 
 function drawSelectionBox(x, y, width, height) {
@@ -600,30 +431,38 @@ function drawSky(bgColor) {
 	//tick wormhole
 	world_wormhole.tick();
 	ctx.lineCap = "round";
+
 	//stars
 	ctx.globalAlpha = render_starOpacity;
-	world_stars.forEach(c => {
+	star_arr.forEach(c => {
 		c.beDrawn();
 	});
+
 	ctx.lineCap = "butt";
 	ctx.globalAlpha = 1;
 }
 
 //draws all tiles but in 2 dimensions, used for the editor
 function drawTile2d(ex, why, size, type) {
-	if (type >= 30) {
+	if (type >= 30 && type < 100) {
 		drawSelectionBox(ex + (size / 2), why + (size / 2), size, size);
 	}
 	ctx.beginPath();
 	ctx.rect(ex, why, size, size);
 	switch (type) {
+		case 0:
+			//ring, this usually doesn't appear normally
+			ctx.strokeStyle = color_ring;
+			ctx.beginPath();
+			ctx.ellipse(ex + (size * 0.5), why + (size * 0.5), size * 0.2, size * 0.2, 0, 0, Math.PI * 180);
+			ctx.stroke();
+			break;
 		case 1:
 			//regular
 			ctx.fillStyle = `hsl(${loading_state.tunnel.color.h}, ${loading_state.tunnel.color.s}%, 60%)`;
 			ctx.fillRect(ex, why, size, size);
 			break;
 		case 2:
-			
 			//light
 			ctx.fillStyle = `hsl(${loading_state.tunnel.color.h}, ${loading_state.tunnel.color.s}%, 80%)`;
 			ctx.fillRect(ex, why, size, size);
@@ -721,30 +560,24 @@ function drawTile2d(ex, why, size, type) {
 			ctx.fillRect(ex, why, size * 0.6, size);
 			break;
 		case 13:
-			//tile with ring
-			ctx.fillStyle = `hsl(${loading_state.tunnel.color.h}, ${loading_state.tunnel.color.s}%, 60%)`;
-			ctx.fillRect(ex, why, size, size);
-			ctx.strokeStyle = color_ring;
-			ctx.beginPath();
-			ctx.ellipse(ex + (size * 0.5), why + (size * 0.5), size * 0.2, size * 0.2, 0, 0, Math.PI * 180);
-			ctx.stroke();
 			break;
-		case 14:
+
+		//ringed tiles
+		case 101:
+			//tile with ring
+			drawTile2d(ex, why, size, 1);
+			drawTile2d(ex, why, size, 0);
+			break;
+		case 102:
+			drawTile2d(ex, why, size, 2);
+			drawTile2d(ex, why, size, 0);
+			break;
+		case 109:
 			//box with ring
 			drawTile2d(ex, why, size * 0.95, 9);
 			ctx.strokeStyle = color_ring;
 			drawLine([ex, why + (size * 0.2)], [ex, why + (size * 0.8)]);
 			drawLine([ex + size, why + (size * 0.2)], [ex + size, why + (size * 0.8)]);
-			break;
-		case 15:
-			//battery
-			ctx.strokeStyle = "#F0F";
-			ctx.beginPath();
-			ctx.moveTo(ex + (squareSize * 0.25), why + (squareSize * 0.75));
-			ctx.lineTo(ex + (squareSize * 0.5), why + (squareSize * 0.2));
-			ctx.lineTo(ex + (squareSize * 0.75), why + (squareSize * 0.8));
-			ctx.lineTo(ex + (squareSize * 0.25), why + (squareSize * 0.75));
-			ctx.stroke();
 			break;
 
 		//2d cutscene icons
@@ -812,7 +645,7 @@ function drawTile2d(ex, why, size, type) {
 			break;
 		case 28:
 			//box with rings
-			drawTile2d(ex, why, size, 14);
+			drawTile2d(ex, why, size, 109);
 			break;
 		case 29:
 			//boat
@@ -827,7 +660,7 @@ function drawTile2d(ex, why, size, type) {
 			break;
 		case 30:
 			//movable tile
-			drawTile2d(ex, why, size, 13);
+			drawTile2d(ex, why, size, 101);
 			break;
 		
 
