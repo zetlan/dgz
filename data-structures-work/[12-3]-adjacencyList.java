@@ -137,6 +137,15 @@ public class AdjList implements AdjListInterface, DFS_BFS, EdgeListWithCities {
    
    public void addEdge(String source, String target) {
       Vertex end;
+      Vertex start;
+      //make sure vertices exist before putting an adjacency between them
+      try {
+         start = this.getVertex(source);
+      } catch (Exception e) {
+         this.addVertex(source);
+         start = this.getVertex(source);
+      }
+
       try {
          end = this.getVertex(target);
       } catch (Exception e) {
@@ -148,7 +157,47 @@ public class AdjList implements AdjListInterface, DFS_BFS, EdgeListWithCities {
 
 
    //giving up on organization entirely
-   
+   public void graphFromEdgeListData(String fileName) throws FileNotFoundException {
+      //scanner for scanning.. things...
+      Scanner radium = new Scanner(new File(fileName));
+
+      //reset to defaults
+      this.vertices = new ArrayList<Vertex>();
+      this.nameToIndex = new TreeMap<String, Integer>();
+
+      //append names one at a time
+      while (radium.hasNext()) {
+         String[] cityDestination = radium.nextLine().split(" ");
+         this.addEdge(cityDestination[0], cityDestination[1]);
+      }
+
+      radium.close();
+   }
+
+   public int edgeCount() {
+      int count = 0;
+      //loop through all vertices
+      for (Vertex v : this.vertices) {
+         //append number of edges
+         count += v.getAdjacencies().size();
+      }
+      return count;
+   }
+
+   //returns number of vertices in the graph
+   public int vertexCount() {
+      return this.vertices.size();
+   }
+
+   public boolean isReachable(String source, String target) {
+      return (this.depthFirstSearch(source).indexOf(this.getVertex(target)) != -1);
+   }
+
+   //returns true if all vertices can be reached from any other vertex
+   //question, is it all other vertices? Or just a random one? Because this thingy is directional. I've implemented an arbitrary vertex because that's easier to code.
+   public boolean isConnected() {
+      return (this.depthFirstSearch(this.getVertex(0)).size() == this.vertexCount());
+   }
 
    //returns list seperated by newLine
    public String toString() {
