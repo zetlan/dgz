@@ -94,16 +94,32 @@ function clipToZ0(polyPoints, tolerance, invertClipDirection) {
 		});
 	}
 	//make all the polypoints have a boolean that says whether they're clipped or not, this is used for number of neighbors
-	polyPoints.forEach(p => {
-		p[3] = p[2] < tolerance;
-	});
+	var halt = true;
+	var n = 0;
+	while (halt && n < polyPoints.length - 1) {
+		if (polyPoints[n][2] < tolerance) {
+			polyPoints[n][3] = true;
+		} else {
+			halt = false;
+			polyPoints[n][3] = false;
+		}
+		n += 1;
+	}
+
+	//return early if all points are destroyed
+	if (halt) {
+		return [];
+	}
+
+	while (n < polyPoints.length) {
+		polyPoints[n][3] = polyPoints[n][2] < tolerance;
+		n += 1;
+	}
 	for (var y=0; y<polyPoints.length; y++) {
 		//if the selected point will be clipped, run the algorithm
 		if (polyPoints[y][3]) {
-			//freefriends is the number of adjacent non-clipped points
-			var freeFriends;
-			var freeFriends = !polyPoints[(y+(polyPoints.length-1))%polyPoints.length][3] + !polyPoints[(y+1)%polyPoints.length][3];
-			switch (freeFriends) {
+			//decide what to do based on the number of adjacent non-clipped points
+			switch (!polyPoints[(y+(polyPoints.length-1))%polyPoints.length][3] + !polyPoints[(y+1)%polyPoints.length][3]) {
 				case 0:
 					//if there are no free friends, there's no point in attempting, so just move on
 					polyPoints.splice(y, 1);
@@ -122,18 +138,19 @@ function clipToZ0(polyPoints, tolerance, invertClipDirection) {
 						//greater friend
 						friendCoords = polyPoints[(y+1)%polyPoints.length];
 						moveAmount = getPercentage(friendCoords[2], polyPoints[y][2], tolerance);
-						polyPoints[y] = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance + 0.05, true];
+						polyPoints[y] = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance, true];
 					}
 					break;
 				case 2:
 					//move towards both friends
+					
 					var friendCoords = polyPoints[(y+(polyPoints.length-1))%polyPoints.length];
 					var moveAmount = getPercentage(friendCoords[2], polyPoints[y][2], tolerance);
-					var newPointCoords = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance + 0.05, true];
+					var newPointCoords = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance, true];
 
 					friendCoords = polyPoints[(y+1)%polyPoints.length];
 					moveAmount = getPercentage(friendCoords[2], polyPoints[y][2], tolerance);
-					polyPoints[y] = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance + 0.05, true];
+					polyPoints[y] = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance, true];
 					polyPoints.splice(y, 0, newPointCoords);
 					break;
 			}
@@ -369,12 +386,13 @@ function spaceToScreen(point) {
 
 function transformPoint(pointToTransform, addPoint, normal, size) {
 	//multiply point by size, then apply various rotations
-	pointToTransform[0] *= size / 2;
-	pointToTransform[1] *= size / 2;
-	pointToTransform[2] *= size / 2;
+	size /= 2;
+	pointToTransform[0] *= size;
+	pointToTransform[1] *= size;
+	pointToTransform[2] *= size;
 
 	//I have no idea if this is correct but it appears to work
-	[pointToTransform[1], pointToTransform[2]] = rotate(pointToTransform[1], pointToTransform[2], (Math.PI * 2) - (normal[1] - (Math.PI * 0.5)));
+	[pointToTransform[1], pointToTransform[2]] = rotate(pointToTransform[1], pointToTransform[2], (Math.PI * 0.5) - normal[1]);
 	[pointToTransform[0], pointToTransform[2]] = rotate(pointToTransform[0], pointToTransform[2], -1 * normal[0]); 
 
 	//adjusting for coordinates
