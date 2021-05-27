@@ -819,7 +819,8 @@ class Tile_Plexiglass extends Tile {
 class Tile_Ramp extends Tile {
 	constructor(x, y, z, size, normal, parent, color) {
 		super(x, y, z, size, normal, parent, color);
-		this.tolerance = player.r * 0.8;
+		this.tolerance = player_radius * 0.8;
+		this.size += 5;
 	}
 
 	calculatePointsAndNormal() {
