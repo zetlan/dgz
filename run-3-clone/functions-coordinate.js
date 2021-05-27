@@ -70,6 +70,7 @@ function cartToPol(x, y, z) {
 	return [theta, phi, rad];
 }
 
+//WARNING: this function modifies the original array. I may change it later if this causes problems.
 function clipToPlane(polyPoints, tolerance, planePoint, planeNormal) {
 	//transform to plane coordinates
 	for (var p=0; p<polyPoints.length; p++) {
@@ -143,15 +144,15 @@ function clipToZ0(polyPoints, tolerance, invertClipDirection) {
 					break;
 				case 2:
 					//move towards both friends
-					
 					var friendCoords = polyPoints[(y+(polyPoints.length-1))%polyPoints.length];
 					var moveAmount = getPercentage(friendCoords[2], polyPoints[y][2], tolerance);
-					var newPointCoords = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance, true];
+					polyPoints.splice(y, 0, [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance, true]);
+					y += 1;
 
 					friendCoords = polyPoints[(y+1)%polyPoints.length];
 					moveAmount = getPercentage(friendCoords[2], polyPoints[y][2], tolerance);
 					polyPoints[y] = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance, true];
-					polyPoints.splice(y, 0, newPointCoords);
+					y -= 1;
 					break;
 			}
 		}
