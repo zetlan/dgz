@@ -75,8 +75,8 @@ class State_World {
 
 				//GUI
 				if (editor_active) {
-					var center = polToCart(world_camera.theta, world_camera.phi, 5);
-					drawCrosshair([center[0] + world_camera.x, center[1] + world_camera.y, center[2] + world_camera.z]);
+					var center = polToCart(world_camera.theta, world_camera.phi, 80);
+					drawCrosshair([center[0] + world_camera.x, center[1] + world_camera.y, center[2] + world_camera.z], [Math.PI / 2, 0], [0, Math.PI / 2], [0, 0]);
 				}
 				drawKeys();
 
@@ -138,16 +138,26 @@ class State_World {
 				drawRoundedRectangle(canvas.width * 0.1, canvas.height * 0.3, canvas.width * 0.8, canvas.height * 0.4, canvas.width * 0.04);
 
 				//text
-				var textSize = Math.floor(canvas.height / 32);
-				var targetWidth = 0.75 * canvas.width;
 				ctx.fillStyle = color_text;
-				ctx.font = `${textSize}px Comfortaa`;
 				ctx.textAlign = "center";
-				ctx.fillText(`Exit to the map or choose a different character to continue.`, canvas.width * 0.5, canvas.height * 0.5)
-				var targetText = eval(player.parentPrev.bannedCharacters[player.constructor.name]);
-				//resize font based on text size
-				ctx.font = `${Math.floor(textSize * (targetWidth / ctx.measureText(targetText).width))}px Comfortaa`;
-				ctx.fillText(targetText, canvas.width * 0.5, canvas.height * 0.4);
+
+				var textSize = Math.floor(canvas.height / 32);
+				ctx.font = `${textSize}px Comfortaa`;
+				var targetWidth = 0.75 * canvas.width;
+				var targetText = "";
+
+				if (eval(player.parentPrev.bannedCharacters[player.constructor.name]) != undefined) {
+					ctx.fillText(`Exit to the map or choose a different character to continue.`, canvas.width * 0.5, canvas.height * 0.5)
+					targetText = eval(player.parentPrev.bannedCharacters[player.constructor.name]);
+					//resize font based on text size
+					ctx.font = `${Math.floor(textSize * (targetWidth / ctx.measureText(targetText).width))}px Comfortaa`;
+					ctx.fillText(targetText, canvas.width * 0.5, canvas.height * 0.4);
+				} else {
+					//if the character is allowed but substate has been entered anyways, show character selection without pretense of banishment
+					targetText = `Choose a character to continue!`;
+					ctx.font = `${Math.floor(textSize * (targetWidth / ctx.measureText(targetText).width))}px Comfortaa`;
+					ctx.fillText(targetText, canvas.width * 0.5, canvas.height * 0.45);
+				}
 
 				//drawing characters
 				var charWidth = (canvas.width * 0.75) / textures_common.length;
@@ -837,7 +847,7 @@ var outputString = `{
 
 		if (this.allowDebug) {
 			var editorStorage = editor_active;
-			this.debugButton.handleClick();
+			this.debugButton.interact();
 			if (editor_active != editorStorage) {
 				return;
 			}
@@ -1123,8 +1133,6 @@ class State_Infinite extends State_World {
 		this.time = 0;
 		this.distance = 0;
 		this.powercells = 0;
-		this.difficulty = 0;
-		this.difficultyBoost = 3.5;
 
 		this.characterData = {};
 
@@ -1134,41 +1142,9 @@ class State_Infinite extends State_World {
 
 		//game stuff
 		this.lastPlayerPos = [undefined, 0];
-		this.data = levelData_infinite.split("\n");
 		this.lastTunnelLine = -1;
-		this.objs = [];
-		this.readFrom = this.objs;
-	}
-
-	addTunnel() {
-		//if a tunnel is already there, set start coords to that tunnel end
-		var [sX, sZ, sT] = [0, -40000, 0];
-		if (this.objs.length > 0) {
-			sT = this.objs[this.objs.length - 1].theta;
-			sX = this.objs[this.objs.length - 1].endPos[0] - (tunnel_transitionLength * Math.sin(sT));
-			sZ = this.objs[this.objs.length - 1].endPos[2] + (tunnel_transitionLength * Math.cos(sT));
-			
-		}
-
-		//randomly change theta a bit, the complication is to stay within bounds (0 - 2pi)
-		sT = (sT + (Math.random() * 0.6) + (Math.PI * 2) - 0.2) % (Math.PI * 2);
-
-		var value = Math.floor(randomBounded(this.difficulty, this.difficulty + infinite_levelRange));
-		while (value == this.lastTunnelLine) {
-			value = Math.floor(randomBounded(this.difficulty, this.difficulty + infinite_levelRange));
-		}
-		this.lastTunnelLine = value;
-		var tunnelConstructionData = `pos-x~${sX}|pos-z~${sZ}|direction~${sT}|${this.data[value]}`;
-		this.objs.push(new Tunnel_FromData(tunnelConstructionData));
-		this.objs[this.objs.length-1].placePowercells();
-		
-		
-		//updating difficulty
-		this.difficulty += this.difficultyBoost;
-		if (this.difficulty + infinite_levelRange > this.data.length-1) {
-			this.difficulty = this.data.length - 1 - infinite_levelRange;
-		}
-		this.orderWorld();
+		this.worldTree = new IMNode(undefined, 0);
+		this.readFrom = this.worldTree.getTunnelList();
 	}
 
 	doWorldEffects() {
@@ -1179,8 +1155,9 @@ class State_Infinite extends State_World {
 		player.backwards = false;
 
 		for (var a=0; a<9; a++) {
-			this.addTunnel();
+			this.worldTree.makeNode();
 		}
+		this.readFrom = this.worldTree.getTunnelList();
 		this.placePlayer();
 		this.orderWorld();
 	}
@@ -1190,7 +1167,7 @@ class State_Infinite extends State_World {
 		ctx.lineWidth = 2;
 
 		//putting player into world officially
-		player.parentPrev = this.objs[0];
+		player.parentPrev = this.worldTree.tunnel;
 		player.parent = player.parentPrev;
 		player.parentPrev.reset();
 		player.dz = 0;
@@ -1244,7 +1221,7 @@ class State_Infinite extends State_World {
 				}
 				this.lastPlayerPos[0] = player.parentPrev;
 				this.lastPlayerPos[1] = newPlayerPos[1];
-				
+
 				//calculate time
 				this.time += 1;
 				this.characterData[player.constructor.name].time += 1;
@@ -1264,10 +1241,11 @@ class State_Infinite extends State_World {
 
 				//add tunnel and remove previous tunnel after displaying text
 				if (this.textTime == 1) {
-					if (this.objs[0] != player.parent) {
-						this.objs.splice(0, 1);
+					if (this.worldTree.tunnel != player.parent) {
+						this.worldTree = this.worldTree.remove();
 					}
-					this.addTunnel();
+					this.worldTree.makeNode();
+					this.readFrom = this.worldTree.getTunnelList();
 				}
 				break;
 			case 1:
@@ -1278,7 +1256,6 @@ class State_Infinite extends State_World {
 					drawInfiniteEndScreen();
 					this.drawEnding = false;
 				}
-
 		}
 	}
 
@@ -1657,7 +1634,7 @@ class State_Map {
 
 			//button
 			if (data_persistent.goingHomeProgress < challengeData_angelMissions.length) {
-				checklist_searchButton.handleClick();
+				checklist_searchButton.interact();
 				return 31;
 			}
 
@@ -1830,12 +1807,14 @@ class State_Menu {
 		this.settings = [
 			new PropertySlider(0.05, 0.15 + (0 * menu_propertyHeight), 0.4, 0.2, 'music volume', `audio_channel1.volume = value;`, `audio_channel1.volume`, 0, 1, 0.01, false),
 			new PropertySlider(0.05, 0.15 + (1 * menu_propertyHeight), 0.4, 0.2, 'effects volume', `audio_channel2.volume = value;`, `audio_channel2.volume`, 0, 1, 0.01, false),
-
+			
 			new PropertyToggle(0.05, 0.15 + (3 * menu_propertyHeight), 0.4, `high resolution`, `data_persistent.settings.highResolution`),
 			new PropertyToggle(0.05, 0.15 + (4 * menu_propertyHeight), 0.4, `anti-aliasing for sprites`, `data_persistent.settings.antiAlias`),
 			new PropertyToggle(0.05, 0.15 + (5 * menu_propertyHeight), 0.4, `precise tunnel rendering`, `data_persistent.settings.altRender`),
 			new PropertyToggle(0.05, 0.15 + (6 * menu_propertyHeight), 0.4, `alternate camera rotation`, `data_persistent.settings.altCamera`),
-			new PropertyToggle(0.05, 0.15 + (7 * menu_propertyHeight), 0.4, `polygon outlines in editor`, `data_persistent.settings.enableOutlines`),
+
+			new PropertyToggle(0.525, 0.15 + (3 * menu_propertyHeight), 0.4, `editor - show polygon outlines`, `data_persistent.settings.enableOutlines`),
+			new PropertyToggle(0.525, 0.15 + (4 * menu_propertyHeight), 0.4, `editor - show light bridge tiles`, `data_persistent.settings.pastaView`),
 
 			new PropertyToggle(0.525, 0.15 + (0 * menu_propertyHeight), 0.4, `contain mouse inputs to canvas`, `data_persistent.settings.maskCursor`),
 
@@ -1971,7 +1950,9 @@ class State_Menu {
 				var currentRes = data_persistent.settings.highResolution;
 				//settings menu
 				this.settings.forEach(s => {
-					s.tick();
+					if (s.constructor.name == "PropertyButton") {
+						s.tick();
+					}
 					s.beDrawn();
 				});
 				//update resolution if required
@@ -2016,7 +1997,7 @@ class State_Menu {
 			case 0:
 				//collision with buttons
 				this.buttons.forEach(b => {
-					b.handleClick();
+					b.interact();
 				});
 				if (loading_state != this) {
 					return;
@@ -2091,7 +2072,13 @@ class State_Menu {
 				//reset button
 				if (cursor_x > canvas.width * 0.3 && cursor_x < canvas.width * 0.7 && cursor_y > canvas.height * 0.9) {
 					trueReset();
+					return;
 				}
+
+				//others
+				this.settings.forEach(s => {
+					s.interact();
+				});
 				break;
 			case 3:
 				//try to select a cutscene node
@@ -2115,6 +2102,15 @@ class State_Menu {
 		if (this.substate == 3 && cursor_down && editor_active && this.nodeSelected != undefined) {
 			this.nodeSelected.trueX = ((cursor_x / canvas.width) - 0.5) / (1 - menu_cutsceneParallax);
 			this.nodeSelected.trueY = ((cursor_y / canvas.height) - 0.5) / (1 - menu_cutsceneParallax);
+			return;
+		}
+
+		if (this.substate == 2) {
+			this.settings.forEach(s => {
+				if (s.constructor.name == "PropertySlider") {
+					s.interact();
+				}
+			});
 		}
 	}
 
