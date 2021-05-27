@@ -921,18 +921,20 @@ class PushableBox {
 			}
 		}
 
-		//if outside of the tunnel, don't be
+		//if outside bounds of the tunnel, don't be
 		if (this.dx != 0 || this.dy != 0 || this.dz != 0) {
-			this.box.parent.r -= this.box.size / 2;
+			this.box.parent.r -= (this.box.size * 0.7);
 			if (!this.box.parent.coordinateIsInTunnel_Boundless(this.x, this.y, this.z)) {
-				var relPos = dirToTunnelCenter(this.box.parent, -0.5, this.x, this.y, this.z);
-				//transform world direction to relative direction
-				relPos = spaceToRelativeRotless(relPos, [0, 0, 0], [this.box.normal[0] - (Math.PI / 2), this.box.normal[1] * -1]);
-				this.dx += relPos[0];
+				var relPos = spaceToRelativeRotless([this.box.parent.x, this.box.parent.y, this.box.parent.z], [this.x, this.y, this.z], this.box.normal);
+				//ignore x, just focus on front/back + up/down
+				var magnitude = Math.sqrt((relPos[1] * relPos[1]) + (relPos[2] * relPos[2]));
+				relPos[1] = (relPos[1] / magnitude) * 0.5;
+				relPos[2] = (relPos[2] / magnitude) * 0.5;
+
+				this.dx += relPos[2];
 				this.dy += relPos[1];
-				this.dz += relPos[2];
 			}
-			this.box.parent.r += this.box.size / 2;
+			this.box.parent.r += (this.box.size * 0.7);
 		}
 
 		//movement
@@ -979,7 +981,7 @@ class PushableBox {
 		this.box.beDrawn();
 
 		if (editor_active) {
-			ctx.strokeStyle = color_editor_normal;
+			drawCrosshair([this.x, this.y, this.z], this.box.normal, [this.box.normal[0], this.box.normal[1] + (Math.PI / 2)], [this.box.parent.theta, 0]);
 		}
 	}
 }
@@ -1365,6 +1367,8 @@ class Tunnel {
 		this.discovered = false;
 
 		this.executing = -1;
+		/*I am aware that by mixing the terminology "function" and "trigger" I am making it not only horribly confusing for myself, but everyone else as well. 
+		I know this. And I am not changing it. I've been working on this project for 6 months and I simply do not care enough. Good luck and godspeed. */
 		this.functions = triggerFunctions;
 
 		this.id = id;
@@ -1745,6 +1749,30 @@ class Tunnel {
 		return inPoly([rotate(x - this.x, z - this.z, this.theta * -1)[0], y - this.y], polyPoints);
 	}
 
+	determinePlexiStrength(s, t) {
+		var tileOffset = Math.min(Math.floor(physics_maxBridgeDistance / this.tileSize), Math.floor(this.sides * this.tilesPerSide * 0.5));
+		var n = 2;
+		while (n / 2 <= tileOffset + 1) {
+			//do the ring
+			for (var v=0; v<n*2; v++) {
+				//determine tile positions from v, uses triangle wave, spooky stuff
+				var x = Math.round((Math.abs(((v / n + 1) % 2) - 1) - 0.5) * n);
+				var y = Math.round((Math.abs(((v / n + 1.5) % 2) - 1) - 0.5) * n);
+				var safeX = modulate(x + s, this.sides * this.tilesPerSide);
+
+				//don't be supported by tiles that don't exist, some number fixing has to be done
+				if (this.data[safeX][y + t] != undefined && this.data[safeX][y + t] > 0) {
+					//calculate strength and return, spiral pattern means this must be the closest tile
+					return Math.pow(1 - (((Math.abs(x) + Math.abs(y)) * this.tileSize) / physics_maxBridgeDistance), 2);
+				}
+			}
+
+			//increase ring size
+			n += 2;
+		}
+		return 0;
+	}
+
 	doComplexLighting() {
 		//loop through all tiles
 		this.strips.forEach(s => {
@@ -1798,9 +1826,12 @@ class Tunnel {
 			var merged = false;
 
 			//start behavior
-			polyRegister.push(s.realTiles[0].points[0]);
-			polyRegister.push(s.realTiles[0].points[1]);
-			minMax[0] = lastIndex;
+			if (s.realTiles[0].constructor.name != "Tile_Plexiglass") {
+				polyRegister.push(s.realTiles[0].points[0]);
+				polyRegister.push(s.realTiles[0].points[1]);
+				minMax[0] = lastIndex;
+			}
+			
 
 			for (var t=1; t<s.realTiles.length; t++) {
 				//skip over plexiglass tiles
@@ -1875,9 +1906,21 @@ class Tunnel {
 
 			//if a poly is partially finished, finish it
 			if (polyRegister.length > 0) {
-				polyRegister.push(s.realTiles[s.realTiles.length-1].points[2]);
-				polyRegister.push(s.realTiles[s.realTiles.length-1].points[3]);
-				minMax[1] = s.tiles.indexOf(s.realTiles[s.realTiles.length-1]);
+				var lastValidObj = undefined;
+				var i = s.tiles.indexOf(s.realTiles[s.realTiles.length-1]);
+				while (lastValidObj == undefined && i > -1) {
+					if (s.tiles[i] != undefined && s.tiles[i].constructor.name != "Tile_Plexiglass") {
+						lastValidObj = s.tiles[i];
+					} else {
+						i -= 1;
+					}
+				}
+				if (i == -1) {
+					console.log("log", s.tiles.indexOf(s.realTiles[s.realTiles.length-1]), s.tiles);
+				}
+				polyRegister.push(lastValidObj.points[2]);
+				polyRegister.push(lastValidObj.points[3]);
+				minMax[1] = i;
 				
 				bin.push({
 					points: polyRegister,
@@ -1975,27 +2018,8 @@ class Tunnel {
 				//if it's undefined the plexiglass algorithm can be run
 				if (this.strips[s].tiles[t] == undefined) {
 					//determining strength
-					var tileOffset = Math.min(Math.floor(physics_maxBridgeDistance / this.tileSize), Math.floor(this.sides * this.tilesPerSide * 0.5));
-					var tileStrength = 0;
-
-					for (var x=s-tileOffset; x<s+tileOffset; x++) {
-						for (var y=t-tileOffset+Math.floor(Math.abs(s - x) / 2); y<t+tileOffset-Math.floor(Math.abs(s - x) / 2); y++) {
-							var realStrip = (x + this.strips.length) % this.strips.length;
-							//first convert coordinates into true coordinates, then check if there's a tile there
-							if (y > -1 && y < this.strips[realStrip].tiles.length) {
-								//cannot get strength from tiles that don't exist
-								if (this.data[realStrip][y] > 0) {
-									//the strength that tile gives is proportional to the distance to that tile
-									var distance = (Math.abs(x - s) + Math.abs(y - t)) * this.tileSize;
-
-									//upgrade strength if necessary
-									tileStrength = Math.max(tileStrength, 1 - (distance / physics_maxBridgeDistance));
-								}
-							}
-						}
-					}
-
-					tileStrength = tileStrength * tileStrength;
+					var tileStrength;
+					tileStrength = this.determinePlexiStrength(s, t);
 					//only create tile if strength is great enough
 					if (tileStrength > 0.01) {
 						var tileCoords = this.worldPositionOfTile(s, t+1);
@@ -2053,7 +2077,7 @@ class Tunnel {
 	getCameraDist() {
 		var relPos = spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], [-1 * this.theta, 0]);
 		if (relPos[2] > 0) {
-			relPos[2] = Math.max(relPos[2] - (this.tileSize * this.len) - tunnel_transitionLength, 0);
+			relPos[2] = Math.max(relPos[2] - (this.tileSize * this.len), 0);
 		}
 		this.cameraDist = Math.sqrt((relPos[0] * relPos[0]) + (relPos[1] * relPos[1]) + (relPos[2] * relPos[2]));
 	}
@@ -2091,7 +2115,9 @@ class Tunnel {
 		if (this.powerBase != 1) {
 			output += `|power~${this.power.toFixed(4)}`;
 		}
-		
+		this.functions.forEach(f => {
+			output += `|trigger~${f[0]}~${f[1]}~${f[2]}`;
+		});
 
 		//banned characters
 		var reverseBanned = flipObject(this.bannedCharacters);
@@ -2272,7 +2298,6 @@ class Tunnel {
 					this.executing -= 1;
 					this.powerPrevious = this.power;
 					this.powerTime = 0;
-					
 				}
 			}
 
@@ -2654,7 +2679,8 @@ class Tunnel_Strip {
 		//if player is within self's intersection possibility, continue
 		if (Math.abs(playerRelPos[1]) < (this.tileSize * 0.5) + player.r) { 
 			//if no tile there (or box, or plexiglass), ignore the player
-			if (this.tiles[Math.floor(this.parent.playerTilePos - 0.5)] == undefined || this.tiles[Math.floor(this.parent.playerTilePos - 0.5)].leftTile != undefined || this.tiles[Math.floor(this.parent.playerTilePos - 0.5)].constructor.name == "Tile_Plexiglass") {
+			if (this.tiles[Math.floor(this.parent.playerTilePos - 0.5)] == undefined || this.tiles[Math.floor(this.parent.playerTilePos - 0.5)].leftTile != undefined || 
+			(this.tiles[Math.floor(this.parent.playerTilePos - 0.5)].constructor.name == "Tile_Plexiglass" && player.personalBridgeStrength == undefined)) {
 				return true;
 			}
 
@@ -2673,6 +2699,7 @@ class Tunnel_Strip {
 
 		//debug
 		if (editor_active) {
+			ctx.beginPath();
 			var cXYZ = polToCart(this.normal[0], this.normal[1], 10);
 			var dXYZ = polToCart((Math.PI * 2) - this.parent.theta, 0, this.parent.tileSize * this.tiles.length);
 			//spawn
