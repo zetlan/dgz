@@ -337,12 +337,16 @@ var challengeData_bridgeBuilding = [
 		level: "B-13",
 		backwards: false,
 		startCode: `|challenge_resetBox("B-13", 3, 2, 150);`,
-		endCode: `challenge_rareReset();`,
+		endCode: `challenge_rareReset(74, false);`,
 	}, {
 		level: "Level 1",
 		backwards: false,
-		endCode: `challenge_isCutscene(0, false, "crossingTheGap", false);`
-	},
+		endCode: `challenge_isCutscene(0, false, "crossingTheGap");`
+	}, {
+		//aaaaaaaaaaa
+		level: `Level 1`,
+		backwards: true,
+	}
 	//with that, the main bridge building is done!
 ];
 
