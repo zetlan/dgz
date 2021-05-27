@@ -15,7 +15,6 @@ class State_Edit {
 
 	calculateTunnelPoints() {
 		//points of the tunnel, handy for tunnel functions
-		console.log(this.tunnel.id);
 		this.tunnelPoints = [];
 		for (var a=0; a<this.tunnel.sides; a++) {
 			this.tunnelPoints.push([

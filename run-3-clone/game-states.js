@@ -1947,7 +1947,7 @@ class State_Menu {
 				ctx.font = `${canvas.height / 20}px Comfortaa`;
 				ctx.fillText(`Delete save data`, canvas.width * 0.5, canvas.height * 0.95);
 
-				var currentRes = data_persistent.settings.highResolution;
+				
 				//settings menu
 				this.settings.forEach(s => {
 					if (s.constructor.name == "PropertyButton") {
@@ -1955,12 +1955,6 @@ class State_Menu {
 					}
 					s.beDrawn();
 				});
-				//update resolution if required
-				if (data_persistent.settings.highResolution != currentRes) {
-					updateResolution();
-				}
-				//anti-aliasing
-				ctx.imageSmoothingEnabled = data_persistent.settings.antiAlias;
 				break;
 			case 3:
 				//cutscene viewer menu
@@ -2074,11 +2068,17 @@ class State_Menu {
 					trueReset();
 					return;
 				}
-
+				var currentRes = data_persistent.settings.highResolution;
 				//others
 				this.settings.forEach(s => {
 					s.interact();
 				});
+				//update resolution if required
+				if (data_persistent.settings.highResolution != currentRes) {
+					updateResolution();
+				}
+				//anti-aliasing
+				ctx.imageSmoothingEnabled = data_persistent.settings.antiAlias;
 				break;
 			case 3:
 				//try to select a cutscene node
