@@ -115,8 +115,6 @@ class State_World {
 
 				//audio slider
 				this.audioSlider.beDrawn();
-				this.audioSlider.tick();
-				data_persistent.settings.volume = audio_channel1.volume;
 
 				//tunnel text
 				ctx.fillStyle = color_text_bright;
@@ -276,6 +274,11 @@ class State_World {
 
 		//accessing menu
 		if (this.substate < 2) {
+			if (this.substate == 1) {
+				//audio slider
+				this.audioSlider.interact();
+				data_persistent.settings.volume = audio_channel1.volume;
+			}
 			//swap between 1 and 0 (menu and gameplay)
 			//pausing has one buffer frame so the icon can be changed
 			if (cursor_x < canvas.width * 0.06 && cursor_y < canvas.height * 0.1) {
@@ -285,12 +288,14 @@ class State_World {
 					this.toPause = true;
 				}
 			}
-			return;
 		}
 	}
 
 	handleMouseMove(a) {
 		updateCursorPos(a);
+		//audo?? cha cha slide
+		this.audioSlider.interact();
+		data_persistent.settings.volume = audio_channel1.volume;
 	}
 
 	handleEscape() {

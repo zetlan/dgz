@@ -15,11 +15,13 @@
 	challenge_isPastTile(tile, reverseDirectionBOOLEAN);
 	challenge_isOnlyOtherTunnel(tunnelName);
 	challenge_isOops();
+	challenge_isOopsTile(tile, reverseDirectionBOOLEAN);
 	challenge_addBox(levelID, strip, tile, unitOffset, size, rot);
 	challenge_addEncounter(levelID, strip, tile, characterName, cutsceneName, immersiveBOOLEAN);
 	challenge_changeSpawn(strip, tile);
 	challenge_crumble(tunnelID, posArray);
 	challenge_crumbleAll(tunnelID);
+	challenge_rareReset(tile?, reverseDirectionBOOLEAN?);
 
 	changeTile(tunnel, tileCoords, newTileID);
 	changeTiles(tunnel, tileArray, newTileID);
@@ -172,7 +174,6 @@ function avgArray(array) {
 	for (var d=0;d<finArr.length;d++) {
 		finArr[d] /= arr.length;
 	}
-	
 
 	return finArr;
 }
@@ -379,10 +380,38 @@ function challenge_crumbleAll(tunnelID) {
 }
 
 //like oops, but resets are manual most of the time. This means that the box doesn't reset.
-function challenge_rareReset() {
-	//if complete, do an oops type
-	if (challenge_isComplete()) {
-		if (challenge_isEmpty()) {
+function challenge_rareReset(tile, reverseDirectionBOOLEAN) {
+	if (challenge_isComplete() || (tile != undefined && challenge_isPastTile(tile, reverseDirectionBOOLEAN))) {
+		//get return condition
+		var returnCondition = challenge_isEmpty();
+		//special case for tiles
+		if (tile != undefined) {
+			returnCondition = false;
+			if (challenge_isPastTile(tile, reverseDirectionBOOLEAN)) {
+				var boxRef;
+				for (var n=0; n<loading_state.targetParent.freeObjs.length; n++) {
+					if (loading_state.targetParent.freeObjs[n].constructor.name == "PushableBox") {
+						boxRef = loading_state.targetParent.freeObjs[n].box;
+						n = loading_state.targetParent.freeObjs.length + 1;
+					}
+				}
+				if (boxRef == undefined) {
+					returnCondition = true;
+				} else {
+					//if there is a box, but it's past the boundary, also cool
+					if (reverseDirectionBOOLEAN) {
+						if (spaceToRelativeRotless([boxRef.x, boxRef.y, boxRef.z], [boxRef.parent.x, boxRef.parent.y, boxRef.parent.z], [boxRef.parent.theta * -1, 0])[2] / boxRef.parent.tileSize <= tile) {
+							returnCondition = true;
+						}
+					} else {
+						if (spaceToRelativeRotless([boxRef.x, boxRef.y, boxRef.z], [boxRef.parent.x, boxRef.parent.y, boxRef.parent.z], [boxRef.parent.theta * -1, 0])[2] / boxRef.parent.tileSize >= tile) {
+							returnCondition = true;
+						}
+					}
+				}
+			}
+		}
+		if (returnCondition) {
 			deathCount = 0;
 			return true;
 		}
@@ -395,8 +424,6 @@ function challenge_rareReset() {
 		text_queue.push([loading_state.data[loading_state.line].char, "Oops, forgot the box!"]);
 		return;
 	}
-
-
 
 	//destructuring
 	var [x] = rotate(player.x - player.parentPrev.x, player.z - player.parentPrev.z, player.parentPrev.theta * -1);
