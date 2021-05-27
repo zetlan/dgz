@@ -323,6 +323,7 @@ class IMNode {
 			return this;
 		}
 		//if self has one child, just return that. If not, return the child that the player is in
+		//self will always have a leftnode, the right node is used for optional tunnels
 		if (this.rightNode == undefined) {
 			return this.leftNode;
 		}
@@ -332,6 +333,14 @@ class IMNode {
 		}
 		if (player.parentPrev == this.rightNode.tunnel) {
 			return this.rightNode;
+		}
+
+		//if it's not in children, check children's children to be safe. Since self is sure to be a branch, children cannot have branches
+		if (player.parentPrev == this.leftNode.leftNode.tunnel) {
+			return this.leftNode.leftNode;
+		}
+		if (player.parentPrev == this.rightNode.leftNode.tunnel) {
+			return this.rightNode.leftNode;
 		}
 
 		console.error(`player is none of these nodes! for object structure ${this.tunnel.id}
