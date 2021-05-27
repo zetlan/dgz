@@ -1,5 +1,5 @@
 class Tile extends FreePoly {
-	constructor(x, y, z, size, normal, parent, tilePosition, color) {
+	constructor(x, y, z, size, normal, parent, color) {
 		super([[0, 0, 0], [0, 0, 1], [0, 1, 1]], color);
 
 		this.x = x;
@@ -16,28 +16,39 @@ class Tile extends FreePoly {
 		this.calculatePointsAndNormal();
 
 		this.parent = parent;
-		this.parentPosition = tilePosition;
 		this.isReal = false;
 	}
 
 	calculatePointsAndNormal() {
-		var points = [[-1, 0, -1], [-1, 0, 1], [1, 0, 1], [1, 0, -1]];
+		this.points = [[-1, 0, -1], [-1, 0, 1], [1, 0, 1], [1, 0, -1]];
 
-		for (var p=0; p<points.length; p++) {
-			points[p] = transformPoint(points[p], [this.x, this.y, this.z], this.normal, this.size + 0.5);
-		}
-		
-		this.points = points;
+		this.points.forEach(p => {
+			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 1);
+		});
+
 		this.dir_right = [this.normal[0], this.normal[1] + (Math.PI / 2)];
 		this.dir_down = this.normal;
 	}
 
+	doCollisionEffects(entity) {
+		//r o t a t e   P D F
+		if (!haltRotation && (entity.dir_down[0] != this.dir_down[0] || entity.dir_down[1] != this.dir_down[1])) {
+			this.doRotationEffects(entity);
+		}
+		entity.onGround = physics_graceTime;
+		entity.onIce = false;
+	}
+
 	doRotationEffects(entity) {
 		var cameraRotAttempt;
+		//if player is jumping, keep their relative velocity
+		var newDy = Math.cos(modularDifference(entity.dir_down[1], this.dir_down[1], Math.PI * 2)) * entity.dy;
+		entity.dy = ((newDy > 0.5) * newDy) || -1;
+
 		entity.dir_front = [(Math.PI * 2) - this.parent.theta + (Math.PI * player.backwards), 0];
 		entity.dir_side = [this.dir_right[0], this.dir_right[1] + (Math.PI * player.backwards)];
 		entity.dir_down = this.dir_down;
-		entity.dy = -1;
+		haltRotation = true;
 
 		//TODO: find a way to refactor the if/else out of this
 		if (player.backwards) {
@@ -47,7 +58,7 @@ class Tile extends FreePoly {
 		}
 
 		world_camera.targetPhi = 0;
-		world_camera.targetTheta = entity.dir_front[0];
+		world_camera.targetTheta = entity.dir_front[0] % (Math.PI * 2);
 		//if the difference is too great, fix that
 		if (Math.abs(world_camera.theta - world_camera.targetTheta) > Math.PI) {
 			if (world_camera.theta > Math.PI) {
@@ -62,20 +73,8 @@ class Tile extends FreePoly {
 
 			//if the rotation difference is too great, fix that
 			if (Math.abs(world_camera.rot - world_camera.targetRot) > Math.PI) {
-				if (world_camera.rot > Math.PI) {
-					world_camera.rot -= Math.PI * 2;
-				} else {
-					world_camera.rot += Math.PI * 2;
-				}
+				world_camera.rot += Math.PI * 2 * boolToSigned(world_camera.rot <= Math.PI);
 			}
-			haltCollision = true;
-		}
-	}
-
-	collideWithEntity(entity) {
-		//only collide if player is within certain distance
-		if (this.playerDist < this.size * 2) {
-			super.collideWithEntity(entity);
 		}
 	}
 
@@ -90,12 +89,12 @@ class Tile extends FreePoly {
 
 //I just gave up on the tile system with this one and made it its own object
 class Tile_Box extends Tile {
-	constructor(x, y, z, size, normal, parent, tilePosition) {
-		super(x, y, z, size, normal, parent, tilePosition, RGBtoHSV(color_box));
+	constructor(x, y, z, size, normal, parent) {
+		super(x, y, z, size, normal, parent, RGBtoHSV(color_box));
 
-		//all boxes have a left / right tile, for changing rotation
-		this.leftTile = new Tile(x, y, z, size, [normal[0], (normal[1] + (Math.PI * 1.5)) % (Math.PI * 2)], parent, tilePosition, this.color);
-		this.rightTile = new Tile(x, y, z, size, [normal[0], (normal[1] + (Math.PI * 0.5)) % (Math.PI * 2)], parent, tilePosition, this.color);
+		//all boxes have extra tiles, for changing rotation
+		this.leftTile = new Tile(x, y, z, size, [normal[0], (normal[1] + (Math.PI * 1.5)) % (Math.PI * 2)], parent, this.color);
+		this.rightTile = new Tile(x, y, z, size, [normal[0], (normal[1] + (Math.PI * 0.5)) % (Math.PI * 2)], parent, this.color);
 	}
 
 	calculatePointsAndNormal() {
@@ -161,7 +160,7 @@ class Tile_Box extends Tile {
 
 	collideWithEntity(entity) {
 		//only collide if within a certain distance of the player
-		if (this.playerDist < this.size * 3) {
+		if (getDistance(this, entity) < this.size * 3) {
 			//transforming player coordinates to self
 			var entityCoords = spaceToRelativeRotless([entity.x, entity.y, entity.z], [this.x, this.y, this.z], this.normal);
 
@@ -205,36 +204,79 @@ class Tile_Box extends Tile {
 
 	collide_upDown(entity, entityCoords) {
 		//if z is the greatest
+		var haltStore = haltRotation;
+		haltRotation = true;
 		this.doCollisionEffects(entity);
+		haltRotation = haltStore;
 
 		if (entityCoords[2] > 0) {
 			entityCoords[2] =  0.5 * this.size + this.tolerance;
-			if (Math.abs(entityCoords[2]) < this.size * 0.95 && !haltCollision && (entity.dir_down[0] != this.dir_down[0] || entity.dir_down[1] != this.dir_down[1])) {
+			if (Math.abs(entityCoords[2]) < this.size * 0.95 && !haltRotation && (entity.dir_down[0] != this.dir_down[0] || entity.dir_down[1] != this.dir_down[1])) {
 				this.doRotationEffects(entity);
 			}
 		} else {
 			entityCoords[2] = -0.5 * this.size - this.tolerance;
-			//rotation for upside down
+			//rotation effects for upside down
+			this.doRotationEffects_Underside(entity);
+			
 		}
 	}
 
 	collide_leftRight(entity, entityCoords) {
 		//if y is the greatest
+		var haltStore = haltRotation;
+		haltRotation = true;
 		this.doCollisionEffects(entity);
-
+		haltRotation = haltStore;
 		//this solution is sort of hacky, but the box is already ridiculously laggy so I don't particularly care
 		if (entityCoords[1] > 0) {
-			if (Math.abs(entityCoords[1]) < this.size * 0.95 && !haltCollision && (entity.dir_down[0] != this.rightTile.dir_down[0] || entity.dir_down[1] != this.rightTile.dir_down[1])) {
+			if (Math.abs(entityCoords[1]) < this.size * 0.95 && !haltRotation && (entity.dir_down[0] != this.rightTile.dir_down[0] || entity.dir_down[1] != this.rightTile.dir_down[1])) {
 				this.rightTile.doRotationEffects(entity);
 			}
 			entityCoords[1] = 0.5 * this.size + this.tolerance;
 			return;
 		} 
-
-		if (Math.abs(entityCoords[1]) < this.size * 0.95 && !haltCollision && (entity.dir_down[0] != this.leftTile.dir_down[0] || entity.dir_down[1] != this.leftTile.dir_down[1])) {
+		if (Math.abs(entityCoords[1]) < this.size * 0.95 && !haltRotation && (entity.dir_down[0] != this.leftTile.dir_down[0] || entity.dir_down[1] != this.leftTile.dir_down[1])) {
 			this.leftTile.doRotationEffects(entity);
 		}
 		entityCoords[1] = -0.5 * this.size - this.tolerance;
+	}
+
+	doRotationEffects_Underside(entity) {
+		//same but with some variables swapped around for the opposite direction
+		var cameraRotAttempt;
+		entity.dy = Math.max(-1, Math.cos(modularDifference(entity.dir_down[1], this.dir_down[1] + Math.PI, Math.PI * 2)) * entity.dy);
+
+		entity.dir_front = [(Math.PI * 2) - this.parent.theta + (Math.PI * player.backwards), 0];
+		entity.dir_side = [this.dir_right[0], this.dir_right[1] + (Math.PI * !player.backwards)];
+		entity.dir_down = [this.dir_down[0], this.dir_down[1] + Math.PI];
+		haltRotation = true;
+
+		if (player.backwards) {
+			cameraRotAttempt = ((Math.PI * 3.5) - this.dir_down[1]) % (Math.PI * 2);
+		} else {
+			cameraRotAttempt = (this.dir_down[1] + (Math.PI * 0.5)) % (Math.PI * 2);
+		}
+
+		world_camera.targetPhi = 0;
+		world_camera.targetTheta = entity.dir_front[0] % (Math.PI * 2);
+		//if the difference is too great, fix that
+		if (Math.abs(world_camera.theta - world_camera.targetTheta) > Math.PI) {
+			if (world_camera.theta > Math.PI) {
+				world_camera.theta -= Math.PI * 2;
+			} else {
+				world_camera.theta += Math.PI * 2;
+			}
+		}
+
+		if (!editor_active && world_camera.targetRot != cameraRotAttempt) {
+			world_camera.targetRot = cameraRotAttempt;
+
+			//if the rotation difference is too great, fix that
+			if (Math.abs(world_camera.rot - world_camera.targetRot) > Math.PI) {
+				world_camera.rot += Math.PI * 2 * boolToSigned(world_camera.rot <= Math.PI);
+			}
+		}
 	}
 
 	tick() {
@@ -243,8 +285,8 @@ class Tile_Box extends Tile {
 }
 
 class Tile_Box_Ringed extends Tile_Box {
-	constructor(x, y, z, size, normal, parent, tilePosition) {
-		super(x, y, z, size, normal, parent, tilePosition);
+	constructor(x, y, z, size, normal, parent) {
+		super(x, y, z, size, normal, parent);
 		
 	}
 
@@ -260,6 +302,12 @@ class Tile_Box_Ringed extends Tile_Box {
 		if ((this.size / this.cameraDist) * world_camera.scale > render_minTileSize * 0.5 && this.cameraDist < render_maxColorDistance * 2) {
 			var relCPos = spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], this.normal);
 			var color = this.getColor();
+			//always draw two rings
+			if (relCPos[1] <= 0) {
+				this.ringR.beDrawn();
+			} else {
+				this.ringL.beDrawn();
+			}
 			if (relCPos[2] > 0) {
 				drawWorldPoly([this.points[0], this.points[1], this.points[2], this.points[3]], color);
 			} else {
@@ -271,7 +319,7 @@ class Tile_Box_Ringed extends Tile_Box {
 			} else {
 				drawWorldPoly([this.points[0], this.points[1], this.points[5], this.points[4]], color);
 			}
-			//left / rightß
+			//left / right
 			if (relCPos[1] > 0) {
 				//change order of ring / face depending on position
 				if (relCPos[1] <= this.size / 2) {
@@ -314,8 +362,8 @@ class Tile_Box_Ringed extends Tile_Box {
 }
 
 class Tile_Box_Spun extends Tile_Box {
-	constructor(x, y, z, size, normal, parent, tilePosition) {
-		super(x, y, z, size, [normal[0], normal[1] + (Math.PI * 0.25)], parent, tilePosition);
+	constructor(x, y, z, size, normal, parent) {
+		super(x, y, z, size, [normal[0], normal[1] + (Math.PI * 0.25)], parent);
 		this.collisionMult = 1.414;
 	}
 
@@ -336,18 +384,47 @@ class Tile_Box_Spun extends Tile_Box {
 }
 
 class Tile_Bright extends Tile {
-	constructor(x, y, z, size, normal, parent, tilePosition, color) {
-		super(x, y, z, size, normal, parent, tilePosition, color);
+	constructor(x, y, z, size, normal, parent, color) {
+		super(x, y, z, size, normal, parent, color);
 	}
 
 	getColor() {
-		return `hsl(${this.color.h}, ${this.color.s}%, ${linterp(75, 5, clamp((this.playerDist / render_maxColorDistance) * 0.75, 0, 1))}%)`
+		return `hsl(${this.color.h}, ${this.color.s}%, ${linterp(75, 0, clamp((this.playerDist / render_maxColorDistance) * (this.playerDist / render_maxColorDistance), 0, 1))}%)`
+	}
+}
+
+class Tile_Bright_Ringed extends Tile_Bright {
+	constructor(x, y, z, size, normal, parent, color) {
+		super(x, y, z, size, normal, parent, color);
+	}
+
+	calculatePointsAndNormal() {
+		super.calculatePointsAndNormal();
+		var ringOffset = polToCart(this.normal[0], this.normal[1], 2);
+		this.ring = new Ring(this.x + ringOffset[0], this.y + ringOffset[1], this.z + ringOffset[2], this.normal[0], this.normal[1], render_ringSize);
+	}
+
+	doComplexLighting() {
+		super.doComplexLighting();
+		this.ring.playerDist = this.playerDist;
+	}
+
+	beDrawn() {
+		super.beDrawn();
+		if (spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], this.normal)[2] > 0) {
+			this.ring.beDrawn();
+		}
+	}
+
+	tick() {
+		super.tick();
+		this.ring.tick();
 	}
 }
 
 class Tile_Conveyor extends Tile {
-	constructor(x, y, z, size, normal, parent, tilePosition) {
-		super(x, y, z, size, normal, parent, tilePosition, RGBtoHSV(color_conveyor));
+	constructor(x, y, z, size, normal, parent) {
+		super(x, y, z, size, normal, parent, RGBtoHSV(color_conveyor));
 		this.secondaryColor = RGBtoHSV(color_conveyor_secondary);
 		this.time = 0;
 		this.conveyTime = 80;
@@ -379,7 +456,7 @@ class Tile_Conveyor extends Tile {
 		this.triPoints = [[-1 + (this.time * 2), 0, -1], [-1 + (this.time * 2), 0, 0], [-1, 0, -1 * this.time], [-1, 0, this.time], [-1 + (this.time * 2), 0, 0], 
 					[-1 + (this.time * 2), 0, 1], [1, 0, this.time], [1, 0, -1 * this.time]];
 		this.triPoints.forEach(p => {
-			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 0.5);
+			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 1);
 		});
 	}
 
@@ -411,15 +488,15 @@ class Tile_Conveyor extends Tile {
 }
 
 class Tile_Conveyor_Slow extends Tile_Conveyor {
-	constructor(x, y, z, size, normal, parent, tilePosition) {
-		super(x, y, z, size, normal, parent, tilePosition);
+	constructor(x, y, z, size, normal, parent) {
+		super(x, y, z, size, normal, parent);
 	}
 
 	calculateTriPoints() {
 		this.triPoints = [[1 - (this.time * 2), 0, -1], [1 - (this.time * 2), 0, 0], [1, 0, -1 * this.time], [1, 0, this.time], [1 - (this.time * 2), 0, 0], 
 					[1 - (this.time * 2), 0, 1], [-1, 0, this.time], [-1, 0, -1 * this.time]];
 		this.triPoints.forEach(p => {
-			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 0.5);
+			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 1);
 		});
 	}
 
@@ -437,8 +514,8 @@ class Tile_Conveyor_Slow extends Tile_Conveyor {
 }
 
 class Tile_Conveyor_Left extends Tile_Conveyor {
-	constructor(x, y, z, size, normal, parent, tilePosition) {
-		super(x, y, z, size, normal, parent, tilePosition);
+	constructor(x, y, z, size, normal, parent) {
+		super(x, y, z, size, normal, parent);
 	}
 
 	calculatePointsAndNormal() {
@@ -453,7 +530,7 @@ class Tile_Conveyor_Left extends Tile_Conveyor {
 		this.triPoints = [[-1, 0, 1 - (this.time * 2)], [0, 0, 1 - (this.time * 2)], [-1 * this.time, 0, 1], [this.time, 0, 1], [0, 0, 1 - (this.time * 2)], 
 					[1, 0, 1 - (this.time * 2)], [this.time, 0, -1], [-1 * this.time, 0, -1]];
 		this.triPoints.forEach(p => {
-			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 0.5);
+			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 1);
 		});
 	}
 
@@ -466,8 +543,8 @@ class Tile_Conveyor_Left extends Tile_Conveyor {
 }
 
 class Tile_Conveyor_Right extends Tile_Conveyor {
-	constructor(x, y, z, size, normal, parent, tilePosition) {
-		super(x, y, z, size, normal, parent, tilePosition);
+	constructor(x, y, z, size, normal, parent) {
+		super(x, y, z, size, normal, parent);
 	}
 
 	calculatePointsAndNormal() {
@@ -481,7 +558,7 @@ class Tile_Conveyor_Right extends Tile_Conveyor {
 		this.triPoints = [[-1, 0, -1 + (this.time * 2)], [0, 0, -1 + (this.time * 2)], [-1 * this.time, 0, -1], [this.time, 0, -1], [0, 0, -1 + (this.time * 2)], 
 					[1, 0, -1 + (this.time * 2)], [this.time, 0, 1], [-1 * this.time, 0, 1]];
 		this.triPoints.forEach(p => {
-			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 0.5);
+			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 1);
 		});
 	}
 
@@ -494,8 +571,9 @@ class Tile_Conveyor_Right extends Tile_Conveyor {
 }
 
 class Tile_Crumbling extends Tile {
-	constructor(x, y, z, size, normal, parent, tilePosition, color) {
-		super(x, y, z, size, normal, parent, tilePosition, RGBtoHSV(color_crumbling));
+	constructor(x, y, z, size, normal, parent, color, tilePosition) {
+		super(x, y, z, size, normal, parent, RGBtoHSV(color_crumbling));
+		this.parentPosition = tilePosition;
 		this.activeSize = this.size;
 
 		this.home = [this.x, this.y, this.z];
@@ -504,7 +582,7 @@ class Tile_Crumbling extends Tile {
 		this.fallRate = -0.52;
 
 		//all crumbling tiles have a plexiglass tile hidden on top of them
-		this.plexiTile = new Tile_Plexiglass(x, y, z, size, normal, parent, tilePosition, color, 0.95);
+		this.plexiTile = new Tile_Plexiglass(x, y, z, size, normal, parent, color, 0.95);
 	}
 
 	calculatePointsAndNormal() {
@@ -526,7 +604,7 @@ class Tile_Crumbling extends Tile {
 
 	collideWithEntity(entity) {
 		//only do if large enough
-		if (this.activeSize > 0.01 && this.playerDist < this.size * 2) {
+		if (this.activeSize > 0.01 && getDistance(this, entity) < this.size * 2) {
 			super.collideWithEntity(entity);
 		}
 
@@ -539,7 +617,7 @@ class Tile_Crumbling extends Tile {
 		if (this.fallStatus != undefined) {
 			this.fallStatus += 1;
 
-			if (this.fallStatus > 0) {
+			if (this.fallStatus > 0 && this.fallStatus <= physics_crumblingShrinkTime + physics_crumblingShrinkStart) {
 				//only continue falling if large enough
 				if (this.activeSize > 0.01) {
 					//fall downward
@@ -553,19 +631,13 @@ class Tile_Crumbling extends Tile {
 						this.activeSize = linterp(this.size, 0, (this.fallStatus - physics_crumblingShrinkStart) / physics_crumblingShrinkTime);
 					}
 
-
 					//recalculate points
 					this.calculatePointsAndNormal();
 				}
-
-				//if in a tunnel that the player is not in, reset self
-				if (this.parent != player.parent) {
-					this.reset();
-				}
 			}
+			//tick plexiglass
+			this.plexiTile.tick();
 		}
-		//tick plexiglass
-		this.plexiTile.tick();
 	}
 
 	reset() {
@@ -631,8 +703,8 @@ class Tile_Crumbling extends Tile {
 }
 
 class Tile_Ice extends Tile {
-	constructor(x, y, z, size, normal, parent, tilePosition) {
-		super(x, y, z, size, normal, parent, tilePosition, RGBtoHSV(color_ice));
+	constructor(x, y, z, size, normal, parent) {
+		super(x, y, z, size, normal, parent, RGBtoHSV(color_ice));
 	}
 
 	getColor() {
@@ -646,8 +718,8 @@ class Tile_Ice extends Tile {
 }
 
 class Tile_Ice_Ramp extends Tile_Ice {
-	constructor(x, y, z, size, normal, parent, tilePosition) {
-		super(x, y, z, size, normal, parent, tilePosition);
+	constructor(x, y, z, size, normal, parent) {
+		super(x, y, z, size, normal, parent);
 	}
 
 	calculatePointsAndNormal() {
@@ -672,10 +744,9 @@ class Tile_Ice_Ramp extends Tile_Ice {
 	}
 }
 
-class Tile_Movable extends Tile {
-	constructor(x, y, z, size, normal, parent, tilePosition, color) {
-		super(x, y, z, size, normal, parent, tilePosition, color);
-		
+class Tile_Ringed extends Tile {
+	constructor(x, y, z, size, normal, parent, color) {
+		super(x, y, z, size, normal, parent, color);
 	}
 
 	calculatePointsAndNormal() {
@@ -706,8 +777,8 @@ class Tile_Movable extends Tile {
 
 //this is called a plexiglass tile because I thought it looked a bit like plexiglass. It's not actually made of plexiglass. don't get confused ;)
 class Tile_Plexiglass extends Tile {
-	constructor(x, y, z, size, normal, parent, tilePosition, color, strength) {
-		super(x, y, z, size, normal, parent, tilePosition, color);
+	constructor(x, y, z, size, normal, parent, color, strength) {
+		super(x, y, z, size, normal, parent, color);
 		this.strength = strength;
 		this.minStrength = 0.04;
 	}
@@ -746,12 +817,13 @@ class Tile_Plexiglass extends Tile {
 }
 
 class Tile_Ramp extends Tile {
-	constructor(x, y, z, size, normal, parent, tilePosition, color) {
-		super(x, y, z, size, normal, parent, tilePosition, color);
+	constructor(x, y, z, size, normal, parent, color) {
+		super(x, y, z, size, normal, parent, color);
+		this.tolerance = player.r * 0.8;
 	}
 
 	calculatePointsAndNormal() {
-		this.points = [[-1, 0, -1], [-1, 0, 1], [-1 + (2 / Math.sqrt(2)), (2 / Math.sqrt(2)), 1], [-1 + (2 / Math.sqrt(2)), (2 / Math.sqrt(2)), -1]];
+		this.points = [[-1, 0, -1], [-1, 0, 1], [1, 1, 1], [1, 1, -1]];
 		this.points.forEach(p => {
 			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 0.5);
 		});
@@ -765,7 +837,7 @@ class Tile_Ramp extends Tile {
 	doCollisionEffects(entity) {
 		super.doCollisionEffects(entity);
 		//push player up a bit
-		entity.dy = entity.dz * 0.7 * ((!player.backwards * 2) - 1);
+		entity.dy = entity.dz * 0.5 * ((!player.backwards * 2) - 1);
 		entity.onground = physics_graceTimeRamp;
 	}
 
@@ -775,14 +847,15 @@ class Tile_Ramp extends Tile {
 }
 
 class Tile_Vertical extends Tile {
-	constructor(x, y, z, size, normal, parent, tilePosition, color) {
-		super(x, y, z, size, normal, parent, tilePosition, color);
+	constructor(x, y, z, size, normal, parent, color) {
+		super(x, y, z, size, normal, parent, color);
 	}
 }
 
+//TODO: it would probably be easier to just have the vertical component be its own object
 class Tile_Warning extends Tile {
-	constructor(x, y, z, size, normal, parent, tilePosition) {
-		super(x, y, z, size, normal, parent, tilePosition, RGBtoHSV(color_warning));
+	constructor(x, y, z, size, normal, parent) {
+		super(x, y, z, size, normal, parent, RGBtoHSV(color_warning));
 		this.verticalPlayerDist = 1000;
 	}
 
@@ -795,6 +868,11 @@ class Tile_Warning extends Tile {
 		this.verticalPoints.forEach(p => {
 			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 0.5);
 		});
+	}
+
+	doComplexLighting() {
+		super.doComplexLighting();
+		this.verticalPlayerDist = getDistance_LightSource({x: this.verticalCenter[0], y: this.verticalCenter[1], z: this.verticalCenter[2]});
 	}
 
 	tick() {
@@ -830,11 +908,5 @@ class Tile_Warning extends Tile {
 	beDrawn() {
 		super.beDrawn();
 		drawWorldPoly(this.verticalPoints, this.getVerticalColor());
-		if (editor_active) {
-			//draw sideways normal
-			var cXYZ = polToCart(this.dir_down[0] + (Math.PI / 2), 0, 5);
-			cXYZ = [this.verticalCenter[0] + cXYZ[0], this.verticalCenter[1] + cXYZ[1], this.verticalCenter[2] + cXYZ[2]];
-			drawWorldLine(this.verticalCenter, cXYZ);
-		}
 	}
 }

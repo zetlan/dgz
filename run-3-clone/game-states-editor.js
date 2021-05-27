@@ -5,32 +5,71 @@ class State_Edit {
 		this.lightMultiplier = 2.2;
 		this.tunnel = this.readFrom[this.readFrom.length-1];
 		this.buttons = [
-			new PropertyButton(0.5 / 5, editor_topBarHeight / 2, 1 / 5.5, editor_topBarHeight * editor_buttonHeightPercentage, "Tiles", `loading_state = new State_Edit_Tiles();`),
-			new PropertyButton(1.5 / 5, editor_topBarHeight / 2, 1 / 5.5, editor_topBarHeight * editor_buttonHeightPercentage, "Properties", `loading_state = new State_Edit_Properties();`),
-			new PropertyButton(3.5 / 5, editor_topBarHeight / 2, 1 / 5.5, editor_topBarHeight * editor_buttonHeightPercentage, "Cutscene", `loading_state = new State_Edit_Cutscenes();`),
-			new PropertyButton(4.5 / 5, editor_topBarHeight / 2, 1 / 5.5, editor_topBarHeight * editor_buttonHeightPercentage, "Playtest", ``),
-			new PropertyButton(2.5 / 5, editor_topBarHeight / 2, 1 / 5.5, editor_topBarHeight * editor_buttonHeightPercentage, "World", `loading_state = new State_Edit_World();`),
+			new PropertyButton(0.5 / 5, editor_topBarHeight / 2, 1 / 5.5, editor_topBarHeight * editor_buttonHeightPercentage, "Tiles", `if (loading_state.constructor.name != "State_Edit_Tiles") {loading_state = new State_Edit_Tiles();}`),
+			new PropertyButton(1.5 / 5, editor_topBarHeight / 2, 1 / 5.5, editor_topBarHeight * editor_buttonHeightPercentage, "Properties", `if (loading_state.constructor.name != "State_Edit_Properties") {loading_state = new State_Edit_Properties();}`),
+			new PropertyButton(3.5 / 5, editor_topBarHeight / 2, 1 / 5.5, editor_topBarHeight * editor_buttonHeightPercentage, "Cutscene", `if (loading_state.constructor.name != "State_Edit_Cutscenes") {loading_state = new State_Edit_Cutscenes();}`),
+			new PropertyButton(4.5 / 5, editor_topBarHeight / 2, 1 / 5.5, editor_topBarHeight * editor_buttonHeightPercentage, "Playtest", `loading_state.enterPlaytestMode();`),
+			new PropertyButton(2.5 / 5, editor_topBarHeight / 2, 1 / 5.5, editor_topBarHeight * editor_buttonHeightPercentage, "World", `if (loading_state.constructor.name != "State_Edit_World") {loading_state = new State_Edit_World();}`),
 		];
 	}
 
-	doWorldEffects() {
-		world_camera.targetX = 0.1;
-		world_camera.targetY = 0.1;
-		world_camera.targetZ = 0;
+	calculateTunnelPoints() {
+		//points of the tunnel, handy for tunnel functions
+		console.log(this.tunnel.id);
+		this.tunnelPoints = [];
+		for (var a=0; a<this.tunnel.sides; a++) {
+			this.tunnelPoints.push([
+				this.tunnel.r * Math.cos(((Math.PI * 2) / this.tunnel.sides) * (a - 0.5)), 
+				this.tunnel.r * Math.sin(((Math.PI * 2) / this.tunnel.sides) * (a - 0.5)), 
+				0
+			]);
+		}
+		//rotate
+		for (var b=0; b<this.tunnelPoints.length; b++) {
+			[this.tunnelPoints[b][0], this.tunnelPoints[b][2]] = rotate(this.tunnelPoints[b][0], this.tunnelPoints[b][2], this.tunnel.theta);
+		}
+	}
 
+	doWorldEffects() {
+		replacePlayer(0 + (7 * data_persistent.settings.pastaView));
+		if (editor_objects.includes(player.parentPrev)) {
+			//if the player's parent is an editor object, go there
+			this.tunnel = player.parentPrev;
+
+		}
+		player.parent = undefined;
+		player.parentPrev = undefined;
 		if (this.tunnel != undefined) {
 			world_camera.targetTheta = (Math.PI * 2) - this.tunnel.theta;
-			world_camera.targetX = this.tunnel.x + 0.1;
-			world_camera.targetY = this.tunnel.y + 0.1;
+			world_camera.targetX = this.tunnel.x + 1;
+			world_camera.targetY = this.tunnel.y + 1;
 			world_camera.targetZ = this.tunnel.z;
+			this.tunnel.generate();
+		} else {
+			world_camera.targetX = 1;
+			world_camera.targetY = 1;
+			world_camera.targetZ = 0;
 		}
 		world_camera.targetRot = 0;
 		world_camera.rot = 0;
 		world_camera.targetPhi = 0;
 		
-		//so they can see plexiglass tiles
-		player = new Pastafarian(player.x, player.y, player.z);
+		//so user can see plexiglass tiles
+		replacePlayer(7);
 		render_maxColorDistance *= this.lightMultiplier;
+	}
+
+	enterPlaytestMode() {
+		editor_objects.forEach(u => {
+			u.getCameraDist();
+		});
+
+		player.parentPrev = editor_spawn;
+		loading_state = new State_Playtest();
+		loading_state.returnState = this;
+		loading_state.text = player.parentPrev.id;
+		loading_state.time = tunnel_textTime;
+		player.parentPrev.reset();
 	}
 
 	execute() {
@@ -50,9 +89,6 @@ class State_Edit {
 		if (world_time % 17 == 16) {
 			this.readFrom = orderObjects(this.readFrom, 6);
 		}
-		
-		
-		this.drawTopBar();
 		//little dot in the center of the screen
 		drawCircle(color_editor_cursor, canvas.width * 0.5, canvas.height * 0.5, 2);
 	}
@@ -103,10 +139,32 @@ class State_Edit {
 		});
 	}
 
+	renderFunction(tunnelFunction) {
+		//tunnel functions are [z, result value, type];
+		//if the area isn't clipped, render the function
+		var zOff = [0, 0, tunnelFunction[0] * this.tunnel.tileSize];
+		[zOff[0], zOff[2]] = rotate(zOff[0], zOff[2], this.tunnel.theta);
+		zOff[0] += this.tunnel.x;
+		zOff[1] += this.tunnel.y;
+		zOff[2] += this.tunnel.z;
+		if (!isClipped(zOff)) {
+			ctx.fillStyle = color_trigger;
+			ctx.globalAlpha = 0.7 * Math.max((2 - Math.pow(Math.sin(modularDifference((Math.PI * 2) - loading_state.tunnel.theta, world_camera.theta, Math.PI * 2)) + 1, 1.5)), 0);
+			ctx.beginPath();
+			var point = [];
+			this.tunnelPoints.forEach(p => {
+				point = spaceToScreen([p[0] + zOff[0], p[1] + zOff[1], p[2] + zOff[2]]);
+				ctx.lineTo(point[0], point[1]);
+			});
+			ctx.fill();
+			ctx.globalAlpha = 1;
+		}
+	}
+
 	handleMouseMove(a) {
 		updateCursorPos(a);
 		//if the cursor is up top
-		if (cursor_y < canvas.height * 0.15) {
+		if (cursor_y < canvas.height * editor_topBarHeight) {
 			return 31;
 		}
 	}
@@ -116,7 +174,7 @@ class State_Edit {
 		//changing state
 		if (cursor_y < canvas.height * 0.12) {
 			this.buttons.forEach(b => {
-				b.handleClick();
+				b.interact();
 			});
 			if (loading_state != this) {
 				render_maxColorDistance /= this.lightMultiplier;
@@ -146,28 +204,229 @@ class State_Edit_Tiles extends State_Edit {
 		super();
 		this.doWorldEffects();
 
+		this.substate = 0;
+		this.substateTravel = 0;
+
+		this.lowButton = new PropertyButton(0.91, 0.96, 0.16, 0.05, "Triggers", `loading_state.switchSubstates();`);
+		this.funcButtons = [
+			new PropertyButton(editor_lTriggerW + 0.025, 0.97, 0.04, 0.05, "-", `if (loading_state.triggerSelected != undefined) {
+				loading_state.tunnel.functions.splice(loading_state.tunnel.functions.indexOf(loading_state.triggerSelected), 1);
+				loading_state.triggerSelected = undefined;
+			}`),
+			new PropertyButton(editor_lTriggerW + 0.07, 0.97, 0.04, 0.05, "+", `loading_state.tunnel.functions.splice(0, 0, [0, 1, "instant"]);`)
+		];
+
+		this.sub2Buttons = [
+			//esc
+			new PropertyButton(editor_lTriggerW + 0.025, editor_topBarHeight + 0.03, 0.04, 0.05, "X", `loading_state.substate = 1;`),
+
+			//left / right type selector
+			new PropertyButton(editor_lTriggerW + 0.075, editor_topBarHeight + 0.03, 0.04, 0.05, '<', `loading_state.incrementTriggerType(-1);`),
+			new PropertyButton(editor_lTriggerW + editor_triggerEditW - 0.075, editor_topBarHeight + 0.03, 0.04, 0.05, '>', `loading_state.incrementTriggerType(1);`)
+		];
+
 		this.tileSelected = 0;
+		this.tileIsRing = false;
 		this.animTileSelected = 0;
+
+		this.triggerSelected = undefined;
+		this.triggerLastChange = 0;
 
 		this.targetTile = [3, 15];
 		var tileCoords = this.tunnel.worldPositionOfTile(this.targetTile[0], this.targetTile[1] + 1);
 		this.selectedTileExtra = new Tile_Plexiglass(tileCoords[0], tileCoords[1], tileCoords[2], this.tunnel.tileSize, this.tunnel.strips[this.targetTile[0]].normal, this.tunnel, this.targetTile, this.tunnel.color, 0.5);
 		this.selectedTileExtra.playerDist = 50;
 		this.selectedTileExtra.cameraDist = 50;
-		this.topDarkButton = 1;
 		this.cameraMovement = 0;
+		this.calculateTunnelPoints();
+	}
 
-		//points of the tunnel, handy for tunnel functions
-		this.tunnelPoints = [];
-		for (var a=0; a<this.tunnel.sides; a++) {
-			this.tunnelPoints.push([this.tunnel.r * Math.cos(((Math.PI * 2) / this.tunnel.sides) * (a - 0.5)), 
-									this.tunnel.r * Math.sin(((Math.PI * 2) / this.tunnel.sides) * (a - 0.5))]);
+	incrementTriggerType(incrementBy) {
+		//don't allow "true" cutscenes
+		if (this.triggerSelected[2] == "cutscene") {
+			this.triggerSelected[2] = "cutsceneImmerse";
 		}
-		//turn 2d points into 3d points
-		for (var b=0; b<this.tunnelPoints.length; b++) {
+		this.triggerLastChange = incrementBy;
+		var oldTypeNum = this.functionList.indexOf(this.triggerSelected[2]);
+		var newTypeNum = modulate(oldTypeNum + incrementBy, this.functionList.length)
+		//splice out old output controllers
+		while (this.sub2Buttons.length > 3) {
+			this.sub2Buttons.splice(this.sub2Buttons.length-1, 1);
+		}
+		
+
+		//change type and add new output controllers
+		this.triggerSelected[2] = this.functionList[newTypeNum];
+		var selectorHeight = editor_topBarHeight + editor_triggerEditH * 0.75;
+		if (this.functionList[newTypeNum] == "cutsceneImmerse") {
+			//left / right cutscene selector
+			this.sub2Buttons.push(new PropertyButton(editor_lTriggerW + 0.075, selectorHeight, 0.04, 0.05, '<', `loading_state.incrementCutsceneRef(-1);`));
+			this.sub2Buttons.push(new PropertyButton(editor_lTriggerW + editor_triggerEditW - 0.075, selectorHeight, 0.04, 0.05, '>', `loading_state.incrementCutsceneRef(1);`));
+
+			//don't be a cutscene if no cutscenes exist
+			if (Object.keys(editor_cutscenes).length == 0) {
+				this.incrementTriggerType(this.triggerLastChange + (this.triggerLastChange == 0));
+				return;
+			}
+
+			//change result type
+			if (this.triggerSelected[1].constructor.name != "String") {
+				this.triggerSelected[1] = Object.keys(editor_cutscenes)[0];
+			}
+		} else {
+			//power result slider
+			this.sub2Buttons.push(new PropertySlider(editor_lTriggerW + (editor_triggerEditW / 8), selectorHeight, editor_triggerEditW * 0.75, (editor_triggerEditW / 2) - 0.05, `result`, `loading_state.triggerSelected[1] = value;`, `loading_state.triggerSelected[1]`, 0, 1, 0.0025, false));
+
+			//change result type
+			if (this.triggerSelected[1].constructor.name == "String") {
+				this.triggerSelected[1] = 1;
+			}
+		}
+
+		
+	}
+
+	incrementCutsceneRef(incrementBy) {
+		var listing = Object.keys(editor_cutscenes);
+		var index = listing.indexOf(this.triggerSelected[1])
+		this.triggerSelected[1] = listing[modulate(index+incrementBy, Math.min(editor_maxCutscenes, listing.length))];
+	}
+
+	switchSubstates() {
+		if (this.substate == 0 || this.substateTravel < 0) {
+			//if it's already in the tiles area
+			this.lowButton.label = "Triggers";
+			this.substateTravel = editor_substateTravelSpeed;
+		} else {
+			//if already in triggers area
+			this.lowButton.label = "Tiles";
+			this.substateTravel = -editor_substateTravelSpeed;
+		}
+	}
+
+	drawTileSidebar() {
+		ctx.globalAlpha = 1 - this.substate;
+		//update the tile icon selected
+		if (this.tileSelected < 100) {
+			this.animTileSelected = (this.animTileSelected * (render_animSteps - 1) + this.tileSelected) / render_animSteps;
+		} else {
+			this.animTileSelected = (this.animTileSelected * (render_animSteps - 1) + this.tileSelected - 100) / render_animSteps;	
+		}
+		
+		//draw tile coordinates
+		if (this.targetTile != undefined) {
+			ctx.fillStyle = color_text_bright;
+			ctx.textAlign = "right";
+			ctx.font = `${canvas.height / 40}px Comfortaa`;
+			ctx.fillText(JSON.stringify(this.targetTile), canvas.width * 0.99, canvas.height * 0.92);
+			ctx.textAlign = "center";
+		}
+
+		//selection box
+		ctx.lineWidth = canvas.height / 200;
+		drawSelectionBox((canvas.width * (0.015 + editor_tileSize / 2)), ((canvas.height / 17) * (this.animTileSelected + 2)) + (canvas.width * editor_tileSize / 2), 
+						canvas.width * editor_tileSize * 1.6, canvas.width * editor_tileSize * 1.6);
+		ctx.lineWidth = 2;
+
+		//tile listing
+		for (var a=1; a<=13; a++) {
+			drawTile2d(canvas.width * 0.015, (canvas.height / 17) * (a + 2), canvas.width * editor_tileSize, a + (100 * this.tileIsRing));
+		}
+
+		drawTile2d(canvas.width * 0.015, canvas.height * 0.95, canvas.width * editor_tileSize, 0);
+	}
+
+	drawTriggerSidebar() {
+		ctx.globalAlpha = this.substate;
+		ctx.lineWidth = 2;
+
+		var ribX = canvas.width * editor_triggerRibX;
+		var minH = canvas.height * (editor_topBarHeight - 0.01);
+		var maxH = canvas.height * 0.98;
+		var totalH = maxH - minH;
+		var zScale = totalH / ((this.tunnel.len * this.tunnel.tileSize) + tunnel_transitionLength);
+
+		//tunnel line
+		var color = `hsl(${this.tunnel.color.h}, ${this.tunnel.color.s}%, ${this.tunnel.color.v * 85}%)`;
+		ctx.strokeStyle = color;
+		ctx.fillStyle = color;
+		ctx.lineWidth = 1;
+		ctx.beginPath();
+		ctx.moveTo(ribX, minH + (zScale * (tunnel_transitionLength - this.tunnel.tileSize)));
+		ctx.lineTo(ribX, maxH - (zScale * this.tunnel.tileSize));
+		ctx.stroke();
+
+		//circles
+		//this line isn't confusing at all, size is height/240 unless there are a large amount of tiles, then it's 1/5th of the tiles, unless that makes it smaller than 1 pixel, in which case it's 1 pixel.
+		var circleSize = Math.max(Math.min((canvas.height / 240), zScale * this.tunnel.tileSize * 0.2), 1);
+
+		//draw tile snappers
+		var numTiles = this.tunnel.len + Math.ceil(tunnel_transitionLength / this.tunnel.tileSize);
+		for (var n=0; n<numTiles; n++) {
+			drawCircle(color, ribX, maxH - ((n + 0.5) * zScale * this.tunnel.tileSize), circleSize);
+		}
+
+		//draw triggers
+		for (var f=0; f<this.tunnel.functions.length; f++) {
+			var objRef = this.tunnel.functions[f];
+			//determine height from z-index
+			var height = maxH - ((objRef[0] + 0.5) * zScale * this.tunnel.tileSize);
+			if (this.triggerSelected == objRef) {
+				drawCircle(color_editor_cursor, ribX, height, circleSize);
+			} else {
+				drawCircle(color_trigger, ribX, height, circleSize);
+			}
+
+			//the box
+			drawSelectionBox(canvas.width * editor_lTriggerW * 0.56, height, canvas.width * editor_lTriggerW * 0.825, canvas.height * 0.02);
 			
+			ctx.fillStyle = color_text_bright;
+			ctx.font = `${canvas.height / 80}px Comfortaa`;
+			ctx.textAlign = "left";
+			var textOffset = canvas.height / 300;
+
+			//z
+			ctx.fillText(objRef[0], ribX + (canvas.width * 0.005), height + textOffset);
+
+			//type
+			ctx.fillText(editor_functionMapping[objRef[2]], ribX + (canvas.width * 0.025), height + textOffset);
+
+			//value
+			ctx.textAlign = "right";
+			ctx.fillText((objRef[2] != "cutsceneImmerse" && objRef[2] != "cutscene" && objRef[1].toFixed(4) * 1) || objRef[1], canvas.width * (editor_lTriggerW - 0.01), height + textOffset);
 		}
 
+		this.funcButtons.forEach(f => {
+			f.tick();
+			f.beDrawn();
+		});
+	}
+
+	drawTriggerEditor() {
+			//bege
+			ctx.fillStyle = color_editor_bg;
+			ctx.fillRect(canvas.width * editor_lTriggerW - 1, canvas.height * editor_topBarHeight - 1, canvas.width * editor_triggerEditW + 1, canvas.height * editor_triggerEditH + 1);
+
+			//type text
+			ctx.fillStyle = color_text_bright;
+			ctx.font = `${canvas.height / 40}px Comfortaa`;
+			ctx.textAlign = "center";
+			ctx.fillText(editor_functionMapping[this.triggerSelected[2]], canvas.width * (editor_lTriggerW + editor_triggerEditW / 2), canvas.height * (editor_topBarHeight + 0.04));
+
+			//cutscene name text, if required
+			if (this.triggerSelected[2] == "cutsceneImmerse") {
+				ctx.font = `${canvas.height / 60}px Comfortaa`;
+				if (editor_cutscenes[this.triggerSelected[1]] == undefined) {
+					this.triggerSelected[1] = Object.keys(editor_cutscenes)[0];
+				}
+				ctx.fillText(editor_cutscenes[this.triggerSelected[1]].id, canvas.width * (editor_lTriggerW + editor_triggerEditW / 2), canvas.height * (editor_topBarHeight + editor_triggerEditH - 0.03));
+			}
+
+			//buttons
+			this.sub2Buttons.forEach(b => {
+				b.beDrawn();
+				b.tick();
+			});
 	}
 
 	execute() {
@@ -178,14 +437,16 @@ class State_Edit_Tiles extends State_Edit {
 			world_camera.targetY += cameraOffset[1];
 			world_camera.targetZ += cameraOffset[2];
 
+			this.getSelectedTile();
+
 			if (cursor_down) {
-				this.modifySelectedTilePos();
+				this.modifySelectedTile();
 			}
 		}
 		
 		super.execute();
 
-		if (modularDifference((Math.PI * 2) - loading_state.tunnel.theta, world_camera.targetTheta, Math.PI * 2) == 0) {
+		if (modularDifference((Math.PI * 2) - loading_state.tunnel.theta, world_camera.theta, Math.PI * 2) < Math.PI * 0.5) {
 			//forwards case
 			for (var f=this.tunnel.functions.length-1; f>-1; f--) {
 				this.renderFunction(this.tunnel.functions[f]);
@@ -196,135 +457,259 @@ class State_Edit_Tiles extends State_Edit {
 				this.renderFunction(f);
 			});
 		}
-		
 		this.selectedTileExtra.beDrawn();
-
-		//update the tile selected
-		this.animTileSelected = (this.animTileSelected * (render_animSteps - 1) + this.tileSelected) / render_animSteps;
-
-		//draw tile coordinates
-		if (this.targetTile != undefined) {
-			ctx.fillStyle = color_text_bright;
-			ctx.textAlign = "right";
-			ctx.font = `${canvas.height / 40}px Comfortaa`;
-			ctx.fillText(JSON.stringify(this.targetTile), canvas.width * 0.96, canvas.height * 0.95);
-			ctx.textAlign = "center";
+		if (this.substate < 2) {
+			this.lowButton.tick();
+			this.lowButton.beDrawn();
 		}
-		//side bar
+		super.drawTopBar();
+
+		//update substate
+		if (this.substate <= 1.1 + this.substateTravel) {
+			this.substate += this.substateTravel;
+			this.substate = clamp(this.substate, 0, 1);
+			if (this.substate == 0 || this.substate == 1) {
+				this.substateTravel = 0;
+			}
+		}
+
+		//side bar bg
 		ctx.fillStyle = color_editor_bg;
-		ctx.fillRect(0, canvas.height * (editor_topBarHeight - 0.01), canvas.width * 0.06, canvas.height);
+		ctx.fillRect(0, canvas.height * (editor_topBarHeight - 0.01), canvas.width * linterp(editor_lTileW, editor_lTriggerW, clamp(this.substate, 0, 1)), canvas.height);
 
-		//selection box
-		ctx.globalAlpha = 0.3;
-		ctx.fillStyle = color_grey_light;
-		ctx.strokeStyle = color_menuSelectionOutline;
-		ctx.lineWidth = canvas.height / 200;
-		drawRoundedRectangle((canvas.width * 0.015) - (canvas.width * editor_tileSize * 0.3), ((canvas.height / 17) * (this.animTileSelected + 2)) - (canvas.width * editor_tileSize * 0.3), 
-							canvas.width * editor_tileSize * 1.6, canvas.width * editor_tileSize * 1.6, canvas.height / 100);
+		//tile sidebar
+		if (this.substate < 1) {
+			this.drawTileSidebar();
+		}
+
+		//trigger sidebar
+		if (this.substate > 0) {
+			this.drawTriggerSidebar();
+
+			//substate 2 is selecting tunnel trigger properties, it gets its own thing
+			if (this.substate == 2) {
+				if (this.functionList == undefined) {
+					this.functionList = Object.keys(editor_functionMapping);
+					this.incrementTriggerType(0);
+				}
+				this.drawTriggerEditor();
+			}
+		}
 		ctx.globalAlpha = 1;
-		ctx.lineWidth = 2;
-
-		//tile listing
-		for (var a=0; a<15; a++) {
-			drawTile2d(canvas.width * 0.015, (canvas.height / 17) * (a + 2), canvas.width * editor_tileSize, a);
-		}
 	}
 
-	renderFunction(tunnelFunction) {
-
-	}
-
-	handleMouseMove(a) {
-		//if cursor is up top
-		if (super.handleMouseMove(a) == 31) {
-			return;
-		}
-
-		//if the cursor is over the menu to the left
-		if (cursor_x < canvas.width * 0.05) {
-			return;
-		}
-
-		//if still here...
-
-		//modify selected tile
+	getSelectedTile() {
 		var xOffset = cursor_x - (canvas.width * 0.5);
 		var yOffset = cursor_y - (canvas.height * 0.5);
+		var tRef = this.tunnel;
 		//outRate is the rate at which the ray travels out from the center. Used to calculate at what z position it will hit the tunnel
 		var outRate = Math.sqrt(((xOffset * xOffset) + (yOffset * yOffset))) / world_camera.scale;
 		//rough estimate of intersection point
-		var intersectZ = this.tunnel.r / outRate;
-		//var divisor = getDistance2d([0, 0], [xOffset, yOffset]) / Math.max(Math.abs(xOffset), Math.abs(yOffset));
-		//intersectZ /= divisor;
-		var cameraZ = spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.tunnel.x, this.tunnel.y, this.tunnel.z], [(Math.PI * 2) - this.tunnel.theta, 0])[2];
+		var intersectZ = tRef.r / outRate;
 
-		if (intersectZ < editor_maxEditDistance) {
+		if (Math.sqrt((xOffset * xOffset) + (yOffset * yOffset)) > editor_minEditAngle * canvas.height) {
 			//update the tile self points to
 			var isBackwards = (modularDifference((Math.PI * 2) - loading_state.tunnel.theta, world_camera.targetTheta, Math.PI * 2) != 0);
 			var angle = (Math.atan2(yOffset, -xOffset) + Math.PI) / (Math.PI * 2);
 			if (isBackwards) {
 				angle = 0.5 - angle;
 			}
-			var targetStrip = Math.floor(((angle * (this.tunnel.sides * this.tunnel.tilesPerSide)) + (this.tunnel.sides * this.tunnel.tilesPerSide) + (this.tunnel.tilesPerSide / 2)) % (this.tunnel.sides * this.tunnel.tilesPerSide));
-			var targetColumn = Math.floor((cameraZ + intersectZ - (2 * intersectZ * isBackwards)) / this.tunnel.tileSize) + (2 * isBackwards);
-			this.targetTile = [targetStrip, targetColumn];
+			this.targetTile[0] = Math.floor(((angle * (tRef.sides * tRef.tilesPerSide)) + (tRef.sides * tRef.tilesPerSide) + (tRef.tilesPerSide / 2)) % (tRef.sides * tRef.tilesPerSide));
 
-			//search for closer tiles
-			var error = getDistance2d(spaceToScreen(this.tunnel.worldPositionOfTile(this.targetTile[0], this.targetTile[1] + 1)), [cursor_x, cursor_y]);
-			var pastError;
-			
-			for (var t=this.targetTile[1]-1; t>=-1; t--) {
-				pastError = error;
-				//check tile
-				error = getDistance2d(spaceToScreen(this.tunnel.worldPositionOfTile(this.targetTile[0], t+1)), [cursor_x, cursor_y]);
-				//if the error has increased, break out of the loop. If not however, change the target tile
-				if (error > pastError) {
-					t = -43;
-				} else {
+			//loop through tiles, starting at -1 or camera's z position
+			var cameraTilePos = spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [tRef.x, tRef.y, tRef.z], [(Math.PI * 2) - tRef.theta, 0])[2] / tRef.tileSize;
+			var start;
+			var end;
+			if (isBackwards) {
+				end = Math.floor(cameraTilePos);
+				start = -1;
+			} else {
+				start = Math.max(-1, Math.floor(cameraTilePos+1));
+				end = start + ((tRef.r / ((editor_minEditAngle * canvas.height) / world_camera.scale)) / tRef.tileSize);
+			}
+			var polyPoints = [[], [], [], []];
+			var sRef = tRef.strips[this.targetTile[0]];
+			//start from -1 and move forwards
+			for (var t=start; t<end; t++) {
+				//get polygon position for the tile
+				polyPoints = [[0.5 + t, 0, -0.5], [0.5 + t, 0, 0.5], [1.5 + t, 0, 0.5], [1.5 + t, 0, -0.5]];
+				//screen position
+				for (var p=0; p<polyPoints.length; p++) {
+					polyPoints[p] = spaceToScreen(transformPoint(polyPoints[p], [sRef.x, sRef.y, sRef.z], sRef.normal, tRef.tileSize * 2));
+				}
+				
+				//if the cursor is inside the tile, make that selected and then break out
+				if (inPoly([cursor_x, cursor_y], polyPoints)) {
 					this.targetTile[1] = t;
+					t = end + 1;
 				}
 			}
-
-			if (this.targetTile[1] < -1) {
-				this.targetTile[1] = -1;
-			}
-
-			
-			var tileCoords = this.tunnel.worldPositionOfTile(this.targetTile[0], this.targetTile[1] + 1);
-			this.selectedTileExtra = new Tile_Plexiglass(tileCoords[0], tileCoords[1], tileCoords[2], this.tunnel.tileSize, this.tunnel.strips[this.targetTile[0]].normal, this.tunnel, this.targetTile, this.tunnel.color, 0.5);
+			var tileCoords = tRef.worldPositionOfTile(this.targetTile[0], this.targetTile[1] + 1);
+			this.selectedTileExtra = new Tile_Plexiglass(tileCoords[0], tileCoords[1], tileCoords[2], tRef.tileSize, tRef.strips[this.targetTile[0]].normal, tRef, tRef.color, 0.5);
 			this.selectedTileExtra.playerDist = 50;
 			this.selectedTileExtra.cameraDist = 50;
-
-			//if the cursor is down, modify the tile
-			if (cursor_down) {
-				this.modifySelectedTilePos();
-			}
 		}
 	}
 
-	handleMouseDown(a) {
-		if (super.handleMouseDown(a) == 31) {
+	handleEscape() {
+		if (this.substate == 2) {
+			this.substate = 1;
+			return;
+		}
+		super.handleEscape();
+	}
+
+	handleMouseMove(a) {
+		updateCursorPos(a);
+		//if cursor is up top
+		if (super.handleMouseMove(a) == 31 && this.substate != 1) {
 			return;
 		}
 
-		//changing tile selected
-		if (cursor_x < canvas.width * 0.06) {
-			this.tileSelected = clamp(Math.floor((cursor_y - (canvas.height / 17))  / (canvas.height / 17)) - 1, 0, 15);
+		//if changing states
+		if (this.substateTravel != 0) {
 			return;
 		}
 
-		//if it's at the start, toggle a spawn rather than creating a tile
-		if (this.targetTile[1] == -1) {
-			var spawnArr = this.tunnel.spawns;
-			if (!spawnArr.includes(this.targetTile[0])) {
-				spawnArr.push(this.targetTile[0]);
-			} else {
-				spawnArr.splice(spawnArr.indexOf(this.targetTile[0]), 1);
+		//tile mode
+		if (this.substate == 0) {
+			//if the cursor is over the menu to the left
+			if (cursor_x < canvas.width * editor_lTileW) {
+				return;
 			}
+		} else {
+			//trigger editing
+			if (this.substate == 2) {
+				if (this.sub2Buttons[3].constructor.name == "PropertySlider") {
+					this.sub2Buttons[3].interact();
+				}
+			}
+			//if the cursor is over the tunnel rib with cursor down
+			if (cursor_x < canvas.width * editor_lTileW) {
+				if (cursor_down && this.triggerSelected != undefined) {
+					//get new position for the trigger based on cursor position
+					var minH = canvas.height * (editor_topBarHeight - 0.01);
+					var maxH = canvas.height * 0.98;
+					var totalH = maxH - minH;
+					var numTiles = this.tunnel.len + Math.ceil(tunnel_transitionLength / this.tunnel.tileSize);
+					var cursorTilePos = clamp(cursor_y - minH, 0, totalH);
+					this.triggerSelected[0] = Math.floor((totalH - cursorTilePos) / (totalH / numTiles));
+					//special case
+					if (this.triggerSelected[0] > numTiles - 1) {
+						this.triggerSelected[0] = numTiles - 1;
+					}
+
+					//reorder triggers just to be safe
+					this.tunnel.functions.sort(function(a, b) {
+						return a[0] - b[0];
+					});
+				}
+				return;
+			}
+		}
+
+		//if still here...
+		this.getSelectedTile();
+
+		//if the cursor is down, modify the tile
+		if (cursor_down) {
+			this.modifySelectedTile();
+		}
+ 		
+	}
+
+	handleMouseDown(a) {
+		if (this.substate == 2) {
+			var toReturn = false;
+			this.sub2Buttons.forEach(b => {
+				if (b.interact() == 31) {
+					toReturn = true;
+				}
+			});
+			if (toReturn) {
+				return;
+			}
+		}
+
+		if (super.handleMouseDown(a) == 31 && this.substate < 1) {
 			return;
 		}
-		//place tile there if no other actions have been taken
-		this.modifySelectedTilePos();
+
+		this.lowButton.interact();
+
+		if (this.substateTravel == 0) {
+			//tile stuff
+			if (this.substate == 0) {
+				//changing tile selected
+				if (cursor_x < canvas.width * 0.06) {
+					if (cursor_y > canvas.height * 0.95) {
+						this.tileIsRing = !this.tileIsRing;
+						this.tileSelected += boolToSigned(this.tileIsRing) * 100;
+						if (!tunnel_validIndeces[this.tileSelected]) {
+							this.tileSelected = 0;
+						}
+						return;
+					}
+
+					//select new tile and make sure it's valid
+					var targetVal = clamp(Math.floor((cursor_y - (canvas.height / 17)) / (canvas.height / 17)) - 1, 0, 13);
+					if (this.tileIsRing && targetVal > 0) {
+						targetVal += 100;
+					}
+					if (tunnel_validIndeces[targetVal]) {
+						this.tileSelected = targetVal;
+					}
+					return;
+				}
+
+				//if it's at the start, toggle a spawn rather than creating a tile
+				if (this.targetTile[1] == -1) {
+					var spawnArr = this.tunnel.spawns;
+					if (!spawnArr.includes(this.targetTile[0])) {
+						spawnArr.push(this.targetTile[0]);
+					} else {
+						spawnArr.splice(spawnArr.indexOf(this.targetTile[0]), 1);
+					}
+					return;
+				}
+				//place tile there if no other actions have been taken
+				this.modifySelectedTile();
+			}
+
+			//trigger stuff
+			if (this.substate == 1) {
+				//buttons
+				this.funcButtons.forEach(f => {
+					f.interact();
+				});
+				
+				var reqDist = editor_handleRadius;
+				var ribX = canvas.width * editor_triggerRibX;
+				var minH = canvas.height * (editor_topBarHeight - 0.01);
+				var maxH = canvas.height * 0.98;
+				var totalH = maxH - minH;
+				var zScale = totalH / ((this.tunnel.len * this.tunnel.tileSize) + tunnel_transitionLength);
+
+				this.triggerSelected = undefined;
+				this.tunnel.functions.forEach(f => {
+					var height = maxH - ((f[0] + 0.5) * zScale * this.tunnel.tileSize);
+
+					//actual selection
+					if (getDistance2d([cursor_x, cursor_y], [ribX, height]) < reqDist) {
+						reqDist = getDistance2d([cursor_x, cursor_y], [ribX, height]);
+						this.triggerSelected = f;
+					}
+
+					//selection for substate 2
+					if (Math.abs(cursor_y - height) < canvas.height * 0.04 && cursor_x < editor_lTriggerW * canvas.width && cursor_x > 0.02 * canvas.width) {
+						if (Math.abs(cursor_y - height) < reqDist || this.triggerSelected == undefined) {
+							this.triggerSelected = f;
+						}
+						this.substate = 2;
+					}
+				});
+			}
+		}
 	}
 
 	handleKeyPress(a) {
@@ -373,20 +758,25 @@ class State_Edit_Tiles extends State_Edit {
 		}
 	}
 
-	modifySelectedTilePos() {
+	modifySelectedTile() {
 		//expand array if necessary
-		this.tunnel.len = Math.max(this.tunnel.len, this.targetTile[1] + 1);
-		this.tunnel.repairData();
+		if (this.targetTile[1]+1 > this.tunnel.len) {
+			this.tunnel.endSpawns = [];
+		}
+
+		//if the tile is already the selected value, do not change
+		if (this.tunnel.data[this.targetTile[0]][this.targetTile[1]] == this.tileSelected) {
+			return;
+		}
 
 		//basically just uh... kinda sorta... replace the tile
 		this.tunnel.data[this.targetTile[0]][this.targetTile[1]] = this.tileSelected;
 		var coords = this.tunnel.worldPositionOfTile(this.targetTile[0], this.targetTile[1] + 1);
 		this.tunnel.strips[this.targetTile[0]].tiles[this.targetTile[1]] = this.tunnel.generateTile(this.tileSelected, coords[0], coords[1], coords[2], this.tunnel.tileSize, this.tunnel.strips[this.targetTile[0]].normal, [this.targetTile[0], this.targetTile[1]], this.tunnel.color);
-		player = new Runner(player.x, player.y, player.z);
-		this.tunnel.strips[this.targetTile[0]].establishReals();
-		player = new Pastafarian(player.x, player.y, player.z);
-		player.parent = this.tunnel;
-		player.parentPrev = this.tunnel;
+		replacePlayer(0 + (7 * data_persistent.settings.pastaView));
+		this.tunnel.repairData();
+		this.tunnel.updatePosition(this.tunnel.x, this.tunnel.y, this.tunnel.z);
+		replacePlayer(7);
 	}
 }
 
@@ -398,38 +788,36 @@ class State_Edit_Properties extends State_Edit {
 		this.propertyModifiers = [
 			//ew, this is verbose
 			//hue + saturation + value
-			new PropertySlider(0.01, 0.14 + (0 * editor_sliderHeight), editor_propertyMenuWidth - (editor_sliderMargin * 2), editor_sliderProportion, `hue`, `loading_state.tunnel.color.h = value;`, `loading_state.tunnel.color.h`, 0, 360, 1, false),
-			new PropertySlider(0.01, 0.14 + (1 * editor_sliderHeight), editor_propertyMenuWidth - (editor_sliderMargin * 2), editor_sliderProportion, `sat.`, `loading_state.tunnel.color.s = value;`, `loading_state.tunnel.color.s`, 0, 80, 1, false),
-			new PropertySlider(0.01, 0.14 + (2 * editor_sliderHeight), editor_propertyMenuWidth - (editor_sliderMargin * 2), editor_sliderProportion, `val.`, `loading_state.tunnel.color.v = value;`, `loading_state.tunnel.color.v`, 0, 0.9, 0.001, false),
+			new PropertySlider(0.01, 0.14 + (0 * editor_sliderHeight), editor_lPropertyW - (editor_sliderMargin * 2), editor_sliderProportion, `hue`, `loading_state.tunnel.color.h = value;`, `loading_state.tunnel.color.h`, 0, 360, 1, false),
+			new PropertySlider(0.01, 0.14 + (1 * editor_sliderHeight), editor_lPropertyW - (editor_sliderMargin * 2), editor_sliderProportion, `sat.`, `loading_state.tunnel.color.s = value;`, `loading_state.tunnel.color.s`, 0, 80, 1, false),
+			new PropertySlider(0.01, 0.14 + (2 * editor_sliderHeight), editor_lPropertyW - (editor_sliderMargin * 2), editor_sliderProportion, `val.`, `loading_state.tunnel.color.v = value;`, `loading_state.tunnel.color.v`, 0, 0.9, 0.001, false),
 
 			//power
-			new PropertySlider(0.01, 0.14 + (4 * editor_sliderHeight), editor_propertyMenuWidth - (editor_sliderMargin * 2), editor_sliderProportion, `power`, `loading_state.tunnel.powerBase = value;`, `loading_state.tunnel.powerBase`, 0, 1, 0.01, false),
+			new PropertySlider(0.01, 0.14 + (4 * editor_sliderHeight), editor_lPropertyW - (editor_sliderMargin * 2), editor_sliderProportion, `power`, `loading_state.tunnel.powerBase = value;`, `loading_state.tunnel.powerBase`, 0, 1, 0.01, false),
 
 			//tile properties
-			new PropertySlider(0.01, 0.14 + (6 * editor_sliderHeight), editor_propertyMenuWidth - (editor_sliderMargin * 2), editor_sliderProportion, `tile size`, `loading_state.tunnel.tileSize = value;`, `loading_state.tunnel.tileSize`, 15, 220, 5, true),
-			new PropertySlider(0.01, 0.14 + (7 * editor_sliderHeight), editor_propertyMenuWidth - (editor_sliderMargin * 2), editor_sliderProportion / 2, `tiles / side`, `loading_state.tunnel.tilesPerSide = value; loading_state.tunnel.repairData();`, `loading_state.tunnel.tilesPerSide`, 1, 8, 1, true),
-			new PropertySlider(0.01, 0.14 + (8 * editor_sliderHeight), editor_propertyMenuWidth - (editor_sliderMargin * 2), editor_sliderProportion, `sides`, `loading_state.tunnel.sides = value; loading_state.tunnel.repairData();`, `loading_state.tunnel.sides`, 3, 50, 1, true),
+			new PropertySlider(0.01, 0.14 + (6 * editor_sliderHeight), editor_lPropertyW - (editor_sliderMargin * 2), editor_sliderProportion, `tile size`, `loading_state.tunnel.tileSize = value; loading_state.calculateTunnelPoints();`, `loading_state.tunnel.tileSize`, 15, 220, 5, true),
+			new PropertySlider(0.01, 0.14 + (7 * editor_sliderHeight), editor_lPropertyW - (editor_sliderMargin * 2), editor_sliderProportion / 2, `tiles / side`, `loading_state.tunnel.tilesPerSide = value; loading_state.tunnel.repairData(); loading_state.calculateTunnelPoints();`, `loading_state.tunnel.tilesPerSide`, 1, 8, 1, true),
+			new PropertySlider(0.01, 0.14 + (8 * editor_sliderHeight), editor_lPropertyW - (editor_sliderMargin * 2), editor_sliderProportion, `sides`, `loading_state.tunnel.sides = value; loading_state.tunnel.repairData(); loading_state.calculateTunnelPoints();`, `loading_state.tunnel.sides`, 3, 50, 1, true),
 
 			//music
 			new PropertyButton(0.025, 0.14 + (10 * editor_sliderHeight), 0.04, 0.05, '<', `loading_state.tunnel.music = data_musics[(data_musics.indexOf(loading_state.tunnel.music)+(data_musics.length-1)) % data_musics.length];`),
-			new PropertyButton(editor_propertyMenuWidth - 0.025, 0.14 + (10 * editor_sliderHeight), 0.04, 0.05, '>', `loading_state.tunnel.music = data_musics[(data_musics.indexOf(loading_state.tunnel.music)+1) % data_musics.length];`),
+			new PropertyButton(editor_lPropertyW - 0.025, 0.14 + (10 * editor_sliderHeight), 0.04, 0.05, '>', `loading_state.tunnel.music = data_musics[(data_musics.indexOf(loading_state.tunnel.music)+1) % data_musics.length];`),
 
 			//banned characters
 
 			//tunnel name
-			new PropertyTextBox(0.01, 0.14 + (15 * editor_sliderHeight), editor_propertyMenuWidth - (editor_sliderMargin * 2), `id~`, `loading_state.tunnel.id = value;`, `loading_state.tunnel.id`, `New Tunnel Name: `, ``, false),
+			new PropertyTextBox(0.01, 0.14 + (15 * editor_sliderHeight), editor_lPropertyW - (editor_sliderMargin * 2), `id~`, `loading_state.tunnel.id = value;`, `loading_state.tunnel.id`, `New Tunnel Name: `, ``, false),
 			
 			//save / load individual level
-			new PropertyTextBox(0.01, 								   0.14 + (16 * editor_sliderHeight), (editor_propertyMenuWidth / 2) - editor_sliderMargin, `load`, `loading_state.newTunnelData = value;`, `""`, `Input Tunnel Data: `, ``, true),
-			new PropertyTextBox(0.01 + (editor_propertyMenuWidth / 2), 0.14 + (16 * editor_sliderHeight), (editor_propertyMenuWidth / 2) - (editor_sliderMargin * 2), `save`, ``, `""`, `Don't type in the box, just copy this string:`, `loading_state.tunnel.giveStringData();`, true),
+			new PropertyTextBox(0.01,							0.14 + (16 * editor_sliderHeight), (editor_lPropertyW / 2) - editor_sliderMargin, `load`, `loading_state.newTunnelData = value;`, `""`, `Input Tunnel Data: `, ``, true),
+			new PropertyTextBox(0.01 + (editor_lPropertyW / 2), 0.14 + (16 * editor_sliderHeight), (editor_lPropertyW / 2) - (editor_sliderMargin * 2), `save`, ``, `""`, `Don't type in the box, just copy this string:`, `loading_state.tunnel.giveStringData();`, true),
 		];
 
 		this.banButtons = [
-			new PropertyButton(0.5 + (editor_propertyMenuWidth / 2), 0.95, 0.04, 0.05, '+', `loading_state.banStorage.push(["the ~~character~~ isn't here!", []])`),
-			new PropertyButton(0.5 + (editor_propertyMenuWidth / 2), 0.533, 0.06, 0.08, 'X', `loading_state.banSelected = undefined;`)
+			new PropertyButton(0.5 + (editor_lPropertyW / 2), 0.95, 0.04, 0.05, '+', `loading_state.banStorage.push(["the ~~character~~ isn't here!", []])`),
+			new PropertyButton(0.5 + (editor_lPropertyW / 2), 0.533, 0.06, 0.08, 'X', `loading_state.banSelected = undefined;`)
 		];
-		
-		this.topDarkButton = 2;
 
 		this.banStorage = undefined;
 		this.banSelected = undefined;
@@ -437,6 +825,7 @@ class State_Edit_Properties extends State_Edit {
 
 		this.substate = 0;
 		this.newTunnelData = undefined;
+		this.calculateTunnelPoints();
 	}
 
 	createTunnel() {
@@ -456,10 +845,11 @@ class State_Edit_Properties extends State_Edit {
 		player.parent = newObj;
 		player.parentPrev = newObj;
 		this.newTunnelData = undefined;
+		this.calculateTunnelPoints();
 	}
 
 	drawCharacterBans() {
-		var centerX = (0.5 + (editor_propertyMenuWidth / 2)) * canvas.width;
+		var centerX = (0.5 + (editor_lPropertyW / 2)) * canvas.width;
 		var centerY = (0.5 + 0.035) * canvas.height;
 		var height = (canvas.height - centerY) * 2;
 
@@ -479,7 +869,7 @@ class State_Edit_Properties extends State_Edit {
 			var baseY;
 			var textWidth;
 			for (var r=0; r<this.banStorage.length; r++) {
-				baseX = canvas.width * (editor_propertyMenuWidth + 0.03);
+				baseX = canvas.width * (editor_lPropertyW + 0.03);
 				baseY = canvas.height * (0.1 + (r * 0.0775));
 				textWidth = ctx.measureText(this.banStorage[r][0]).width + 10;
 				//box
@@ -491,8 +881,8 @@ class State_Edit_Properties extends State_Edit {
 
 				//characters it applies to
 				for (var c=0; c<this.banStorage[r][1].length; c++) {
-					textures_common[data_characters.indexOf(this.banStorage[r][1][c])].frame = 0;
-					textures_common[data_characters.indexOf(this.banStorage[r][1][c])].beDrawn(baseX + (canvas.height * 0.04 * (c+1)), baseY + (canvas.height * 0.0375), 0, canvas.height * 0.035);
+					textures_common[data_characters.map[this.banStorage[r][1][c]]].frame = 0;
+					textures_common[data_characters.map[this.banStorage[r][1][c]]].beDrawn(baseX + (canvas.height * 0.04 * (c+1)), baseY + (canvas.height * 0.0375), 0, canvas.height * 0.035);
 				}
 			}
 			//+ button at the bottom
@@ -502,6 +892,8 @@ class State_Edit_Properties extends State_Edit {
 		}
 		
 		//character selection
+		ctx.fillStyle = color_editor_bg;
+		ctx.fillRect(0, 0, canvas.width, canvas.height);
 
 		//characters that the ban can't apply to (because they're in another ban) are skipped.
 		//characters that are affected by the current ban are drawn with a dark grey background, 
@@ -510,22 +902,23 @@ class State_Edit_Properties extends State_Edit {
 		var rightOff;
 		var centerOff;
 		var theta;
-		var wedgeAngle = Math.PI * 2 / data_characters.length;
-		for (var c=0; c<data_characters.length; c++) {
-			theta = wedgeAngle * (c - 0.5);
+		var wedgeAngle = Math.PI * 2 / data_characters.indexes.length;
+		for (var c=0; c<data_characters.indexes.length; c++) {
+			theta = wedgeAngle * c;
 
-			leftOff = [height * 1.5 * Math.cos(theta), height * 1.5 * Math.sin(theta)];
-			rightOff = [height * 1.5 * Math.cos(theta + wedgeAngle), height * 1.5 * Math.sin(theta + wedgeAngle)];
-			centerOff = [height * 0.3 * Math.cos(theta + (wedgeAngle / 2)), height * 0.3 * Math.sin(theta + (wedgeAngle / 2))];
-
+			leftOff = [height * 1.5 * Math.cos(theta - (wedgeAngle / 2)), height * 1.5 * Math.sin(theta - (wedgeAngle / 2))];
+			centerOff = [height * 0.3 * Math.cos(theta), height * 0.3 * Math.sin(theta)];
+			rightOff = [height * 1.5 * Math.cos(theta + (wedgeAngle / 2)), height * 1.5 * Math.sin(theta + (wedgeAngle / 2))];
 
 			//bg
-			if (this.allowStorage.includes(data_characters[c]) || this.banStorage[this.banSelected][1].includes(data_characters[c])) {
-				if (this.allowStorage.includes(data_characters[c])) {
+			if (this.allowStorage.includes(data_characters.indexes[c]) || this.banStorage[this.banSelected][1].includes(data_characters.indexes[c])) {
+				//select color and draw wedge
+				if (this.allowStorage.includes(data_characters.indexes[c])) {
 					ctx.fillStyle = color_grey_light;
 				} else {
-					ctx.fillStyle = color_grey_dark;
+					ctx.fillStyle = data_characters[data_characters.indexes[c]].color;
 				}
+
 				ctx.beginPath();
 				ctx.moveTo(centerX, centerY);
 				ctx.lineTo(centerX + leftOff[0], centerY + leftOff[1]);
@@ -538,9 +931,7 @@ class State_Edit_Properties extends State_Edit {
 				textures_common[c].beDrawn(centerX + centerOff[0], centerY + centerOff[1], 0, menu_characterSize);
 			}
 
-
-
-			//draw line outwards
+			//draw line outwards (I put this here because I want a constant thickness)
 			ctx.strokeStyle = color_editor_bg;
 			ctx.beginPath();
 			ctx.moveTo(centerX, centerY);
@@ -568,22 +959,40 @@ class State_Edit_Properties extends State_Edit {
 			this.drawCharacterBans();
 			//sidebar
 			ctx.fillStyle = color_editor_bg;
-			ctx.fillRect(0, 0, canvas.width * editor_propertyMenuWidth, canvas.height);
+			ctx.fillRect(0, 0, canvas.width * editor_lPropertyW, canvas.height);
 		} else {
 			this.tunnel.power = this.tunnel.powerBase;
 
 			//world thoingies
 			super.execute();
 
+			if (modularDifference((Math.PI * 2) - loading_state.tunnel.theta, world_camera.theta, Math.PI * 2) < Math.PI / 2) {
+				//forwards case
+				for (var f=this.tunnel.functions.length-1; f>-1; f--) {
+					this.renderFunction(this.tunnel.functions[f]);
+				}
+			} else {
+				//backwards case
+				this.tunnel.functions.forEach(f => {
+					this.renderFunction(f);
+				});
+			}
+			super.drawTopBar();
+
 			//side bar
 			ctx.fillStyle = color_editor_bg;
-			ctx.fillRect(0, (canvas.height * editor_topBarHeight) - 1, canvas.width * editor_propertyMenuWidth, (canvas.height * (1 - editor_topBarHeight)) + 1);
+			ctx.fillRect(0, (canvas.height * editor_topBarHeight) - 1, canvas.width * editor_lPropertyW, (canvas.height * (1 - editor_topBarHeight)) + 1);
 
 			if (this.newTunnelData != undefined) {
-				this.createTunnel();
+				try {
+					this.createTunnel();
+				} catch (er) {
+					alert("This tunnel data cannot be loaded.");
+					this.newTunnelData = undefined;
+				}
 			}
 
-			//sliders
+			//sliders + text boxes
 			this.propertyModifiers.forEach(m => {
 				m.tick();
 				m.beDrawn();
@@ -593,15 +1002,15 @@ class State_Edit_Properties extends State_Edit {
 			ctx.fillStyle = color_text_bright;
 			ctx.font = `${canvas.height / 45}px Comfortaa`;
 			ctx.textAlign = "center";
-			ctx.fillText(this.tunnel.music, canvas.width * (editor_propertyMenuWidth / 2), canvas.height * (0.1475 + (10 * editor_sliderHeight)));
+			ctx.fillText(this.tunnel.music, canvas.width * (editor_lPropertyW / 2), canvas.height * (0.1475 + (10 * editor_sliderHeight)));
 		}
 
 		//drawing banned character toggle
-		drawSelectionBox((editor_propertyMenuWidth / 2) * canvas.width, (0.14 + (14 * editor_sliderHeight)) * canvas.height, editor_propertyMenuWidth * 0.75 * canvas.width, editor_sliderHeight * 0.75 * canvas.height);
+		drawSelectionBox((editor_lPropertyW / 2) * canvas.width, (0.14 + (14 * editor_sliderHeight)) * canvas.height, editor_lPropertyW * 0.75 * canvas.width, editor_sliderHeight * 0.75 * canvas.height);
 		ctx.font = `${canvas.height / 45}px Comfortaa`;
 		ctx.textAlign = "center";
 		ctx.fillStyle = color_text_bright;
-		ctx.fillText("banned characters", (editor_propertyMenuWidth / 2) * canvas.width, (0.15 + (14 * editor_sliderHeight)) * canvas.height);
+		ctx.fillText("banned characters", (editor_lPropertyW / 2) * canvas.width, (0.15 + (14 * editor_sliderHeight)) * canvas.height);
 	}
 
 	parseBanned() {
@@ -647,7 +1056,7 @@ class State_Edit_Properties extends State_Edit {
 			}
 		}
 		//switching out of / into banned character mode
-		if (cursor_x < canvas.width * editor_propertyMenuWidth && cursor_y > (0.14 + (13.5 * editor_sliderHeight)) * canvas.height && cursor_y < (0.14 + (14.5 * editor_sliderHeight)) * canvas.height) {
+		if (cursor_x <= canvas.width * editor_lPropertyW && cursor_y > (0.14 + (13.5 * editor_sliderHeight)) * canvas.height && cursor_y < (0.14 + (14.5 * editor_sliderHeight)) * canvas.height) {
 			this.substate = (!this.substate) * 1;
 
 			//if switching out of banned character mode
@@ -662,14 +1071,14 @@ class State_Edit_Properties extends State_Edit {
 			//if in viewing, select rule
 			if (this.banSelected == undefined) {
 				for (var r=0; r<this.banStorage.length; r++) {
-					if (cursor_x > canvas.width * (editor_propertyMenuWidth + 0.03) && 
+					if (cursor_x > canvas.width * (editor_lPropertyW + 0.03) && 
 					cursor_y && cursor_y >= canvas.height * (0.08 + (r * 0.0775)) && 
 					cursor_y <= canvas.height * (0.12 + (r * 0.0775))) {
 						this.banSelected = r;
 						return;
 					}
 				}
-				this.banButtons[0].handleClick();
+				this.banButtons[0].interact();
 				return;
 			}
 			//if in rule mode:
@@ -687,28 +1096,28 @@ class State_Edit_Properties extends State_Edit {
 			}
 
 			//select x
-			if (this.banSelected != undefined && getDistance2d([cursor_x, cursor_y], [(0.5 + (editor_propertyMenuWidth / 2)) * canvas.width, 0.535 * canvas.height]) < canvas.height / 10) {
-				this.banButtons[1].handleClick();
+			if (this.banSelected != undefined && getDistance2d([cursor_x, cursor_y], [(0.5 + (editor_lPropertyW / 2)) * canvas.width, 0.535 * canvas.height]) < canvas.height / 10) {
+				this.banButtons[1].interact();
 				return;
 			}
 
 			//select character
-			var angle = Math.atan2((canvas.height * 0.5) - cursor_y, (canvas.width * (0.5 + (editor_propertyMenuWidth / 2))) - cursor_x) + Math.PI;
-			var character = Math.floor(((angle / (Math.PI * 2)) * data_characters.length) + 0.5);
-			if (character > data_characters.length - 1) {
+			var angle = Math.atan2((canvas.height * 0.5) - cursor_y, (canvas.width * (0.5 + (editor_lPropertyW / 2))) - cursor_x) + Math.PI;
+			var character = Math.floor(((angle / (Math.PI * 2)) * data_characters.indexes.length) + 0.5);
+			if (character > data_characters.indexes.length - 1) {
 				character = 0;
 			}
 
 			//toggle whether the rule applies
-			if (this.banStorage[this.banSelected][1].includes(data_characters[character]) || this.allowStorage.includes(data_characters[character])) {
+			if (this.banStorage[this.banSelected][1].includes(data_characters.indexes[character]) || this.allowStorage.includes(data_characters.indexes[character])) {
 				//if allowed, ban them
-				if (this.allowStorage.includes(data_characters[character])) {
-					this.allowStorage.splice(this.allowStorage.indexOf(data_characters[character]), 1);
-					this.banStorage[this.banSelected][1].push(data_characters[character]);
+				if (this.allowStorage.includes(data_characters.indexes[character])) {
+					this.allowStorage.splice(this.allowStorage.indexOf(data_characters.indexes[character]), 1);
+					this.banStorage[this.banSelected][1].push(data_characters.indexes[character]);
 				} else {
 					//if banned, allow them again
-					this.banStorage[this.banSelected][1].splice(this.banStorage[this.banSelected][1].indexOf(data_characters[character]), 1);
-					this.allowStorage.push(data_characters[character]);
+					this.banStorage[this.banSelected][1].splice(this.banStorage[this.banSelected][1].indexOf(data_characters.indexes[character]), 1);
+					this.allowStorage.push(data_characters.indexes[character]);
 				}
 			}
 			return;
@@ -717,20 +1126,36 @@ class State_Edit_Properties extends State_Edit {
 		
 		
 		//property menu
-		if (cursor_x < canvas.width * editor_propertyMenuWidth) {
+		if (cursor_x < canvas.width * editor_lPropertyW) {
 			this.propertyModifiers.forEach(p => {
-				if (p.constructor.name == "PropertyButton") {
-					p.handleClick();
-				}
+				p.interact();
 			});
 		}
+	}
+
+	handleMouseMove(a) {
+		if (super.handleMouseMove(a) == 31) {
+			return 31;
+		}
+		this.propertyModifiers.forEach(m => {
+			if (m.constructor.name == "PropertySlider") {
+				m.interact();
+			}
+		});
+	}
+
+	handleEscape() {
+		if (this.substate == 1) {
+			this.substate = 0;
+			return;
+		}
+		super.handleEscape();
 	}
 }
 
 class State_Edit_World extends State_Edit {
 	constructor() {
 		super();
-		this.topDarkButton = 3;
 		//x, y approach
 		this.cameraForce = [0, 0];
 		this.tunnel = undefined;
@@ -756,17 +1181,22 @@ class State_Edit_World extends State_Edit {
 			tag += data_alphaNumerics[Math.floor(randomBounded(0, data_alphaNumerics.length-1))];
 		}
 		var pos = screenToSpace([canvas.width / 2, canvas.height / 2], world_camera.targetY);
-		editor_objects.push(new Tunnel(0.00, {h: Math.round(randomBounded(0, 360)), s: Math.round(randomBounded(20, 80)), v: randomBounded(0.2, 0.8)}, [[1, 1, 1, 1, 1], [1, 0, 1, 0, 1]], 'Custom Tunnel '+tag, 5, 1, [], 4, [1], [], 4, 75, pos[0], pos[2], [], `TravelTheGalaxy`));
+		editor_objects.push(new Tunnel(0.00, {h: Math.round(randomBounded(0, 360)), s: Math.round(randomBounded(20, 80)), v: randomBounded(0.2, 0.8)}, JSON.parse(JSON.stringify(editor_tunnelDefaultData)), 'Custom Tunnel '+tag, 5, 1, [], 4, [1], [], 4, 75, pos[0], pos[2], [], `TravelTheGalaxy`));
 		this.readFrom = orderObjects(editor_objects, 6);
 	}
 
 	deleteTunnel() {
-		
-		//you can't delete the last tunnel. It would cause all sorts of problems that I'm too lazy to solve ;)
+		//you can't delete the last tunnel. It would cause all sorts of problems that I don't want to have to solve ;)
 		if (this.tunnel != undefined && editor_objects.length > 1) {
+			
 			//gotta delete it from all the places it's referenced
 			editor_objects.splice(editor_objects.indexOf(this.tunnel), 1);
 			this.readFrom.splice(this.readFrom.indexOf(this.tunnel), 1);
+
+			//if the tunnel is the world spawn, redirect the world spawn
+			if (this.tunnel == editor_spawn) {
+				editor_spawn = editor_objects[0];
+			}
 			this.tunnel = undefined;
 		}
 	}
@@ -919,7 +1349,7 @@ class State_Edit_World extends State_Edit {
 		//low buttons
 		if (cursor_y > canvas.height * 0.94) {
 			this.lowButtons.forEach(l => {
-				l.handleClick();
+				l.interact();
 			});
 			return;
 		}
@@ -1001,7 +1431,7 @@ class State_Edit_Cutscenes extends State_Edit {
 
 	addCutscene() {
 		//generate code
-		var code = "0000";
+		var code = "aaaa";
 		while (editor_cutscenes[code] != undefined) {
 			code = "";
 			for (var n=0; n<4; n++) {
@@ -1065,14 +1495,13 @@ class State_Edit_Cutscenes extends State_Edit {
 			textWidth = ctx.measureText(editor_cutscenes[this.cutscenes[r]].id).width / 2;
 			if (cursor_x > xOff - textWidth && cursor_x < xOff + textWidth && cursor_y > yOff - (canvas.height / 20) && cursor_y < yOff + (canvas.height / 20)) {
 				//change loading state
-				loading_state = new State_Cutscene(editor_cutscenes[this.cutscenes[r]]);
-				loading_state.destinationState = this;
+				loading_state = new State_Cutscene(editor_cutscenes[this.cutscenes[r]], this);
 				loading_state.allowDebug = true;
 			}
 		}
 
 		if (this.cutscenes.length < editor_maxCutscenes) {
-			this.lowButton.handleClick();
+			this.lowButton.interact();
 		}
 	}
 
@@ -1083,5 +1512,64 @@ class State_Edit_Cutscenes extends State_Edit {
 	}
 }
 
+class State_Playtest extends State_World {
+	constructor() {
+		super();
+		this.returnState = undefined;
+		this.readFrom = editor_objects;
+		this.isMainGame = true;
+		this.doWorldEffects();
+		this.substate = 3;
+	}
 
+	doWorldEffects() {
+		this.orderWorld();
 
+		world_camera.targetTheta = player.dir_front[0];
+		world_camera.targetPhi = 0;
+		world_camera.targetRot = (player.dir_down[1] + (Math.PI * 1.5)) % (Math.PI * 2);
+		player.setCameraPosition();
+		world_camera.snapToTargets();
+	}
+
+	execute() {
+		super.execute();
+		if (this.substate == 1) {
+			drawArrow((canvas.width * 0.5) - (canvas.width * 0.04) + (canvas.width * 0.08 * player.backwards), canvas.height * 0.94, color_grey_light, Math.PI * player.backwards, canvas.width * 0.045, canvas.width * 0.025, canvas.height * 0.03, canvas.height * 0.06);
+			ctx.lineWidth = 2;
+		}
+	}
+
+	handleMouseDown(a) {
+		//regular interactions
+		super.handleMouseDown(a);
+
+		if (this.substate == 1) {
+			//backwards toggle interact
+			if (player.parent != undefined && cursor_x > canvas.width * 0.45 && cursor_x < canvas.width * 0.55 && cursor_y > canvas.height * 0.9 && cursor_y < canvas.height * 0.99) {
+				player.turnAround();
+				player.parent.reset();
+				this.substate = 0;
+				this.execute();
+				this.substate = 1;
+				return;
+			}
+		}
+	}
+
+	handleKeyPress(a) {
+		super.handleKeyPress(a);
+		if (a.keyCode == 82 && this.substate == 0) {
+			this.handlePlayerDeath();
+		}
+	}
+
+	handleEscape() {
+		if (this.substate == 0) {
+			this.substate = 1;
+			return;
+		}
+		loading_state = this.returnState;
+		loading_state.doWorldEffects();
+	}
+}

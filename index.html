@@ -4,6 +4,10 @@
     <head>
         <title>Clementine home page</title>
 
+        <!-- search engine optimization (: -->
+        <meta charset="UTF-8">
+        <meta name="author" content="Cynthia Clementine">
+        <meta name="keywords" content="1994, Cynthia Clementine, website">
         <style>
             body {
                 background-color: slateblue;
@@ -13,6 +17,11 @@
             #top-text {
                 color: white;
                 font-size: 30px;
+                text-align: center;
+            }
+            #localStorage-text {
+                color: white;
+                font-size: 20px;
                 text-align: center;
             }
 
@@ -61,14 +70,20 @@
                 <br>
 
                 <a href="The-ascent.html">The ascent</a><br>
+                <a href="The-ascent-2/The-ascent-2.html">The ascent 2</a><br>
                 <a href="sun-survivor.html">Sun survivor</a><br>
                 <a href="package-parsing.html">Package Parsing</a><br>
                 <a href="present-finder.html">Present Finder</a><br>
                 <a href="rotate/index.html">Rotate</a><br>
                 <a href="simon-says/simon-says.html">Simon Says</a><br>
                 <a href="seasonalGrid/index.html">Tile World</a><br>
+<<<<<<< HEAD
                 <!-- <a href="plains/index.html">The Desert</a><br> -->
                 <a href="run-3-clone/index.html">Run 3, js version</a><br>
+=======
+                <a href="run-3-clone/index.html">Javascript-based Run 3 remake</a><br>
+                <a href="plains/index.html">The Desert (Abandoned)</a><br>
+>>>>>>> development
             </p>
         </div>
 
@@ -102,5 +117,35 @@
                 <a href="noise/perlin-noise.html">Perlin noise generation</a><br>
             </p>
         </div>
+
+        <!--display storage size-->
+        <div id="localStorage-text">
+            <p id="storageNotifier">Persistent storage used: <span id="storageCalculator">[uncalculated]</span>%</p>
+            <p id="storageExtra"></p>
+        </div>
     </body>
+
+    <script type="text/javascript">
+        //calculate amount of localstorage remaining
+        var size = 0; 
+        Object.keys(window.localStorage).forEach(d => {
+            size += window.localStorage[d].length * 2;
+        });
+         //max is theoretically 5MB, but in testing it's a bit more and I don't want this counter to ever go over 100%
+        var percent = (size / (1048576 * 5.075));
+        
+        document.getElementById("storageCalculator").textContent = percent.toFixed(5);
+
+        if (percent > 0.99) {
+            document.getElementById("storageExtra").textContent = "Oh dear goodness please just get rid of something, the pages aren't going to be able to save, please I'm begging you";
+        } else if (percent > 0.95) {
+            document.getElementById("storageExtra").textContent = "You need to clear some storage. It will be full soon.";
+        } else if (percent > 0.75) {
+            document.getElementById("storageExtra").textContent = "You should probably clear some storage.";
+        } else if (percent > 0.5) {
+            document.getElementById("storageExtra").textContent = "Hi, just wanted to draw attention to the amount of storage that you have used.";
+        } else {
+            document.getElementById("storageExtra").textContent = "All is well.";
+        } 
+    </script>
 </html>

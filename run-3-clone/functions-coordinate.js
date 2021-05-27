@@ -1,19 +1,27 @@
 //here are all the functions that deal with 3d coordinates 
 /*overview:
-	calculateNormal();
-	cameraToScreen();
-	cartToPol();
-	clipToZ0();
-	getDistance();
-	isClipped();
-	orderObjects();
-	polToCart();
-	relativeToSpace();
-	rotate();
-	spaceToRelative();
-	spaceToRelativeRotless();
-	spaceToScreen();
-	transformPoint();
+	calculateNormal(points);
+	cameraToScreen(point);
+	cartToPol(x, y, z);
+	clipToPlane(polyPoints, tolerance, planePoint, planeNormal);
+	clipToZ0(polyPoints, tolerance, invertClipDirection);
+	dirToTunnelCenter(tunnel, x, y, z);
+	getDistance(obj1, obj2);
+	getDistance2d(xyP1, xyP2);
+	getDistancePoint(p1, p2);
+	getDistance_Tunnel(tunnel, obj2);
+	getDistance_LightSource(obj);
+	isClipped(pointArr);
+	orderObjects(array, places);
+	polToCart(theta, phi, radius);
+	relativeToSpace(pointToTransform, point, normal);
+	relativeToSpaceRot(pointToTransform, point, normal);
+	rotate(x, z, radians);
+	screenToSpace(screenSpot, targetZ);
+	spaceToRelative(pointToChange, point, normal);
+	spaceToRelativeRotless(pointToChange, point, normal);
+	spaceToScreen(point);
+	transformPoint(pointToTransform, addPoint, normal, size);
 */
 
 //calculates a normal from an array of points
@@ -62,6 +70,23 @@ function cartToPol(x, y, z) {
 	return [theta, phi, rad];
 }
 
+//WARNING: this function modifies the original array. I may change it later if this causes problems.
+function clipToPlane(polyPoints, tolerance, planePoint, planeNormal) {
+	//transform to plane coordinates
+	for (var p=0; p<polyPoints.length; p++) {
+		polyPoints[p] = spaceToRelativeRotless(polyPoints[p], planePoint, planeNormal);
+	}
+	//clip
+	polyPoints = clipToZ0(polyPoints, tolerance, false);
+
+	//transform back
+	for (var p=0; p<polyPoints.length; p++) {
+		polyPoints[p] = relativeToSpace(polyPoints[p], planePoint, planeNormal);
+	}
+
+	return polyPoints;
+}
+
 function clipToZ0(polyPoints, tolerance, invertClipDirection) {
 	//to save time, inverting the clip direction just means inverting all the points, then inverting back
 	if (invertClipDirection) {
@@ -70,16 +95,32 @@ function clipToZ0(polyPoints, tolerance, invertClipDirection) {
 		});
 	}
 	//make all the polypoints have a boolean that says whether they're clipped or not, this is used for number of neighbors
-	polyPoints.forEach(p => {
-		p[3] = p[2] < tolerance;
-	});
+	var halt = true;
+	var n = 0;
+	while (halt && n < polyPoints.length - 1) {
+		if (polyPoints[n][2] < tolerance) {
+			polyPoints[n][3] = true;
+		} else {
+			halt = false;
+			polyPoints[n][3] = false;
+		}
+		n += 1;
+	}
+
+	//return early if all points are destroyed
+	if (halt) {
+		return [];
+	}
+
+	while (n < polyPoints.length) {
+		polyPoints[n][3] = polyPoints[n][2] < tolerance;
+		n += 1;
+	}
 	for (var y=0; y<polyPoints.length; y++) {
 		//if the selected point will be clipped, run the algorithm
 		if (polyPoints[y][3]) {
-			//freefriends is the number of adjacent non-clipped points
-			var freeFriends;
-			var freeFriends = !polyPoints[(y+(polyPoints.length-1))%polyPoints.length][3] + !polyPoints[(y+1)%polyPoints.length][3];
-			switch (freeFriends) {
+			//decide what to do based on the number of adjacent non-clipped points
+			switch (!polyPoints[(y+(polyPoints.length-1))%polyPoints.length][3] + !polyPoints[(y+1)%polyPoints.length][3]) {
 				case 0:
 					//if there are no free friends, there's no point in attempting, so just move on
 					polyPoints.splice(y, 1);
@@ -98,19 +139,20 @@ function clipToZ0(polyPoints, tolerance, invertClipDirection) {
 						//greater friend
 						friendCoords = polyPoints[(y+1)%polyPoints.length];
 						moveAmount = getPercentage(friendCoords[2], polyPoints[y][2], tolerance);
-						polyPoints[y] = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance + 0.05, true];
+						polyPoints[y] = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance, true];
 					}
 					break;
 				case 2:
 					//move towards both friends
 					var friendCoords = polyPoints[(y+(polyPoints.length-1))%polyPoints.length];
 					var moveAmount = getPercentage(friendCoords[2], polyPoints[y][2], tolerance);
-					var newPointCoords = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance + 0.05, true];
+					polyPoints.splice(y, 0, [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance, true]);
+					y += 1;
 
 					friendCoords = polyPoints[(y+1)%polyPoints.length];
 					moveAmount = getPercentage(friendCoords[2], polyPoints[y][2], tolerance);
-					polyPoints[y] = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance + 0.05, true];
-					polyPoints.splice(y, 0, newPointCoords);
+					polyPoints[y] = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance, true];
+					y -= 1;
 					break;
 			}
 		}
@@ -123,6 +165,20 @@ function clipToZ0(polyPoints, tolerance, invertClipDirection) {
 	return polyPoints;
 }
 
+//takes a coordinate and returns the direction needed to move towards the center of that tunnel
+function dirToTunnelCenter(tunnel, speed, x, y, z) {
+	var relPos = spaceToRelativeRotless([x, y, z], [tunnel.x, tunnel.y, tunnel.z], [-1 * tunnel.theta, 0]);
+	relPos[2] = 0;
+	//determine direction to push in
+	var magnitude = Math.sqrt((relPos[0] * relPos[0]) + (relPos[1] * relPos[1]));
+	relPos[0] = (relPos[0] / magnitude) * speed;
+	relPos[1] = (relPos[1] / magnitude) * speed;
+
+	//transform back to real coordinates
+	[relPos[0], relPos[2]] = rotate(relPos[0], relPos[2], tunnel.theta);
+	return relPos;
+}
+
 //returns the distance between two objects
 function getDistance(obj1, obj2) {
 	return Math.sqrt(((obj1.x - obj2.x) * (obj1.x - obj2.x)) + ((obj1.y - obj2.y) * (obj1.y - obj2.y)) + ((obj1.z - obj2.z) * (obj1.z - obj2.z)));
@@ -133,12 +189,25 @@ function getDistance2d(xyP1, xyP2) {
 	return Math.sqrt(((xyP1[0] - xyP2[0]) * (xyP1[0] - xyP2[0])) + ((xyP1[1] - xyP2[1]) * (xyP1[1] - xyP2[1])));
 }
 
+function getDistancePoint(p1, p2) {
+	return Math.sqrt(((p1[0] - p2[0]) * (p1[0] - p2[0])) + ((p1[1] - p2[1]) * (p1[1] - p2[1])) + ((p1[2] - p2[2]) * (p1[2] - p2[2])));
+}
+
+function getDistance_Tunnel(tunnel, obj2) {
+	var relPos = spaceToRelativeRotless([obj2.x, obj2.y, obj2.z], [tunnel.x, tunnel.y, tunnel.z], [-1 * tunnel.theta, 0]);
+	if (relPos[2] > 0) {
+		relPos[2] = Math.max(relPos[2] - (tunnel.tileSize * tunnel.len) - tunnel_transitionLength, 0);
+	}
+	return Math.sqrt((relPos[0] * relPos[0]) + (relPos[1] * relPos[1]) + (relPos[2] * relPos[2]));
+}
+
 //sets the object's player distance to the closest distance to a light source
 function getDistance_LightSource(obj) {
-	obj.playerDist = render_maxColorDistance * 2;
+	var dist = render_maxColorDistance * 2;
 	world_lightObjects.forEach(l => {
-		obj.playerDist = Math.min(obj.playerDist, getDistance(obj, l));
+		dist = Math.min(dist, getDistance(obj, l));
 	});
+	return dist;
 }
 
 //determines if a point will be clipped due to being behind / too close to the camera
@@ -175,7 +244,12 @@ function orderObjects(array, places) {
 		//push objects to buckets
 		for (var m=0; m<unsorted_objects.length; m++) {
 			//formula determines which bucket to push into
-			buckets[Math.floor(((unsorted_objects[m].cameraDist) % Math.pow(10, pos) / Math.pow(10, pos-1)))].push(unsorted_objects[m]);
+			try {
+				buckets[Math.floor(((unsorted_objects[m].cameraDist) % Math.pow(10, pos) / Math.pow(10, pos-1)))].push(unsorted_objects[m]);
+			} catch(er) {
+				console.error(`cannot sort object ${unsorted_objects[m].constructor.name} with cameraDist ${unsorted_objects[m].cameraDist}`);
+				runCrash();
+			}
 		}
 
 		//clear unsorted
@@ -230,8 +304,9 @@ function relativeToSpaceRot(pointToTransform, point, normal) {
 }
 
 function rotate(x, z, radians) {
-	[x, z] = [(x * Math.cos(radians)) - (z * Math.sin(radians)), (z * Math.cos(radians)) + (x * Math.sin(radians))];
-	return [x, z];
+	var sin = Math.sin(radians);
+	var cos = Math.cos(radians);
+	return [x * cos - z * sin, z * cos + x * sin];
 }
 
 //takes in a screen point, and returns the spot on the world that would get you that point at a certain Z;
@@ -312,12 +387,13 @@ function spaceToScreen(point) {
 
 function transformPoint(pointToTransform, addPoint, normal, size) {
 	//multiply point by size, then apply various rotations
-	pointToTransform[0] *= size / 2;
-	pointToTransform[1] *= size / 2;
-	pointToTransform[2] *= size / 2;
+	size /= 2;
+	pointToTransform[0] *= size;
+	pointToTransform[1] *= size;
+	pointToTransform[2] *= size;
 
 	//I have no idea if this is correct but it appears to work
-	[pointToTransform[1], pointToTransform[2]] = rotate(pointToTransform[1], pointToTransform[2], (Math.PI * 2) - (normal[1] - (Math.PI * 0.5)));
+	[pointToTransform[1], pointToTransform[2]] = rotate(pointToTransform[1], pointToTransform[2], (Math.PI * 0.5) - normal[1]);
 	[pointToTransform[0], pointToTransform[2]] = rotate(pointToTransform[0], pointToTransform[2], -1 * normal[0]); 
 
 	//adjusting for coordinates

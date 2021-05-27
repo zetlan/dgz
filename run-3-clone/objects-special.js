@@ -120,15 +120,12 @@ class CNode {
 			this.x = this.trueX + 0.5 - (((cursor_x - (canvas.width / 2)) / canvas.width) * menu_cutsceneParallax);
 			this.y = this.trueY + 0.5- (((cursor_y - (canvas.height / 2)) / canvas.height) * menu_cutsceneParallax);
 
-			if (Math.abs(cursor_x - (this.x * canvas.width)) < editor_handleRadius * 9 && Math.abs(cursor_y - (this.y * canvas.height)) < editor_handleRadius * 3) {
+			if (Math.abs(cursor_x - (this.x * canvas.width)) < editor_handleRadius * 9 && Math.abs(cursor_y - (this.y * canvas.height)) < editor_handleRadius * 2.375) {
 				this.time = linterp(this.time, 2, 0.15);
 			} else {
 				this.time = linterp(this.time, 1, 0.15);
 			}
 		}
-
-		
-		
 		
 		this.children.forEach(c => {
 			c.tick();
@@ -136,17 +133,27 @@ class CNode {
 	}
 
 	becomeSelected(tolerance) {
-		//if close enough, become selected
-		if (getDistance2d([this.x * canvas.width, this.y * canvas.height], [cursor_x, cursor_y]) < tolerance) {
-			return this;
-		}
-
+		var selfDistance = getDistance2d([this.x * canvas.width, this.y * canvas.height], [cursor_x, cursor_y]);
+		var childSelected = undefined;
 		//try selecting children
 		for (var c=0; c<this.children.length; c++) {
-			var testSelect = this.children[c].becomeSelected(tolerance);
+			var testSelect = this.children[c].becomeSelected(selfDistance);
 			if (testSelect != undefined) {
-				return testSelect;
+				childSelected = testSelect;
+				selfDistance = getDistance2d([testSelect.x * canvas.width, testSelect.y * canvas.height], [cursor_x, cursor_y]);
 			}
+		}
+		//if nothing's good, exit
+		if (selfDistance > tolerance) {
+			return undefined;
+		}
+
+		//if a child's been selected, return that. If not, return the self.
+		if (childSelected) {
+			return childSelected;
+		}
+		if (this.time > 1.02) {
+			return this;
 		}
 	}
 
@@ -181,6 +188,156 @@ class CNode {
 			//	drawCircle(color_grey_light, this.x * canvas.width, this.y * canvas.height, editor_handleRadius);
 			//}
 		}
+	}
+}
+
+class IMNode {
+	constructor(parent, difficulty, newTunnelPosition) {
+		this.parent = parent;
+		this.difficulty = difficulty;
+		this.cooldown = 0;
+		this.tunnel;
+		this.leftNode = undefined;
+		this.rightNode = undefined;
+
+		this.makeTunnel(newTunnelPosition);
+	}
+
+	//returns a list of all the tunnels
+	getTunnelList() {
+		var tList = [];
+		var otherList;
+		//add all tunnels
+		tList.push(this.tunnel);
+		if (this.leftNode != undefined) {
+			otherList = this.leftNode.getTunnelList();
+			otherList.forEach(o => {
+				tList.push(o);
+			});
+		}
+
+		if (this.rightNode != undefined) {
+			otherList = this.rightNode.getTunnelList();
+			otherList.forEach(o => {
+				tList.push(o);
+			});
+		}
+		return tList;
+	}
+
+	//creates a tunnel for self
+	makeTunnel(makeCode) {
+		//if a tunnel is already there, set start coords to that tunnel end
+		var sX = 0;
+		var sZ = -40000;
+		var sT = 0;
+		if (this.parent != undefined) {
+			switch(makeCode) {
+				case 0:
+				default:
+					
+					break;
+			}
+			if (makeCode != undefined) {
+				//decide whether left or right
+				if (makeCode == 1) {
+					sT = this.parent.tunnel.theta + (Math.PI / 2);
+				} else {
+					sT = this.parent.tunnel.theta - (Math.PI / 2);
+				}
+				var frontLen = randomBounded(this.parent.tunnel.len * this.parent.tunnel.tileSize * 0.1, this.parent.tunnel.len * this.parent.tunnel.tileSize * 0.9);
+				var frontOff = [-1 * frontLen * Math.sin(this.parent.tunnel.theta), frontLen * Math.cos(this.parent.tunnel.theta)];
+				var sideOff = [-1 * (this.parent.tunnel.r + 30) * Math.sin(sT), (this.parent.tunnel.r + 30) * Math.cos(sT)];
+				
+				sX = this.parent.tunnel.x + frontOff[0] + sideOff[0];
+				sZ = this.parent.tunnel.z + frontOff[1] + sideOff[1];
+			} else {
+				sT = this.parent.tunnel.theta;
+				sX = this.parent.tunnel.endPos[0] - (tunnel_transitionLength * Math.sin(sT));
+				sZ = this.parent.tunnel.endPos[2] + (tunnel_transitionLength * Math.cos(sT));
+			}
+		}
+
+		//randomly change theta a bit
+		sT = modulate(sT + randomBounded(-infinite_wobble, infinite_wobble), Math.PI * 2);
+
+		var value = Math.floor(randomBounded(this.difficulty, this.difficulty + infinite_levelRange));
+		if (this.parent != undefined) {
+			while (value == this.parent.lastTunnelLine) {
+				value = Math.floor(randomBounded(this.difficulty, this.difficulty + infinite_levelRange));
+			}
+		}
+		
+		this.lastTunnelLine = value;
+		var tunnelConstructionData = `pos-x~${sX}|pos-z~${sZ}|direction~${sT}|${infinite_data[value]}`;
+		this.tunnel = new Tunnel_FromData(tunnelConstructionData);
+		this.tunnel.placePowercells();
+	}
+
+	//creates children nodes for self
+	makeNode() {
+		//if children already exist, recurse
+		if (this.leftNode != undefined) {
+			this.leftNode.makeNode();
+			if (this.rightNode != undefined) {
+				this.rightNode.makeNode();
+			}
+			return;
+		}
+		var newDifficulty = this.difficulty + infinite_difficultyBoost;
+		if (newDifficulty + infinite_levelRange > infinite_data.length - 1) {
+			newDifficulty = infinite_data.length - 1 - infinite_levelRange;
+		}
+
+		//chance of a branch
+		if (this.cooldown == 0 && Math.random() < infinite_branchChance) {
+			//one branch and one continue
+			if (Math.random() < 0.5) {
+				this.leftNode = new IMNode(this, newDifficulty, Math.floor(Math.random() * 1.99));
+				this.leftNode.cooldown = infinite_branchCooldown;
+
+				this.rightNode = new IMNode(this, newDifficulty);
+				this.rightNode.cooldown = infinite_branchCooldown;
+				return;
+			}
+
+			//two branches
+			var val = (Math.random() > 0.5);
+			this.leftNode = new IMNode(this, newDifficulty, val * 1);
+			this.leftNode.cooldown = infinite_branchCooldown;
+
+			this.rightNode = new IMNode(this, newDifficulty, !val * 1);
+			this.rightNode.cooldown = infinite_branchCooldown;
+			return;
+		}
+
+		//single tunnel case
+		this.leftNode = new IMNode(this, newDifficulty);
+		this.leftNode.cooldown = Math.max(0, this.cooldown - 1);
+	}
+
+	//remove self and return a child
+	remove() {
+		if (player.parentPrev == this) {
+			console.error(`player is still in ${this.tunnel.id}`);
+			return this;
+		}
+		//if self has one child, just return that. If not, return the child that the player is in
+		if (this.rightNode == undefined) {
+			return this.leftNode;
+		}
+
+		if (player.parentPrev == this.leftNode.tunnel) {
+			return this.leftNode;
+		}
+		if (player.parentPrev == this.rightNode.tunnel) {
+			return this.rightNode;
+		}
+
+		console.error(`player is none of these nodes! for object structure ${this.tunnel.id}
+																			/     \\
+																		  ${this.leftNode.tunnel.id}  ${this.rightNode.tunnel.id}`);
+		return this;
 	}
 }
 
@@ -437,33 +594,24 @@ class SceneBoat extends Scene3dObject {
 }
 
 
-class SceneBoxRinged extends Scene3dObject {
-	constructor(x, y, z, size, rot) {
+class SceneTile extends Scene3dObject {
+	constructor(x, y, z, type, size, rot) {
 		super(x, y, z);
-		//figure out parent from closest object
-		var ref = world_objects[0];
-		var reqDist = getDistance(this, ref);
-		for (var a=1; a<world_objects.length; a++) {
-			if (getDistance(this, world_objects[a]) < reqDist) {
-				ref = world_objects[a];
-				reqDist = getDistance(this, world_objects[a]);
-			}
+		this.type = type;
+		var ref = pickNewParent({x: this.x, y: this.y, z:this.z}, world_objects[0]);
+		try {
+			this.tile = ref.generateTile(this.type, x, y, z, size, [(Math.PI * 1.5) - ref.theta, rot], ref.color, 0, 0);
+			this.updateHandles();
+		} catch (error) {
+			console.error(`couldn't generate tile with properties - ${x}~${y}~${z}~${this.type}~${rot}`);
 		}
-
 		
-
-		this.box = new Tile_Box_Ringed(this.x, this.y, this.z, size, [(Math.PI * 1.5) - ref.theta, rot], ref, [0, 0]);
-		//fix knobs
-		this.handle1 = polToCart(this.box.normal[0], 0, render_crosshairSize);
-		this.handle2 = [0, render_crosshairSize, 0];
-		this.handle3 = polToCart(this.box.normal[0] + (Math.PI / 2), 0, render_crosshairSize);
-		this.handle4 = polToCart(this.box.normal[0], this.box.normal[1], this.box.size * 0.5);
 	}
 
 	beDrawn() {
-		this.box.tick();
-		this.box.doComplexLighting();
-		this.box.beDrawn();
+		this.tile.tick();
+		this.tile.doComplexLighting();
+		this.tile.beDrawn();
 		super.beDrawn();
 	}
 
@@ -474,6 +622,7 @@ class SceneBoxRinged extends Scene3dObject {
 		var screenYup = spaceToScreen([this.x + this.handle2[0], this.y + this.handle2[1], this.z + this.handle2[2]]);
 		var screenZup = spaceToScreen([this.x + this.handle3[0], this.y + this.handle3[1], this.z + this.handle3[2]]);
 		var screenRup = spaceToScreen([this.x + this.handle4[0], this.y + this.handle4[1], this.z + this.handle4[2]]);
+		var apparentSize = (this.tile.size / this.tile.cameraDist) * world_camera.scale;
 		//transforming lines to screen coordinates
 
 		//drawing lines
@@ -492,7 +641,8 @@ class SceneBoxRinged extends Scene3dObject {
 		drawCircle(color_grey_dark, screenYup[0], screenYup[1], editor_handleRadius);
 		drawCircle(color_grey_dark, screenZup[0], screenZup[1], editor_handleRadius);
 		drawCircle(color_grey_dark, screenRup[0], screenRup[1], editor_handleRadius);
-		drawCircle(color_grey_dark, screenCenter[0], screenCenter[1] + ((this.box.size / this.box.cameraDist) * world_camera.scale), editor_handleRadius);
+		drawCircle(color_grey_dark, screenCenter[0], screenCenter[1] + apparentSize, editor_handleRadius);
+		drawCircle(color_grey_dark, screenCenter[0] - (apparentSize / 2), screenCenter[1] - (apparentSize / 2), editor_handleRadius);
 
 		//selection circles
 		switch (this.selectedPart) {
@@ -509,7 +659,10 @@ class SceneBoxRinged extends Scene3dObject {
 				drawCircle(color_editor_cursor, screenRup[0], screenRup[1], editor_handleRadius);
 				break;
 			case 4:
-				drawCircle(color_editor_cursor, screenCenter[0], screenCenter[1] + ((this.box.size / this.box.cameraDist) * world_camera.scale), editor_handleRadius);
+				drawCircle(color_editor_cursor, screenCenter[0], screenCenter[1] + apparentSize, editor_handleRadius);
+				break;
+			case 5:
+				drawCircle(color_editor_cursor, screenCenter[0] - (apparentSize / 2), screenCenter[1] - (apparentSize / 2), editor_handleRadius);
 				break;
 		}
 	}
@@ -538,8 +691,8 @@ class SceneBoxRinged extends Scene3dObject {
 				var selfRot = Math.atan2(ctrXY[1] - rotXY[1], ctrXY[0] - rotXY[0]) + Math.PI;
 
 				//actual updating
-				this.box.normal[1] = selfRot - cursorRot;
-				this.handle4 = polToCart(this.box.normal[0], this.box.normal[1], this.box.size * 0.6);
+				this.tile.normal[1] = selfRot - cursorRot;
+				this.updateHandle(4);
 				break;
 			case 4:
 				//size
@@ -547,9 +700,21 @@ class SceneBoxRinged extends Scene3dObject {
 				var centerPos = spaceToScreen([this.x, this.y, this.z]);
 				var cursorDist = Math.abs(centerPos[1] - cursor_y);
 				//turn cursor distance into real distance, then clamp that
-				cursorDist = (cursorDist / world_camera.scale) * this.box.cameraDist;
-				this.box.size = Math.round(clamp(cursorDist, 5, 300));
+				cursorDist = (cursorDist / world_camera.scale) * this.tile.cameraDist;
+				this.tile.size = Math.round(clamp(cursorDist, 5, 300));
 				break;
+			case 5:
+				//tile type
+				//this is just lazy input, but I'm trusting people for the most part.
+				var result = prompt("Please enter a new tile type (positive integer 1-13, 101, 102, or 109)", this.type);
+				while (!isValidString(result) || tunnel_validIndeces[result] == undefined || result == "0") {
+					result = prompt("That is not a valid number. Please enter a positive integer between 1 and 13, 101, 102, or 109");
+				}
+				this.type = result * 1;
+				//update tile type
+				this.tile = this.tile.parent.generateTile(this.type, this.x, this.y, this.z, this.tile.size, [(Math.PI * 1.5) - this.tile.parent.theta, this.tile.normal[1]], this.tile.parent.color, 0, 0);
+				this.updateHandles();
+				this.selectedPart = undefined;
 		}
 		
 
@@ -557,10 +722,18 @@ class SceneBoxRinged extends Scene3dObject {
 			//if the cursor's not down, stop being moved
 			this.selectedPart = undefined;
 		}
-		this.box.x = this.x;
-		this.box.y = this.y;
-		this.box.z = this.z;
-		this.box.calculatePointsAndNormal();
+		this.tile.x = this.x;
+		this.tile.y = this.y;
+		this.tile.z = this.z;
+
+		//if the tile's not in their parent, try to get a new one
+		if (!this.tile.parent.coordinateIsInTunnel_Bounded(this.x, this.y, this.z)) {
+			this.tile.parent = pickNewParent(this.tile, this.tile.parent);
+			this.tile.color = this.tile.parent.color;
+			this.tile.normal[0] = (Math.PI * 1.5) - this.tile.parent.theta;
+			this.updateHandles();
+		}
+		this.tile.calculatePointsAndNormal();
 	}
 
 	giveHandles() {
@@ -570,12 +743,36 @@ class SceneBoxRinged extends Scene3dObject {
 			spaceToScreen([this.x + this.handle2[0], this.y + this.handle2[1], this.z + this.handle2[2]]),
 			spaceToScreen([this.x + this.handle3[0], this.y + this.handle3[1], this.z + this.handle3[2]]),
 			spaceToScreen([this.x + this.handle4[0], this.y + this.handle4[1], this.z + this.handle4[2]]),
-			[sizeHandlePos[0], sizeHandlePos[1] + (this.box.size / this.box.cameraDist) * world_camera.scale]
+			[sizeHandlePos[0], sizeHandlePos[1] + (this.tile.size / this.tile.cameraDist) * world_camera.scale],
+			[sizeHandlePos[0] - ((this.tile.size / this.tile.cameraDist) * world_camera.scale * 0.5), sizeHandlePos[1] - ((this.tile.size / this.tile.cameraDist) * world_camera.scale * 0.5)]
 		];
 	}
 
 	giveStringData() {
-		return `3BR~${this.x.toFixed(4)}~${this.y.toFixed(4)}~${this.z.toFixed(4)}~${this.box.size}~${this.box.normal[1].toFixed(4)}`;
+		return `3TL~${this.x.toFixed(4)}~${this.y.toFixed(4)}~${this.z.toFixed(4)}~${this.type}~${this.tile.size}~${this.tile.normal[1].toFixed(4)}`;
+	}
+
+	updateHandles() {
+		for (var a=1; a<=4; a++) {
+			this.updateHandle(a);
+		}
+	}
+
+	updateHandle(handleNum) {
+		switch (handleNum) {
+			case 1:
+				this.handle1 = polToCart(this.tile.normal[0], 0, render_crosshairSize);
+				break;
+			case 2:
+				this.handle2 = [0, render_crosshairSize, 0];
+				break;
+			case 3:
+				this.handle3 = polToCart(this.tile.normal[0] + (Math.PI / 2), 0, render_crosshairSize);
+				break;
+			case 4:
+				this.handle4 = polToCart(this.tile.normal[0], this.tile.normal[1], this.tile.size * 0.5);
+				break;
+		}
 	}
 }
 
@@ -692,6 +889,7 @@ class SceneLine {
 		return `LIN~${this.x.toFixed(4)}~${this.y.toFixed(4)}~${this.endX.toFixed(4)}~${this.endY.toFixed(4)}`;
 	}
 }
+
 //acts as a light source, as the player normally would
 class SceneLight extends Scene3dObject {
 	constructor(x, y, z) {
@@ -1357,15 +1555,16 @@ class PropertyButton {
 
 	tick() {
 		//mouseover check
-		this.mouseOver =  (cursor_x > canvas.width * (this.x - this.width * 0.5) && 
+		this.mouseOver = (cursor_x > canvas.width * (this.x - this.width * 0.5) && 
 						cursor_x < canvas.width * (this.x + this.width * 0.5) && 
 						cursor_y > canvas.height * (this.y - this.height * 0.5) && 
 						cursor_y < canvas.height * (this.y + this.height * 0.5));
 	}
 
-	handleClick() {
+	interact() {
 		if (this.mouseOver) {
 			eval(this.code);
+			return 31;
 		}
 	}
 }
@@ -1388,11 +1587,18 @@ class PropertySlider {
 	}
 
 	beDrawn() {
+		var propertyValue = eval(this.property);
+		var displayValue = propertyValue;
+		if (this.snapTo % 1 != 0) {
+			displayValue = displayValue.toFixed(2);
+		} else {
+			displayValue = Math.round(displayValue);
+		}
 		//text
 		ctx.fillStyle = color_text_bright;
-		ctx.font = `${canvas.height / 36}px Comfortaa`;
+		ctx.font = `${canvas.height / 40}px Comfortaa`;
 		ctx.textAlign = "left";
-		ctx.fillText(this.label, canvas.width * this.x, (canvas.height * this.y) + (canvas.height / 108));
+		ctx.fillText(`${this.label} (${displayValue})`, canvas.width * this.x, (canvas.height * this.y) + (canvas.height / 108));
 
 
 
@@ -1403,12 +1609,12 @@ class PropertySlider {
 		ctx.moveTo(canvas.width * (this.x + this.textSpace), canvas.height * this.y);
 		ctx.lineTo(canvas.width * (this.x + this.width), canvas.height * this.y);
 		ctx.stroke();
-		drawCircle(color_grey_light, canvas.width * (this.x + this.textSpace + (getPercentage(this.min, this.max, eval(this.property)) * (this.width - this.textSpace))), canvas.height * this.y, 4);
+		drawCircle(color_grey_light, canvas.width * (this.x + this.textSpace + (getPercentage(this.min, this.max, propertyValue) * (this.width - this.textSpace))), canvas.height * this.y, 4);
 		//drawCircle(color_grey_light, canvas.width * (this.x + this.textSpace), canvas.height * this.y, 4);
 		ctx.stroke();
 	}
 
-	tick() {
+	interact() {
 		//update self's values if cursor is down
 		if (cursor_down) {
 			//if in the area, modify value
@@ -1420,12 +1626,16 @@ class PropertySlider {
 				value = Math.round(value / this.snapTo) * this.snapTo;
 				eval(this.execution);
 				if (this.doReset) {
-					player = new Runner(player.x, player.y, player.z);
+					replacePlayer(0 + (7 * data_persistent.settings.pastaView));
 					loading_state.tunnel.updatePosition(loading_state.tunnel.x, loading_state.tunnel.y, loading_state.tunnel.z);
-					player = new Pastafarian(player.x, player.y, player.z);
+					replacePlayer(7);
 				}
+				return 31;
 			}
 		}
+	}
+
+	tick() {
 	}
 }
 
@@ -1454,7 +1664,7 @@ class PropertyTextBox {
 		ctx.fillText(this.label + eval(this.property), canvas.width * (this.x + 0.01), (canvas.height * this.y) + (canvas.height / 126));
 	}
 
-	tick() {
+	interact() {
 		//update self's values if cursor is down
 		if (cursor_down) {
 			//if in the area, modify value
@@ -1480,6 +1690,9 @@ class PropertyTextBox {
 			}
 		}
 	}
+	
+	tick() {
+	}
 }
 
 class PropertyToggle {
@@ -1489,7 +1702,6 @@ class PropertyToggle {
 		this.width = widthPERCENTAGE;
 		this.text = label;
 		this.property = propertyToModifySTRING;
-		this.halt = false;
 	}
 
 	beDrawn() {
@@ -1507,17 +1719,12 @@ class PropertyToggle {
 		ctx.fillText(this.text, canvas.width * this.x, (canvas.height * this.y) + (canvas.height / 108));
 	}
 
-	tick() {
-		//if cursor's down and in the area, toggle then halt self
-		if (cursor_down) {
-			if (!this.halt) {
-				this.halt = true;
-				if (cursor_x > this.x * canvas.width && cursor_x < (this.x + this.width) * canvas.width && cursor_y > (this.y * canvas.height) - (canvas.height / 36) && cursor_y < (this.y * canvas.height) + (canvas.height / 36)) {
-					eval(`${this.property} = !${this.property};`);
-				}
-			}
-			return;
+	interact() {
+		if (cursor_x > this.x * canvas.width && cursor_x < (this.x + this.width) * canvas.width && cursor_y > (this.y * canvas.height) - (canvas.height / 36) && cursor_y < (this.y * canvas.height) + (canvas.height / 36)) {
+			eval(`${this.property} = !${this.property};`);
 		}
-		this.halt = false;
+	}
+
+	tick() {
 	}
 }

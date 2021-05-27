@@ -1,21 +1,41 @@
 //houses functions of various utility
+//THESE AREN'T ALL VOID I'M JUST LAZY
 /* 
+	generateAngelLines();
 	generateStarSphere();
 
-	addCharacterEncounter();
-	avgArray();
-	clamp();
+	activateCutsceneFromEditorTunnel(start, end, time);
+	activateCutsceneFromTunnel(start, end, time);
+	avgArray(array);
+	boolToSigned(boolValue);
+	
+	challenge_isCutscene(tile, reverseDirectionBOOLEAN, cutscene, immersiveBOOLEAN);
+	challenge_isComplete();
+	challenge_isEmpty();
+	challenge_isPastTile(tile, reverseDirectionBOOLEAN);
+	challenge_isOnlyOtherTunnel(tunnelName);
+	challenge_isOops();
+	challenge_addBox(levelID, strip, tile, unitOffset, size, rot);
+	challenge_addEncounter(levelID, strip, tile, characterName, cutsceneName, immersiveBOOLEAN);
+	challenge_changeSpawn(strip, tile);
+	challenge_crumble(tunnelID, posArray);
+	challenge_crumbleAll(tunnelID);
+
+	changeTile(tunnel, tileCoords, newTileID);
+	changeTiles(tunnel, tileArray, newTileID);
+	clamp(num, min, max);
+	compressCutsceneData();
 	crumbleTileSets();
 
 	getClosestObject();
 	getImage();
-	getObjectFromID();
+	getObjectFromID(id);
 	getPercentage();
 	getTimeFromFrames();
 
 	handleAudio();
 	HSVtoRGB();
-	linterp();
+	linterp(a, b, percentage);
 	localStorage_read();
 	localStorage_write();
 	logTime();
@@ -23,26 +43,33 @@
 	modularDifference();
 	outputWorld();
 	outputTunnel();
+	pickNewParent(object, oldParent);
+	placeTunnelSet(setName);
 
-	power_falseAlarm();
-	power_fast();
-	power_glimpse();
-	power_instant();
-	power_notSoFalseAlarm();
-	power_slow();
-	power_slowSmooth();
-	power_smooth();
+	power_falseAlarm(powStart, powEnd, time);
+	power_fast(powStart, powEnd, time);
+	power_glimpse(powStart, powEnd, time);
+	power_instant(powStart, powEnd, time);
+	power_notSoFalseAlarm(powStart, powEnd, time);
+	power_slow(powStart, powEnd, time);
+	power_slowSmooth(powStart, powEnd, time);
+	power_smooth(powStart, powEnd, time);
 
-	randomBounded();
-	randomSeeded();
+	randomBounded(min, max);
+	randomSeeded(min, max);
+	removeInvalidObjects(tunnel);
+	removeObjectType(tunnel, constructorName);
+	renameTunnelSet(oldPrefix, newPrefix)
+	replacePlayer();
 	RGBtoHSV();
-	rotate();
 	runCrash();
 	sigmoid();
+	sortWorldArray();
 	spliceIn();
 	spliceOut();
 	stealAudioConsent();
 
+	tunnel_applyProperty(setPrefix, codeToExecuteSTRING);
 	tunnelData_applyProperty();
 	tunnelData_handle();
 	tunnelData_parseData();
@@ -63,25 +90,50 @@ function generateAngelLines() {
 	});
 }
 function generateStarSphere() {
+	//set up data structure
+	star_arr = [];
+
 	//random stars
-	for (var e=0;e<world_starNumber;e++) {
+	for (var e=0;e<star_number;e++) {
 		//squared for distribution more towards the center
-		var cosTheta = Math.pow(randomSeeded(0, 1), 2);
+		var cosPhi = Math.pow(randomSeeded(0, 1), 2);
 		if (randomSeeded(0, 1) < 0.5) {
-			cosTheta *= -1;
+			cosPhi *= -1;
 		}
 		//maps to between -1/2pi and 1/2pi
-		var theta = Math.acos(cosTheta) - (Math.PI / 2);
-		var pos = polToCart(randomSeeded(0, Math.PI * 2), theta, randomSeeded(world_starDistance, world_starDistance * 2));
-		world_stars.push(new Star(pos[0], pos[1], pos[2]));
+		var phi = Math.acos(cosPhi) - (Math.PI / 2);
+		var theta = randomSeeded(0, Math.PI * 2);
+		var pos = polToCart(theta, phi, randomSeeded(star_distance, star_distance * 2));
+		star_arr.push(new Star(pos[0], pos[1], pos[2]));
 	}
+
+	//wormhole stars
+	for (var e=0; e<star_number/7; e++) {
+		var cosPhi = Math.pow(randomSeeded(-1, 1), 7);
+
+		var phi = Math.acos(cosPhi) - (Math.PI / 2);
+		var theta = randomSeeded(0, Math.PI * 2);
+		var pos = polToCart(theta, phi, randomSeeded(star_distance, star_distance * 2));
+		star_arr.push(new Star_Wormhole(pos[0], pos[1], pos[2]));
+	}
+
+	//special star
+	star_arr.push(new Star_Special(-286600, -678, -666351));
 }
 
 
 
 //utility functions
-function addCharacterEncounter(levelID, strip, tile, characterName, cutsceneName) {
-	getObjectFromID(levelID).freeObjs.push(new StaticCharacter(getObjectFromID(levelID), strip, tile, characterName, cutsceneName));
+
+function activateCutsceneFromEditorTunnel(start, end, time) {
+	if (time == 0) {
+		//simpler because it only applies to edit mode, editor cutscenes are always immersive
+		setTimeout(() => {
+			loading_state = new State_Cutscene(editor_cutscenes[end], loading_state);
+		}, 10);
+	}
+	
+	return start;
 }
 
 function activateCutsceneFromTunnel(start, end, time) {
@@ -92,10 +144,13 @@ function activateCutsceneFromTunnel(start, end, time) {
 			data_persistent.effectiveCutscenes.push(end);
 		}
 		setTimeout(() => {
+			var playerStore = player;
 			loading_state = new State_Cutscene(eval(`cutsceneData_${end}`));
+			if (playerStore.parentPrev != undefined) {
+				playerStore.parentPrev.resetWithoutPlayer();
+			}
 		}, 10);
 	}
-	
 	return start;
 }
 
@@ -122,21 +177,183 @@ function avgArray(array) {
 	return finArr;
 }
 
-function changeTile(tunnel, tileCoords, newTileID) {
-	var reference = getObjectFromID(tunnel);
-	reference.data[tileCoords[0]][tileCoords[1]] = newTileID;
-	reference.updatePosition(reference.x, reference.y, reference.z);
-
+//converts true to 1, and false to -1
+function boolToSigned(boolValue) {
+	return boolValue * 2 - 1;
 }
 
 
-//keeps a number between certain bounds
-//these operators are stupid and I hope to never use them again
-function clamp(num, min, max) {
-	return num <= min ? min : num >= max ? max : num;
+
+//challenge conditionals are evaluated as end codes, they deal with ending the current section of challenge mode
+function challenge_isCutscene(tile, reverseDirectionBOOLEAN, cutsceneEndString, immersiveBOOLEAN) {
+	if (challenge_isPastTile(tile, reverseDirectionBOOLEAN)) {
+		if (!data_persistent.effectiveCutscenes.includes(cutsceneEndString)) {
+			data_persistent.effectiveCutscenes.push(cutsceneEndString);
+		}
+		//if not immersive, do the exit code
+		if (!immersiveBOOLEAN) {
+			eval(loading_state.codeOnExit);
+		}
+		loading_state = new State_Cutscene(eval(`cutsceneData_${cutsceneEndString}`), immersiveBOOLEAN && loading_state);
+		return true;
+	}
+	return false;
 }
 
-function crumbleTileSets(tunnelID, posArray) {
+function challenge_isComplete() {
+	return (player.parentPrev != loading_state.targetParent);
+}
+
+function challenge_isEmpty() {
+	return (loading_state.targetParent.freeObjs.length == 0);
+}
+
+function challenge_isPastTile(tile, reverseDirectionBOOLEAN) {
+	var pixelPos = spaceToRelativeRotless([player.x, player.y, player.z], [loading_state.targetParent.x, loading_state.targetParent.y, loading_state.targetParent.z], [-1 * loading_state.targetParent.theta, loading_state.targetParent.phi]);
+
+	if (reverseDirectionBOOLEAN) {
+		return ((pixelPos[2] / loading_state.targetParent.tileSize) < tile);
+	}
+	return ((pixelPos[2] / loading_state.targetParent.tileSize) > tile);
+}
+
+function challenge_isOnlyOtherTunnel(tunnelName) {
+	//only continue if complete
+	if (challenge_isComplete()) {
+		//if they're in the wrong tunnel
+		if (player.parent != getObjectFromID(tunnelName)) {
+			player.parentPrev = loading_state.targetParent;
+			loading_state.handlePlayerDeath_SUPER();
+			loading_state.doTunnelStartEffects();
+			text_queue.push([loading_state.data[loading_state.line].char, "Whoops, I'm not going this way!"]);
+			return false;
+		}
+		return true;
+	}
+	return false;
+}
+
+function challenge_isOops() {
+	//only continue if complete
+	if (challenge_isComplete()) {
+		if (challenge_isEmpty()) {
+			return true;
+		}
+		//if the player has completed but they! Forgot the box!
+		player.parentPrev = loading_state.targetParent;
+		loading_state.handlePlayerDeath_SUPER();
+		loading_state.doTunnelStartEffects();
+		loading_state.doTunnelStartEffects_Next();
+
+		//append to text queue
+		text_queue.push([loading_state.data[loading_state.line].char, "Oops, forgot the box!"]);
+	}
+	return false;
+}
+
+function challenge_isOopsTile(tile, reverseDirectionBOOLEAN) {
+	//if past a tile
+	if (challenge_isPastTile(tile, reverseDirectionBOOLEAN)) {
+		//get the box
+		var boxRef;
+		for (var n=0; n<loading_state.targetParent.freeObjs.length; n++) {
+			if (loading_state.targetParent.freeObjs[n].constructor.name == "PushableBox") {
+				boxRef = loading_state.targetParent.freeObjs[n].box;
+				n = loading_state.targetParent.freeObjs.length + 1;
+			}
+		}
+		//if there are no boxes, cool!
+		if (boxRef == undefined) {
+			return true;
+		}
+		//if there is a box, but it's past the boundary, also cool
+		if (reverseDirectionBOOLEAN) {
+			if (spaceToRelativeRotless([boxRef.x, boxRef.y, boxRef.z], [boxRef.parent.x, boxRef.parent.y, boxRef.parent.z], [boxRef.parent.theta * -1, 0])[2] / boxRef.parent.tileSize <= tile) {
+				return true;
+			}
+		} else {
+			if (spaceToRelativeRotless([boxRef.x, boxRef.y, boxRef.z], [boxRef.parent.x, boxRef.parent.y, boxRef.parent.z], [boxRef.parent.theta * -1, 0])[2] / boxRef.parent.tileSize >= tile) {
+				return true;
+			}
+		}
+		//if still here, do the death effect
+		player.parentPrev = loading_state.targetParent;
+		loading_state.handlePlayerDeath_SUPER();
+		loading_state.doTunnelStartEffects();
+		loading_state.doTunnelStartEffects_Next();
+		text_queue.push([loading_state.data[loading_state.line].char, "Oops, forgot the box!"]);
+	}
+	return false;
+}
+
+//challenge_ functions are used as start code to execute in a challenge segment
+function challenge_addBox(levelID, strip, tile, unitOffset, size, rot, haltResetBOOLEAN) {
+	var ref = getObjectFromID(levelID);
+	if (ref.id == undefined) {
+		console.error(`ERROR: Level ${levelID} doesn't exist!`);
+		return;
+	}
+
+	var tileObj = ref.strips[strip].tiles[tile];
+	var offset = polToCart(tileObj.dir_down[0], tileObj.dir_down[1], unitOffset);
+	//if a box already exists, instead of adding a box, reset the current box
+	var objs = ref.freeObjs;
+	for (var f=0; f<objs.length; f++) {
+		if (objs[f].constructor.name == "PushableBox") {
+			if (!haltResetBOOLEAN) {
+				objs[f].homeX = tileObj.x + offset[0];
+				objs[f].homeY = tileObj.y + offset[1];
+				objs[f].homeZ = tileObj.z + offset[2];
+				objs[f].reset();
+			}
+			return;
+		}
+	}
+
+	//figure out next tunnel ID
+	var prefix = levelID.replaceAll(/[0-9]/g, '');
+	var num = levelID.replaceAll(/[A-z]/g, '').replaceAll(',', '').replaceAll('-', '') * 1;
+	num -= boolToSigned(player.backwards);
+
+	//if a box exists in the next tunnel, just return, don't have to worry about it
+	var level = getObjectFromID(prefix + num);
+	if (level.id != undefined) {
+		objs = level.freeObjs;
+		for (var f=0; f<objs.length; f++) {
+			if (objs[f].constructor.name == "PushableBox") {
+				return;
+			}
+		}
+	}
+	
+	//if still here...
+
+	ref.freeObjs.push(new PushableBox(tileObj.x + offset[0], tileObj.y + offset[1], tileObj.z + offset[2], ref, size, rot));
+}
+
+function challenge_addEncounter(levelID, strip, tile, characterName, cutsceneName, immersiveBOOLEAN) {
+	//loop through the free objects. If there's a character already on that strip + tile, don't add the character
+	var objs = getObjectFromID(levelID).freeObjs;
+	for (var f=0; f<objs.length; f++) {
+		if (objs[f].strip == strip && objs[f].tile == tile) {
+			return;
+		}
+	}
+	getObjectFromID(levelID).freeObjs.push(new StaticCharacter(getObjectFromID(levelID), strip, tile, characterName, cutsceneName, immersiveBOOLEAN));
+}
+//respawns the player at a certain strip / tile
+function challenge_changeSpawn(strip, tile) {
+	var spawnObj = player.parent.strips[strip].tiles[tile];
+	spawnObj.doRotationEffects(player);
+
+	var offsetCoords = polToCart(spawnObj.normal[0], spawnObj.normal[1], 10);
+	player.x = spawnObj.x + offsetCoords[0];
+	player.y = spawnObj.y + offsetCoords[1];
+	player.z = spawnObj.z + offsetCoords[2];
+}
+
+//crumbles different tiles
+function challenge_crumble(tunnelID, posArray) {
 	tunnelID = getObjectFromID(tunnelID);
 	posArray.forEach(p => {
 		try {
@@ -147,7 +364,154 @@ function crumbleTileSets(tunnelID, posArray) {
 		}
 		
 	});
-	
+}
+
+function challenge_crumbleAll(tunnelID) {
+	tunnelID = getObjectFromID(tunnelID);
+	tunnelID.strips.forEach(s => {
+		s.realTiles.forEach(t => {
+			if (t.constructor.name == "Tile_Crumbling" && t.fallStatus != physics_crumblingShrinkTime + physics_crumblingShrinkStart - 1) {
+				t.fallStatus = physics_crumblingShrinkTime + physics_crumblingShrinkStart - 1;
+				t.propogateCrumble();
+			}
+		});
+	});
+}
+
+//like oops, but resets are manual most of the time. This means that the box doesn't reset.
+function challenge_rareReset() {
+	//if complete, do an oops type
+	if (challenge_isComplete()) {
+		if (challenge_isEmpty()) {
+			deathCount = 0;
+			return true;
+		}
+		player.parentPrev = loading_state.targetParent;
+		loading_state.handlePlayerDeath_SUPER();
+		loading_state.doTunnelStartEffects();
+		loading_state.doTunnelStartEffects_Next();
+
+		//append to text queue
+		text_queue.push([loading_state.data[loading_state.line].char, "Oops, forgot the box!"]);
+		return;
+	}
+
+
+
+	//destructuring
+	var [x] = rotate(player.x - player.parentPrev.x, player.z - player.parentPrev.z, player.parentPrev.theta * -1);
+	//if player's about to die
+	if (Math.sqrt((x * x) + (player.y * player.y)) >= player.parentPrev.r + tunnel_voidWidth - (player.fallMax * 1.5)) {
+		//if there are tiles crumbled, count up the death counter.
+		var tileFound = false;
+		for (var s=0; s<player.parentPrev.strips.length; s++) {
+			for (var t=0; t<player.parentPrev.strips[s].realTiles.length; t++) {
+				if (player.parentPrev.strips[s].realTiles[t].fallStatus != undefined) {
+					deathCount += 1;
+					tileFound = true;
+					//known bug: this will break if a tunnel has over 1 million strips or 1 million tiles, but the game will probably break before then so I don't care.
+					t = 1e7;
+				}
+			}
+			if (tileFound) {
+				s = 1e7;
+			}
+		}
+
+		//if the death counter's too high, let them die normally. If it's low enough, reset without actually dying, which stops the tunnel from resetting.
+		if (deathCount <= 3) {
+			player.parentPrev.placePlayer();
+		} else {
+			loading_state.handlePlayerDeath();
+			text_queue.push([loading_state.data[loading_state.line].char, `Let's try this again from the top.`]);
+			deathCount = 0;
+		}
+		
+	}
+	return false;
+}
+
+function challenge_resetBox(levelID, strip, tile, unitOffset) {
+	var ref = getObjectFromID(levelID);
+	if (ref.id == undefined) {
+		console.error(`ERROR: Level ${levelID} doesn't exist!`);
+		return;
+	}
+
+	var tileObj = ref.strips[strip].tiles[tile];
+	var offset = polToCart(tileObj.dir_down[0], tileObj.dir_down[1], unitOffset);
+	//just the reset portion
+	var objs = ref.freeObjs;
+	for (var f=0; f<objs.length; f++) {
+		if (objs[f].constructor.name == "PushableBox") {
+			objs[f].homeX = tileObj.x + offset[0];
+			objs[f].homeY = tileObj.y + offset[1];
+			objs[f].homeZ = tileObj.z + offset[2];
+			objs[f].reset();
+			return;
+		}
+	}
+}
+
+function challenge_setTempTile(levelID, strip, tile) {
+	if (getObjectFromID(levelID).data[strip][tile] != 109) {
+		changeTile(levelID, [strip, tile], 109);
+		loading_state.codeOnExit += `changeTile("${levelID}", [${strip}, ${tile}], 0);`;
+	}
+}
+
+
+
+
+
+
+
+function changeTile(tunnel, tileCoords, newTileID) {
+	var reference = getObjectFromID(tunnel);
+	if (reference.data[tileCoords[0]][tileCoords[1]] != newTileID) {
+		reference.data[tileCoords[0]][tileCoords[1]] = newTileID;
+		reference.updatePosition(reference.x, reference.y, reference.z);
+	}
+}
+
+function changeTiles(tunnel, tileArray, newTileID) {
+	var reference = getObjectFromID(tunnel);
+	tileArray.forEach(t => {
+		if (reference.data[t[0]][t[1]] != newTileID) {
+			reference.data[t[0]][t[1]] = newTileID;
+		}
+	});
+	reference.updatePosition(reference.x, reference.y, reference.z);
+}
+
+
+//keeps a number between certain bounds
+//these operators are stupid and I hope to never use them again
+function clamp(num, min, max) {
+	return num <= min ? min : num >= max ? max : num;
+}
+
+function compressCutsceneData(reference) {
+	//loop through all frames
+	//if it's an array of objects, get string data and replace it
+	for (var f=0; f<reference.frames.length; f++) {
+		var arr = reference.frames[f];
+		if (arr.constructor.name == "Array") {
+			//camera data
+			var camData = "CAM~";
+			for (var a=0; a<arr[0].length-1; a++) {
+				camData += arr[0][a].toFixed(4) + "~";
+			}
+			camData += arr[0][arr[0].length-1].toFixed(4);
+
+			var objData = "";
+			arr[1].forEach(a => {
+				objData += "|" + a.giveStringData();
+			});
+
+			reference.frames[f] = camData + objData;
+		}
+	}
 }
 
 //generate file from editor world
@@ -162,15 +526,27 @@ function file_export() {
 	textDat += "\n";
 
 	//spawn index
-	textDat += editor_objects.indexOf(editor_spawn) + "\n\n";
+	textDat += editor_objects.indexOf(editor_spawn) + "\n";
 
 	//cutscenes
-	textDat += "{\n";
+	//loop through all cutscenes
+	var cList = Object.keys(editor_cutscenes);
+	cList.forEach(c => {
+		compressCutsceneData(editor_cutscenes[c]);
+		textDat += `\n${c}\n`;
+		textDat += `${editor_cutscenes[c].id}\n`;
+		textDat += `${editor_cutscenes[c].effects}\n`;
 
-
-	textDat += "\n}";
+		//frames
+		var frameRef = editor_cutscenes[c].frames;
+		frameRef.forEach(f => {
+			textDat += `${f}\n`;
+		});
+		textDat += "end";
+	});
 
 	var fileObj = new Blob([textDat], {type: 'text/plain'});
+	console.log(fileObj.type);
 
 	//make sure a world file doesn't already exist
 	if (editor_worldFile != undefined) {
@@ -206,8 +582,42 @@ function file_import() {
 
 		loading_state.readFrom = orderObjects(editor_objects, 6);
 
-
+		//load start level
+		editor_spawn = editor_objects[worldText.substring(0, worldText.indexOf("\n")) * 1];
+		worldText = worldText.substring(worldText.indexOf("\n")+2);
+		
+		//safety
+		var tolerance = 5000;
 		//loading cutscenes
+		worldText = worldText.split("\n");
+		while (worldText.length > 1) {
+			console.log("length: ", worldText.length);
+			var ref = worldText[0];
+			var cName = worldText[1];
+			var cEffects = worldText[2];
+			var cFrames = [];
+			var lineCheck = 3;
+
+			//4 + is frames, search
+			while (worldText[lineCheck] != "end") {
+				cFrames.push(worldText[lineCheck]);
+				lineCheck += 1;
+
+				tolerance -= 1;
+				if (tolerance <= 0) {
+					if (!confirm(editor_warning_file)) {
+						return;
+					}
+				}
+			}
+			//push cutscene and delete from the data
+			editor_cutscenes[ref] = {
+				id: cName,
+				effects: cEffects,
+				frames: cFrames
+			};
+			worldText.splice(0, lineCheck+1);
+		}
 	};
 
 	fileReader.readAsText(fileObj, "UTF-8");
@@ -249,10 +659,20 @@ function getKey(obj, value) {
 }
 
 function getObjectFromID(id) {
-	for (var a=0; a<world_objects.length; a++) {
-		if (world_objects[a].id == id) {
-			return world_objects[a];
+	//binary search through the list
+	var low = 0;
+	var high = world_objects.length;
+
+	while (low < high) {
+		if (world_objects[Math.floor((low + high) / 2)].id.localeCompare(id) < 0) {
+			low = Math.floor((low + high) / 2) + 1;
+		} else {
+			high = Math.floor((low + high) / 2);
 		}
+	}
+
+	if (world_objects[low].id == id) {
+		return world_objects[low];
 	}
 
 	//to prevent errors, return an empty object if nothing is found
@@ -366,14 +786,16 @@ function handleAudio() {
 function handleTextDisplay() {
 	//only do if things in the queue
 	if (text_queue.length > 0) {
-		//draw
 		drawCharacterText();
 
 		//choosing text
-		if (loading_state.substate == 0) {
+		if ((loading_state instanceof State_World && loading_state.substate == 0) || loading_state.constructor.name == "State_Menu") {
 			text_time -= 1;
-			if (text_time == 0) {
-				text_time = challenge_textTime;
+			if (loading_state.constructor.name == "State_Menu") {
+				text_time -= 2;
+			}
+			if (text_time <= 0) {
+				text_time = text_timeMax;
 				text_queue.splice(0, 1);
 			}
 		}
@@ -384,9 +806,9 @@ function handleTextDisplay() {
 
 function HSVtoRGB(hsvObject) {
 	//I don't understand most of this but it appears to work
-	var compound = (hsvObject.v / 100) * (hsvObject.s / 80);
+	var compound = hsvObject.v * (hsvObject.s / 80);
 	var x = compound * (1 - Math.abs(((hsvObject.h / 60) % 2) - 1));
-	var mystery = (hsvObject.v / 100) - compound;
+	var mystery = hsvObject.v - compound;
 	var RGB = [0, 0, 0];
 
 	switch(Math.floor(hsvObject.h / 60)) {
@@ -411,12 +833,23 @@ function HSVtoRGB(hsvObject) {
 	}
 
 	RGB = [
-		(RGB[0] + mystery) * 255, 
-		(RGB[1] + mystery) * 255, 
-		(RGB[2] + mystery) * 255
+		Math.floor((RGB[0] + mystery) * 255), 
+		Math.floor((RGB[1] + mystery) * 255), 
+		Math.floor((RGB[2] + mystery) * 255)
 	];
 
-	return RGB;
+	var RGBString = "";
+	var tempStr = "";
+	RGB.forEach(colorPart => {
+		tempStr = colorPart.toString(16);
+		if (tempStr.length == 1) {
+			tempStr = "0" + tempStr;
+		}
+		RGBString += tempStr;
+	});
+
+
+	return RGBString;
 }
 
 function isValidString(str) {
@@ -459,6 +892,12 @@ function localStorage_read() {
 	if (data_persistent.settings.highResolution) {
 		updateResolution();
 	}
+	ctx.imageSmoothingEnabled = data_persistent.settings.antiAlias;
+
+	//canvas stuff
+	ctx.lineWidth = 2;
+	ctx.lineJoin = "round";
+	ctx.lineCap = "round";
 	console.log("loaded save");
 }
 
@@ -510,7 +949,14 @@ function modularDifference(a, b, modulo) {
 
 	//check both sides
 	return Math.min(Math.abs(a - b), Math.abs((a + modulo) - b), Math.abs((a - modulo) - b));
+}
 
+//like the modulo operator, but keeps the thing in bounds both ways
+function modulate(n, modulus) {
+	while (n < 0) {
+		n += modulus;
+	}
+	return (n % modulus);
 }
 
 //outputs every tunnel in the world as a string
@@ -535,12 +981,34 @@ function outputTunnel(prefix) {
 	return output;
 }
 
+//picks a new parent tunnel for free objects, given an old one
+function pickNewParent(object, oldParent) {
+	var reqDist = getDistance_Tunnel(oldParent, object);
+	for (var a=0; a<loading_state.readFrom.length; a++) {
+		if (loading_state.readFrom[a] != oldParent) {
+			var tunDist = getDistance_Tunnel(loading_state.readFrom[a], object)
+			if (tunDist < reqDist) {
+				oldParent = loading_state.readFrom[a];
+				reqDist = tunDist;
+			}
+		}
+	}
+	return oldParent;
+}
+
 function placeTunnelSet(setName) {
 	var setSplit = setName.split("\n");
 	for (var g=0; g<setSplit.length-1; g++) {
 		world_objects.push(new Tunnel_FromData(setSplit[g], []));
 	}
+	sortWorldArray();
 }
+
+
+
+
+
+
 
 //power functions!
 //each power function takes in a start power, end power, and a time. The time determines what the power will be.
@@ -636,6 +1104,71 @@ function randomSeeded(min, max) {
 	return ((world_pRandValue % 1) * (max - min)) + min;
 }
 
+function removeInvalidObjects(tunnel) {
+	for (var u=0; u<tunnel.freeObjs.length; u++) {
+		if (tunnel.freeObjs[u].houseState != loading_state && tunnel.freeObjs[u].houseState != undefined) {
+			tunnel.freeObjs.splice(u, 1);
+			u -= 1;
+		}
+	}
+}
+
+function removeObjectType(tunnel, constructorName) {
+	for (var u=0; u<tunnel.freeObjs.length; u++) {
+		if (tunnel.freeObjs[u].constructor.name == constructorName) {
+			tunnel.freeObjs.splice(u, 1);
+			u -= 1;
+		}
+	}
+}
+
+function renameTunnelSet(oldPrefix, newPrefix) {
+	//since the objects array is sorted, I can just get the first index and then iterate from there
+	var firstIndex = world_objects.indexOf(getObjectFromID(oldPrefix + "1"));
+	if (firstIndex == -1) {
+		console.log(`couldn't find any tunnel starting with ${oldPrefix}!`);
+		return;
+	}
+	var prefix = world_objects[firstIndex].id.replaceAll(/[0-9]/g, '');
+	var n = 0;
+	while (world_objects[firstIndex+n].id.replace(prefix, "") > 0) {
+		//I can't just use n for the new number because the sort goes 1, 11, 2, 3 instead of 1, 2, 3, ... 11
+		world_objects[firstIndex+n].id = newPrefix + (world_objects[firstIndex+n].id.replace(prefix, "") * 1);
+		n += 1;
+	}
+
+	//afterwords, resort the list
+	sortWorldArray();
+}
+
+//replaces the current player with a new player object, with all the same properties that matter
+function replacePlayer(characterIDNum) {
+	var playerStore = player;
+	var str = `new ${data_characters.indexes[characterIDNum]}(player.x, player.y, player.z);`
+	player = eval(str);
+	player.dx = playerStore.dx;
+	player.dy = playerStore.dy;
+	player.dz = playerStore.dz;
+
+	player.dir_down = playerStore.dir_down;
+	player.dir_side = playerStore.dir_side;
+	player.dir_front = playerStore.dir_front;
+
+	player.parent = playerStore.parentPrev;
+	player.parentPrev = playerStore.parentPrev;
+
+	player.backwards = playerStore.backwards;
+}
+
+//does a reset without the player for all tunnels
+function resetAllTunnels() {
+	world_objects.forEach(t => {
+		if (t.freeObjs.length > 0) {
+			t.resetWithoutPlayer();
+		}
+	});
+}
+
 //takes in a six digit RGB hex code and outputs an HSV code in object form.
 function RGBtoHSV(sixDigitRGBHexCode) {
 	//first get the seperate red, green, and blue values
@@ -687,7 +1220,8 @@ function RGBtoHSV(sixDigitRGBHexCode) {
 }
 
 function runCrash() {
-	ctx.fillStyle = "#00";
+	ctx.globalAlpha = 0.8;
+	ctx.fillStyle = "#000";
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 	
 	//loop through all lines
@@ -698,13 +1232,20 @@ function runCrash() {
 		}
 	}
 
-	window.cancelAnimationFrame(game_animation);
+	window.cancelAnimationFrame(page_animation);
 }
 
 function sigmoid(input, lowerBound, upperBound) {
 	//haha good luck reading this ;)
 	return ((1 / (1+Math.pow(Math.E, -input))) + lowerBound) * (upperBound - lowerBound);
-  }
+}
+
+function sortWorldArray() {
+	//alphabetical sort
+	world_objects.sort(function (a, b) {
+		return (a.id).localeCompare(b.id);
+	})
+}
 
 function spliceIn(string, charStart, string2) {
 	return string.slice(0, charStart) + string2 + string.slice(charStart, string.length);
@@ -764,6 +1305,53 @@ function tunnelData_applyProperty(data, dataTagToApply, startLineIfAny, endLineI
 	return newData;
 }
 
+function tunnelData_fixTag(data) {
+	//break up data
+	var tunnels = data.split("\n");
+	var endData = "";
+	var splitTag;
+	register = [];
+	tunnels.forEach(t => {
+		var tags = t.split("|");
+		register = [];
+		//loop through tags part 1, if it's a spawn tag add to register
+		tags.forEach(tag => {
+			splitTag = tag.split("~");
+			if (splitTag[0] == "spawn") {
+				for (var n=1; n<splitTag.length; n++) {
+					//only place if the register doesn't have the tag
+					if (register.indexOf(splitTag[n]) == -1) {
+						register.push(splitTag[n]);
+					}
+					register.sort(function(a, b) {return a - b});
+				}
+			}
+		});
+
+		//loop through tags part 2, add to final string
+		tags.forEach(tag => {
+			splitTag = tag.split("~");
+			if (splitTag[0] == "color") {
+				endData += `|${tag}|spawn`;
+				register.forEach(v => {
+					endData += `~${v}`;
+				});
+			} else if (splitTag[0] != "spawn") {
+				if (splitTag[0] == "id") {
+					endData += tag;
+				} else {
+					endData += `|${tag}`;
+				}
+				
+			}
+		});
+		endData += "\n";
+	});
+
+	//reassemble data
+	return endData;
+}
+
 //takes in raw tunnel data and subdivides it into its segments (id, tunnel type information, tile information, color, etc)
 function tunnelData_handle(data) {
 	var rawInput = data;
@@ -797,7 +1385,7 @@ function tunnelData_handle(data) {
 			case "id":
 				tunnelStructure.id = splitTag[1];
 				break;
-			case "layout-tunnel":
+			case "tube":
 				//0 is sides, 1 is tiles per side
 				tunnelStructure.sides = splitTag[1] * 1;
 				tunnelStructure.tilesPerSide = splitTag[2] * 1;
@@ -811,24 +1399,15 @@ function tunnelData_handle(data) {
 			case "tileWidth":
 				tunnelStructure.tileSize = splitTag[1] * 1;
 				break;
-			case "trigger-z":
-				
-				//for power triggers
-				if (splitTag[2] == "result-power") {
-					//split tag will be ["trigger-z", "0", "result-power", "0.1", "smooth"]
-					//the first box is the tile to trigger at, the second box is the result power, and the third box is the type of fade
-					//EX [10, 0.4, "slow"]
-					tunnelStructure.functions.push([splitTag[1] * 1, splitTag[3] * 1, splitTag[4]]);
+			case "trigger":
+				//split tag will be ["trigger", "0", "1", "smooth"], or ["trigger", "0", "abcd", "cutscene"]
+				if (splitTag[3] != "cutscene" && splitTag[3] != "cutsceneImmersive") {
+					splitTag[2] *= 1;
 				}
-
-				//for cutscene triggers
-				if (splitTag[2] == "result-cutscene") {
-					//splitTag will be ["trigger-z", "number", "result-cutscene", "cutscene name"]
-					tunnelStructure.functions.push([splitTag[1] * 1, splitTag[3], "cutscene"]);
-				}
+				tunnelStructure.functions.push([splitTag[1] * 1, splitTag[2], splitTag[3]]);
 				break;
 			case "terrain":
-				tunnelStructure.tileData.push(splitTag[1] + "~" + splitTag[2]);
+				tunnelStructure.tileData.push(i.replace("terrain~", ""));
 				break;
 			case "pos-x":
 				tunnelStructure.x = splitTag[1] * 1;
@@ -840,10 +1419,15 @@ function tunnelData_handle(data) {
 				tunnelStructure.theta = splitTag[1] * 1;
 				break;
 			case "spawn":
-				tunnelStructure.spawns.push(splitTag[1] * 1);
+				//spawns / end spawns take multiple arguments
+				for (var n=1; n<splitTag.length; n++) {
+					tunnelStructure.spawns.push(splitTag[n] * 1);
+				}
 				break;
 			case "endSpawn":
-				tunnelStructure.endSpawns.push(splitTag[1] * 1);
+				for (var n=1; n<splitTag.length; n++) {
+					tunnelStructure.endSpawns.push(splitTag[1] * 1);
+				}
 				break;
 			case "power":
 				tunnelStructure.power = splitTag[1] * 1;
