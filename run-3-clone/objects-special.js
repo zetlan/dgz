@@ -191,6 +191,156 @@ class CNode {
 	}
 }
 
+class IMNode {
+	constructor(parent, difficulty, newTunnelPosition) {
+		this.parent = parent;
+		this.difficulty = difficulty;
+		this.cooldown = 0;
+		this.tunnel;
+		this.leftNode = undefined;
+		this.rightNode = undefined;
+
+		this.makeTunnel(newTunnelPosition);
+	}
+
+	//returns a list of all the tunnels
+	getTunnelList() {
+		var tList = [];
+		var otherList;
+		//add all tunnels
+		tList.push(this.tunnel);
+		if (this.leftNode != undefined) {
+			otherList = this.leftNode.getTunnelList();
+			otherList.forEach(o => {
+				tList.push(o);
+			});
+		}
+
+		if (this.rightNode != undefined) {
+			otherList = this.rightNode.getTunnelList();
+			otherList.forEach(o => {
+				tList.push(o);
+			});
+		}
+		return tList;
+	}
+
+	//creates a tunnel for self
+	makeTunnel(makeCode) {
+		//if a tunnel is already there, set start coords to that tunnel end
+		var sX = 0;
+		var sZ = -40000;
+		var sT = 0;
+		if (this.parent != undefined) {
+			switch(makeCode) {
+				case 0:
+				default:
+					
+					break;
+			}
+			if (makeCode != undefined) {
+				//decide whether left or right
+				if (makeCode == 1) {
+					sT = this.parent.tunnel.theta + (Math.PI / 2);
+				} else {
+					sT = this.parent.tunnel.theta - (Math.PI / 2);
+				}
+				var frontLen = randomBounded(this.parent.tunnel.len * this.parent.tunnel.tileSize * 0.1, this.parent.tunnel.len * this.parent.tunnel.tileSize * 0.9);
+				var frontOff = [-1 * frontLen * Math.sin(this.parent.tunnel.theta), frontLen * Math.cos(this.parent.tunnel.theta)];
+				var sideOff = [-1 * (this.parent.tunnel.r + 30) * Math.sin(sT), (this.parent.tunnel.r + 30) * Math.cos(sT)];
+				
+				sX = this.parent.tunnel.x + frontOff[0] + sideOff[0];
+				sZ = this.parent.tunnel.z + frontOff[1] + sideOff[1];
+			} else {
+				sT = this.parent.tunnel.theta;
+				sX = this.parent.tunnel.endPos[0] - (tunnel_transitionLength * Math.sin(sT));
+				sZ = this.parent.tunnel.endPos[2] + (tunnel_transitionLength * Math.cos(sT));
+			}
+		}
+
+		//randomly change theta a bit
+		sT = modulate(sT + randomBounded(-infinite_wobble, infinite_wobble), Math.PI * 2);
+
+		var value = Math.floor(randomBounded(this.difficulty, this.difficulty + infinite_levelRange));
+		if (this.parent != undefined) {
+			while (value == this.parent.lastTunnelLine) {
+				value = Math.floor(randomBounded(this.difficulty, this.difficulty + infinite_levelRange));
+			}
+		}
+		
+		this.lastTunnelLine = value;
+		var tunnelConstructionData = `pos-x~${sX}|pos-z~${sZ}|direction~${sT}|${infinite_data[value]}`;
+		this.tunnel = new Tunnel_FromData(tunnelConstructionData);
+		this.tunnel.placePowercells();
+	}
+
+	//creates children nodes for self
+	makeNode() {
+		//if children already exist, recurse
+		if (this.leftNode != undefined) {
+			this.leftNode.makeNode();
+			if (this.rightNode != undefined) {
+				this.rightNode.makeNode();
+			}
+			return;
+		}
+		var newDifficulty = this.difficulty + infinite_difficultyBoost;
+		if (newDifficulty + infinite_levelRange > infinite_data.length - 1) {
+			newDifficulty = infinite_data.length - 1 - infinite_levelRange;
+		}
+
+		//chance of a branch
+		if (this.cooldown == 0 && Math.random() < infinite_branchChance) {
+			//one branch and one continue
+			if (Math.random() < 0.5) {
+				this.leftNode = new IMNode(this, newDifficulty, Math.floor(Math.random() * 1.99));
+				this.leftNode.cooldown = infinite_branchCooldown;
+
+				this.rightNode = new IMNode(this, newDifficulty);
+				this.rightNode.cooldown = infinite_branchCooldown;
+				return;
+			}
+
+			//two branches
+			var val = (Math.random() > 0.5);
+			this.leftNode = new IMNode(this, newDifficulty, val * 1);
+			this.leftNode.cooldown = infinite_branchCooldown;
+
+			this.rightNode = new IMNode(this, newDifficulty, !val * 1);
+			this.rightNode.cooldown = infinite_branchCooldown;
+			return;
+		}
+
+		//single tunnel case
+		this.leftNode = new IMNode(this, newDifficulty);
+		this.leftNode.cooldown = Math.max(0, this.cooldown - 1);
+	}
+
+	//remove self and return a child
+	remove() {
+		if (player.parentPrev == this) {
+			console.error(`player is still in ${this.tunnel.id}`);
+			return this;
+		}
+		//if self has one child, just return that. If not, return the child that the player is in
+		if (this.rightNode == undefined) {
+			return this.leftNode;
+		}
+
+		if (player.parentPrev == this.leftNode.tunnel) {
+			return this.leftNode;
+		}
+		if (player.parentPrev == this.rightNode.tunnel) {
+			return this.rightNode;
+		}
+
+		console.error(`player is none of these nodes! for object structure ${this.tunnel.id}
+																			/     \\
+																		  ${this.leftNode.tunnel.id}  ${this.rightNode.tunnel.id}`);
+		return this;
+	}
+}
+
 
 //abstract class with functionality for 3d selection and movement
 class Scene3dObject {
@@ -1405,15 +1555,16 @@ class PropertyButton {
 
 	tick() {
 		//mouseover check
-		this.mouseOver =  (cursor_x > canvas.width * (this.x - this.width * 0.5) && 
+		this.mouseOver = (cursor_x > canvas.width * (this.x - this.width * 0.5) && 
 						cursor_x < canvas.width * (this.x + this.width * 0.5) && 
 						cursor_y > canvas.height * (this.y - this.height * 0.5) && 
 						cursor_y < canvas.height * (this.y + this.height * 0.5));
 	}
 
-	handleClick() {
+	interact() {
 		if (this.mouseOver) {
 			eval(this.code);
+			return 31;
 		}
 	}
 }
@@ -1440,6 +1591,8 @@ class PropertySlider {
 		var displayValue = propertyValue;
 		if (this.snapTo % 1 != 0) {
 			displayValue = displayValue.toFixed(2);
+		} else {
+			displayValue = Math.round(displayValue);
 		}
 		//text
 		ctx.fillStyle = color_text_bright;
@@ -1461,7 +1614,7 @@ class PropertySlider {
 		ctx.stroke();
 	}
 
-	tick() {
+	interact() {
 		//update self's values if cursor is down
 		if (cursor_down) {
 			//if in the area, modify value
@@ -1473,12 +1626,16 @@ class PropertySlider {
 				value = Math.round(value / this.snapTo) * this.snapTo;
 				eval(this.execution);
 				if (this.doReset) {
-					player = new Runner(player.x, player.y, player.z);
+					replacePlayer(0 + (7 * data_persistent.settings.pastaView));
 					loading_state.tunnel.updatePosition(loading_state.tunnel.x, loading_state.tunnel.y, loading_state.tunnel.z);
-					player = new Pastafarian(player.x, player.y, player.z);
+					replacePlayer(7);
 				}
+				return 31;
 			}
 		}
+	}
+
+	tick() {
 	}
 }
 
@@ -1507,7 +1664,7 @@ class PropertyTextBox {
 		ctx.fillText(this.label + eval(this.property), canvas.width * (this.x + 0.01), (canvas.height * this.y) + (canvas.height / 126));
 	}
 
-	tick() {
+	interact() {
 		//update self's values if cursor is down
 		if (cursor_down) {
 			//if in the area, modify value
@@ -1533,6 +1690,9 @@ class PropertyTextBox {
 			}
 		}
 	}
+	
+	tick() {
+	}
 }
 
 class PropertyToggle {
@@ -1542,7 +1702,6 @@ class PropertyToggle {
 		this.width = widthPERCENTAGE;
 		this.text = label;
 		this.property = propertyToModifySTRING;
-		this.halt = false;
 	}
 
 	beDrawn() {
@@ -1560,17 +1719,12 @@ class PropertyToggle {
 		ctx.fillText(this.text, canvas.width * this.x, (canvas.height * this.y) + (canvas.height / 108));
 	}
 
-	tick() {
-		//if cursor's down and in the area, toggle then halt self
-		if (cursor_down) {
-			if (!this.halt) {
-				this.halt = true;
-				if (cursor_x > this.x * canvas.width && cursor_x < (this.x + this.width) * canvas.width && cursor_y > (this.y * canvas.height) - (canvas.height / 36) && cursor_y < (this.y * canvas.height) + (canvas.height / 36)) {
-					eval(`${this.property} = !${this.property};`);
-				}
-			}
-			return;
+	interact() {
+		if (cursor_x > this.x * canvas.width && cursor_x < (this.x + this.width) * canvas.width && cursor_y > (this.y * canvas.height) - (canvas.height / 36) && cursor_y < (this.y * canvas.height) + (canvas.height / 36)) {
+			eval(`${this.property} = !${this.property};`);
 		}
-		this.halt = false;
+	}
+
+	tick() {
 	}
 }
