@@ -3,7 +3,7 @@ INDEX:
 	generics:
 		drawArrow(x, y, color, rotationInRADIANS, bodyLength, headLength, bodyWidth, headWidth);
 		drawCircle(color, x, y, radius);
-		drawCrosshair(center);
+		drawCrosshair(center, normal1, normal2, normal3);
 		drawLine(p1, p2);
 		drawLock(x, y, width, height);
 		drawPoly(color, xyPointsArr);
@@ -54,16 +54,19 @@ function drawCircle(color, x, y, radius) {
 	ctx.fill();
 }
 
-function drawCrosshair(center) {
+function drawCrosshair(center, normal1, normal2, normal3) {
 	ctx.strokeStyle = "#FFF";
 	ctx.lineWidth = 2;
 	//drawing lines
 	ctx.strokeStyle = "#F00";
-	drawWorldLine(center, [center[0] + (render_crosshairSize / 20), center[1], center[2]]);
+	var offset = polToCart(normal1[0], normal1[1], render_crosshairSize);
+	drawWorldLine(center, [center[0] + offset[0], center[1] + offset[1], center[2] + offset[2]]);
 	ctx.strokeStyle = "#0F0";
-	drawWorldLine(center, [center[0], center[1] + (render_crosshairSize / 20), center[2]]);
+	offset = polToCart(normal2[0], normal2[1], render_crosshairSize);
+	drawWorldLine(center, [center[0] + offset[0], center[1] + offset[1], center[2] + offset[2]]);
 	ctx.strokeStyle = "#00F";
-	drawWorldLine(center, [center[0], center[1], center[2] + (render_crosshairSize / 20)]);
+	offset = polToCart(normal3[0], normal3[1], render_crosshairSize);
+	drawWorldLine(center, [center[0] + offset[0], center[1] + offset[1], center[2] + offset[2]]);
 }
 
 function drawLine(p1, p2) {
@@ -138,26 +141,35 @@ function drawWorldLine(worldPoint1, worldPoint2) {
 	//turning world points into camera relative points
 	var tempPoints = [spaceToRelative(worldPoint1, [world_camera.x, world_camera.y, world_camera.z], [world_camera.theta, world_camera.phi, world_camera.rot]),
 								spaceToRelative(worldPoint2, [world_camera.x, world_camera.y, world_camera.z], [world_camera.theta, world_camera.phi, world_camera.rot])];
-	tempPoints = clipToZ0(tempPoints, render_clipDistance, false);
+	
+	//return if both points are clipped
+	if (tempPoints[0][2] < 0 && tempPoints[1][2] < 0) {
+		return;
+	}
 
-	//turn points into screen coordinates
-	var screenPoints = [];
-	for (var a=0;a<tempPoints.length;a++) {
-		screenPoints.push(cameraToScreen(tempPoints[a]));
+	//if one point is clipped, fix the other
+	if (tempPoints[0][2] < 0) {
+		moveAmount = getPercentage(tempPoints[1][2], tempPoints[0][2], 1);
+		tempPoints[0] = [linterp(tempPoints[1][0], tempPoints[0][0], moveAmount), linterp(tempPoints[1][1], tempPoints[0][1], moveAmount), 1];
+	} else if (tempPoints[1][2] < 0) {
+		moveAmount = getPercentage(tempPoints[0][2], tempPoints[1][2], 1);
+		tempPoints[1] = [linterp(tempPoints[0][0], tempPoints[1][0], moveAmount), linterp(tempPoints[0][1], tempPoints[1][1], moveAmount), 1];
 	}
-	if (screenPoints[0] != undefined) {
-		ctx.beginPath();
-		ctx.moveTo(screenPoints[0][0], screenPoints[0][1]);
-		ctx.lineTo(screenPoints[1][0], screenPoints[1][1]);
-		ctx.stroke();
-	}
+
+	//turn points into screen coordinates and draw
+	tempPoints[0] = cameraToScreen(tempPoints[0]);
+	tempPoints[1] = cameraToScreen(tempPoints[1]);
+	ctx.beginPath();
+	ctx.moveTo(tempPoints[0][0], tempPoints[0][1]);
+	ctx.lineTo(tempPoints[1][0], tempPoints[1][1]);
+	ctx.stroke();
 }
 
 function drawWorldPoly(points, color) {
 	//first get camera coordinate points
 	var tempPoints = [];
-	tempPoints[points.length-1] = undefined;
-	for (var p=0; p<points.length; p++) {
+	tempPoints[points.length-1] = spaceToRelative(points[points.length-1], [world_camera.x, world_camera.y, world_camera.z], [world_camera.theta, world_camera.phi, world_camera.rot]);
+	for (var p=0; p<points.length-1; p++) {
 		tempPoints[p] = spaceToRelative(points[p], [world_camera.x, world_camera.y, world_camera.z], [world_camera.theta, world_camera.phi, world_camera.rot]);
 	}
 
@@ -169,8 +181,8 @@ function drawWorldPoly(points, color) {
 	}
 	
 	//turn points into screen coordinates
-	for (var a=0; a<tempPoints.length; a++) {
-		tempPoints[a] = cameraToScreen(tempPoints[a]);
+	for (p=0; p<tempPoints.length; p++) {
+		tempPoints[p] = cameraToScreen(tempPoints[p]);
 	}
 	drawPoly(color, tempPoints);
 }
@@ -560,6 +572,14 @@ function drawTile2d(ex, why, size, type) {
 			ctx.fillRect(ex, why, size * 0.6, size);
 			break;
 		case 13:
+			//warning
+			ctx.fillStyle = color_warning;
+			ctx.fillRect(ex, why, size, size);
+			ctx.strokeStyle = color_warning_secondary;
+			ctx.beginPath();
+			ctx.moveTo(ex + (size * 0.1), why + (size * 0.1));
+			ctx.lineTo(ex + (size * 0.9), why + (size * 0.1));
+			ctx.stroke();
 			break;
 
 		//ringed tiles
