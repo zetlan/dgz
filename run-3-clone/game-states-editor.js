@@ -15,6 +15,7 @@ class State_Edit {
 
 	calculateTunnelPoints() {
 		//points of the tunnel, handy for tunnel functions
+		console.log(this.tunnel.id);
 		this.tunnelPoints = [];
 		for (var a=0; a<this.tunnel.sides; a++) {
 			this.tunnelPoints.push([
@@ -24,29 +25,37 @@ class State_Edit {
 			]);
 		}
 		//rotate
-		
 		for (var b=0; b<this.tunnelPoints.length; b++) {
 			[this.tunnelPoints[b][0], this.tunnelPoints[b][2]] = rotate(this.tunnelPoints[b][0], this.tunnelPoints[b][2], this.tunnel.theta);
 		}
 	}
 
 	doWorldEffects() {
-		world_camera.targetX = 0.1;
-		world_camera.targetY = 0.1;
-		world_camera.targetZ = 0;
+		replacePlayer(0 + (7 * data_persistent.settings.pastaView));
+		if (editor_objects.includes(player.parentPrev)) {
+			//if the player's parent is an editor object, go there
+			this.tunnel = player.parentPrev;
 
+		}
+		player.parent = undefined;
+		player.parentPrev = undefined;
 		if (this.tunnel != undefined) {
 			world_camera.targetTheta = (Math.PI * 2) - this.tunnel.theta;
-			world_camera.targetX = this.tunnel.x + 0.1;
-			world_camera.targetY = this.tunnel.y + 0.1;
+			world_camera.targetX = this.tunnel.x + 1;
+			world_camera.targetY = this.tunnel.y + 1;
 			world_camera.targetZ = this.tunnel.z;
+			this.tunnel.generate();
+		} else {
+			world_camera.targetX = 1;
+			world_camera.targetY = 1;
+			world_camera.targetZ = 0;
 		}
 		world_camera.targetRot = 0;
 		world_camera.rot = 0;
 		world_camera.targetPhi = 0;
 		
-		//so they can see plexiglass tiles
-		player = new Pastafarian(player.x, player.y, player.z);
+		//so user can see plexiglass tiles
+		replacePlayer(7);
 		render_maxColorDistance *= this.lightMultiplier;
 	}
 
@@ -133,7 +142,7 @@ class State_Edit {
 	renderFunction(tunnelFunction) {
 		//tunnel functions are [z, result value, type];
 		//if the area isn't clipped, render the function
-		var zOff = [0, 0, (tunnelFunction[0] + 1) * this.tunnel.tileSize];
+		var zOff = [0, 0, tunnelFunction[0] * this.tunnel.tileSize];
 		[zOff[0], zOff[2]] = rotate(zOff[0], zOff[2], this.tunnel.theta);
 		zOff[0] += this.tunnel.x;
 		zOff[1] += this.tunnel.y;
@@ -155,7 +164,7 @@ class State_Edit {
 	handleMouseMove(a) {
 		updateCursorPos(a);
 		//if the cursor is up top
-		if (cursor_y < canvas.height * 0.15) {
+		if (cursor_y < canvas.height * editor_topBarHeight) {
 			return 31;
 		}
 	}
@@ -165,7 +174,7 @@ class State_Edit {
 		//changing state
 		if (cursor_y < canvas.height * 0.12) {
 			this.buttons.forEach(b => {
-				b.handleClick();
+				b.interact();
 			});
 			if (loading_state != this) {
 				render_maxColorDistance /= this.lightMultiplier;
@@ -207,11 +216,21 @@ class State_Edit_Tiles extends State_Edit {
 			new PropertyButton(editor_lTriggerW + 0.07, 0.97, 0.04, 0.05, "+", `loading_state.tunnel.functions.splice(0, 0, [0, 1, "instant"]);`)
 		];
 
+		this.sub2Buttons = [
+			//esc
+			new PropertyButton(editor_lTriggerW + 0.025, editor_topBarHeight + 0.03, 0.04, 0.05, "X", `loading_state.substate = 1;`),
+
+			//left / right type selector
+			new PropertyButton(editor_lTriggerW + 0.075, editor_topBarHeight + 0.03, 0.04, 0.05, '<', `loading_state.incrementTriggerType(-1);`),
+			new PropertyButton(editor_lTriggerW + editor_triggerEditW - 0.075, editor_topBarHeight + 0.03, 0.04, 0.05, '>', `loading_state.incrementTriggerType(1);`)
+		];
+
 		this.tileSelected = 0;
 		this.tileIsRing = false;
 		this.animTileSelected = 0;
 
 		this.triggerSelected = undefined;
+		this.triggerLastChange = 0;
 
 		this.targetTile = [3, 15];
 		var tileCoords = this.tunnel.worldPositionOfTile(this.targetTile[0], this.targetTile[1] + 1);
@@ -220,6 +239,57 @@ class State_Edit_Tiles extends State_Edit {
 		this.selectedTileExtra.cameraDist = 50;
 		this.cameraMovement = 0;
 		this.calculateTunnelPoints();
+	}
+
+	incrementTriggerType(incrementBy) {
+		//don't allow "true" cutscenes
+		if (this.triggerSelected[2] == "cutscene") {
+			this.triggerSelected[2] = "cutsceneImmerse";
+		}
+		this.triggerLastChange = incrementBy;
+		var oldTypeNum = this.functionList.indexOf(this.triggerSelected[2]);
+		var newTypeNum = modulate(oldTypeNum + incrementBy, this.functionList.length)
+		//splice out old output controllers
+		while (this.sub2Buttons.length > 3) {
+			this.sub2Buttons.splice(this.sub2Buttons.length-1, 1);
+		}
+		
+
+		//change type and add new output controllers
+		this.triggerSelected[2] = this.functionList[newTypeNum];
+		var selectorHeight = editor_topBarHeight + editor_triggerEditH * 0.75;
+		if (this.functionList[newTypeNum] == "cutsceneImmerse") {
+			//left / right cutscene selector
+			this.sub2Buttons.push(new PropertyButton(editor_lTriggerW + 0.075, selectorHeight, 0.04, 0.05, '<', `loading_state.incrementCutsceneRef(-1);`));
+			this.sub2Buttons.push(new PropertyButton(editor_lTriggerW + editor_triggerEditW - 0.075, selectorHeight, 0.04, 0.05, '>', `loading_state.incrementCutsceneRef(1);`));
+
+			//don't be a cutscene if no cutscenes exist
+			if (Object.keys(editor_cutscenes).length == 0) {
+				this.incrementTriggerType(this.triggerLastChange + (this.triggerLastChange == 0));
+				return;
+			}
+
+			//change result type
+			if (this.triggerSelected[1].constructor.name != "String") {
+				this.triggerSelected[1] = Object.keys(editor_cutscenes)[0];
+			}
+		} else {
+			//power result slider
+			this.sub2Buttons.push(new PropertySlider(editor_lTriggerW + (editor_triggerEditW / 8), selectorHeight, editor_triggerEditW * 0.75, (editor_triggerEditW / 2) - 0.05, `result`, `loading_state.triggerSelected[1] = value;`, `loading_state.triggerSelected[1]`, 0, 1, 0.0025, false));
+
+			//change result type
+			if (this.triggerSelected[1].constructor.name == "String") {
+				this.triggerSelected[1] = 1;
+			}
+		}
+
+		
+	}
+
+	incrementCutsceneRef(incrementBy) {
+		var listing = Object.keys(editor_cutscenes);
+		var index = listing.indexOf(this.triggerSelected[1])
+		this.triggerSelected[1] = listing[modulate(index+incrementBy, Math.min(editor_maxCutscenes, listing.length))];
 	}
 
 	switchSubstates() {
@@ -282,8 +352,8 @@ class State_Edit_Tiles extends State_Edit {
 		ctx.fillStyle = color;
 		ctx.lineWidth = 1;
 		ctx.beginPath();
-		ctx.moveTo(ribX, minH + (zScale * tunnel_transitionLength));
-		ctx.lineTo(ribX, maxH);
+		ctx.moveTo(ribX, minH + (zScale * (tunnel_transitionLength - this.tunnel.tileSize)));
+		ctx.lineTo(ribX, maxH - (zScale * this.tunnel.tileSize));
 		ctx.stroke();
 
 		//circles
@@ -319,21 +389,44 @@ class State_Edit_Tiles extends State_Edit {
 			ctx.fillText(objRef[0], ribX + (canvas.width * 0.005), height + textOffset);
 
 			//type
-			if (objRef[2] == "cutscene") {
-				ctx.fillText("cutscene", ribX + (canvas.width * 0.025), height + textOffset);
-			} else {
-				ctx.fillText(`power (${objRef[2]})`, ribX + (canvas.width * 0.025), height + textOffset);
-			}
+			ctx.fillText(editor_functionMapping[objRef[2]], ribX + (canvas.width * 0.025), height + textOffset);
 
 			//value
 			ctx.textAlign = "right";
-			ctx.fillText(objRef[1], canvas.width * (editor_lTriggerW - 0.01), height + textOffset);
+			ctx.fillText((objRef[2] != "cutsceneImmerse" && objRef[2] != "cutscene" && objRef[1].toFixed(4) * 1) || objRef[1], canvas.width * (editor_lTriggerW - 0.01), height + textOffset);
 		}
 
 		this.funcButtons.forEach(f => {
 			f.tick();
 			f.beDrawn();
 		});
+	}
+
+	drawTriggerEditor() {
+			//bege
+			ctx.fillStyle = color_editor_bg;
+			ctx.fillRect(canvas.width * editor_lTriggerW - 1, canvas.height * editor_topBarHeight - 1, canvas.width * editor_triggerEditW + 1, canvas.height * editor_triggerEditH + 1);
+
+			//type text
+			ctx.fillStyle = color_text_bright;
+			ctx.font = `${canvas.height / 40}px Comfortaa`;
+			ctx.textAlign = "center";
+			ctx.fillText(editor_functionMapping[this.triggerSelected[2]], canvas.width * (editor_lTriggerW + editor_triggerEditW / 2), canvas.height * (editor_topBarHeight + 0.04));
+
+			//cutscene name text, if required
+			if (this.triggerSelected[2] == "cutsceneImmerse") {
+				ctx.font = `${canvas.height / 60}px Comfortaa`;
+				if (editor_cutscenes[this.triggerSelected[1]] == undefined) {
+					this.triggerSelected[1] = Object.keys(editor_cutscenes)[0];
+				}
+				ctx.fillText(editor_cutscenes[this.triggerSelected[1]].id, canvas.width * (editor_lTriggerW + editor_triggerEditW / 2), canvas.height * (editor_topBarHeight + editor_triggerEditH - 0.03));
+			}
+
+			//buttons
+			this.sub2Buttons.forEach(b => {
+				b.beDrawn();
+				b.tick();
+			});
 	}
 
 	execute() {
@@ -365,20 +458,24 @@ class State_Edit_Tiles extends State_Edit {
 			});
 		}
 		this.selectedTileExtra.beDrawn();
-		this.lowButton.tick();
-		this.lowButton.beDrawn();
+		if (this.substate < 2) {
+			this.lowButton.tick();
+			this.lowButton.beDrawn();
+		}
 		super.drawTopBar();
 
 		//update substate
-		this.substate += this.substateTravel;
-		this.substate = clamp(this.substate, 0, 1);
-		if (this.substate == 0 || this.substate == 1) {
-			this.substateTravel = 0;
+		if (this.substate <= 1.1 + this.substateTravel) {
+			this.substate += this.substateTravel;
+			this.substate = clamp(this.substate, 0, 1);
+			if (this.substate == 0 || this.substate == 1) {
+				this.substateTravel = 0;
+			}
 		}
 
 		//side bar bg
 		ctx.fillStyle = color_editor_bg;
-		ctx.fillRect(0, canvas.height * (editor_topBarHeight - 0.01), canvas.width * linterp(editor_lTileW, editor_lTriggerW, this.substate), canvas.height);
+		ctx.fillRect(0, canvas.height * (editor_topBarHeight - 0.01), canvas.width * linterp(editor_lTileW, editor_lTriggerW, clamp(this.substate, 0, 1)), canvas.height);
 
 		//tile sidebar
 		if (this.substate < 1) {
@@ -388,6 +485,15 @@ class State_Edit_Tiles extends State_Edit {
 		//trigger sidebar
 		if (this.substate > 0) {
 			this.drawTriggerSidebar();
+
+			//substate 2 is selecting tunnel trigger properties, it gets its own thing
+			if (this.substate == 2) {
+				if (this.functionList == undefined) {
+					this.functionList = Object.keys(editor_functionMapping);
+					this.incrementTriggerType(0);
+				}
+				this.drawTriggerEditor();
+			}
 		}
 		ctx.globalAlpha = 1;
 	}
@@ -401,7 +507,7 @@ class State_Edit_Tiles extends State_Edit {
 		//rough estimate of intersection point
 		var intersectZ = tRef.r / outRate;
 
-		if (intersectZ < editor_maxEditDistance) {
+		if (Math.sqrt((xOffset * xOffset) + (yOffset * yOffset)) > editor_minEditAngle * canvas.height) {
 			//update the tile self points to
 			var isBackwards = (modularDifference((Math.PI * 2) - loading_state.tunnel.theta, world_camera.targetTheta, Math.PI * 2) != 0);
 			var angle = (Math.atan2(yOffset, -xOffset) + Math.PI) / (Math.PI * 2);
@@ -418,8 +524,8 @@ class State_Edit_Tiles extends State_Edit {
 				end = Math.floor(cameraTilePos);
 				start = -1;
 			} else {
-				end = tRef.strips[this.targetTile[0]].tiles.length + (editor_maxEditDistance / tRef.tileSize);
-				start = Math.max(-1, Math.floor(cameraTilePos+1))
+				start = Math.max(-1, Math.floor(cameraTilePos+1));
+				end = start + ((tRef.r / ((editor_minEditAngle * canvas.height) / world_camera.scale)) / tRef.tileSize);
 			}
 			var polyPoints = [[], [], [], []];
 			var sRef = tRef.strips[this.targetTile[0]];
@@ -445,13 +551,20 @@ class State_Edit_Tiles extends State_Edit {
 		}
 	}
 
+	handleEscape() {
+		if (this.substate == 2) {
+			this.substate = 1;
+			return;
+		}
+		super.handleEscape();
+	}
+
 	handleMouseMove(a) {
 		updateCursorPos(a);
 		//if cursor is up top
 		if (super.handleMouseMove(a) == 31 && this.substate != 1) {
 			return;
 		}
-		
 
 		//if changing states
 		if (this.substateTravel != 0) {
@@ -465,6 +578,12 @@ class State_Edit_Tiles extends State_Edit {
 				return;
 			}
 		} else {
+			//trigger editing
+			if (this.substate == 2) {
+				if (this.sub2Buttons[3].constructor.name == "PropertySlider") {
+					this.sub2Buttons[3].interact();
+				}
+			}
 			//if the cursor is over the tunnel rib with cursor down
 			if (cursor_x < canvas.width * editor_lTileW) {
 				if (cursor_down && this.triggerSelected != undefined) {
@@ -500,11 +619,23 @@ class State_Edit_Tiles extends State_Edit {
 	}
 
 	handleMouseDown(a) {
-		if (super.handleMouseDown(a) == 31 && this.substate != 1) {
+		if (this.substate == 2) {
+			var toReturn = false;
+			this.sub2Buttons.forEach(b => {
+				if (b.interact() == 31) {
+					toReturn = true;
+				}
+			});
+			if (toReturn) {
+				return;
+			}
+		}
+
+		if (super.handleMouseDown(a) == 31 && this.substate < 1) {
 			return;
 		}
 
-		this.lowButton.handleClick();
+		this.lowButton.interact();
 
 		if (this.substateTravel == 0) {
 			//tile stuff
@@ -549,7 +680,7 @@ class State_Edit_Tiles extends State_Edit {
 			if (this.substate == 1) {
 				//buttons
 				this.funcButtons.forEach(f => {
-					f.handleClick();
+					f.interact();
 				});
 				
 				var reqDist = editor_handleRadius;
@@ -568,10 +699,17 @@ class State_Edit_Tiles extends State_Edit {
 						reqDist = getDistance2d([cursor_x, cursor_y], [ribX, height]);
 						this.triggerSelected = f;
 					}
+
+					//selection for substate 2
+					if (Math.abs(cursor_y - height) < canvas.height * 0.04 && cursor_x < editor_lTriggerW * canvas.width && cursor_x > 0.02 * canvas.width) {
+						if (Math.abs(cursor_y - height) < reqDist || this.triggerSelected == undefined) {
+							this.triggerSelected = f;
+						}
+						this.substate = 2;
+					}
 				});
 			}
 		}
-		
 	}
 
 	handleKeyPress(a) {
@@ -635,11 +773,10 @@ class State_Edit_Tiles extends State_Edit {
 		this.tunnel.data[this.targetTile[0]][this.targetTile[1]] = this.tileSelected;
 		var coords = this.tunnel.worldPositionOfTile(this.targetTile[0], this.targetTile[1] + 1);
 		this.tunnel.strips[this.targetTile[0]].tiles[this.targetTile[1]] = this.tunnel.generateTile(this.tileSelected, coords[0], coords[1], coords[2], this.tunnel.tileSize, this.tunnel.strips[this.targetTile[0]].normal, [this.targetTile[0], this.targetTile[1]], this.tunnel.color);
-		var playerRef = player;
-		player = new Runner(player.x, player.y, player.z);
+		replacePlayer(0 + (7 * data_persistent.settings.pastaView));
 		this.tunnel.repairData();
 		this.tunnel.updatePosition(this.tunnel.x, this.tunnel.y, this.tunnel.z);
-		player = playerRef;
+		replacePlayer(7);
 	}
 }
 
@@ -855,7 +992,7 @@ class State_Edit_Properties extends State_Edit {
 				}
 			}
 
-			//sliders
+			//sliders + text boxes
 			this.propertyModifiers.forEach(m => {
 				m.tick();
 				m.beDrawn();
@@ -941,7 +1078,7 @@ class State_Edit_Properties extends State_Edit {
 						return;
 					}
 				}
-				this.banButtons[0].handleClick();
+				this.banButtons[0].interact();
 				return;
 			}
 			//if in rule mode:
@@ -960,7 +1097,7 @@ class State_Edit_Properties extends State_Edit {
 
 			//select x
 			if (this.banSelected != undefined && getDistance2d([cursor_x, cursor_y], [(0.5 + (editor_lPropertyW / 2)) * canvas.width, 0.535 * canvas.height]) < canvas.height / 10) {
-				this.banButtons[1].handleClick();
+				this.banButtons[1].interact();
 				return;
 			}
 
@@ -991,11 +1128,20 @@ class State_Edit_Properties extends State_Edit {
 		//property menu
 		if (cursor_x < canvas.width * editor_lPropertyW) {
 			this.propertyModifiers.forEach(p => {
-				if (p.constructor.name == "PropertyButton") {
-					p.handleClick();
-				}
+				p.interact();
 			});
 		}
+	}
+
+	handleMouseMove(a) {
+		if (super.handleMouseMove(a) == 31) {
+			return 31;
+		}
+		this.propertyModifiers.forEach(m => {
+			if (m.constructor.name == "PropertySlider") {
+				m.interact();
+			}
+		});
 	}
 
 	handleEscape() {
@@ -1042,9 +1188,15 @@ class State_Edit_World extends State_Edit {
 	deleteTunnel() {
 		//you can't delete the last tunnel. It would cause all sorts of problems that I don't want to have to solve ;)
 		if (this.tunnel != undefined && editor_objects.length > 1) {
+			
 			//gotta delete it from all the places it's referenced
 			editor_objects.splice(editor_objects.indexOf(this.tunnel), 1);
 			this.readFrom.splice(this.readFrom.indexOf(this.tunnel), 1);
+
+			//if the tunnel is the world spawn, redirect the world spawn
+			if (this.tunnel == editor_spawn) {
+				editor_spawn = editor_objects[0];
+			}
 			this.tunnel = undefined;
 		}
 	}
@@ -1197,7 +1349,7 @@ class State_Edit_World extends State_Edit {
 		//low buttons
 		if (cursor_y > canvas.height * 0.94) {
 			this.lowButtons.forEach(l => {
-				l.handleClick();
+				l.interact();
 			});
 			return;
 		}
@@ -1349,7 +1501,7 @@ class State_Edit_Cutscenes extends State_Edit {
 		}
 
 		if (this.cutscenes.length < editor_maxCutscenes) {
-			this.lowButton.handleClick();
+			this.lowButton.interact();
 		}
 	}
 
@@ -1366,7 +1518,18 @@ class State_Playtest extends State_World {
 		this.returnState = undefined;
 		this.readFrom = editor_objects;
 		this.isMainGame = true;
+		this.doWorldEffects();
+		this.substate = 3;
+	}
+
+	doWorldEffects() {
 		this.orderWorld();
+
+		world_camera.targetTheta = player.dir_front[0];
+		world_camera.targetPhi = 0;
+		world_camera.targetRot = (player.dir_down[1] + (Math.PI * 1.5)) % (Math.PI * 2);
+		player.setCameraPosition();
+		world_camera.snapToTargets();
 	}
 
 	execute() {
@@ -1410,6 +1573,3 @@ class State_Playtest extends State_World {
 		loading_state.doWorldEffects();
 	}
 }
-
-
-
