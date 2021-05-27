@@ -130,7 +130,6 @@ function activateCutsceneFromEditorTunnel(start, end, time) {
 		//simpler because it only applies to edit mode, editor cutscenes are always immersive
 		setTimeout(() => {
 			loading_state = new State_Cutscene(editor_cutscenes[end], loading_state);
-			player.parentPrev.reset();
 		}, 10);
 	}
 	
