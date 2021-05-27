@@ -126,11 +126,14 @@ function generateStarSphere() {
 //utility functions
 
 function activateCutsceneFromEditorTunnel(start, end, time) {
-	//simpler because it only applies to edit mode, editor cutscenes are always immersive
-	setTimeout(() => {
-		loading_state = new State_Cutscene(eval(`cutsceneData_${end}`), loading_state);
-		player.parentPrev.reset();
-	}, 10);
+	if (time == 0) {
+		//simpler because it only applies to edit mode, editor cutscenes are always immersive
+		setTimeout(() => {
+			loading_state = new State_Cutscene(eval(`cutsceneData_${end}`), loading_state);
+			player.parentPrev.reset();
+		}, 10);
+	}
+	
 	return start;
 }
 
@@ -142,8 +145,11 @@ function activateCutsceneFromTunnel(start, end, time) {
 			data_persistent.effectiveCutscenes.push(end);
 		}
 		setTimeout(() => {
-			player.parentPrev.resetWithoutPlayer();
+			var playerStore = player;
 			loading_state = new State_Cutscene(eval(`cutsceneData_${end}`));
+			if (playerStore.parentPrev != undefined) {
+				playerStore.parentPrev.resetWithoutPlayer();
+			}
 		}, 10);
 	}
 	return start;
@@ -541,6 +547,7 @@ function file_export() {
 	});
 
 	var fileObj = new Blob([textDat], {type: 'text/plain'});
+	console.log(fileObj.type);
 
 	//make sure a world file doesn't already exist
 	if (editor_worldFile != undefined) {
@@ -584,7 +591,7 @@ function file_import() {
 		var tolerance = 5000;
 		//loading cutscenes
 		worldText = worldText.split("\n");
-		while (worldText.length > 0) {
+		while (worldText.length > 1) {
 			console.log("length: ", worldText.length);
 			var ref = worldText[0];
 			var cName = worldText[1];
@@ -783,10 +790,10 @@ function handleTextDisplay() {
 		drawCharacterText();
 
 		//choosing text
-		if (loading_state.substate == 0 || loading_state.constructor.name == "State_Menu") {
+		if ((loading_state instanceof State_World && loading_state.substate == 0) || loading_state.constructor.name == "State_Menu") {
 			text_time -= 1;
 			if (loading_state.constructor.name == "State_Menu") {
-				text_time -= 1.25;
+				text_time -= 2;
 			}
 			if (text_time <= 0) {
 				text_time = text_timeMax;
@@ -1393,21 +1400,12 @@ function tunnelData_handle(data) {
 			case "tileWidth":
 				tunnelStructure.tileSize = splitTag[1] * 1;
 				break;
-			case "trigger-z":
-				
-				//for power triggers
-				if (splitTag[2] == "result-power") {
-					//split tag will be ["trigger-z", "0", "result-power", "0.1", "smooth"]
-					//the first box is the tile to trigger at, the second box is the result power, and the third box is the type of fade
-					//EX [10, 0.4, "slow"]
-					tunnelStructure.functions.push([splitTag[1] * 1, splitTag[3] * 1, splitTag[4]]);
+			case "trigger":
+				//split tag will be ["trigger", "0", "1", "smooth"], or ["trigger", "0", "abcd", "cutscene"]
+				if (splitTag[3] != "cutscene" && splitTag[3] != "cutsceneImmersive") {
+					splitTag[2] *= 1;
 				}
-
-				//for cutscene triggers
-				if (splitTag[2] == "result-cutscene") {
-					//splitTag will be ["trigger-z", "number", "result-cutscene", "cutscene name"]
-					tunnelStructure.functions.push([splitTag[1] * 1, splitTag[3], "cutscene"]);
-				}
+				tunnelStructure.functions.push([splitTag[1] * 1, splitTag[2], splitTag[3]]);
 				break;
 			case "terrain":
 				tunnelStructure.tileData.push(i.replace("terrain~", ""));
