@@ -20,13 +20,12 @@ class Tile extends FreePoly {
 	}
 
 	calculatePointsAndNormal() {
-		var points = [[-1, 0, -1], [-1, 0, 1], [1, 0, 1], [1, 0, -1]];
+		this.points = [[-1, 0, -1], [-1, 0, 1], [1, 0, 1], [1, 0, -1]];
 
-		for (var p=0; p<points.length; p++) {
-			points[p] = transformPoint(points[p], [this.x, this.y, this.z], this.normal, this.size + 0.5);
-		}
-		
-		this.points = points;
+		this.points.forEach(p => {
+			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 1);
+		});
+
 		this.dir_right = [this.normal[0], this.normal[1] + (Math.PI / 2)];
 		this.dir_down = this.normal;
 	}
@@ -42,12 +41,10 @@ class Tile extends FreePoly {
 
 	doRotationEffects(entity) {
 		var cameraRotAttempt;
-		if (entity.dy < 0) {
-			entity.dy = -1;
-		} else {
-			//if player is jumping, keep their relative velocity
-			entity.dy = Math.cos(modularDifference(entity.dir_down[1], this.dir_down[1], Math.PI * 2)) * entity.dy;
-		}
+		//if player is jumping, keep their relative velocity
+		var newDy = Math.cos(modularDifference(entity.dir_down[1], this.dir_down[1], Math.PI * 2)) * entity.dy;
+		entity.dy = ((newDy > 0.5) * newDy) || -1;
+
 		entity.dir_front = [(Math.PI * 2) - this.parent.theta + (Math.PI * player.backwards), 0];
 		entity.dir_side = [this.dir_right[0], this.dir_right[1] + (Math.PI * player.backwards)];
 		entity.dir_down = this.dir_down;
@@ -76,11 +73,7 @@ class Tile extends FreePoly {
 
 			//if the rotation difference is too great, fix that
 			if (Math.abs(world_camera.rot - world_camera.targetRot) > Math.PI) {
-				if (world_camera.rot > Math.PI) {
-					world_camera.rot -= Math.PI * 2;
-				} else {
-					world_camera.rot += Math.PI * 2;
-				}
+				world_camera.rot += Math.PI * 2 * boolToSigned(world_camera.rot <= Math.PI);
 			}
 		}
 	}
@@ -99,7 +92,7 @@ class Tile_Box extends Tile {
 	constructor(x, y, z, size, normal, parent) {
 		super(x, y, z, size, normal, parent, RGBtoHSV(color_box));
 
-		//all boxes have a left / right tile, for changing rotation
+		//all boxes have extra tiles, for changing rotation
 		this.leftTile = new Tile(x, y, z, size, [normal[0], (normal[1] + (Math.PI * 1.5)) % (Math.PI * 2)], parent, this.color);
 		this.rightTile = new Tile(x, y, z, size, [normal[0], (normal[1] + (Math.PI * 0.5)) % (Math.PI * 2)], parent, this.color);
 	}
@@ -223,7 +216,9 @@ class Tile_Box extends Tile {
 			}
 		} else {
 			entityCoords[2] = -0.5 * this.size - this.tolerance;
-			//rotation for upside down
+			//rotation effects for upside down
+			this.doRotationEffects_Underside(entity);
+			
 		}
 	}
 
@@ -245,6 +240,43 @@ class Tile_Box extends Tile {
 			this.leftTile.doRotationEffects(entity);
 		}
 		entityCoords[1] = -0.5 * this.size - this.tolerance;
+	}
+
+	doRotationEffects_Underside(entity) {
+		//same but with some variables swapped around for the opposite direction
+		var cameraRotAttempt;
+		entity.dy = Math.max(-1, Math.cos(modularDifference(entity.dir_down[1], this.dir_down[1] + Math.PI, Math.PI * 2)) * entity.dy);
+
+		entity.dir_front = [(Math.PI * 2) - this.parent.theta + (Math.PI * player.backwards), 0];
+		entity.dir_side = [this.dir_right[0], this.dir_right[1] + (Math.PI * !player.backwards)];
+		entity.dir_down = [this.dir_down[0], this.dir_down[1] + Math.PI];
+		haltRotation = true;
+
+		if (player.backwards) {
+			cameraRotAttempt = ((Math.PI * 3.5) - this.dir_down[1]) % (Math.PI * 2);
+		} else {
+			cameraRotAttempt = (this.dir_down[1] + (Math.PI * 0.5)) % (Math.PI * 2);
+		}
+
+		world_camera.targetPhi = 0;
+		world_camera.targetTheta = entity.dir_front[0] % (Math.PI * 2);
+		//if the difference is too great, fix that
+		if (Math.abs(world_camera.theta - world_camera.targetTheta) > Math.PI) {
+			if (world_camera.theta > Math.PI) {
+				world_camera.theta -= Math.PI * 2;
+			} else {
+				world_camera.theta += Math.PI * 2;
+			}
+		}
+
+		if (!editor_active && world_camera.targetRot != cameraRotAttempt) {
+			world_camera.targetRot = cameraRotAttempt;
+
+			//if the rotation difference is too great, fix that
+			if (Math.abs(world_camera.rot - world_camera.targetRot) > Math.PI) {
+				world_camera.rot += Math.PI * 2 * boolToSigned(world_camera.rot <= Math.PI);
+			}
+		}
 	}
 
 	tick() {
@@ -424,7 +456,7 @@ class Tile_Conveyor extends Tile {
 		this.triPoints = [[-1 + (this.time * 2), 0, -1], [-1 + (this.time * 2), 0, 0], [-1, 0, -1 * this.time], [-1, 0, this.time], [-1 + (this.time * 2), 0, 0], 
 					[-1 + (this.time * 2), 0, 1], [1, 0, this.time], [1, 0, -1 * this.time]];
 		this.triPoints.forEach(p => {
-			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 0.5);
+			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 1);
 		});
 	}
 
@@ -464,7 +496,7 @@ class Tile_Conveyor_Slow extends Tile_Conveyor {
 		this.triPoints = [[1 - (this.time * 2), 0, -1], [1 - (this.time * 2), 0, 0], [1, 0, -1 * this.time], [1, 0, this.time], [1 - (this.time * 2), 0, 0], 
 					[1 - (this.time * 2), 0, 1], [-1, 0, this.time], [-1, 0, -1 * this.time]];
 		this.triPoints.forEach(p => {
-			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 0.5);
+			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 1);
 		});
 	}
 
@@ -498,7 +530,7 @@ class Tile_Conveyor_Left extends Tile_Conveyor {
 		this.triPoints = [[-1, 0, 1 - (this.time * 2)], [0, 0, 1 - (this.time * 2)], [-1 * this.time, 0, 1], [this.time, 0, 1], [0, 0, 1 - (this.time * 2)], 
 					[1, 0, 1 - (this.time * 2)], [this.time, 0, -1], [-1 * this.time, 0, -1]];
 		this.triPoints.forEach(p => {
-			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 0.5);
+			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 1);
 		});
 	}
 
@@ -526,7 +558,7 @@ class Tile_Conveyor_Right extends Tile_Conveyor {
 		this.triPoints = [[-1, 0, -1 + (this.time * 2)], [0, 0, -1 + (this.time * 2)], [-1 * this.time, 0, -1], [this.time, 0, -1], [0, 0, -1 + (this.time * 2)], 
 					[1, 0, -1 + (this.time * 2)], [this.time, 0, 1], [-1 * this.time, 0, 1]];
 		this.triPoints.forEach(p => {
-			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 0.5);
+			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 1);
 		});
 	}
 
