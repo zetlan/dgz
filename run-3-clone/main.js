@@ -83,7 +83,7 @@ const colors_powerCells = ["#888888", "#8888FF", "#88FF88", "#88FFFF", "#FF8888"
 var credits = [
 	`CREDITS:`,
 	`Cynthia Clementine - coding, art, and interface design`,
-	`Joseph Cloutier - design, original art, and story`,
+	`Joseph Cloutier - level design, original art, and story`,
 	`Alex Ostroff - original art/animation`,
 	`Jesse Valentine - music`,
 	``,
@@ -296,6 +296,7 @@ var data_persistent = {
 		enableOutlines: true,
 		highResolution: false,
 		maskCursor: false,
+		pastaView: false,
 		volume: 0.5,
 	}
 };
@@ -582,10 +583,21 @@ var editor_cameraLimit = 300000;
 var editor_colorMultiplier = 1.7;
 var editor_cutsceneColumns = 3;
 var editor_cutsceneMargin = 0.08;
+var editor_functionMapping = {
+	"instant":			"power (instant)",
+	"smooth":			"power (smooth)",
+	"slowSmooth":		"power (smooth, slow)",
+	"fast": 			"power (stutter)",
+	"slow": 			"power (stutter, slow)",
+	"glimpse":			"power (glimpse)",
+	"falseAlarm":		"power (false alarm)",
+	"notSoFalseAlarm":	"power (true alarm)",
+	"cutsceneImmerse":	"cutscene"
+};
 var editor_maxCutscenes = 21;
 var editor_cutscenes = {}
 var editor_mapHeight = 10000;
-var editor_maxEditDistance = 1500;
+var editor_minEditAngle = 0.06;
 var editor_objects = [];
 var editor_lPropertyW = 0.3;
 var editor_lTileW = 0.06;
@@ -598,6 +610,8 @@ var editor_substateTravelSpeed = 0.07;
 var editor_topBarHeight = 0.12;
 var editor_tileSize = 0.02;
 var editor_triggerRibX = 0.0075;
+var editor_triggerEditW = 0.4;
+var editor_triggerEditH = 0.15;
 var editor_tunnelDefaultData = [[1, 1, 1, 1, 1], [1, 0, 1, 0, 1], [], [], [], [], [], [], [], [], [], [], [], [], [], []];
 var editor_warning = "Warning: Editor data does not save between sessions. If you want to save your data, make sure to export your world before closing the window.";
 var editor_warning_file = `the file you have entered has been detected at over 5000 lines long. 
@@ -623,7 +637,14 @@ var editor_worldFile = undefined;
 var editor_handleRadius = 6;
 var editor_cutsceneWidth = 0.2;
 
+var infinite_branchChance = 0.2;
+var infinite_branchCooldown = 8;
+var infinite_data = levelData_infinite.split("\n");
+var infinite_difficultyBoost = 4;
 var infinite_levelRange = 40;
+var infinite_wobble = 0.3;
+
+
 
 let loading_state;
 
@@ -685,7 +706,8 @@ var tunnel_functions = {
 	"falseAlarm": power_falseAlarm,
 	"notSoFalseAlarm": power_notSoFalseAlarm,
 	"undefined": power_fast,
-	"cutscene": activateCutsceneFromTunnel
+	"cutscene": activateCutsceneFromTunnel,
+	"cutsceneImmerse": activateCutsceneFromEditorTunnel
 };
 var tunnel_tileAssociation = {
 	"~undefined": 1, 
@@ -1141,8 +1163,8 @@ function performanceTest() {
 	var perfTime = [0, 0];
 	var totalTime = 0;
 	perfTime = [performance.now(), 0];
-	for (var a=0; a<1000000; a++) {
-		spaceToRelative([randomBounded(-10, 10), randomBounded(-10, 10), randomBounded(-10, 10)], [randomBounded(-10, 10), randomBounded(-10, 10), randomBounded(-10, 10)], [randomBounded(0, 6.28), randomBounded(Math.PI / -2, Math.PI / 2)]);
+	for (var a=0; a<50000; a++) {
+		clipToZ0([[randomBounded(-10, 10), randomBounded(-10, 10), randomBounded(-10, 10)], [randomBounded(-10, 10), randomBounded(-10, 10), randomBounded(-10, 10)], [randomBounded(-10, 10), randomBounded(-10, 10), randomBounded(-10, 10)], [randomBounded(-10, 10), randomBounded(-10, 10), randomBounded(-10, 10)]], 0, false);
 	}
 
 	perfTime[1] = performance.now();
