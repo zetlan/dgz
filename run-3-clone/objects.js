@@ -388,29 +388,7 @@ class Character {
 			this.syncTextures();
 
 			if (editor_active) {
-				var cartX = polToCart(this.dir_side[0], this.dir_side[1], 10);
-				var cartY = polToCart(this.dir_down[0], this.dir_down[1], 10);
-				var cartZ = polToCart(this.dir_front[0], this.dir_front[1], 10);
-				var xXY = spaceToScreen([cartX[0] + this.x, cartX[1] + this.y, cartX[2] + this.z]);
-				var yXY = spaceToScreen([cartY[0] + this.x, cartY[1] + this.y, cartY[2] + this.z]);
-				var zXY = spaceToScreen([cartZ[0] + this.x, cartZ[1] + this.y, cartZ[2] + this.z]);
-				ctx.beginPath();
-				ctx.strokeStyle = "#F00";
-				ctx.moveTo(tX, tY);
-				ctx.lineTo(xXY[0], xXY[1]);
-				ctx.stroke();
-
-				ctx.beginPath();
-				ctx.strokeStyle = "#0F0";
-				ctx.moveTo(tX, tY);
-				ctx.lineTo(yXY[0], yXY[1]);
-				ctx.stroke();
-
-				ctx.beginPath();
-				ctx.strokeStyle = "#00F";
-				ctx.moveTo(tX, tY);
-				ctx.lineTo(zXY[0], zXY[1]);
-				ctx.stroke();
+				drawCrosshair([this.x, this.y, this.z], this.dir_side, this.dir_down, this.dir_front);
 			}
 		}
 	}
@@ -642,20 +620,34 @@ class Bunny extends Character {
 		this.texture_walkR = undefined;
 
 		this.jumpStrength = 3;
+		this.jumpTime *= 1.3;
 		this.jumpBoostStrength = 0.14;
+		this.jumpCooldown = 5;
+		this.jumpCooldownMax = 7;
 		this.boostFriction = 0.996;
+
 		this.speed = 0.13;
-		this.strafeSpeed = 0.3;
+		this.strafeSpeed = 0.2;
+		this.strafeSpeedDefault = 0.4;
 		this.trueSpeed = 0.9;
 		this.dMax = 11.5;
-		this.dMin = 2;
+		this.fallMax = 11.5;
+		this.dMin = 3;
+		
 	}
 
 	//bunny always jumps
 	tick() {
+		if (this.jumpCooldown < this.jumpCooldownMax) {
+			this.jumpCooldown += 1;
+		}
 		if (this.onGround > 0) {
 			this.handleSpace();
-			this.dz += this.trueSpeed;
+			if (this.jumpCooldown == this.jumpCooldownMax) {
+				this.dz += this.trueSpeed;
+				this.jumpCooldown = 0;
+			}
+			
 			this.textureRot = this.dir_down[1];
 		}
 
@@ -666,7 +658,14 @@ class Bunny extends Character {
 		}
 
 		if (this.dz > this.dMin) {
-			this.dz -= this.speed;
+			this.dz -= this.speed * 0.75;
+		}
+
+		//change strafe speed based on current speed
+		if (this.ax != 0) {
+			var volume = ((this.dMax - Math.abs(this.dx)) / this.dMax) * 12 - 6;
+			this.strafeSpeed = sigmoid(volume, 0, this.strafeSpeedDefault);
+			this.ax = this.strafeSpeed * boolToSigned(this.ax > 0);
 		}
 		super.tick();
 	}
