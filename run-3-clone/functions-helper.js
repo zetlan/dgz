@@ -816,7 +816,7 @@ function handleTextDisplay() {
 		drawCharacterText();
 
 		//choosing text
-		if ((loading_state instanceof State_World && loading_state.substate == 0) || loading_state.constructor.name == "State_Menu") {
+		if ((loading_state instanceof State_World && loading_state.substate == 0) || loading_state.constructor.name == "State_Menu" || loading_state.constructor.name == "State_Map") {
 			text_time -= 1;
 			if (loading_state.constructor.name == "State_Menu") {
 				text_time -= 2;
