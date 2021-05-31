@@ -7,7 +7,6 @@
 	activateCutsceneFromEditorTunnel(start, end, time);
 	activateCutsceneFromTunnel(start, end, time);
 	avgArray(array);
-	boolToSigned(boolValue);
 	
 	challenge_isCutscene(tile, reverseDirectionBOOLEAN, cutscene, immersiveBOOLEAN);
 	challenge_isComplete();
@@ -32,12 +31,10 @@
 	getClosestObject();
 	getImage();
 	getObjectFromID(id);
-	getPercentage();
 	getTimeFromFrames();
 
 	handleAudio();
 	HSVtoRGB();
-	linterp(a, b, percentage);
 	localStorage_read();
 	localStorage_write();
 	logTime();
@@ -177,12 +174,6 @@ function avgArray(array) {
 
 	return finArr;
 }
-
-//converts true to 1, and false to -1
-function boolToSigned(boolValue) {
-	return boolValue * 2 - 1;
-}
-
 
 
 //challenge conditionals are evaluated as end codes, they deal with ending the current section of challenge mode
@@ -708,14 +699,6 @@ function getObjectFromID(id) {
 	return {};
 }
 
-//returns the percentage from val1 to val2 that the checkVal is in
-//example: 0, 10, 5, returns 0.5)
-function getPercentage(val1, val2, checkVal) {
-	val2 -= val1;
-	checkVal -= val1;
-	return checkVal / val2;
-}
-
 function getTimeFromFrames(intFrames) {
 	var timeText = ` s`;
 	//seconds
@@ -881,11 +864,6 @@ function HSVtoRGB(hsvObject) {
 
 function isValidString(str) {
 	return (str != null && str != undefined && str != "");
-}
-
-//performs a linear interpolation between 2 values
-function linterp(a, b, percentage) {
-	return a + ((b - a) * percentage);
 }
 
 function localStorage_read() {
@@ -1115,11 +1093,6 @@ function power_smooth(powStart, powEnd, time) {
 
 
 
-
-//returns a random value between the min value and max values, using the default javascript randomizer
-function randomBounded(min, max) {
-	return (Math.random() * (max - min)) + min;
-}
 
 //returns a pseudo-random value between the min value and max values
 function randomSeeded(min, max) {
