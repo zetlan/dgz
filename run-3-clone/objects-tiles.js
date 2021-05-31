@@ -83,7 +83,7 @@ class Tile extends FreePoly {
 	}
 
 	playerIsOnTop() {
-		return (((spaceToRelativeRotless([player.x, player.y, player.z], [this.x, this.y, this.z], this.normal)[2]) * spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], this.normal)[2]) > 0)
+		return (((spaceToRelativeRotless([player.x, player.y, player.z], [this.x, this.y, this.z], this.normal)[2]) * spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], this.normal)[2]) > 0);
 	}
 }
 
@@ -843,7 +843,7 @@ class Tile_Ramp extends Tile {
 	}
 
 	playerIsOnTop() {
-		return (super.playerIsOnTop || spaceToRelativeRotless([player.x, player.y, player.z], [this.x, this.y, this.z], [this.parent.theta, 0]));
+		return (super.playerIsOnTop() || spaceToRelativeRotless([player.x, player.y, player.z], [this.x, this.y, this.z], [this.parent.theta, 0]));
 	}
 }
 
