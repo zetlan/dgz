@@ -1472,7 +1472,7 @@ class Tunnel {
 		for (var n=tunnelSize; n>Math.floor(tunnelSize / 2); n--) {
 			strip = ((tunnelStrip + (Math.floor(n / 2) * boolToSigned(n % 2 == 1))) + tunnelSize) % tunnelSize;
 			if (drawPlayer) {
-				if (!this.strips[strip].playerIsOnTop()) {
+				if (!this.strips[strip].playerIsOnTop(strip)) {
 					drawPlayer = false;
 					player.beDrawn();
 				}
@@ -1491,7 +1491,7 @@ class Tunnel {
 		for (var n=Math.floor(tunnelSize / 2); n>0; n--) {
 			strip = ((tunnelStrip + (Math.floor(n / 2) * boolToSigned(n % 2 == 1))) + tunnelSize) % tunnelSize;
 			if (drawPlayer) {
-				if (!this.strips[strip].playerIsOnTop()) {
+				if (!this.strips[strip].playerIsOnTop(strip)) {
 					drawPlayer = false;
 					player.beDrawn();
 				}
@@ -1565,7 +1565,7 @@ class Tunnel {
 				nowDrawing = (trueSideStrip + centerStripOffset + (Math.floor(n / 2) * boolToSigned(n % 2 == 1))) % (this.sides * this.tilesPerSide);
 				//don't draw strips out of bounds
 				if (nowDrawing >= trueSideStrip && nowDrawing < trueSideStrip + this.tilesPerSide) {
-					if (drawPlayer && !this.strips[nowDrawing].playerIsOnTop()) {
+					if (drawPlayer && !this.strips[nowDrawing].playerIsOnTop(nowDrawing)) {
 						player.beDrawn();
 						drawPlayer = false;
 					}
@@ -1588,7 +1588,7 @@ class Tunnel {
 			for (var n=this.tilesPerSide*2; n>0; n--) {
 				nowDrawing = (trueSideStrip + centerStripOffset + (Math.floor(n / 2) * boolToSigned(n % 2 == 1))) % (this.sides * this.tilesPerSide);
 				if (nowDrawing >= trueSideStrip && nowDrawing < trueSideStrip + this.tilesPerSide) {
-					if (drawPlayer && !this.strips[nowDrawing].playerIsOnTop()) {
+					if (drawPlayer && !this.strips[nowDrawing].playerIsOnTop(nowDrawing)) {
 						player.beDrawn();
 						drawPlayer = false;
 					}
@@ -2672,22 +2672,44 @@ class Tunnel_Strip {
 	}
 
 	//returns true if the player should be drawn on top of the strip
-	playerIsOnTop() {
+	playerIsOnTop(selfIndex) {
 		//first figure out the reference plane being used
 		var playerRelPos = spaceToRelativeRotless([player.x, player.y, player.z], [this.x, this.y, this.z], this.normal);
 
-		//if player is within self's intersection possibility, continue
-		if (Math.abs(playerRelPos[1]) < (this.tileSize * 0.5) + player.r) { 
-			//if no tile there (or box, or plexiglass), ignore the player
-			if (this.tiles[Math.floor(this.parent.playerTilePos - 0.5)] == undefined || this.tiles[Math.floor(this.parent.playerTilePos - 0.5)].leftTile != undefined || 
-			(this.tiles[Math.floor(this.parent.playerTilePos - 0.5)].constructor.name == "Tile_Plexiglass" && player.personalBridgeStrength == undefined)) {
-				return true;
-			}
-
-			//if there is a tile there, use the tile's coordinates
-			return this.tiles[Math.floor(this.parent.playerTilePos - 0.5)].playerIsOnTop();
+		//if player is out of self's intersection possibility
+		if (Math.abs(playerRelPos[1]) > (this.tileSize * 0.5) + player.r) {
+			return true;
 		}
-		return true;
+
+		var cameraRelPos = spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], this.normal);
+		var tileToCheck = Math.floor(this.parent.playerTilePos - 1.5);
+		var tileID = this.parent.data[selfIndex][tileToCheck]
+
+		//if both camera and player are on the same side, as long as it's a normal tile (not box or ramp) return
+		if (playerRelPos[2] * cameraRelPos[2] > 0) {
+			// if (tileID == undefined || tileID < 9) {
+			// 	return true;
+			// }
+			// return false;
+			return true;
+		}
+
+		//if player and camera are on different sides...
+		tileToCheck = Math.floor(linterp(cameraRelPos[0] / this.parent.tileSize, this.parent.playerTilePos, getPercentage(cameraRelPos[2], playerRelPos[2], 0)) - 0.5);
+		tileID = this.parent.data[selfIndex][tileToCheck];
+
+		//if no tile there (or box, or plexiglass), ignore the player
+		if (tileID == undefined || tileID == 9 || tileID == 10 || 
+		(tileID == 0 && player.personalBridgeStrength == undefined)) {
+			return true;
+		}
+		//if the tile's a 'regular' tile, skip this step (player + camera are on opposite sides, normal tiles must block view here)
+		if (tileID < 9 && tileID != 3) {
+			return false;
+		}
+
+		//if there is a special tile there, use the tile's coordinates
+		return this.tiles[Math.floor(this.parent.playerTilePos - 0.5)].playerIsOnTop();
 	}
 
 	beDrawn() {
