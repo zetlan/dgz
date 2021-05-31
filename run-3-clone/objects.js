@@ -203,7 +203,7 @@ class Character {
 		
 		this.gravStrength = physics_gravity;
 		this.speed = 0.12;
-		this.strafeSpeed = this.speed * 1.1;
+		this.strafeSpeed = this.speed * 1.2;
 		this.dMax = 3.74;
 		this.fallMax = this.dMax * 1.4;
 		this.jumpStrength = 2;
@@ -296,11 +296,15 @@ class Character {
 		
 		this.dy = clamp(this.dy, -1 * this.fallMax, 2 * this.fallMax);
 
+		//calculate true ax (different from active AX, I know this makes no sense but trust me the sigmoid is important)
+		if (activeAX != 0) {
+			var volume = ((this.dMax + (this.dx * boolToSigned(activeAX < 0))) / this.dMax) * 9 - 2;
+			activeAX = sigmoid(volume, 0, Math.abs(activeAX)) * boolToSigned(activeAX > 0);
+		}
 		this.dx += activeAX;
 		if (this.ax == 0 || this.ax * this.dx < 0) {
 			this.dx *= activeFriction;
 		}
-		
 		if (Math.abs(this.dx) > this.dMax) {
 			this.dx = clamp(this.dx, -1 * this.dMax, this.dMax);
 		}
@@ -627,8 +631,7 @@ class Bunny extends Character {
 		this.boostFriction = 0.996;
 
 		this.speed = 0.13;
-		this.strafeSpeed = 0.2;
-		this.strafeSpeedDefault = 0.4;
+		this.strafeSpeed = 0.5;
 		this.trueSpeed = 0.9;
 		this.dMax = 11.5;
 		this.fallMax = 11.5;
@@ -659,13 +662,6 @@ class Bunny extends Character {
 
 		if (this.dz > this.dMin) {
 			this.dz -= this.speed * 0.75;
-		}
-
-		//change strafe speed based on current speed
-		if (this.ax != 0) {
-			var volume = ((this.dMax - Math.abs(this.dx)) / this.dMax) * 12 - 6;
-			this.strafeSpeed = sigmoid(volume, 0, this.strafeSpeedDefault);
-			this.ax = this.strafeSpeed * boolToSigned(this.ax > 0);
 		}
 		super.tick();
 	}
@@ -709,7 +705,7 @@ class Child extends Character {
 		this.jumpStrength = 3.14;
 		this.jumpBoostStrength = 0.082;
 		this.speed = 0.048;
-		this.strafeSpeed = this.speed;
+		this.strafeSpeed = this.speed * 1.05;
 		this.dMax = 3.2;
 		this.trueFallMax = 1.13;
 
@@ -1223,7 +1219,7 @@ class Runner extends Character {
 
 	tick() {
 		//strafe speed is greater on ground
-		this.strafeSpeed = this.speed * (1.2 + (0.575 * (this.onGround > 0)));
+		this.strafeSpeed = this.speed * (1.3 + (0.6 * (this.onGround > 0)));
 		super.tick();
 	}
 }
@@ -1250,7 +1246,7 @@ class Student extends Character {
 		this.jumpStrength = 2.2;
 		this.jumpBoostStrength = 0.05;
 		this.speed = 0.10;
-		this.strafeSpeed = this.speed * 1.2;
+		this.strafeSpeed = this.speed * 1.3;
 		this.dMax = 3.2;
 		this.r -= 2;
 		this.fallMax = 5.5;
