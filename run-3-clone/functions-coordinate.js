@@ -2,7 +2,6 @@
 /*overview:
 	calculateNormal(points);
 	cameraToScreen(point);
-	cartToPol(x, y, z);
 	clipToPlane(polyPoints, tolerance, planePoint, planeNormal);
 	dirToTunnelCenter(tunnel, x, y, z);
 	getDistance(obj1, obj2);
@@ -12,10 +11,8 @@
 	getDistance_LightSource(obj);
 	isClipped(pointArr);
 	orderObjects(array, places);
-	polToCart(theta, phi, radius);
 	relativeToSpace(pointToTransform, point, normal);
 	relativeToSpaceRot(pointToTransform, point, normal);
-	rotate(x, z, radians);
 	screenToSpace(screenSpot, targetZ);
 	spaceToRelative(pointToChange, point, normal);
 	spaceToRelativeRotless(pointToChange, point, normal);
@@ -58,15 +55,6 @@ function cameraToScreen(point) {
 	tY += canvas.height / 2;
 
 	return [tX, tY];
-}
-
-//the opposite of polToCart, takes in an xyz point and outputs a vector in the form of [theta, phi, radius]
-function cartToPol(x, y, z) {
-	var rad = Math.sqrt((x * x) + (y * y) + (z * z));
-	var theta = Math.atan2(x, z);
-	var phi = Math.atan(y / Math.sqrt((z * z) + (x * x)));
-	
-	return [theta, phi, rad];
 }
 
 //WARNING: this function modifies the original array. I may change it later if this causes problems.
@@ -193,13 +181,6 @@ function orderObjects(array, places) {
 	return ordered;
 }
 
-function polToCart(theta, phi, radius) {
-	//theta here is horizontal angle, while phi is vertical inclination
-	return [radius * Math.sin(theta) * Math.cos(phi), 
-			radius * Math.sin(phi), 
-			radius * Math.cos(theta) * Math.cos(phi)];
-}
-
 //converts from relative camera coordinates into world coordinates
 function relativeToSpace(pointToTransform, point, normal) {
 	var [tX, tY, tZ] = pointToTransform;
@@ -222,12 +203,6 @@ function relativeToSpaceRot(pointToTransform, point, normal) {
 	[tX, tY, tZ] = [tX + point[0], tY + point[1], tZ + point[2]];
 
 	return [tX, tY, tZ];
-}
-
-function rotate(x, z, radians) {
-	var sin = Math.sin(radians);
-	var cos = Math.cos(radians);
-	return [x * cos - z * sin, z * cos + x * sin];
 }
 
 //takes in a screen point, and returns the spot on the world that would get you that point at a certain Z;
