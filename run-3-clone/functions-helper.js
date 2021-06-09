@@ -62,7 +62,6 @@
 	replacePlayer();
 	RGBtoHSV();
 	runCrash();
-	sigmoid();
 	sortWorldArray();
 	spliceIn();
 	spliceOut();
@@ -1233,11 +1232,6 @@ function runCrash() {
 	}
 
 	window.cancelAnimationFrame(page_animation);
-}
-
-function sigmoid(input, lowerBound, upperBound) {
-	//haha good luck reading this ;)
-	return ((1 / (1+Math.pow(Math.E, -input))) + lowerBound) * (upperBound - lowerBound);
 }
 
 function sortWorldArray() {
