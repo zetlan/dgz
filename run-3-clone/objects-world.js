@@ -2709,7 +2709,7 @@ class Tunnel_Strip {
 		}
 
 		//if there is a special tile there, use the tile's coordinates
-		return this.tiles[Math.floor(this.parent.playerTilePos - 0.5)].playerIsOnTop();
+		return this.tiles[tileToCheck].playerIsOnTop();
 	}
 
 	beDrawn() {
