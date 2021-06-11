@@ -256,6 +256,9 @@ class Editor {
 		ctx.fillStyle = color_editor_bg;
 		ctx.fillRect(0, 0, canvas.width, render_cornerCoords[1]);
 		ctx.fillRect(0, 0, render_cornerCoords[0], canvas.height);
+		ctx.fillStyle = "#FFF";
+		ctx.font = "20px Comic Sans MS";
+		ctx.fillText(`No editor yet, sorry`, canvas.width * 0.6, canvas.height * 0.1);
 	}
 
 	toggle() {
@@ -263,12 +266,12 @@ class Editor {
 			//activating
 			render_cornerCoords[0] = canvas.width * 0.25;
 			render_cornerCoords[1] = canvas.height * 0.25;
-			render_pixelSize *= 0.75;
+			render_pixelSize *= 0.8;
 		} else {
 			//deactivating
 			render_cornerCoords[0] = 0;
 			render_cornerCoords[1] = 0;
-			render_pixelSize /= 0.75;
+			render_pixelSize /= 0.8;
 		}
 
 		editor_active = !editor_active
