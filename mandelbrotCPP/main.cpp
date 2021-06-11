@@ -1,4 +1,5 @@
 #include <iostream>
+#include <SDL2/SDL.h>
 #include "MainClass.h"
 //using namespace std;
 using std::cout;

@@ -1,3 +1,4 @@
+#pragma once
 #include "MainClass.h"
 
 MainClass::MainClass() {

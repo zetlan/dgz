@@ -1,6 +1,6 @@
 //I have no idea what any of this is
 #pragma once
-#include <SDL/SDL.h>
+
 #include <GL/gl.h>
 
 class MainClass {
