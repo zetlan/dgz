@@ -35,7 +35,20 @@ function linterp(a, b, percentage) {
 	return a + ((b - a) * percentage);
 }
 
+//like the modulo operator, but keeps the number in bounds both ways
+function modulate(n, modulus) {
+	while (n < 0) {
+		n += modulus;
+	}
+	return (n % modulus);
+}
+
 //returns a random value between the min value and max values, using the default javascript randomizer
 function randomBounded(min, max) {
 	return (Math.random() * (max - min)) + min;
+}
+
+function sigmoid(input, outputLowerBound, outputUpperBound) {
+	//haha good luck reading this ;)
+	return ((1 / (1 + Math.pow(Math.E, -input))) + outputLowerBound) * (outputUpperBound - outputLowerBound);
 }

@@ -15,23 +15,19 @@ function getOrientation(p1, p2, p3) {
 	return 0;
 }
 
+/*lines intersect if the orientation between:
+	a. the points in the first segment and the first point in the second segment
+	b. the points in the first segment and the second point in the second segment
+
+	are different, and vice versa, so
+
+	c. the points in the second segment and the first point in the first segment
+	d. the points in the second segment and the second point in the first segment
+
+	are different. If a != b and c != d, they intersect.
+*/
 function lineIntersect(lin1p1, lin1p2, lin2p1, lin2p2) {
-	/*lines intersect if the orientation between:
-		a. the points in the first segment and the first point in the second segment
-		b. the points in the first segment and the second point in the second segment
-
-		are different, and vice versa, so
-
-		c. the points in the second segment and the first point in the first segment
-		d. the points in the second segment and the second point in the first segment
-
-		are different. If a != b and c != d, they intersect.
-	*/
-	if (getOrientation(lin1p1, lin1p2, lin2p1) != getOrientation(lin1p1, lin1p2, lin2p2) && 
-		getOrientation(lin2p1, lin2p2, lin1p1) != getOrientation(lin2p1, lin2p2, lin1p2)) {
-		return 1;
-	}
-	return 0;
+	return (getOrientation(lin1p1, lin1p2, lin2p1) != getOrientation(lin1p1, lin1p2, lin2p2) && getOrientation(lin2p1, lin2p2, lin1p1) != getOrientation(lin2p1, lin2p2, lin1p2))
 }
 
 
@@ -44,8 +40,7 @@ function inPoly(xyPoint, polyPoints) {
 	var intersectNum = 0;
 	//checking against all polygon lines
 	for (var r=0; r<polyPoints.length; r++) {
-		intersectNum += lineIntersect(polyPoints[r % polyPoints.length], polyPoints[(r+1) % polyPoints.length], 
-		xyPoint, linP2);
+		intersectNum += lineIntersect(polyPoints[r % polyPoints.length], polyPoints[(r+1) % polyPoints.length], xyPoint, linP2);
 	}
 
 	//return final value

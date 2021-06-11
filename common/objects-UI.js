@@ -10,7 +10,9 @@ class UI_Parent {
 		this.width = width;
 	}
 
-	drawBox(x, y, width, height, arcRadius);
+	drawBox(x, y, width, height, arcRadius) {
+
+	}
 }
 
 
@@ -31,9 +33,11 @@ class UI_Button extends UI_Parent {
 		} else {
 			ctx.fillStyle = color_grey_light;
 		}
-		drawRoundedRectangle(canvas.width * (this.x - this.width / 2), canvas.height * (this.y - this.height / 2), canvas.width * this.width, canvas.height * this.height, canvas.height / 48);
+		this.drawBox(canvas.width * (this.x - this.width / 2), canvas.height * (this.y - this.height / 2), canvas.width * this.width, canvas.height * this.height, canvas.height / 48);
+		ctx.fill();
+		ctx.stroke();
 
-		ctx.font = `${canvas.height / 25}px Comfortaa`;
+		ctx.font = `${canvas.height / 25}px Comic Sans MS`;
 		ctx.textAlign = "center";
 		ctx.fillStyle = color_text;
 		ctx.fillText(this.label, canvas.width * this.x, (canvas.height * this.y) + (canvas.height / 75));
