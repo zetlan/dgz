@@ -12,9 +12,9 @@ let worldData_start = {
 		new Sphere(0, 100, 0, 100, [128, 0, 128]),
 		new Cube(1000, 500, 0, 70, [255, 64, 64]),
 		new Box(0, 0, 100, 1000, 50, 1000, [64, 255, 150]),
-		new Cylinder(500, 300, 0, 100, 200, [255, 128, 255]),
-		new Ring(500, 400, 0, 200, 50, [255, 128, 255]),
-		new Portal(970, 150, -867, `worldData_darkBright`)
+		new Cylinder(500, 300, 0, 100, 200, [128, 128, 255]),
+		new Ring(500, 400, 0, 200, 50, [128, 255, 255]),
+		new Portal(900, 50, -827, `darkBright`)
 	]
 }
 
