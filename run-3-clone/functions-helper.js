@@ -955,14 +955,6 @@ function modularDifference(a, b, modulo) {
 	return Math.min(Math.abs(a - b), Math.abs((a + modulo) - b), Math.abs((a - modulo) - b));
 }
 
-//like the modulo operator, but keeps the thing in bounds both ways
-function modulate(n, modulus) {
-	while (n < 0) {
-		n += modulus;
-	}
-	return (n % modulus);
-}
-
 //outputs every tunnel in the world as a string
 function outputWorld() {
 	var output = ``;
