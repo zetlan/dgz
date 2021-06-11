@@ -1,4 +1,3 @@
-//houses all classes
 
 class Player {
 	constructor(x, y, z, xRot, yRot) {
@@ -9,7 +8,7 @@ class Player {
 		this.onGround = false;
 		this.posBuffer = [];
 
-		this.scale = 200;
+		this.scale = 250;
 		this.sens = 0.04;
 		this.speed = 0.05;
 
@@ -31,9 +30,23 @@ class Player {
 
 		this.theta = yRot;
 		this.phi = xRot;
+		this.normalsBuffer = [
+			polToCart(this.theta + Math.PI / 2, 0, 1),
+			polToCart(this.theta, this.phi + Math.PI / 2, 1),
+			polToCart(this.theta, this.phi, 1)
+		];
 
 		this.dt = 0;
 		this.dp = 0;
+	}
+
+	fixPosBuffer() {
+		this.posBuffer.forEach(p => {
+			this.x += p[0];
+			this.y += p[1];
+			this.z += p[2];
+		});
+		this.posBuffer = [];
 	}
 
 	tick() {
@@ -78,12 +91,12 @@ class Player {
 		} else {
 			var moveCoords = [0, 0, 0];
 			if (Math.abs(this.dz) > 0.1) {
-				var toAdd = polToCart(this.theta, this.phi, this.speed * 500 * this.dz);
+				var toAdd = polToCart(this.theta, this.phi, this.dz * player_noclipMultiplier);
 				moveCoords = [moveCoords[0] + toAdd[0], moveCoords[1] + toAdd[1], moveCoords[2] + toAdd[2]];
 				
 			}
 			if (Math.abs(this.dx) > 0.1) {
-				var toAdd = polToCart(this.theta + (Math.PI / 2), 0, this.speed * 500 * this.dx);
+				var toAdd = polToCart(this.theta + (Math.PI / 2), 0, this.dx * player_noclipMultiplier);
 				moveCoords = [moveCoords[0] + toAdd[0], moveCoords[1] + toAdd[1], moveCoords[2] + toAdd[2]];
 			}
 			this.x += moveCoords[0];
@@ -101,6 +114,11 @@ class Player {
 			//if the camera angle is less than 0, set it to -1/2 pi. Otherwise, set it to 1/2 pi
 			this.phi = Math.PI * (-0.5 + (this.phi > 0));
 		}
+		this.normalsBuffer = [
+			polToCart(this.theta + Math.PI / 2, 0, 1),
+			polToCart(this.theta, this.phi + Math.PI / 2, 1),
+			polToCart(this.theta, this.phi, 1)
+		];
 	}
 }
 
@@ -113,6 +131,10 @@ class TreeNode {
 
 	//passes object to a spot below the self
 	accept(object) {
+		if (this.contains == undefined) {
+			this.contains = object;
+			return;
+		}
 		var ref = this.contains;
 		var outputs = object.clipAtPlane([ref.x, ref.y, ref.z], [ref.normal[0], ref.normal[1]]);
 
@@ -135,22 +157,35 @@ class TreeNode {
 		}
 	}
 
-	traverse(tick) {
+	isBackwards() {
 		//getting the dot product of angles between self normal and player normal
 		var v1 = polToCart(this.contains.normal[0], this.contains.normal[1], 1);
 		var v2 = [player.x - this.contains.x, player.y - this.contains.y, player.z - this.contains.z];
+		return ((v1[0] * v2[0]) + (v1[1] * v2[1]) + (v1[2] * v2[2])) <= 0;
+	}
 
-		var dot = (v1[0] * v2[0]) + (v1[1] * v2[1]) + (v1[2] * v2[2]);
-
-		//traverse in reverse order if the dot product is negative
-		if (dot > 0) {
+	traverse(ticking) {
+		//decide traversal order
+		if (this.isBackwards()) {
+			if (this.inObj != undefined) {
+				this.inObj.traverse(ticking);
+			}
+			if (ticking) {
+				this.contains.tick();
+			} else {
+				this.contains.beDrawn();
+			}
+			if (this.outObj != undefined) {
+				this.outObj.traverse(ticking);
+			}
+		} else {
 			//right
 			if (this.outObj != undefined) {
-				this.outObj.traverse(tick);
+				this.outObj.traverse(ticking);
 			}
 
 			//center
-			if (tick) {
+			if (ticking) {
 				this.contains.tick();
 			} else {
 				this.contains.beDrawn();
@@ -158,20 +193,73 @@ class TreeNode {
 
 			//left
 			if (this.inObj != undefined) {
-				this.inObj.traverse(tick);
-			}
-		} else {
-			if (this.inObj != undefined) {
-				this.inObj.traverse(tick);
-			}
-			if (tick) {
-				this.contains.tick();
-			} else {
-				this.contains.beDrawn();
-			}
-			if (this.outObj != undefined) {
-				this.outObj.traverse(tick);
+				this.inObj.traverse(ticking);
 			}
 		}
+	}
+}
+
+//like a treenode, but doesn't have children. Instead, any objects that go in will be grouped by distance to the camera
+class TreeBlob {
+	constructor(contains) {
+		this.contains = [contains];
+	}
+
+	accept(object) {
+		this.contains.push(object);
+	}
+}
+
+class World {
+	constructor(worldID, bgColor) {
+		this.id = worldID;
+		this.bg = bgColor;
+		this.objects = [];
+		this.binTree;
+	}
+
+	addFormally(object) {
+		this.objects.push(object);
+		this.generateBinTree();
+	}
+
+	generateBinTree() {
+		this.binTree = new TreeNode();
+	
+		this.objects.forEach(r => {
+			//if the objects have points (are a face), put them in directly. If not, put their component faces in
+			if (r.points != undefined) {
+				this.binTree.accept(r);
+			} else {
+				r.faces.forEach(f => {
+					this.binTree.accept(f);
+				});
+			}
+		});
+	}
+
+	giveStringData() {
+		var output = `\n\nCAST~${this.id}~${this.bg}\n`;
+		this.objects.forEach(v => {
+			output += v.giveStringData() + "\n";
+		});
+		return output;
+	}
+
+	exist() {
+		this.tick();
+		this.beDrawn();
+	}
+
+	tick() {
+		player.tick();
+		this.objects.forEach(o => {
+			o.tick();
+		});
+		player.fixPosBuffer();
+	}
+
+	beDrawn() {
+		this.binTree.traverse(false);
 	}
 }
