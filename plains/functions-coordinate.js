@@ -1,9 +1,7 @@
 //here are all the functions that tranform 3d coordinates
 /*overview:
 	cameraToScreen();
-	cartToPol();
-	clipToZ0()
-	polToCart();
+	isClipped();
 	relativeToSpace();
 	spaceToRelative();
 	spaceToScreen();
@@ -29,21 +27,34 @@ function cameraToScreen(point) {
 	return [tX, tY];
 }
 
-//the opposite of polToCart, takes in an xyz point and outputs a vector in the form of [theta, phi, radius]
-function cartToPol(x, y, z) {
-	var rad = Math.sqrt((x * x) + (y * y) + (z * z));
-	var theta = Math.atan2(x, z);
-	var phi = -1 * Math.atan(y / Math.sqrt((z * z) + (x * x)));
-	
-	return [theta, phi, rad];
+function clipToFrustum(pointArr) {
+	var hasInside = false;
+	var propW = canvas.width * 0.5 / player.scale;
+	var propH = canvas.height * 0.5 / player.scale;
+	//if the points are outside the frustum entirely, don't bother
+	for (var p=0; p<pointArr.length; p++) {
+		if (pointArr[p][2] > render_clipDistance && Math.abs(pointArr[p][0]) < propW * pointArr[p][2] && Math.abs(pointArr[p][1]) < propH * pointArr[p][2]) {
+			hasInside = true;
+			p = pointArr.length + 1;
+		}
+	}
+	if (!hasInside) {
+		return [];
+	}
 }
 
-function polToCart(theta, phi, radius) {
-	//theta here is horizontal angle, while phi is vertical inclination
-	var x = radius * Math.sin(theta) * Math.cos(phi);
-	var y = radius * Math.sin(phi);
-	var z = radius * Math.cos(theta) * Math.cos(phi);
-	return [x, y, z];
+//determines if a point will be clipped due to being behind / too close to the player
+function isClipped(pointArr) {
+	var tX = pointArr[0];
+	var tY = pointArr[1];
+	var tZ = pointArr[2];
+	tX -= player.x;
+	tY -= player.y;
+	tZ -= player.z;
+	[tX, tZ] = rotate(tX, tZ, player.theta);
+	[tY, tZ] = rotate(tY, tZ, player.phi);
+
+	return (tZ < render_clipDistance);
 }
 
 //converts from relative camera coordinates into world coordinates
@@ -70,6 +81,10 @@ function spaceToRelative(pointToChange, point, normal) {
 	[tY, tZ] = rotate(tY, tZ, normal[1]);
 
 	return [tX, tY, tZ];
+}
+
+function spaceToRelative2(pointToChange, point, normal) {
+	//calculating camera relative coordinates
 }
 
 function spaceToScreen(pointArr) {
@@ -111,4 +126,19 @@ function spaceToScreen(pointArr) {
 	tY += canvas.height / 2;
 
 	return [tX, tY];
+}
+
+function trimPoints(points) {
+	//trimming identicalish points
+	var lastPoint = points[points.length-1];
+	for (var j=0;j<points.length;j++) {
+		//if the two points are the same, remove the latter one
+		if (Math.abs(lastPoint[0] - points[j][0]) < render_identicalPointTolerance && Math.abs(lastPoint[1] - points[j][1]) < render_identicalPointTolerance && Math.abs(lastPoint[2] - points[j][2]) < render_identicalPointTolerance) {
+			points.splice(j, 1);
+			j -= 1;
+		}
+		if (j > -1) {
+			lastPoint = points[j];
+		}
+	}
 }

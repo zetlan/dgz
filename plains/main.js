@@ -1,122 +1,132 @@
 //houses html interactivity, setup, and main function
 
 window.onload = setup;
-window.addEventListener("keydown", handleKeyPress, false);
-window.addEventListener("keyup", handleKeyNegate, false);
+document.addEventListener("keydown", handleKeyPress, false);
+document.addEventListener("keyup", handleKeyNegate, false);
+document.addEventListener("mousedown", handleMouseDown, false);
+document.addEventListener("mousemove", handleMouseMove, false);
+document.addEventListener("mouseup", handleMouseUp, false);
 document.addEventListener('pointerlockchange', handleCursorLockChange, false);
 document.addEventListener('mozpointerlockchange', handleCursorLockChange, false);
 
 //global variables
 var canvas;
 var ctx;
-var centerX;
-var centerY;
+
+const color_editor_bg = "#335";
+const color_editor_defaultPoly = "#088";
+const color_editor_handles = "#888";
+const color_selection = "#0FF";
+const color_text_light = "#F8F";
+var colorKey = "0123456789ABCDEF";
 
 var controls_cursorLock = false;
-var controls_sensitivity = 100;
+var controls_sensitivity = 200;
+var controls_shiftPressed = false;
+var controls_commandPressed = false;
 
+var cursor_x = 0;
+var cursor_y = 0;
+var cursor_down = false;
+
+//editor numbers
+var editor_iconNum = 4;
+var editor_iconWidth = 0.2;
+var editor_iconSize = 0.03;
+var editor_snapAmount = 1;
+var editor_tolerance = 10;
+var editor_topBarHeight = 0.1;
+
+//editor variables that are edited by the user
 var editor_active = false;
+let editor_clipboard = undefined;
+let editor_selected = undefined;
+var editor_worldRelative = false;
+
+var loading_randVal = 1.241;
+var loading_world = undefined;
+
 var noclip_active = false;
 
 let page_animation;
+
+
 let player;
+var player_noclipMultiplier = 10;
 
-var world_bg = "#002";
-var world_pRandValue = 1.241;
-var world_starDistance = 10000;
-let world_objects = [];
-let world_binTree;
 
-var render_crosshairSize = 10;
+var world_time = 0;
+let world_listing = [];
+
+var render_crosshairSize = 3;
 var render_clipDistance = 0.1;
-var render_identicalPointTolerance = 0.00001;
+var render_identicalPointTolerance = 0.0001;
+var render_normalLength = 1;
 
+var star_distance = [10000, 20000];
+var star_size = 50;
+var star_number = 250;
+let stars = [];
+
+var testNumStorage = 0;
 
 
 
 //setup function
 function setup() {
+	player = new Player(0, 8, 0, 0, 0);
+
 	canvas = document.getElementById("cornh");
 	ctx = canvas.getContext("2d");
-	ctx.lineWidth = 2;
-	ctx.lineJoin = "round";
+	setStylePreferences();
 
 	//cursor movements setup
 	canvas.requestPointerLock = canvas.requestPointerLock || canvas.mozRequestPointerLock;
 	document.exitPointerLock = document.exitPointerLock || document.mozExitPointerLock;
 
-	canvas.onclick = function() {canvas.requestPointerLock();}
+	canvas.onclick = function() {
+		if (!editor_active) {
+			canvas.requestPointerLock();
+		}
+	}
 
-	centerX = canvas.width * 0.5;
-	centerY = canvas.height * 0.5;
-
-	player = new Player(0, 8, 0, 0, 0);
-
-	//setting up world
-	
-	world_objects = [new Floor(0, -0.01, 0, 5000, 5000, "#868"),
-					//box
-					new FreePoly([[0, 0, 10], [0, 0, -10], [10, 10, -10], [10, 10, 10]], "#FFF"),
-					new WallX(100, 10, 0, 10, 10, "#088"), new WallX(120, 10, 0, 10, 10, "#088"),
-					new WallZ(110, 10, -10, 10, 10, "#068"), new WallZ(110, 10, 10, 15, 10, "#068"),
-					
-					//house
-					//house outside walls
-					
-					new WallZ(0, 15, -130, 50, 15, "#FB6"),
-					new WallZ(0, 15, -220, 50, 15, "#FB6"), 
-					new WallX(50, 15, -175, 45, 15, "#EA8"),
-					new WallX(-50, 25, -175, 45, 5, "#EA8"),
-					new WallX(-50, 15, -200, 20, 15, "#EA8"),
-					new WallX(-50, 15, -150, 20, 15, "#EA8"),
-
-					
-					//house stairs
-					new FreePoly([[0, 0, -200], [0, 0, -219], [38, 20, -219], [38, 20, -200]], "#A60"),
-
-					new FreePoly([[-103, 12, 9], [-81, 12, -33], [-116, 12, -37]], "#000")
-					]; 
-	world_stars = [];
-
+	//high resolution slider
+	document.getElementById("haveHighResolution").onchange = updateResolution;
+	//if the box is already checked from a previous session update resolution to max
+	if (document.getElementById("haveHighResolution").checked) {
+		updateResolution();
+	}
+	//set up worlds from file
+	readWorldFile();
 	generateStarSphere();
-	generateStaircase();
-	generateBinTree();
 
 	page_animation = window.requestAnimationFrame(main);
 }
 
 function main() {
+	//var perfTime = [performance.now(), 0]
+	testNumStorage = 0;
+	if (loading_world == undefined) {
+		console.log(`loading world is undefined!!!!`);
+		page_animation = window.requestAnimationFrame(main);
+		return;
+	}
 	//drawing background
-	ctx.fillStyle = world_bg;
+	ctx.fillStyle = loading_world.bg;
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-	//handling entities
-	player.tick();
-	//player buffer position
-	player.posBuffer = [];
-
 	//handling stars
-	for (var c=0;c<world_stars.length;c++) {
-		world_stars[c].tick();
-		world_stars[c].beDrawn();
+	for (var c=0;c<stars.length;c++) {
+		stars[c].tick();
+		stars[c].beDrawn();
 	}
-	world_binTree.traverse(true);
-
-	//updating player position based on forces
-	for (var a=0;a<player.posBuffer.length;a++) {
-		player.x += player.posBuffer[a][0];
-		player.y += player.posBuffer[a][1];
-		player.z += player.posBuffer[a][2];
-	}
-
-	world_binTree.traverse(false);
-
-	
+	loading_world.exist();
 
 	//crosshair
 	if (noclip_active) {
-		ctx.strokeStyle = "#AFF";
-		ctx.rect(centerX - (render_crosshairSize / 2), centerY - (render_crosshairSize / 2), render_crosshairSize, render_crosshairSize);
+		ctx.beginPath();
+		ctx.strokeStyle = color_selection;
+		ctx.rect((canvas.width / 2) - (render_crosshairSize / 2), (canvas.height / 2) - (render_crosshairSize / 2), render_crosshairSize, render_crosshairSize);
 		ctx.stroke();
 	}
 
@@ -124,29 +134,24 @@ function main() {
 	if (editor_active) {
 		ctx.strokeStyle = "#FFF";
 		//starting pos
-		var center = polToCart(player.theta, player.phi, 5);
+		var center = polToCart(player.theta, player.phi, 25);
 		center = [center[0] + player.x, center[1] + player.y, center[2] + player.z];
+		drawCrosshair(center, [render_crosshairSize, 0, 0], [0, render_crosshairSize, 0], [0, 0, render_crosshairSize]);
 
-		//jumping-off points
-		var xPlus = [center[0] + (render_crosshairSize / 20), center[1], center[2]];
-		var yPlus = [center[0], center[1] + (render_crosshairSize / 20), center[2]];
-		var zPlus = [center[0], center[1], center[2] + (render_crosshairSize / 20)];
+		//editor object
+		if (editor_selected != undefined) {
+			editor_selected.beDrawn_editor();
+		}
 
-		//transforming lines to screen coordinates
-		[center, xPlus, yPlus, zPlus] = [spaceToScreen(center), spaceToScreen(xPlus), spaceToScreen(yPlus), spaceToScreen(zPlus)];
+		//editor overlay
+		drawEditorOverlay();
 
-		//drawing lines
-		ctx.strokeStyle = "#F00";
-		drawPoly("#F00", [center, xPlus]);
-		ctx.strokeStyle = "#0F0";
-		drawPoly("#0F0", [center, yPlus]);
-		ctx.strokeStyle = "#00F";
-		drawPoly("#00F", [center, zPlus]);
+		//cursor
+		drawCircle(color_selection, cursor_x, cursor_y, 4);
 	}
-	
 
 	//call self
-	//player.y += 0.1;
+	world_time += 1;
 	page_animation = window.requestAnimationFrame(main);
 }
 
@@ -176,6 +181,10 @@ function handleKeyPress(a) {
 				player.dy = 2.5;
 			}
 			break;
+		//shift
+		case 16:
+			controls_shiftPressed = true;
+			break;
 
 		//camera controls
 		case 37:
@@ -197,8 +206,56 @@ function handleKeyPress(a) {
 			break;
 		case 221:
 			ctx.lineWidth = 2;
+			if (!editor_active) {
+				document.exitPointerLock();
+			}
 			editor_active = !editor_active;
 			break;
+		case 224:
+			controls_commandPressed = true;
+			break;
+
+		//editor-only keys
+		case 8:
+			//delete
+			if (editor_selected != undefined) {
+				//if it's not a freePoly, (or it's a freePoly and no point is selected)delete the object.
+				if (editor_selected.pointSelected == undefined || editor_selected.pointSelected == -1) {
+					loading_world.objects.splice(loading_world.objects.indexOf(editor_selected), 1);
+					editor_selected = undefined;
+					loading_world.generateBinTree();
+				} else {
+					//if it's a point selected, remove that point
+					editor_selected.points.splice(editor_selected.pointSelected, 1);
+					editor_selected.determineHandlePositions();
+					editor_selected.pointSelected = -1;
+				}
+				
+			}
+			break;
+	}
+
+	//editor-specific functions keys
+	if (editor_active && controls_commandPressed) {
+		switch (a.keyCode) {
+			//c for copying
+			case 67:
+				if (editor_selected != undefined) {
+					//copy the point if has a point selected, if not copy the whole object instead
+					if (editor_selected.pointSelected != undefined || editor_selected.pointSelected == -1) {
+						editor_clipboard = editor_selected.giveStringData();
+					}
+				}
+				
+				break;
+			//d, for deselecting
+			case 68:
+				if (editor_selected != undefined) {
+					editor_selected = undefined;
+				}
+				break;
+		}
+		a.preventDefault();
 	}
 }
 
@@ -227,6 +284,9 @@ function handleKeyNegate(a) {
 				player.az = 0;
 			}
 			break;
+		case 16:
+			controls_shiftPressed = false;
+			break;
 
 
 		//camera controls
@@ -250,27 +310,69 @@ function handleKeyNegate(a) {
 				player.dp = 0;
 			}
 			break;
+
+		case 224:
+			controls_commandPressed = false;
+			break;
 	}
 }
 
 function handleCursorLockChange() {
-	if (document.pointerLockElement === canvas || document.mozPointerLockElement === canvas) {
-		controls_cursorLock = true;
-		document.addEventListener("mousemove", handleMouseMove, false);
-	} else {
-		controls_cursorLock = false;
-		document.removeEventListener("mousemove", handleMouseMove, false);
-	}
+	controls_cursorLock = (document.pointerLockElement === canvas || document.mozPointerLockElement === canvas);
 }
 
 function handleMouseMove(a) {
-	player.theta += a.movementX / controls_sensitivity;
-	player.phi -= a.movementY / controls_sensitivity;
-	if (Math.abs(player.phi) > Math.PI / 2.02) {
-		if (player.phi < 0) {
-			player.phi = Math.PI / -2.01;
-		} else {
-			player.phi = Math.PI / 2.01;
+	//regular case
+	if (!editor_active) {
+		if (controls_cursorLock) {
+			player.theta += a.movementX / controls_sensitivity;
+			player.phi -= a.movementY / controls_sensitivity;
+			if (Math.abs(player.phi) > Math.PI / 2.02) {
+				if (player.phi < 0) {
+					player.phi = Math.PI / -2.01;
+				} else {
+					player.phi = Math.PI / 2.01;
+				}
+			}
+		}
+		
+	} else {
+		//in editor, cursor can't be locked
+		var canvasArea = canvas.getBoundingClientRect();
+		cursor_x = clamp(a.clientX - canvasArea.left, 0, canvas.width);
+		cursor_y = clamp(a.clientY - canvasArea.top, 0, canvas.height);
+	}
+}
+
+function handleMouseDown(a) {
+	cursor_down = true;
+	if (editor_active) {
+		//top bar stuff
+		editor_handleClick();
+		if (cursor_y > canvas.height * editor_topBarHeight) {
+			if (editor_selected != undefined) {
+				editor_selected.handleClick();
+				if (editor_selected.handleSelected != -1) {
+					return;
+				}
+			}
+			editor_selected = selectPoly(loading_world.binTree);
 		}
 	}
+}
+
+function handleMouseUp(a) {
+	cursor_down = false;
+}
+
+function updateResolution() {
+	var multiplier = 0.5;
+	if (document.getElementById("haveHighResolution").checked) {
+		multiplier = 2;
+	}
+
+	//all things necessary for switching between resolutions
+	canvas.width *= multiplier;
+	canvas.height *= multiplier;
+	player.scale *= multiplier;
 }

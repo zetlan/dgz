@@ -1,113 +1,338 @@
-class FreePoly {
-	constructor(points, color) {
-		this.x;
-		this.y;
-		this.z;
-		this.points = points;
+//abstract class for basic editor functionality
+class EditableWorldObject {
+	constructor(x, y, z) {
+		this.x = x;
+		this.y = y;
+		this.z = z;
 		this.normal;
-		this.color = color;
-
-		//collision tolerance
-		this.tolerance = player.dMax * 2;
-		//trimming identical points from the list
-		this.trimPoints();
-		this.calculateNormal();
-
-		this.collisionPoints = this.calculateCollision();
+		this.faces = [];
+		this.handles = [
+			[render_crosshairSize, 0, 0],
+			[0, render_crosshairSize, 0],
+			[0, 0, render_crosshairSize]
+		]
+		this.handleSelected = -1;
 	}
 
-	trimPoints() {
-		//trimming identicalish points
-		var lastPoint = [undefined, undefined, undefined];
-		for (var j=0;j<this.points.length;j++) {
-			//if the two points are the same, remove the latter one
-			if (Math.abs(lastPoint[0] - this.points[j][0]) < render_identicalPointTolerance && Math.abs(lastPoint[1] - this.points[j][1]) < render_identicalPointTolerance && Math.abs(lastPoint[2] - this.points[j][2]) < render_identicalPointTolerance) {
-				this.points.splice(j, 1);
-				j -= 1;
-			}
-			lastPoint = this.points[j];
+	construct() {
+
+	}
+
+	tick() {
+		this.faces.forEach(f => {
+			f.tick();
+		});
+		
+		if (this.handleSelected != -1) {
+			this.handleHandles();
 		}
 	}
 
+	beDrawn() {
+
+	}
+
+	beDrawn_editor() {
+		this.beDrawn();
+		this.determineHandlePositions();
+		this.beDrawn_handles();
+	}
+
+	beDrawn_firstThreeHandles() {
+		//editor handle stuff
+		var handlePoints = [];
+		for (var u=this.handles.length-1; u>=0; u--) {
+			handlePoints[u] = [this.x + this.handles[u][0], this.y + this.handles[u][1], this.z + this.handles[u][2]];
+		}
+
+		//RGB color coding, for gamers
+		drawCrosshair([this.x, this.y, this.z], this.handles[0], this.handles[1], this.handles[2]);
+		//any handles beyond the first 3 get drawn with a pink line
+		if (this.handles.length > 3) {
+			ctx.strokeStyle = "#F0F";
+			for (var g=3; g<this.handles.length; g++) {
+				drawWorldLine([this.x, this.y, this.z], handlePoints[g]);
+			}
+		}
+		return handlePoints;
+	}
+
+	beDrawn_handles() {
+		var handlePoints = this.beDrawn_firstThreeHandles();
+
+		//actual handle circles
+		var pos;
+		for (var g=0; g<handlePoints.length; g++) {
+			if (!isClipped(handlePoints[g])) {
+				pos = spaceToScreen(handlePoints[g]);
+				if (this.handleSelected == g) {
+					drawCircle(color_selection, pos[0], pos[1], editor_tolerance / 2);
+				} else {
+					drawCircle(color_editor_handles, pos[0], pos[1], editor_tolerance / 2);
+				}
+			}
+		}
+	}
+
+	determineHandlePositions() {
+		//if relative to the world, use x y z. If not, use self's normals
+		if (editor_worldRelative) {
+			this.handles[0] = [render_crosshairSize, 0, 0];
+			this.handles[1] = [0, render_crosshairSize, 0];
+			this.handles[2] = [0, 0, render_crosshairSize];
+		} else {
+			this.handles[0] = polToCart(this.normal[0] + (Math.PI / 2), 0, render_crosshairSize);
+			this.handles[1] = polToCart(this.normal[0], this.normal[1] + (Math.PI / 2), render_crosshairSize);
+			this.handles[2] = polToCart(this.normal[0], this.normal[1], render_crosshairSize);
+		}
+	}
+
+	handleClick() {
+		//become selected
+		var reqDist = editor_tolerance;
+		//loop through handles, select the closest one
+		for (var a=0; a<this.handles.length; a++) {
+			var point = [this.x + this.handles[a][0], this.y + this.handles[a][1], this.z + this.handles[a][2]];
+			if (!isClipped(point)) {
+				var coords = spaceToScreen(point);
+				var xDist = cursor_x - coords[0];
+				var yDist = cursor_y - coords[1];
+				var trueDist = Math.sqrt(xDist * xDist + yDist * yDist);
+				if (trueDist < reqDist) {
+					reqDist = trueDist;
+					this.handleSelected = a;
+				}
+			}
+		}
+	}
+
+	handleHandles() {
+		if (this.handleSelected < 3) {
+			this.updatePosWithCursor(this.handles[this.handleSelected]);
+		}
+		if (!cursor_down) {
+			this.handleSelected = -1;
+		}
+	}
+
+	move(changeXBy, changeYBy, changeZBy) {
+		this.x += changeXBy;
+		this.y += changeYBy;
+		this.z += changeZBy;
+		this.construct();
+		loading_world.generateBinTree();
+	}
+
+	updatePosWithCursor(offset) {
+		var oldPos = [this.x, this.y, this.z];
+		var screenOffset = spaceToScreen([this.x + offset[0], this.y + offset[1], this.z + offset[2]]); 
+		var center = spaceToScreen([this.x, this.y, this.z]);
+
+		//get vector to the offset of the crosshair 
+		var xDist = center[0] - screenOffset[0];
+		var yDist = center[1] - screenOffset[1];
+		var distance = Math.sqrt(xDist * xDist + yDist * yDist);
+		//realDistance is the distance the cursor is along the original offset (the ray that's selected) divided by the distance the regular ray takes up
+		var realDistance = rotate(cursor_x - screenOffset[0], -1 * (cursor_y - screenOffset[1]), -1 * (Math.atan2(screenOffset[0] - center[0], screenOffset[1] - center[1]) - (Math.PI * 0.5)))[0] / distance;
+
+		//now that the offset is obtained, we can calculate where to move based on i
+		var changePos = [offset[0] * realDistance, offset[1] * realDistance, offset[2] * realDistance];
+		if (controls_shiftPressed) {
+			changePos[0] = snapTo(changePos[0], editor_snapAmount);
+			changePos[1] = snapTo(changePos[1], editor_snapAmount);
+			changePos[2] = snapTo(changePos[2], editor_snapAmount);
+		}
+
+		//if position has changed, update self
+		if (changePos[0] || changePos[1] || changePos[2]) {
+			this.move(changePos[0], changePos[1], changePos[2]);
+		}
+	}
+
+	updateLengthWithCursor(offset, propertySTRING) {
+		//this is a copy + modify from posWithCursor, see that for comments
+		var oldVal = eval(propertySTRING);
+		var screenOffset = spaceToScreen([this.x + offset[0], this.y + offset[1], this.z + offset[2]]); 
+		var center = spaceToScreen([this.x, this.y, this.z]);
+		var xDist = center[0] - screenOffset[0];
+		var yDist = center[1] - screenOffset[1];
+		var distance = Math.sqrt(xDist * xDist + yDist * yDist);
+		var rayLength = rotate(cursor_x - screenOffset[0], -1 * (cursor_y - screenOffset[1]), -1 * (Math.atan2(screenOffset[0] - center[0], screenOffset[1] - center[1]) - (Math.PI * 0.5)))[0];
+
+		var realDistance = rayLength / distance;
+		eval(`${propertySTRING} += ${realDistance};`);
+		if (controls_shiftPressed) {
+			eval(`${propertySTRING} = snapTo(${propertySTRING}, editor_snapAmount);`);
+		}
+		if (oldVal != eval(propertySTRING)) {
+			this.construct();
+			//binary tree doesn't need updating because updating a size can't change the planes
+		}
+	}
+
+	updateAngleWithCursor(offset, propertySTRING) {
+
+	}
+
+	giveStringData() {
+		return `ERROR: STRING DATA NOT DEFINED FOR OBJECT ${this.constructor.name}`;
+	}
+}
+
+//abstract class for storing multiple arbitrary faces in an object
+class CustomObject extends EditableWorldObject {
+	constructor(x, y, z, faceData) {
+		super(x, y, z);
+	}
+}
+
+
+
+
+class FreePoly extends EditableWorldObject {
+	constructor(points, color) {
+		super(undefined, undefined, undefined);
+		this.faces = undefined;
+		this.pointSelected = -1;
+		this.color = color;
+
+		//collision tolerance
+		this.tolerance = player.fallMax * 1.5;
+		this.collisionPoints;
+		this.points = points;
+
+		this.collisionPoints;
+		this.construct();
+	}
+
+	beDrawn() {
+		drawWorldPoly(this.points, this.color);
+		if (editor_active) {
+			if ((this.parent || this) == editor_selected) {
+				ctx.strokeStyle = color_selection;
+				ctx.stroke();
+			}
+		}
+
+		if (editor_active && !isClipped([[this.x, this.y, this.z]])) {
+			//draw self's normal as well
+			var off = polToCart(this.normal[0], this.normal[1], render_normalLength);
+			ctx.beginPath();
+			ctx.strokeStyle = color_selection;
+			drawWorldLine([this.x, this.y, this.z], [off[0] + this.x, off[1] + this.y, off[2] + this.z]);
+			ctx.stroke();
+		}
+	}
+
+	beDrawn_firstThreeHandles() {
+		//editor handle stuff
+		var handlePoints = [];
+		for (var u=this.handles.length-1; u>=3; u--) {
+			handlePoints[u] = [this.x + this.handles[u][0], this.y + this.handles[u][1], this.z + this.handles[u][2]];
+		}
+		if (this.pointSelected == -1) {
+			for (var u=2; u>=0; u--) {
+				handlePoints[u] = [this.x + this.handles[u][0], this.y + this.handles[u][1], this.z + this.handles[u][2]];
+			}
+		} else {
+			var pRef = this.points[this.pointSelected];
+			for (var u=2; u>=0; u--) {
+				handlePoints[u] = [pRef[0] + this.handles[u][0], pRef[1] + this.handles[u][1], pRef[2] + this.handles[u][2]];
+			}
+		}
+
+		//RGB color coding, for gamers
+		if (this.pointSelected == -1) {
+			drawCrosshair([this.x, this.y, this.z], this.handles[0], this.handles[1], this.handles[2]);
+		} else {
+			drawCrosshair(this.points[this.pointSelected], this.handles[0], this.handles[1], this.handles[2]);
+		}
+		return handlePoints;
+	}
+
 	calculateCollision() {
-		var temp = [];
+		this.collisionPoints = [];
 		//looping through all points
 		for (var u=0;u<this.points.length;u++) {
 			//transform point to self's normal
 			var transformed = spaceToRelative(this.points[u], [this.x, this.y, this.z], this.normal);
 
 			//zs are going to be zero, so they can be ignored
-			temp.push([transformed[0], transformed[1]]);
+			this.collisionPoints.push([transformed[0], transformed[1]]);
 		}
-		return temp;
 	}
 
 	calculateNormal() {
-		//first get average point, that's self's xyz
+		//getting self's xyz
 		[this.x, this.y, this.z] = avgArray(this.points);
 
-		//get cross product of first two points, that's the normal
-		//every shape has to have at least 3 points, so 
-		//comparing points 2 and 3 to point 1 for normal getting
+		//calculate normal
+		//every shape has to have at least 3 points, so points 2+3 are compared to 1
 		var v1 = [this.points[1][0] - this.points[0][0], this.points[1][1] - this.points[0][1], this.points[1][2] - this.points[0][2]];
 		var v2 = [this.points[2][0] - this.points[0][0], this.points[2][1] - this.points[0][1], this.points[2][2] - this.points[0][2]];
-		//console.log(this.color, v1, v2);
-		var cross = [(v1[1] * v2[2]) - (v1[2] * v2[1]), (v1[2] * v2[0]) - (v1[0] * v2[2]), (v1[0] * v2[1]) - (v1[1] * v2[0])];
-		
-		cross = cartToPol(cross[0], cross[1], cross[2]);
-		//console.log(this.color, cross);
-		
-		//checking for alignment with camera
-		if (spaceToRelative([player.x, player.y, player.z], [this.x, this.y, this.z], [cross[0], cross[1]])[2] < 0) {
-			cross[0] = (cross[0] + Math.PI) % (Math.PI * 2);
-		}
+		var cross = cartToPol((v1[1] * v2[2]) - (v1[2] * v2[1]), (v1[2] * v2[0]) - (v1[0] * v2[2]), (v1[0] * v2[1]) - (v1[1] * v2[0]));
 		this.normal = [cross[0], cross[1]];
+		if (this.normal[1] < 0) {
+			this.normal[0] = (this.normal[0] + Math.PI) % (Math.PI * 2);
+			this.normal[1] *= -1;
+		}
 	}
 
 	collideWithPlayer() {
 		//transform player to self's coordinates
-		var playerCoords = spaceToRelative([player.x, player.y - player.height, player.z], [this.x, this.y, this.z], this.normal);
-
+		var pFeetCoords = spaceToRelative([player.x, player.y, player.z], [this.x, this.y + player.height, this.z], this.normal);
 
 		//if the player is too close, take them seriously
-		if (Math.abs(playerCoords[2]) < this.tolerance) {
-			if (inPoly([playerCoords[0], playerCoords[1]], this.collisionPoints)) {
+		if (Math.abs(pFeetCoords[2]) < this.tolerance) {
+			if (inPoly([pFeetCoords[0], pFeetCoords[1]], this.collisionPoints)) {
 				//different behavior depending on side
-				if (playerCoords[2] < 0) {
-					playerCoords[2] = -1 * this.tolerance;
+				if (pFeetCoords[2] < 0) {
+					pFeetCoords[2] = -1 * this.tolerance;
 				} else {
-					playerCoords[2] = this.tolerance;
-
+					pFeetCoords[2] = this.tolerance;
 				}
-
-				//transforming back to regular coordinates
-				playerCoords = relativeToSpace(playerCoords, [this.x, this.y, this.z], this.normal);
-				playerCoords[1] += player.height;
-
-				//getting difference between actual player coordinates and attempted coords for forces
-				playerCoords = [playerCoords[0] - player.x, playerCoords[1] - player.y, playerCoords[2] - player.z];
-				player.posBuffer.push(playerCoords);
 
 				//if self counts as a floor / ceiling tile, work on player's y velocity
 				if (Math.abs(this.normal[1]) > Math.PI / 4) {
-					
 					//reduce player's y acceleration 
 					if (player.dy < 0) {
 						player.dy = -0.01;
 						player.onGround = true;
 					}
 				}
+			} else if (pFeetCoords[2] < -4 || this.normal[1] < 1) {
+				//if self is at player's feet or self is considered a wall tile
+				if (inPoly([pFeetCoords[0] - (player.fallMax * 1.5 * boolToSigned(pFeetCoords[0] > 0)), pFeetCoords[1] - (player.fallMax * 1.5 * boolToSigned(pFeetCoords[1] > 0))], this.collisionPoints)) {
+					//detect if the player is slightly outside, and in that case, prevent them from entering
+					var playerRelDir = spaceToRelative([
+						player.dz * Math.sin(player.theta) + player.dx * Math.sin(player.theta + (Math.PI/2)), 
+						player.dy,
+						player.dz * Math.cos(player.theta) + player.dx * Math.cos(player.theta + (Math.PI/2))
+					], [0, 0, 0], this.normal);
+					pFeetCoords[0] += playerRelDir[0] * 0.999 * boolToSigned(pFeetCoords[0] > 0) * (pFeetCoords[0] * playerRelDir[0] < 0);
+					pFeetCoords[1] += playerRelDir[1] * 0.999 * boolToSigned(pFeetCoords[1] > 0) * (pFeetCoords[1] * playerRelDir[1] < 0);
+				}
 			}
+
+			//transforming back to regular coordinates
+			pFeetCoords = relativeToSpace(pFeetCoords, [this.x, this.y + player.height, this.z], this.normal);
+
+			//getting difference between actual player coordinates and attempted coords for forces
+			pFeetCoords = [pFeetCoords[0] - player.x, pFeetCoords[1] - player.y, pFeetCoords[2] - player.z];
+			player.posBuffer.push(pFeetCoords);
 		}
+	}
+
+	construct() {
+		this.calculateNormal();
+		this.determineHandlePositions();
+		this.calculateCollision();
 	}
 
 	//clips self and returns an array with two polygons, clipped at the input plane.
 	//always returns [polygon inside plane, polgyon outside plane]
 	//if self polygon does not intersect the plane, then one of the two return values will be undefined.
 	clipAtPlane(planePoint, planeNormal) {
-		var inPart = undefined;
-		var outPart = undefined;
-
 		//getting points aligned to the plane
 		var tempPoints = [];
 		for (var j=0;j<this.points.length;j++) {
@@ -115,162 +340,186 @@ class FreePoly {
 		}
 
 		//checking to see if clipping is necessary
-		var sign = tempPoints[0][2] > 0;
 		var clip = false;
 		for (var y=1;y<tempPoints.length;y++) {
 			//if the signs of the points match, don't clip them. However, if any polarity of a point is different from the first one, clip the polygon
-			if (!sign == tempPoints[y][2] > 0) {
+			if (tempPoints[0][2] > 0 != tempPoints[y][2] > 0) {
 				clip = true;
 				y = tempPoints.length;
 			}
 		}
-		if (clip) {
-			//get copy of self
-			var outPoints = [];
-			for (var a=0;a<tempPoints.length;a++) {
-				outPoints[a] = tempPoints[a];
+		if (!clip) {
+			//if clipping is not necessary, then just return self
+			if (tempPoints[0][2] > 0) {
+				return [this, undefined];
+			} else {
+				return [undefined, this];
 			}
+		}
 
-			//clip
-			tempPoints = this.clipToZ0(tempPoints, 0, false);
+		//clipping case
+		var inPart = undefined;
+		var outPart = undefined;
 
+		//get copy of self
+		var outPoints = [];
+		for (var a=tempPoints.length-1; a>-1; a--) {
+			outPoints[a] = tempPoints[a];
+		}
+		var pushParent = this.parent || this;
+
+		//clip
+		tempPoints = clipToZ0(tempPoints, 0, false);
+		trimPoints(tempPoints);
+
+		if (tempPoints.length > 2) {
 			//transforming points to world coordinates
 			for (var q=0;q<tempPoints.length;q++) {
 				tempPoints[q] = relativeToSpace(tempPoints[q], planePoint, planeNormal);
 			}
 
-			outPoints = this.clipToZ0(outPoints, 0, true);
+			//turning point array into objects that can be put into nodes
+			inPart = new FreePoly(tempPoints, this.color);
+			inPart.parent = pushParent;
+		}
+
+		outPoints = clipToZ0(outPoints, 0, true);
+		trimPoints(outPoints);
+		if (outPoints.length > 2) {
 			for (var q=0;q<outPoints.length;q++) {
 				outPoints[q] = relativeToSpace(outPoints[q], planePoint, planeNormal);
 			}
-
-			//turning point array into objects that can be put into nodes
-			inPart = new FreePoly(tempPoints, this.color);
 			outPart = new FreePoly(outPoints, this.color);
-		} else {
-			//if clipping is not necessary, then just return self
-			if (tempPoints[0][2] > 0) {
-				inPart = this;
-			} else {
-				outPart = this;
-			}
+			outPart.parent = pushParent;
 		}
-		
 
 		return [inPart, outPart];
 	}
 
-	clipToZ0(polyPoints, tolerance, invertClipDirection) {
-		//to save time, inverting the clip direction just means inverting all the points, then inverting back
-		if (invertClipDirection) {
-			for (var a=0;a<polyPoints.length;a++) {
-				polyPoints[a][2] *= -1;
-			}
+	determineHandlePositions() {
+		this.handles = [];
+		super.determineHandlePositions();
+		
+		//add a handle for each point and each in-between point
+		for (var p=0; p<this.points.length; p++) {
+			this.handles[2 * p + 3] = [this.points[p][0] - this.x, this.points[p][1] - this.y, this.points[p][2] - this.z];
+			this.handles[2 * p + 4] = [(this.points[p][0] + this.points[(p+1)%this.points.length][0]) / 2 - this.x, (this.points[p][1] + this.points[(p+1)%this.points.length][1]) / 2 - this.y, (this.points[p][2] + this.points[(p+1)%this.points.length][2]) / 2 - this.z];
 		}
-		//make all the polypoints have a boolean that says whether they're clipped or not, this is used for number of neighbors
-		for (var x=0;x<polyPoints.length;x++) {
-			//this flag answers the question "will this be clipped?"
-			polyPoints[x][3] = polyPoints[x][2] < tolerance;
-		}
-		for (var y=0;y<polyPoints.length;y++) {
-			//if the selected point will be clipped, run the algorithm
-			if (polyPoints[y][3]) {
-				//freefriends is the number of adjacent non-clipped points
-				var freeFriends;
-				var freeFriends = !polyPoints[(y+(polyPoints.length-1))%polyPoints.length][3] + !polyPoints[(y+1)%polyPoints.length][3];
-				switch (freeFriends) {
-					case 0:
-						//if there are no free friends, there's no point in attempting, so just move on
-						polyPoints.splice(y, 1);
-						y -= 1;
-						break;
-					case 1:
-						//determine which one is free, then move towards it
-						var friendCoords;
-						var moveAmount;
-						var newPointCoords;
-						//lesser friend
-						if (!polyPoints[(y+(polyPoints.length-1))%polyPoints.length][3]) {
-							friendCoords = polyPoints[(y+(polyPoints.length-1))%polyPoints.length];
-							moveAmount = getPercentage(friendCoords[2], polyPoints[y][2], tolerance);
-							newPointCoords = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance, true];
-						} else {
-							//greater friend
-							friendCoords = polyPoints[(y+1)%polyPoints.length];
-							moveAmount = getPercentage(friendCoords[2], polyPoints[y][2], tolerance);
-							newPointCoords = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance + 0.05, true];
-						}
-						polyPoints[y] = newPointCoords;
-						break;
-					case 2:
-						//move towards both friends
-						var friendCoords = polyPoints[(y+(polyPoints.length-1))%polyPoints.length];
-						var moveAmount = getPercentage(friendCoords[2], polyPoints[y][2], tolerance);
-						var newPointCoords = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance + 0.05, true];
-	
-						friendCoords = polyPoints[(y+1)%polyPoints.length];
-						moveAmount = getPercentage(friendCoords[2], polyPoints[y][2], tolerance);
-						var newerPointCoords = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), tolerance + 0.05, true];
+		this.handles[(2 * this.points.length) + 3] = [0, 0, 0];
+	}
 
-						polyPoints[y] = newerPointCoords;
-						polyPoints.splice(y, 0, newPointCoords);
-						break;
+	handleClick() {
+		//I could probably organize this better but I'm lazy
+		var reqDist = editor_tolerance;
+		var point;
+		for (var a=0; a<this.handles.length; a++) {
+			if (a < 3 && this.pointSelected != -1) {
+				var ref = this.points[this.pointSelected];
+				point = [ref[0] + this.handles[a][0], ref[1] + this.handles[a][1], ref[2] + this.handles[a][2]];
+			} else {
+				point = [this.x + this.handles[a][0], this.y + this.handles[a][1], this.z + this.handles[a][2]];
+			}
+			if (!isClipped(point)) {
+				var coords = spaceToScreen(point);
+				var xDist = cursor_x - coords[0];
+				var yDist = cursor_y - coords[1];
+				var trueDist = Math.sqrt(xDist * xDist + yDist * yDist);
+				if (trueDist < reqDist) {
+					reqDist = trueDist;
+					this.handleSelected = a;
 				}
 			}
 		}
-		if (invertClipDirection) {
-			for (var a=0;a<polyPoints.length;a++) {
-				polyPoints[a][2] *= -1;
-			}
+	}
+
+	handleHandles() {
+		if (this.pointSelected == -1) {
+			super.handleHandles();
+			return;
 		}
-		return polyPoints;
+		if (this.handleSelected < 3) {
+			this.updatePointWithCursor(this.handles[this.handleSelected]);
+		}
+		if (!cursor_down) {
+			this.handleSelected = -1;
+		}
+	}
+
+	move(changeXBy, changeYBy, changeZBy) {
+		//update all points
+		this.points.forEach(p => {
+			p[0] += changeXBy;
+			p[1] += changeYBy;
+			p[2] += changeZBy;
+		});
+		super.move(changeXBy, changeYBy, changeZBy);
 	}
 
 	tick() {
+		if (this.handleSelected != -1) {
+			this.handleHandles();
+			if (this.handleSelected > 2) {
+				this.pointSelected = (this.handleSelected - 3) / 2;
+				this.handleSelected = -1;
+
+				//if past all points, return to the center
+				if (this.pointSelected >= this.points.length) {
+					this.pointSelected = -1;
+				}
+				//if in between points, create a new point
+				if (this.pointSelected % 1 != 0) {
+					var pOff = [Math.floor(this.pointSelected), Math.ceil(this.pointSelected) % this.points.length];
+					var pRef = this.points;
+					pRef.splice(pOff[0]+1, 0, [(pRef[pOff[0]][0] + pRef[pOff[1]][0]) / 2, (pRef[pOff[0]][1] + pRef[pOff[1]][1]) / 2, (pRef[pOff[0]][2] + pRef[pOff[1]][2]) / 2]);
+
+					this.pointSelected = pOff[0] + 1;
+				}
+			}
+			if (this.pointSelected != -1) {
+				this.determineHandlePositions();
+			}
+		}
+		if (noclip_active) {
+			return;
+		}
 		//collide correctly with player
 		this.collideWithPlayer();
 	}
 
-	beDrawn() {
-		//first get camera coordinate points
-		var camAng = [player.theta, player.phi];
-		var pt = [player.x, player.y, player.z];
-		var tempPoints = [];
-		for (var p=0;p<this.points.length;p++) {
-			tempPoints.push(spaceToRelative(this.points[p], pt, camAng));
-		}
+	updatePointWithCursor(offset) {
+		var ref = this.points[this.pointSelected];
+		var oldPos = [ref[0], ref[1], ref[2]];
+		var screenOffset = spaceToScreen([ref[0] + offset[0], ref[1] + offset[1], ref[2] + offset[2]]); 
+		var center = spaceToScreen(ref);
+		var xDist = center[0] - screenOffset[0];
+		var yDist = center[1] - screenOffset[1];
+		var distance = Math.sqrt(xDist * xDist + yDist * yDist);
+		var realDistance = rotate(cursor_x - screenOffset[0], -1 * (cursor_y - screenOffset[1]), -1 * (Math.atan2(screenOffset[0] - center[0], screenOffset[1] - center[1]) - (Math.PI * 0.5)))[0] / distance;
 
-		tempPoints = this.clipToZ0(tempPoints, render_clipDistance, false);
-		
-		//turn points into screen coordinates
-		var screenPoints = [];
-		for (var a=0;a<tempPoints.length;a++) {
-			screenPoints.push(cameraToScreen(tempPoints[a]));
-		}
+		ref[0] += offset[0] * realDistance;
+		ref[1] += offset[1] * realDistance;
+		ref[2] += offset[2] * realDistance;
 
-		if (screenPoints.length > 0) {
-			//finally draw self
-			drawPoly(this.color, screenPoints);
-			
-			if (editor_active && !isClipped([[this.x, this.y, this.z]])) {
-				//draw self's normal as well
-				var dXY = spaceToScreen([this.x, this.y, this.z]);
-				var cXYZ = polToCart(this.normal[0], this.normal[1], 5);
-				var eXY = spaceToScreen([this.x + cXYZ[0], this.y + cXYZ[1], this.z + cXYZ[2]]);
-				ctx.beginPath();
-				ctx.strokeStyle = "#AFF";
-				ctx.moveTo(dXY[0], dXY[1]);
-				ctx.lineTo(eXY[0], eXY[1]);
-				ctx.stroke();
-			}
+		if (controls_shiftPressed) {
+			ref[0] = snapTo(ref[0], editor_snapAmount);
+			ref[1] = snapTo(ref[1], editor_snapAmount);
+			ref[2] = snapTo(ref[2], editor_snapAmount);
 		}
+		if (oldPos[0] != ref[0] || oldPos[1] != ref[1] || oldPos[2] != ref[2]) {
+			this.construct();
+			loading_world.generateBinTree();
+		}
+	}
+
+	giveStringData() {
+		return `FRP~${JSON.stringify(this.points)}~${this.color}`;
 	}
 }
 
 class Star {
 	constructor(x, y, z) {
 		this.color = "#AAF";
-		this.r = 10000;
+		this.r = star_size;
 		this.drawR;
 		
 		this.dx = 0;
@@ -288,7 +537,7 @@ class Star {
 		var pyXYDist = Math.sqrt((dTP[0] * dTP[0]) + (dTP[1] * dTP[1]));
 		var pyDist = Math.sqrt((pyXYDist * pyXYDist) + (dTP[2] * dTP[2]));
 
-		this.drawR = this.r / pyDist;
+		this.drawR = (this.r / pyDist) * player.scale;
 	}
 
 	beDrawn() {
@@ -304,30 +553,138 @@ class Star {
 
 
 //prefabs here
-class Floor extends FreePoly {
+
+class WallX extends EditableWorldObject {
+	constructor(x, y, z, width, height, color) {
+		super(x, y, z);
+		this.w = width;
+		this.h = height;
+		this.color = color;
+		this.normal = [Math.PI / 2, 0];
+		this.construct();
+	}
+
+	construct() {
+		this.faces = [
+			new FreePoly([
+				[this.x, this.y + this.h, this.z + this.w],
+				[this.x, this.y + this.h, this.z - this.w],
+				[this.x, this.y - this.h, this.z - this.w],
+				[this.x, this.y - this.h, this.z + this.w]
+			], this.color)
+		];
+		this.faces.forEach(f => {
+			f.parent = this;
+		});
+	}
+
+	giveStringData() {
+		return `WLX~${this.x}~${this.y}~${this.z}~${this.w}~${this.h}~${this.color}`;
+	}
+}
+
+class WallY extends EditableWorldObject {
 	constructor(x, y, z, length, width, color) {
-		super([	[x + length, y, z + width],
-				[x + length, y, z - width],
-				[x - length, y, z - width],
-				[x - length, y, z + width]], color);
+		super(x, y, z);
+		this.l = length;
+		this.w = width;
+		this.color = color;
+		this.normal = [0, Math.PI / 2];
+		this.construct();
+	}
+
+	construct() {
+		this.faces = [
+			new FreePoly([
+				[this.x + this.l, this.y, this.z + this.w],
+				[this.x + this.l, this.y, this.z - this.w],
+				[this.x - this.l, this.y, this.z - this.w],
+				[this.x - this.l, this.y, this.z + this.w]
+			], this.color)
+		];
+		this.faces.forEach(f => {
+			f.parent = this;
+		});
+	}
+
+	giveStringData() {
+		return `WLY~${this.x}~${this.y}~${this.z}~${this.l}~${this.w}~${this.color}`;
 	}
 }
 
-
-class WallX extends FreePoly {
+class WallZ extends EditableWorldObject {
 	constructor(x, y, z, width, height, color) {
-		super([	[x, y + height, z + width],
-				[x, y + height, z - width],
-				[x, y - height, z - width],
-				[x, y - height, z + width]], color);
+		super(x, y, z);
+		this.w = width;
+		this.h = height;
+		this.color = color;
+		this.construct();
+		this.normal = [0, 0];
+	}
+
+	construct() {
+		this.faces = [
+			new FreePoly([
+				[this.x + this.w, this.y + this.h, this.z],
+				[this.x - this.w, this.y + this.h, this.z],
+				[this.x - this.w, this.y - this.h, this.z],
+				[this.x + this.w, this.y - this.h, this.z]
+			], this.color)
+		];
+		this.faces.forEach(f => {
+			f.parent = this;
+		});
+	}
+
+	giveStringData() {
+		return `WLZ~${this.x}~${this.y}~${this.z}~${this.w}~${this.h}~${this.color}`;
 	}
 }
 
-class WallZ extends FreePoly {
-	constructor(x, y, z, width, height, color) {
-		super([	[x + width, y + height, z],
-				[x - width, y + height, z],
-				[x - width, y - height, z],
-				[x + width, y - height, z]], color);
+class Box extends EditableWorldObject {
+	constructor(x, y, z, length, width, height, color) {
+		super(x, y, z);
+		this.l = length;
+		this.w = width;
+		this.h = height;
+		this.color = color;
+		this.normal = [0, 0];
+		this.construct();
+	}
+
+	construct() {
+		var vn = [
+			[this.x - this.l, this.y + this.h, this.z - this.w],
+			[this.x + this.l, this.y + this.h, this.z - this.w],
+			[this.x + this.l, this.y + this.h, this.z + this.w],
+			[this.x - this.l, this.y + this.h, this.z + this.w],
+
+			[this.x - this.l, this.y - this.h, this.z - this.w],
+			[this.x + this.l, this.y - this.h, this.z - this.w],
+			[this.x + this.l, this.y - this.h, this.z + this.w],
+			[this.x - this.l, this.y - this.h, this.z + this.w],
+		]
+
+		this.faces = [
+			new FreePoly([vn[0], vn[1], vn[2], vn[3]], this.color),
+			new FreePoly([vn[7], vn[6], vn[5], vn[4]], this.color),
+			new FreePoly([vn[0], vn[3], vn[7], vn[4]], this.color),
+			new FreePoly([vn[1], vn[5], vn[6], vn[2]], this.color),
+			new FreePoly([vn[0], vn[4], vn[5], vn[1]], this.color),
+			new FreePoly([vn[3], vn[2], vn[6], vn[7]], this.color),
+		]
+		this.faces.forEach(f => {
+			f.parent = this;
+		});
+	}
+
+	giveStringData() {
+		return `BOX~${this.x}~${this.y}~${this.z}~${this.l}~${this.w}~${this.h}~${this.color}`;
+	}
+}
+
+class Portal extends EditableWorldObject {
+	constructor(x, y, z, footprint, height, worldID) {
+
 	}
 }

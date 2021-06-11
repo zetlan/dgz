@@ -2,63 +2,18 @@
 
 /* 
 generation functions:
-	generateBinTree();
-	generateStarSphere();
-	generateStaircase();
-
+	
 utility:
 	avgArray();
-	clamp();
-	getPercentage();
-	isClipped();
-	linterp();
+	editor_createObject();
+	generateStarSphere();
 	randomCustom();
 	randomSeeded();
-	rotate();
+	readWorldFile();
 	runCrash();
-
-2d collision:
-
-
-drawing:
-	drawQuad();
-	drawPoly();
-	drawCircle();
+	selectPoly();
+	snapTo();
 */
-
-
-
-//generation functions
-function generateBinTree() {
-	world_binTree = new TreeNode(world_objects[0]);
-
-	for (var r=1;r<world_objects.length;r++) {
-		world_binTree.accept(world_objects[r]);
-	}
-}
-function generateStarSphere() {
-	//random stars
-	for (var e=0;e<100;e++) {
-		var pos = polToCart(randomSeeded(0, Math.PI * 2), randomSeeded(0.1, (Math.PI * 0.48)), randomSeeded(world_starDistance, world_starDistance * 2));
-		world_stars.push(new Star(pos[0], pos[1], pos[2]));
-	}
-}
-
-function generateStaircase() {
-	for (var y=0;y<30;y++) {
-		var x = 20 * Math.sin((Math.PI / 8) * y);
-		var z = 20 * Math.cos((Math.PI / 8) * y);
-
-		var x2 = 20 * Math.sin((Math.PI / 8) * (y + 1));
-		var z2 = 20 * Math.cos((Math.PI / 8) * (y + 1));
-
-		world_objects.push(new FreePoly([[x, y * 1.5, z], [x * 1.8, y * 1.5, z * 1.8], [x2 * 1.8, y * 1.5, z2 * 1.8], [x2, y * 1.5, z2]], "#FF0"));
-	}
-}
-
-
-
-
 
 
 //utility functions
@@ -86,38 +41,150 @@ function avgArray(array) {
 	return finArr;
 }
 
-
-//keeps a number between certain bounds
-//these operators are stupid and I hope to never use them again
-function clamp(num, min, max) {
-	return num <= min ? min : num >= max ? max : num;
+function data_createObject(data) {
+	switch (data[0]) {
+		case "FRP":
+			return new FreePoly(JSON.parse(data[1]), data[2]);
+		case "WLX":
+			return new WallX(data[1] * 1, data[2] * 1, data[3] * 1, data[4] * 1, data[5] * 1, data[6]);
+		case "WLY":
+			return new WallY(data[1] * 1, data[2] * 1, data[3] * 1, data[4] * 1, data[5] * 1, data[6]);
+		case "WLZ":
+			return new WallZ(data[1] * 1, data[2] * 1, data[3] * 1, data[4] * 1, data[5] * 1, data[6]);
+		case "BOX":
+			return new Box(data[1] * 1, data[2] * 1, data[3] * 1, data[4] * 1, data[5] * 1, data[6] * 1, data[7]);
+	}
 }
 
-//returns the percentage from val1 to val2 that the checkVal is in
-//example: 0, 10, 5, returns 0.5)
-function getPercentage(val1, val2, checkVal) {
-	val2 -= val1;
-	checkVal -= val1;
-	return checkVal / val2;
+function editor_createObject(ID) {
+	var rP = polToCart(player.theta, player.phi, 5);
+	rP = [player.x + Math.round(rP[0]), player.y + Math.round(rP[1]) - 2, player.z + Math.round(rP[2])];
+	var theObject;
+	switch (ID) {
+		case 0:
+			theObject = new FreePoly([[rP[0], rP[1], rP[2]], [rP[0], rP[1], rP[2] + 5], [rP[0] + 5, rP[1], rP[2]]], color_editor_defaultPoly);
+			break;
+		case 1:
+			theObject = new WallZ(rP[0], rP[1], rP[2], 5, 5, color_editor_defaultPoly);
+			break;
+		case 2:
+			theObject = new WallY(rP[0], rP[1], rP[2], 5, 5, color_editor_defaultPoly);
+			break;
+		case 3:
+			theObject = new WallX(rP[0], rP[1], rP[2], 5, 5, color_editor_defaultPoly);
+			break;
+		case 4:
+			break;
+	}
+	if (theObject != undefined) {
+		loading_world.addFormally(theObject);
+	}
 }
 
-//determines if a point will be clipped due to being behind / too close to the player
-function isClipped(pointArr) {
-	var tX = pointArr[0];
-	var tY = pointArr[1];
-	var tZ = pointArr[2];
-	tX -= player.x;
-	tY -= player.y;
-	tZ -= player.z;
-	[tX, tZ] = rotate(tX, tZ, player.theta);
-	[tY, tZ] = rotate(tY, tZ, player.phi);
+function editor_handleClick() {
+	//don't do if invalid height
+	if (cursor_y > canvas.height * editor_topBarHeight) {
+		return;
+	}
 
-	return (tZ < render_clipDistance);
+	var yHalf = (cursor_y < canvas.height * editor_topBarHeight * 0.5);
+	//create objects
+	if (cursor_x < canvas.width * editor_iconWidth) {
+		var size = canvas.height * editor_iconSize;
+		var y = (canvas.height * editor_topBarHeight * 0.5);
+		for (var i=0; i<=editor_iconNum; i++) {
+			var x = (canvas.width / editor_iconNum) * (i + 0.5) * editor_iconWidth;
+			if (Math.abs(cursor_x - x) < size * 0.8 && Math.abs(cursor_y - y) < size * 0.8) {
+				editor_createObject(i);
+				return;
+			}
+		}
+		return;
+	}
+
+	//edit reference frame
+	if (cursor_x < canvas.width * (editor_iconWidth + editor_iconSize)) {
+		editor_worldRelative = yHalf;
+		console.log(yHalf);
+		return;
+	}
+	
+
+	//editing color
+	if (cursor_x > canvas.width * 0.94) {
+		if (editor_selected != undefined) {
+			y += canvas.height / 100;
+			//determine which color part to edit
+			var part = Math.floor((((cursor_x / canvas.width) - 0.94) / 0.02));
+			if (part > -1 && part < 3) {
+				var direction = boolToSigned(yHalf);
+				var newChar = colorKey[modulate(colorKey.indexOf(editor_selected.color[part+1])+direction, colorKey.length)];
+				editor_selected.color = editor_selected.color.substring(0, part+1) + newChar + editor_selected.color.substring(part+2, editor_selected.color.length);
+			}
+		}
+		return;
+	}
+	
 }
 
-//performs a linear interpolation between 2 values
-function linterp(a, b, percentage) {
-	return a + ((b - a) * percentage);
+function generateStarSphere() {
+	for (var e=0;e<star_number;e++) {
+		var pos = polToCart(
+			randomSeeded(0, Math.PI * 2),
+			Math.acos(randomSeeded(-1, 1)) - (Math.PI / 2), 
+			randomSeeded(star_distance[0], star_distance[1])
+		);
+		stars.push(new Star(pos[0], pos[1], pos[2]));
+	}
+}
+
+function mergeIdenticalWorldPoints() {
+	world_pointStorage = [];
+
+	//loop through all objects in the world
+	loading_world.objects.forEach(h => {
+		mergeIdenticalPolyPoints(h);
+	});
+}
+
+function mergeIdenticalPolyPoints(polygon) {
+	//add each individual face
+	if (polygon.faces != undefined) {
+		polygon.faces.forEach(f => {
+			mergeIdenticalPolyPoints(f);
+		});
+		return;
+	}
+
+	//adding points
+	for (var p=0; p<polygon.points.length; p++) {
+		console.log(p);
+		//get code for ordering
+		var pCode = polygon.points[p][0] + polygon.points[p][1] + polygon.points[p][2];
+		//loop through points
+		var low = 0;
+		var high = world_pointStorage.length;
+
+		var indexObj;
+		var compareCode;
+		while (low < high) {
+			indexObj = world_pointStorage[Math.floor((low + high) / 2)];
+			compareCode = indexObj[0] + indexObj[1] + indexObj[2];
+			if (compareCode < pCode) {
+				low = Math.floor((low + high) / 2) + 1;
+			} else {
+				high = Math.floor((low + high) / 2);
+			}
+		}
+
+		if (world_pointStorage[low] == undefined || (world_pointStorage[low][0] != polygon.points[p][0] || world_pointStorage[low][1] != polygon.points[p][1] || world_pointStorage[low][2] != polygon.points[p][2])) {
+			world_pointStorage.splice(low, 0, polygon.points[p]);
+		} else {
+			//if the point is identical, merge them
+			polygon.points[p] = world_pointStorage[low];
+		}
+		
+	}
 }
 
 //returns a random value between the min value and max values, using the default javascript randomizer
@@ -127,18 +194,52 @@ function randomCustom(min, max) {
 
 //returns a pseudo-random value between the min value and max values
 function randomSeeded(min, max) {
-	world_pRandValue = Math.pow(world_pRandValue, 1.6414756);
+	loading_randVal = Math.pow(loading_randVal, 1.6414756);
 	//keep value in bounds
-	while (world_pRandValue > 100) {
-		world_pRandValue -= 98;
+	while (loading_randVal > 100) {
+		loading_randVal -= 98;
 	}
-	return ((world_pRandValue % 1) * (max - min)) + min;
+	return ((loading_randVal % 1) * (max - min)) + min;
 }
 
-function rotate(x, z, radians) {
-	[x, z] = [(x * Math.cos(radians)) - (z * Math.sin(radians)), (z * Math.cos(radians)) + (x * Math.sin(radians))];
-	return [x, z];
+function readWorldFile() {
+	var fileText;
+	fetch('worlds.txt').then(response => response.text()).then(text => {
+		fileText = text.split("\n");
+		var appendWorld;
+		fileText.forEach(l => {
+			//split each line into arguments to determine what to do
+			var splitTag = l.split("~");
+
+			//only do if the tag is real
+			if (splitTag.length > 1) {
+				console.log(splitTag);
+				//creating different types of objects
+				switch (splitTag[0]) {
+					case "WORLD":
+						//world creation
+
+						//if there's a previous world, make sure that world's tree gets generated
+						if (appendWorld != undefined) {
+							appendWorld.generateBinTree();
+						}
+
+						appendWorld = new World(splitTag[1], splitTag[2]);
+						world_listing.push(appendWorld);
+					case "MESH":
+						break;
+					default:
+						appendWorld.objects.push(data_createObject(splitTag));
+						break;
+
+				}
+			}
+		});
+		appendWorld.generateBinTree();
+		loading_world = world_listing[0];
+	});
 }
+
 
 function runCrash() {
 	ctx.fillStyle = "#F0F";
@@ -152,99 +253,66 @@ function runCrash() {
 	window.cancelAnimationFrame(game_animation);
 }
 
+function selectPoly(startPolygon) {
+	//selects the polygon that the cursor is over
 
-
-
-
-//2d collision functions, I've written these enough times that they don't need explanations. If you want an explanation, check rotate/2d-collision.js
-function getOrientation(p1, p2, p3) {
-	var value = (p2[1] - p1[1]) * (p3[0] - p2[0]) - (p2[0] - p1[0]) * (p3[1] - p2[1]); 
-	if (value > 0) {
-		return 2;
-	} 
-	if (value < 0) {
-		return 1;
-	} else {
-		return 0;
+	//if start polygon is undefined, no further polygon can be selected
+	if (startPolygon == undefined) {
+		return undefined;
 	}
-}
 
-function lineIntersect(lin1p1, lin1p2, lin2p1, lin2p2) {
-	var a = getOrientation(lin1p1, lin1p2, lin2p1);
-	var b = getOrientation(lin1p1, lin1p2, lin2p2);
-	var c = getOrientation(lin2p1, lin2p2, lin1p1);
-	var d = getOrientation(lin2p1, lin2p2, lin1p2);
-	if (a != b && c != d) {
-		return 1;
+	//get traversal order
+	var reverse = startPolygon.isBackwards();
+	var test;
+
+	if (!reverse) {
+		test = selectPoly(startPolygon.inObj);
+		if (test != undefined) {
+			return test;
+		}
 	} else {
-		return 0;
-	}
-}
-
-
-function inPoly(xyPoint, polyPoints) {
-	var linP1 = xyPoint;
-	var linP2 = [1000000, xyPoint[1]];
-	var intersectNum = 0;
-	for (var r=0;r<polyPoints.length;r++) {
-		var p1 = polyPoints[r % polyPoints.length];
-		var p2 = polyPoints[(r+1) % polyPoints.length];
-
-		if (lineIntersect(p1, p2, linP1, linP2)) {
-			intersectNum += 1;
+		test = selectPoly(startPolygon.outObj);
+		if (test != undefined) {
+			return test;
 		}
 	}
-	if (intersectNum % 2 == 1) {
-		return true;
+
+	//determine what projected polygon looks like
+	var points = startPolygon.contains.points;
+	var tempPoints = [];
+	tempPoints[points.length-1] = spaceToRelative(points[points.length-1], [player.x, player.y, player.z], [player.theta, player.phi]);
+	for (var p=0; p<points.length-1; p++) {
+		tempPoints[p] = spaceToRelative(points[p], [player.x, player.y, player.z], [player.theta, player.phi]);
+	}
+	tempPoints = clipToZ0(tempPoints, render_clipDistance, false);
+	if (tempPoints.length > 2) {
+		for (p=0; p<tempPoints.length; p++) {
+			tempPoints[p] = cameraToScreen(tempPoints[p]);
+		}
+		if (inPoly([cursor_x, cursor_y], tempPoints)) {
+			//if the cursor is inside the projected polygon, return that
+			return startPolygon.contains.parent || startPolygon.contains;
+		}
+	}
+
+	if (reverse) {
+		test = selectPoly(startPolygon.inObj);
+		if (test != undefined) {
+			return test;
+		}
 	} else {
-		return false;
+		test = selectPoly(startPolygon.outObj);
+		if (test != undefined) {
+			return test;
+		}
 	}
 }
 
-
-
-
-
-
-//drawing functions
-
-function drawQuad(color, p1, p2, p3, p4) {
-	//console.log(color, p1, p2, p3, p4);
-	ctx.fillStyle = color;
-	ctx.strokeStyle = color;
-	ctx.beginPath();
-	ctx.moveTo(p1[0], p1[1]);
-	ctx.lineTo(p2[0], p2[1]);
-	ctx.lineTo(p3[0], p3[1]);
-	ctx.lineTo(p4[0], p4[1]);
-	ctx.lineTo(p1[0], p1[1]);
-	ctx.stroke();
-	ctx.fill();
+function setStylePreferences() {
+	ctx.lineWidth = 2;
+	ctx.lineJoin = "bevel";
 }
 
-function drawPoly(color, xyPointsArr) {
-	ctx.fillStyle = color;
-	if (!editor_active) {
-		ctx.strokeStyle = color;
-	}
-	
-	var xypa = xyPointsArr;
-	ctx.beginPath();
-	ctx.moveTo(xypa[0][0], xypa[0][1]);
-	for (var i=1;i<xypa.length;i++) {
-		ctx.lineTo(xypa[i][0], xypa[i][1]);
-	}
-	//back to start
-	ctx.lineTo(xypa[0][0], xypa[0][1]);
-	ctx.stroke();
-	ctx.fill();
-}
-
-function drawCircle(color, x, y, radius) {
-	ctx.beginPath();
-	ctx.fillStyle = color;
-	ctx.strokeStyle = color;
-	ctx.ellipse(x, y, radius, radius, 0, 0, Math.PI * 2);
-	ctx.stroke();
-	ctx.fill();
+function snapTo(value, snapInterval) {
+	return Math.round(value / snapInterval) * snapInterval;
 }
