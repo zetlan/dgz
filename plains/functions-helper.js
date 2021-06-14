@@ -112,14 +112,14 @@ function editor_handleClick() {
 
 	//editing color
 	if (cursor_x > canvas.width * 0.94) {
-		if (editor_selected != undefined) {
+		if (editor_objSelected != undefined) {
 			y += canvas.height / 100;
 			//determine which color part to edit
 			var part = Math.floor((((cursor_x / canvas.width) - 0.94) / 0.02));
 			if (part > -1 && part < 3) {
 				var direction = boolToSigned(yHalf);
-				var newChar = colorKey[modulate(colorKey.indexOf(editor_selected.color[part+1])+direction, colorKey.length)];
-				editor_selected.color = editor_selected.color.substring(0, part+1) + newChar + editor_selected.color.substring(part+2, editor_selected.color.length);
+				var newChar = colorKey[modulate(colorKey.indexOf(editor_objSelected.color[part+1])+direction, colorKey.length)];
+				editor_objSelected.color = editor_objSelected.color.substring(0, part+1) + newChar + editor_objSelected.color.substring(part+2, editor_objSelected.color.length);
 			}
 		}
 		return;
@@ -142,8 +142,10 @@ function mergeIdenticalWorldPoints() {
 	world_pointStorage = [];
 
 	//loop through all objects in the world
-	loading_world.objects.forEach(h => {
-		mergeIdenticalPolyPoints(h);
+	loading_world.meshes.forEach(m => {
+		m.objects.forEach(h => {
+			mergeIdenticalPolyPoints(h);
+		});
 	});
 }
 
@@ -158,7 +160,6 @@ function mergeIdenticalPolyPoints(polygon) {
 
 	//adding points
 	for (var p=0; p<polygon.points.length; p++) {
-		console.log(p);
 		//get code for ordering
 		var pCode = polygon.points[p][0] + polygon.points[p][1] + polygon.points[p][2];
 		//loop through points
@@ -207,13 +208,13 @@ function readWorldFile() {
 	fetch('worlds.txt').then(response => response.text()).then(text => {
 		fileText = text.split("\n");
 		var appendWorld;
+		var appendMesh;
 		fileText.forEach(l => {
 			//split each line into arguments to determine what to do
 			var splitTag = l.split("~");
 
 			//only do if the tag is real
 			if (splitTag.length > 1) {
-				console.log(splitTag);
 				//creating different types of objects
 				switch (splitTag[0]) {
 					case "WORLD":
@@ -227,14 +228,25 @@ function readWorldFile() {
 						appendWorld = new World(splitTag[1], splitTag[2]);
 						world_listing.push(appendWorld);
 					case "MESH":
+						//if a mesh already exists, append that
+						if (appendMesh != undefined) {
+							appendWorld.meshes.push(appendMesh);
+						}
+						//create new mesh object
+						appendMesh = new Mesh(splitTag[1]);
 						break;
 					default:
-						appendWorld.objects.push(data_createObject(splitTag));
+						appendMesh.objects.push(data_createObject(splitTag));
 						break;
 
 				}
 			}
 		});
+		//if a mesh is in use, append it
+		if (appendMesh != undefined) {
+			appendWorld.meshes.push(appendMesh);
+		}
+
 		appendWorld.generateBinTree();
 		loading_world = world_listing[0];
 	});
@@ -256,8 +268,8 @@ function runCrash() {
 function selectPoly(startPolygon) {
 	//selects the polygon that the cursor is over
 
-	//if start polygon is undefined, no further polygon can be selected
-	if (startPolygon == undefined) {
+	//return undefined if the specifications for the node aren't valid
+	if (startPolygon == undefined || startPolygon.constructor.name == "TreeBlob") {
 		return undefined;
 	}
 
