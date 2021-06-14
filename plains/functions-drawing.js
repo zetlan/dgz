@@ -15,13 +15,13 @@ function drawEditorOverlay() {
 	y += canvas.height / 100;
 
 	//color
-	if (editor_selected != undefined) {
+	if (editor_objSelected != undefined) {
 		ctx.font = `${canvas.height/ 40}px Comfortaa`;
 		ctx.fillStyle = color_text_light;
 		ctx.fillText("#", canvas.width * 0.935, y);
 		for (var c=0; c<3; c++) {
 			ctx.fillText("▲", canvas.width * (0.945 + 0.015 * c), y - (canvas.height / 42));
-			ctx.fillText(editor_selected.color[c+1], canvas.width * (0.95 + 0.015 * c), y);
+			ctx.fillText(editor_objSelected.color[c+1], canvas.width * (0.95 + 0.015 * c), y);
 			ctx.fillText("▼", canvas.width * (0.945 + 0.015 * c), y + (canvas.height / 50));
 		}
 	}
