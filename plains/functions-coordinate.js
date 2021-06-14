@@ -27,7 +27,11 @@ function cameraToScreen(point) {
 	return [tX, tY];
 }
 
-function clipToFrustum(pointArr) {
+function getDistance3d(p1, p2) {
+	return Math.sqrt((p1[0] - p2[0]) * (p1[0] - p2[0]) + (p1[1] - p2[1]) * (p1[1] - p2[1]) + (p1[2] - p2[2]) * (p1[2] - p2[2]));
+}
+
+function isInFrustum(point) {
 	var hasInside = false;
 	var propW = canvas.width * 0.5 / player.scale;
 	var propH = canvas.height * 0.5 / player.scale;
