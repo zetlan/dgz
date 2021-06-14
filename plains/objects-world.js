@@ -1,194 +1,6 @@
-//abstract class for basic editor functionality
-class EditableWorldObject {
-	constructor(x, y, z) {
-		this.x = x;
-		this.y = y;
-		this.z = z;
-		this.normal;
-		this.faces = [];
-		this.handles = [
-			[render_crosshairSize, 0, 0],
-			[0, render_crosshairSize, 0],
-			[0, 0, render_crosshairSize]
-		]
-		this.handleSelected = -1;
-	}
-
-	construct() {
-
-	}
-
-	tick() {
-		this.faces.forEach(f => {
-			f.tick();
-		});
-		
-		if (this.handleSelected != -1) {
-			this.handleHandles();
-		}
-	}
-
-	beDrawn() {
-
-	}
-
-	beDrawn_editor() {
-		this.beDrawn();
-		this.determineHandlePositions();
-		this.beDrawn_handles();
-	}
-
-	beDrawn_firstThreeHandles() {
-		//editor handle stuff
-		var handlePoints = [];
-		for (var u=this.handles.length-1; u>=0; u--) {
-			handlePoints[u] = [this.x + this.handles[u][0], this.y + this.handles[u][1], this.z + this.handles[u][2]];
-		}
-
-		//RGB color coding, for gamers
-		drawCrosshair([this.x, this.y, this.z], this.handles[0], this.handles[1], this.handles[2]);
-		//any handles beyond the first 3 get drawn with a pink line
-		if (this.handles.length > 3) {
-			ctx.strokeStyle = "#F0F";
-			for (var g=3; g<this.handles.length; g++) {
-				drawWorldLine([this.x, this.y, this.z], handlePoints[g]);
-			}
-		}
-		return handlePoints;
-	}
-
-	beDrawn_handles() {
-		var handlePoints = this.beDrawn_firstThreeHandles();
-
-		//actual handle circles
-		var pos;
-		for (var g=0; g<handlePoints.length; g++) {
-			if (!isClipped(handlePoints[g])) {
-				pos = spaceToScreen(handlePoints[g]);
-				if (this.handleSelected == g) {
-					drawCircle(color_selection, pos[0], pos[1], editor_tolerance / 2);
-				} else {
-					drawCircle(color_editor_handles, pos[0], pos[1], editor_tolerance / 2);
-				}
-			}
-		}
-	}
-
-	determineHandlePositions() {
-		//if relative to the world, use x y z. If not, use self's normals
-		if (editor_worldRelative) {
-			this.handles[0] = [render_crosshairSize, 0, 0];
-			this.handles[1] = [0, render_crosshairSize, 0];
-			this.handles[2] = [0, 0, render_crosshairSize];
-		} else {
-			this.handles[0] = polToCart(this.normal[0] + (Math.PI / 2), 0, render_crosshairSize);
-			this.handles[1] = polToCart(this.normal[0], this.normal[1] + (Math.PI / 2), render_crosshairSize);
-			this.handles[2] = polToCart(this.normal[0], this.normal[1], render_crosshairSize);
-		}
-	}
-
-	handleClick() {
-		//become selected
-		var reqDist = editor_tolerance;
-		//loop through handles, select the closest one
-		for (var a=0; a<this.handles.length; a++) {
-			var point = [this.x + this.handles[a][0], this.y + this.handles[a][1], this.z + this.handles[a][2]];
-			if (!isClipped(point)) {
-				var coords = spaceToScreen(point);
-				var xDist = cursor_x - coords[0];
-				var yDist = cursor_y - coords[1];
-				var trueDist = Math.sqrt(xDist * xDist + yDist * yDist);
-				if (trueDist < reqDist) {
-					reqDist = trueDist;
-					this.handleSelected = a;
-				}
-			}
-		}
-	}
-
-	handleHandles() {
-		if (this.handleSelected < 3) {
-			this.updatePosWithCursor(this.handles[this.handleSelected]);
-		}
-		if (!cursor_down) {
-			this.handleSelected = -1;
-		}
-	}
-
-	move(changeXBy, changeYBy, changeZBy) {
-		this.x += changeXBy;
-		this.y += changeYBy;
-		this.z += changeZBy;
-		this.construct();
-		loading_world.generateBinTree();
-	}
-
-	updatePosWithCursor(offset) {
-		var oldPos = [this.x, this.y, this.z];
-		var screenOffset = spaceToScreen([this.x + offset[0], this.y + offset[1], this.z + offset[2]]); 
-		var center = spaceToScreen([this.x, this.y, this.z]);
-
-		//get vector to the offset of the crosshair 
-		var xDist = center[0] - screenOffset[0];
-		var yDist = center[1] - screenOffset[1];
-		var distance = Math.sqrt(xDist * xDist + yDist * yDist);
-		//realDistance is the distance the cursor is along the original offset (the ray that's selected) divided by the distance the regular ray takes up
-		var realDistance = rotate(cursor_x - screenOffset[0], -1 * (cursor_y - screenOffset[1]), -1 * (Math.atan2(screenOffset[0] - center[0], screenOffset[1] - center[1]) - (Math.PI * 0.5)))[0] / distance;
-
-		//now that the offset is obtained, we can calculate where to move based on i
-		var changePos = [offset[0] * realDistance, offset[1] * realDistance, offset[2] * realDistance];
-		if (controls_shiftPressed) {
-			changePos[0] = snapTo(changePos[0], editor_snapAmount);
-			changePos[1] = snapTo(changePos[1], editor_snapAmount);
-			changePos[2] = snapTo(changePos[2], editor_snapAmount);
-		}
-
-		//if position has changed, update self
-		if (changePos[0] || changePos[1] || changePos[2]) {
-			this.move(changePos[0], changePos[1], changePos[2]);
-		}
-	}
-
-	updateLengthWithCursor(offset, propertySTRING) {
-		//this is a copy + modify from posWithCursor, see that for comments
-		var oldVal = eval(propertySTRING);
-		var screenOffset = spaceToScreen([this.x + offset[0], this.y + offset[1], this.z + offset[2]]); 
-		var center = spaceToScreen([this.x, this.y, this.z]);
-		var xDist = center[0] - screenOffset[0];
-		var yDist = center[1] - screenOffset[1];
-		var distance = Math.sqrt(xDist * xDist + yDist * yDist);
-		var rayLength = rotate(cursor_x - screenOffset[0], -1 * (cursor_y - screenOffset[1]), -1 * (Math.atan2(screenOffset[0] - center[0], screenOffset[1] - center[1]) - (Math.PI * 0.5)))[0];
-
-		var realDistance = rayLength / distance;
-		eval(`${propertySTRING} += ${realDistance};`);
-		if (controls_shiftPressed) {
-			eval(`${propertySTRING} = snapTo(${propertySTRING}, editor_snapAmount);`);
-		}
-		if (oldVal != eval(propertySTRING)) {
-			this.construct();
-			//binary tree doesn't need updating because updating a size can't change the planes
-		}
-	}
-
-	updateAngleWithCursor(offset, propertySTRING) {
-
-	}
-
-	giveStringData() {
-		return `ERROR: STRING DATA NOT DEFINED FOR OBJECT ${this.constructor.name}`;
-	}
-}
-
-//abstract class for storing multiple arbitrary faces in an object
-class CustomObject extends EditableWorldObject {
-	constructor(x, y, z, faceData) {
-		super(x, y, z);
-	}
-}
 
 
-
-
+//main polygon class
 class FreePoly extends EditableWorldObject {
 	constructor(points, color) {
 		super(undefined, undefined, undefined);
@@ -208,7 +20,7 @@ class FreePoly extends EditableWorldObject {
 	beDrawn() {
 		drawWorldPoly(this.points, this.color);
 		if (editor_active) {
-			if ((this.parent || this) == editor_selected) {
+			if ((this.parent || this) == editor_objSelected) {
 				ctx.strokeStyle = color_selection;
 				ctx.stroke();
 			}
@@ -263,8 +75,23 @@ class FreePoly extends EditableWorldObject {
 	}
 
 	calculateNormal() {
-		//getting self's xyz
-		[this.x, this.y, this.z] = avgArray(this.points);
+		//get xyz
+		var mins = [1e9, 1e9, 1e9];
+		var maxs = [-1e9, -1e9, -1e9];
+		this.points.forEach(p => {
+			mins[0] = Math.min(p[0], mins[0]);
+			mins[1] = Math.min(p[1], mins[1]);
+			mins[2] = Math.min(p[2], mins[2]);
+
+			maxs[0] = Math.max(p[0], maxs[0]);
+			maxs[1] = Math.max(p[1], maxs[1]);
+			maxs[2] = Math.max(p[2], maxs[2]);
+		});
+
+		this.x = (mins[0] + maxs[0]) / 2;
+		this.y = (mins[1] + maxs[1]) / 2;
+		this.z = (mins[2] + maxs[2]) / 2;
+		
 
 		//calculate normal
 		//every shape has to have at least 3 points, so points 2+3 are compared to 1
