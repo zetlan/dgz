@@ -40,7 +40,8 @@ var editor_topBarHeight = 0.1;
 //editor variables that are edited by the user
 var editor_active = false;
 let editor_clipboard = undefined;
-let editor_selected = undefined;
+let editor_objSelected = undefined;
+let editor_meshSelected
 var editor_worldRelative = false;
 
 var loading_randVal = 1.241;
@@ -59,6 +60,7 @@ var world_time = 0;
 let world_listing = [];
 
 var render_crosshairSize = 3;
+var render_crosshairDivide = 6;
 var render_clipDistance = 0.1;
 var render_identicalPointTolerance = 0.0001;
 var render_normalLength = 1;
@@ -132,15 +134,18 @@ function main() {
 
 	//crosshair 2
 	if (editor_active) {
-		ctx.strokeStyle = "#FFF";
+		if (loading_world.meshes.indexOf(editor_meshSelected) == -1) {
+			editor_meshSelected = loading_world.meshes[0];
+		}
 		//starting pos
 		var center = polToCart(player.theta, player.phi, 25);
 		center = [center[0] + player.x, center[1] + player.y, center[2] + player.z];
 		drawCrosshair(center, [render_crosshairSize, 0, 0], [0, render_crosshairSize, 0], [0, 0, render_crosshairSize]);
 
 		//editor object
-		if (editor_selected != undefined) {
-			editor_selected.beDrawn_editor();
+		editor_meshSelected.beDrawn_editor();
+		if (editor_objSelected != undefined) {
+			editor_objSelected.beDrawn_editor();
 		}
 
 		//editor overlay
@@ -157,6 +162,34 @@ function main() {
 
 //input handling
 function handleKeyPress(a) {
+	//editor-specific functions keys
+	if (editor_active && controls_commandPressed) {
+		var used = false;
+		switch (a.keyCode) {
+			//c for copying
+			case 67:
+				if (editor_objSelected != undefined) {
+					//copy the point if has a point selected, if not copy the whole object instead
+					if (editor_objSelected.pointSelected != undefined || editor_objSelected.pointSelected == -1) {
+						editor_clipboard = editor_objSelected.giveStringData();
+					}
+				}
+				used = true;
+				break;
+			//d, for deselecting
+			case 68:
+				if (editor_objSelected != undefined) {
+					editor_objSelected = undefined;
+				}
+				used = true;
+				break;
+		}
+		if (used) {
+			a.preventDefault();
+			return;
+		}
+	}
+
 	switch(a.keyCode) {
 		//player controls
 		// a/d
@@ -218,44 +251,22 @@ function handleKeyPress(a) {
 		//editor-only keys
 		case 8:
 			//delete
-			if (editor_selected != undefined) {
+			if (editor_objSelected != undefined) {
 				//if it's not a freePoly, (or it's a freePoly and no point is selected)delete the object.
-				if (editor_selected.pointSelected == undefined || editor_selected.pointSelected == -1) {
-					loading_world.objects.splice(loading_world.objects.indexOf(editor_selected), 1);
-					editor_selected = undefined;
+				if (editor_objSelected.pointSelected == undefined || editor_objSelected.pointSelected == -1) {
+					editor_meshSelected.objects.splice(editor_meshSelected.objects.indexOf(editor_objSelected), 1);
+					editor_objSelected = undefined;
 					loading_world.generateBinTree();
 				} else {
 					//if it's a point selected, remove that point
-					editor_selected.points.splice(editor_selected.pointSelected, 1);
-					editor_selected.determineHandlePositions();
-					editor_selected.pointSelected = -1;
-				}
-				
-			}
-			break;
-	}
-
-	//editor-specific functions keys
-	if (editor_active && controls_commandPressed) {
-		switch (a.keyCode) {
-			//c for copying
-			case 67:
-				if (editor_selected != undefined) {
-					//copy the point if has a point selected, if not copy the whole object instead
-					if (editor_selected.pointSelected != undefined || editor_selected.pointSelected == -1) {
-						editor_clipboard = editor_selected.giveStringData();
+					if (editor_objSelected.points.length > 2) {
+						editor_objSelected.points.splice(editor_objSelected.pointSelected, 1);
+						editor_objSelected.determineHandlePositions();
+						editor_objSelected.pointSelected = -1;
 					}
 				}
-				
-				break;
-			//d, for deselecting
-			case 68:
-				if (editor_selected != undefined) {
-					editor_selected = undefined;
-				}
-				break;
-		}
-		a.preventDefault();
+			}
+			break;
 	}
 }
 
@@ -350,13 +361,13 @@ function handleMouseDown(a) {
 		//top bar stuff
 		editor_handleClick();
 		if (cursor_y > canvas.height * editor_topBarHeight) {
-			if (editor_selected != undefined) {
-				editor_selected.handleClick();
-				if (editor_selected.handleSelected != -1) {
+			if (editor_objSelected != undefined) {
+				editor_objSelected.handleClick();
+				if (editor_objSelected.handleSelected != -1) {
 					return;
 				}
 			}
-			editor_selected = selectPoly(loading_world.binTree);
+			editor_objSelected = selectPoly(editor_meshSelected.binTree);
 		}
 	}
 }
