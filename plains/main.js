@@ -29,20 +29,8 @@ var cursor_x = 0;
 var cursor_y = 0;
 var cursor_down = false;
 
-//editor numbers
-var editor_iconNum = 4;
-var editor_iconWidth = 0.2;
-var editor_iconSize = 0.03;
-var editor_snapAmount = 1;
-var editor_tolerance = 10;
-var editor_topBarHeight = 0.1;
-
-//editor variables that are edited by the user
+var editor = new Editor();
 var editor_active = false;
-let editor_clipboard = undefined;
-let editor_objSelected = undefined;
-let editor_meshSelected
-var editor_worldRelative = false;
 
 var loading_randVal = 1.241;
 var loading_world = undefined;
@@ -134,25 +122,7 @@ function main() {
 
 	//crosshair 2
 	if (editor_active) {
-		if (loading_world.meshes.indexOf(editor_meshSelected) == -1) {
-			editor_meshSelected = loading_world.meshes[0];
-		}
-		//starting pos
-		var center = polToCart(player.theta, player.phi, 25);
-		center = [center[0] + player.x, center[1] + player.y, center[2] + player.z];
-		drawCrosshair(center, [render_crosshairSize, 0, 0], [0, render_crosshairSize, 0], [0, 0, render_crosshairSize]);
-
-		//editor object
-		editor_meshSelected.beDrawn_editor();
-		if (editor_objSelected != undefined) {
-			editor_objSelected.beDrawn_editor();
-		}
-
-		//editor overlay
-		drawEditorOverlay();
-
-		//cursor
-		drawCircle(color_selection, cursor_x, cursor_y, 4);
+		editor.beDrawn();
 	}
 
 	//call self
@@ -358,17 +328,7 @@ function handleMouseMove(a) {
 function handleMouseDown(a) {
 	cursor_down = true;
 	if (editor_active) {
-		//top bar stuff
-		editor_handleClick();
-		if (cursor_y > canvas.height * editor_topBarHeight) {
-			if (editor_objSelected != undefined) {
-				editor_objSelected.handleClick();
-				if (editor_objSelected.handleSelected != -1) {
-					return;
-				}
-			}
-			editor_objSelected = selectPoly(editor_meshSelected.binTree);
-		}
+		editor.handleClick();
 	}
 }
 
