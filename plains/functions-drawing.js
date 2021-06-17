@@ -1,39 +1,4 @@
 //drawing functions
-function drawEditorOverlay() {
-	//bar at the top
-	ctx.fillStyle = color_editor_bg;
-	ctx.fillRect(0, 0, canvas.width, canvas.height * editor_topBarHeight);
-
-	//icons
-	var y = (canvas.height * editor_topBarHeight * 0.5);
-	var x;
-	for (var i=0; i<=editor_iconNum; i++) {
-		x = (canvas.width / editor_iconNum) * (i + 0.5) * editor_iconWidth;
-		drawEditorIcon(x - (canvas.height * editor_iconSize / 2), y - (canvas.height * editor_iconSize / 2), canvas.height * editor_iconSize, i);
-	}
-
-	y += canvas.height / 100;
-
-	//color
-	if (editor_objSelected != undefined) {
-		ctx.font = `${canvas.height/ 40}px Comfortaa`;
-		ctx.fillStyle = color_text_light;
-		ctx.fillText("#", canvas.width * 0.935, y);
-		for (var c=0; c<3; c++) {
-			ctx.fillText("▲", canvas.width * (0.945 + 0.015 * c), y - (canvas.height / 42));
-			ctx.fillText(editor_objSelected.color[c+1], canvas.width * (0.95 + 0.015 * c), y);
-			ctx.fillText("▼", canvas.width * (0.945 + 0.015 * c), y + (canvas.height / 50));
-		}
-	}
-
-	//world relative icons
-	ctx.globalAlpha = 0.2 + (0.8 * editor_worldRelative);
-	drawEditorIcon(canvas.width * (editor_iconWidth), canvas.height * ((editor_topBarHeight * 0.25) - (editor_iconSize / 2)), canvas.height * editor_iconSize, 100);
-	ctx.globalAlpha = 0.2 + (0.8 * !editor_worldRelative);
-	drawEditorIcon(canvas.width * (editor_iconWidth), canvas.height * ((editor_topBarHeight * 0.75) - (editor_iconSize / 2)), canvas.height * editor_iconSize, 101);
-	ctx.globalAlpha = 1;
-}
-
 function drawEditorIcon(ex, why, size, type) {
 	ctx.fillStyle = color_editor_defaultPoly;
 
