@@ -81,52 +81,6 @@ function editor_createObject(ID) {
 	}
 }
 
-function editor_handleClick() {
-	//don't do if invalid height
-	if (cursor_y > canvas.height * editor_topBarHeight) {
-		return;
-	}
-
-	var yHalf = (cursor_y < canvas.height * editor_topBarHeight * 0.5);
-	//create objects
-	if (cursor_x < canvas.width * editor_iconWidth) {
-		var size = canvas.height * editor_iconSize;
-		var y = (canvas.height * editor_topBarHeight * 0.5);
-		for (var i=0; i<=editor_iconNum; i++) {
-			var x = (canvas.width / editor_iconNum) * (i + 0.5) * editor_iconWidth;
-			if (Math.abs(cursor_x - x) < size * 0.8 && Math.abs(cursor_y - y) < size * 0.8) {
-				editor_createObject(i);
-				return;
-			}
-		}
-		return;
-	}
-
-	//edit reference frame
-	if (cursor_x < canvas.width * (editor_iconWidth + editor_iconSize)) {
-		editor_worldRelative = yHalf;
-		console.log(yHalf);
-		return;
-	}
-	
-
-	//editing color
-	if (cursor_x > canvas.width * 0.94) {
-		if (editor_objSelected != undefined) {
-			y += canvas.height / 100;
-			//determine which color part to edit
-			var part = Math.floor((((cursor_x / canvas.width) - 0.94) / 0.02));
-			if (part > -1 && part < 3) {
-				var direction = boolToSigned(yHalf);
-				var newChar = colorKey[modulate(colorKey.indexOf(editor_objSelected.color[part+1])+direction, colorKey.length)];
-				editor_objSelected.color = editor_objSelected.color.substring(0, part+1) + newChar + editor_objSelected.color.substring(part+2, editor_objSelected.color.length);
-			}
-		}
-		return;
-	}
-	
-}
-
 function generateStarSphere() {
 	for (var e=0;e<star_number;e++) {
 		var pos = polToCart(
