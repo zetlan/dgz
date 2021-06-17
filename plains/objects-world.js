@@ -19,47 +19,14 @@ class FreePoly extends EditableWorldObject {
 
 	beDrawn() {
 		drawWorldPoly(this.points, this.color);
-		if (editor_active) {
-			if ((this.parent || this) == editor_objSelected) {
-				ctx.strokeStyle = color_selection;
-				ctx.stroke();
-			}
-		}
 
 		if (editor_active && !isClipped([[this.x, this.y, this.z]])) {
 			//draw self's normal as well
 			var off = polToCart(this.normal[0], this.normal[1], render_normalLength);
-			ctx.beginPath();
 			ctx.strokeStyle = color_selection;
 			drawWorldLine([this.x, this.y, this.z], [off[0] + this.x, off[1] + this.y, off[2] + this.z]);
 			ctx.stroke();
 		}
-	}
-
-	beDrawn_firstThreeHandles() {
-		//editor handle stuff
-		var handlePoints = [];
-		for (var u=this.handles.length-1; u>=3; u--) {
-			handlePoints[u] = [this.x + this.handles[u][0], this.y + this.handles[u][1], this.z + this.handles[u][2]];
-		}
-		if (this.pointSelected == -1) {
-			for (var u=2; u>=0; u--) {
-				handlePoints[u] = [this.x + this.handles[u][0], this.y + this.handles[u][1], this.z + this.handles[u][2]];
-			}
-		} else {
-			var pRef = this.points[this.pointSelected];
-			for (var u=2; u>=0; u--) {
-				handlePoints[u] = [pRef[0] + this.handles[u][0], pRef[1] + this.handles[u][1], pRef[2] + this.handles[u][2]];
-			}
-		}
-
-		//RGB color coding, for gamers
-		if (this.pointSelected == -1) {
-			drawCrosshair([this.x, this.y, this.z], this.handles[0], this.handles[1], this.handles[2]);
-		} else {
-			drawCrosshair(this.points[this.pointSelected], this.handles[0], this.handles[1], this.handles[2]);
-		}
-		return handlePoints;
 	}
 
 	calculateCollision() {
@@ -223,89 +190,24 @@ class FreePoly extends EditableWorldObject {
 		return [inPart, outPart];
 	}
 
-	determineHandlePositions() {
-		this.handles = [];
-		super.determineHandlePositions();
-		
-		//add a handle for each point and each in-between point
-		for (var p=0; p<this.points.length; p++) {
-			this.handles[2 * p + 3] = [this.points[p][0] - this.x, this.points[p][1] - this.y, this.points[p][2] - this.z];
-			this.handles[2 * p + 4] = [(this.points[p][0] + this.points[(p+1)%this.points.length][0]) / 2 - this.x, (this.points[p][1] + this.points[(p+1)%this.points.length][1]) / 2 - this.y, (this.points[p][2] + this.points[(p+1)%this.points.length][2]) / 2 - this.z];
-		}
-		this.handles[(2 * this.points.length) + 3] = [0, 0, 0];
-	}
-
-	handleClick() {
-		//I could probably organize this better but I'm lazy
-		var reqDist = editor_tolerance;
-		var point;
-		for (var a=0; a<this.handles.length; a++) {
-			if (a < 3 && this.pointSelected != -1) {
-				var ref = this.points[this.pointSelected];
-				point = [ref[0] + this.handles[a][0], ref[1] + this.handles[a][1], ref[2] + this.handles[a][2]];
-			} else {
-				point = [this.x + this.handles[a][0], this.y + this.handles[a][1], this.z + this.handles[a][2]];
-			}
-			if (!isClipped(point)) {
-				var coords = spaceToScreen(point);
-				var xDist = cursor_x - coords[0];
-				var yDist = cursor_y - coords[1];
-				var trueDist = Math.sqrt(xDist * xDist + yDist * yDist);
-				if (trueDist < reqDist) {
-					reqDist = trueDist;
-					this.handleSelected = a;
-				}
-			}
-		}
-	}
-
-	handleHandles() {
-		if (this.pointSelected == -1) {
-			super.handleHandles();
-			return;
-		}
-		if (this.handleSelected < 3) {
-			this.updatePointWithCursor(this.handles[this.handleSelected]);
-		}
-		if (!cursor_down) {
-			this.handleSelected = -1;
-		}
-	}
-
 	move(changeXBy, changeYBy, changeZBy) {
 		//update all points
 		this.points.forEach(p => {
 			p[0] += changeXBy;
 			p[1] += changeYBy;
 			p[2] += changeZBy;
+
+			//snap points if it's that time
+			if (controls_shiftPressed) {
+				p[0] = snapTo(p[0], editor_snapAmount);
+				p[1] = snapTo(p[1], editor_snapAmount);
+				p[2] = snapTo(p[2], editor_snapAmount);
+			}
 		});
 		super.move(changeXBy, changeYBy, changeZBy);
 	}
 
 	tick() {
-		if (this.handleSelected != -1) {
-			this.handleHandles();
-			if (this.handleSelected > 2) {
-				this.pointSelected = (this.handleSelected - 3) / 2;
-				this.handleSelected = -1;
-
-				//if past all points, return to the center
-				if (this.pointSelected >= this.points.length) {
-					this.pointSelected = -1;
-				}
-				//if in between points, create a new point
-				if (this.pointSelected % 1 != 0) {
-					var pOff = [Math.floor(this.pointSelected), Math.ceil(this.pointSelected) % this.points.length];
-					var pRef = this.points;
-					pRef.splice(pOff[0]+1, 0, [(pRef[pOff[0]][0] + pRef[pOff[1]][0]) / 2, (pRef[pOff[0]][1] + pRef[pOff[1]][1]) / 2, (pRef[pOff[0]][2] + pRef[pOff[1]][2]) / 2]);
-
-					this.pointSelected = pOff[0] + 1;
-				}
-			}
-			if (this.pointSelected != -1) {
-				this.determineHandlePositions();
-			}
-		}
 		if (noclip_active) {
 			return;
 		}
