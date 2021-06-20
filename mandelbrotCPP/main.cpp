@@ -5,23 +5,28 @@
 #include <chrono>
 #include <thread>
 
+#include <unistd.h>
+
 using namespace std;
 
 //compiler replacements
-#define name "Mandelbrot render"
 #define width 640
 #define height 480
 #define pi 3.14159265358979
 
 //constants (yes these are different no don't worry about it)
-const int numThreads = 4;
+const int numThreads = 8;
 
 //changing variables
+bool doMaxIncrease = false;
+int threadsFinished = 0;
 int maxIterations = 255;
 float scale = 100.0;
 float scaleFactor = 1.1;
 double xOffset = -0.07487076188491468;
 double yOffset = 0.9706526589050497;
+
+int pixelArr[height][width];
 
 void render();
 void renderSingleThreaded();
@@ -47,18 +52,15 @@ class MandelCompute {
 		}
 
 		void run() {
-			cout << "creating thread" << endl;
-			thread t1([this] {this->doRows();});
-			cout << "created thread!" << endl;
-			//this->doRows();
+			thread t1 = thread([this] {this->doRows();});
+			t1.detach();
 		}
-	private:
 		void doRows() {
-			//cout << "starting row drawing" << endl;
 			for (int y=this->rowStart; y<height/2; y+=this->rowJumpBy) {
+				//cout << "would call drawRow()" << endl;
 				this->drawRow(y);
 			}
-			//cout << "row drawing finished" << endl;
+			threadsFinished += 1;
 		}
 
 		void drawRow(int y) {
@@ -68,7 +70,7 @@ class MandelCompute {
 			double xt;
 			double newX;
 			double newY;
-			for (int x=-width; x<width; x++) {
+			for (int x=-width/2; x<width/2; x++) {
 				//computation for a pixel
 				newX = ((double)x / scale) + xOffset;
 				newY = ((double)y / scale) + yOffset;
@@ -86,12 +88,15 @@ class MandelCompute {
 					zx = zx * zx - zy * zy + newX;
 					zy = 2 * xt + newY;
 				}
-				glColor3f((1.0 * i) / maxIterations, (1.0 * i) / maxIterations, (1.0 * i) / maxIterations);
-				glVertex2i(x, y);
+				pixelArr[y+(height/2)][x+(width/2)] = i;
 			}
 		}
 };
 MandelCompute computeListing[numThreads] = {};
+
+void doAThing() {
+	cout << "This is a thing I guess" << endl;
+}
 
 int main() {
 	cout << "main starting" << endl;
@@ -101,13 +106,15 @@ int main() {
 
 	GLFWwindow *window;
 
+	thread zthread(&doAThing);
+
 	// Initialize the library
 	if (!glfwInit()) {
 		return -1;
 	}
 
 	// Create a windowed mode window and its OpenGL context
-	window = glfwCreateWindow(width, height, name, NULL, NULL);
+	window = glfwCreateWindow(width, height, "Mandelbrot render", NULL, NULL);
 
 	// Terminate the window if it refuses to open
 	if (!window) {
@@ -162,34 +169,39 @@ void setup() {
 
 
 void render() {
-	cout << "starting main render method" << endl;
 	scale *= scaleFactor;
 	//loop through all pixels
 	glClearColor(0.0, 0.0, 0.0, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT);
 	glBegin(GL_POINTS);
 
-	cout << "branching" << endl;
-	//renderSingleThreaded();
-	renderMultiThreaded();
-
-	
-	cout << "complete??" << endl;
-	glEnd();
-	glFlush();
-}
-
-void renderSingleThreaded() {
-}
-
-void renderMultiThreaded() {
-	cout << "starting mult render" << endl;
+	threadsFinished = 0;
 	for (int i=0; i<numThreads; i++) {
 		computeListing[i].run();
 	}
-}
 
-void drawRow(int y) {
+	//wait until all threads are done, then draw
+	while (threadsFinished < numThreads) {
+		//0.1 seconds
+		usleep(100);
+	}
+
+	// //now draw everything
+	for (int x=0; x<width; x++) {
+		for (int y=0; y<height; y++) {
+			glColor3f((1.0 * pixelArr[y][x]) / maxIterations, (1.0 * pixelArr[y][x]) / maxIterations, (1.0 * pixelArr[y][x]) / maxIterations);
+			glVertex2i(x - width / 2, y - height / 2);
+			if (pixelArr[y][x] == maxIterations) {
+				doMaxIncrease = true;
+			}
+		}
+	}
+
+	if (doMaxIncrease == true) {
+		maxIterations += 10;
+	}
+	glEnd();
+	glFlush();
 }
 
 void handleKeyPress(unsigned char key, int x, int y) {
