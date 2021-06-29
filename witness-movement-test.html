@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+	<!--
+		test thingy
+		Copyright Cynthia Clementine, June-29-2021
+	-->
+	<head>
+		<title>when the cursor</title>
+		<meta charset="utf-8">
+		<style>
+			body {
+				background-color: slateblue;
+			}
+
+			#canv {
+				margin: auto;
+				text-align: center;
+				display: block;
+			}
+
+			#centerModule {
+				text-align: center;
+				margin: auto;
+			}
+		</style>
+		<script type="text/javascript">
+			//input setup
+			document.addEventListener('pointerlockchange', handleCursorLockChange, false);
+			document.addEventListener('mozpointerlockchange', handleCursorLockChange, false);
+
+			//variables
+			let animation;
+			var movementType = 0;
+			var squares = 10;
+			
+			var cursor_x = 0;
+			var cursor_y = 0;
+			var cursor_r = 5;
+			
+			const color_bg = "#000";
+			const color_lines = "#888";
+			const color_cursor = "#FFF";
+
+
+			//functions
+			function setup() {
+				canvas = document.getElementById("canvas");
+				ctx = canvas.getContext("2d");
+				ctx.lineWidth = 4;
+				ctx.lineJoin = "round";
+				ctx.font = "20px Century Gothic";
+				ctx.textAlign = "center";
+
+				//cursor setup
+				canvas.requestPointerLock = canvas.requestPointerLock || canvas.mozRequestPointerLock;
+				document.exitPointerLock = document.exitPointerLock || document.mozExitPointerLock;
+
+				canvas.onclick = function() {canvas.requestPointerLock();}
+
+				animation = window.requestAnimationFrame(draw);
+			}
+
+			
+			
+			function draw() {
+				var sqSize = canvas.height / squares;
+				//bg
+				ctx.fillStyle = color_bg;
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+				//loop through rows, draw those, then loop through columns, draw those
+				ctx.beginPath();
+				ctx.strokeStyle = color_lines;
+				for (var a=1; a<squares-1; a++) {
+					ctx.moveTo(a * sqSize, sqSize);
+					ctx.lineTo(a * sqSize, canvas.height - sqSize);
+				}
+				for (var b=1; b<squares-1; b++) {
+					ctx.moveTo(sqSize, b * sqSize);
+					ctxx.lineTo(canvas.height - sqSize, b * sqSize);
+				}
+				ctx.stroke();
+
+				
+				//draw cursor
+				ctx.fillStyle = color_cursor;
+				ctx.beginPath();
+				ctx.ellipse((cursor_x + 1) * sqSize, (cursor_y + 1) * sqSize, cursor_r, cursor_r, 0, 0, Math.PI * 2);
+				ctx.fill();
+
+			}
+
+
+
+			//actual cursor handling
+			function handleMouseMove() {
+				if (movementType == 0) {
+					//detecting if cursor is on a vertical or horizontal line. If x is whole, line is vertical.
+					var lineType = (cursor_x % 1 == 0) * 1;
+					
+				} else {
+
+				}
+			}
+		
+		</script>
+	</head>
+	<body>
+		<div id="centerModule">
+		<canvas id="canv" width="400" height="400"></canvas><br>
+		<input type="checkbox" id="haveHighResolution"><label for="haveHighResolution">Alternate cursor movement</label><br>
+		</div>
+	</body>
+</html>
