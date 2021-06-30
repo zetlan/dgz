@@ -4,6 +4,7 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <cstdlib>
 
 #include <unistd.h>
 
@@ -15,7 +16,7 @@ using namespace std;
 #define pi 3.14159265358979
 
 //constants (yes these are different no don't worry about it)
-const int numThreads = 8;
+const int numThreads = 7;
 
 //changing variables
 bool doMaxIncrease = false;
@@ -65,15 +66,15 @@ class MandelCompute {
 
 		void drawRow(int y) {
 			int i;
-			double zx;
-			double zy;
-			double xt;
-			double newX;
-			double newY;
+			long double zx;
+			long double zy;
+			long double xt;
+			long double newX;
+			long double newY;
 			for (int x=-width/2; x<width/2; x++) {
 				//computation for a pixel
-				newX = ((double)x / scale) + xOffset;
-				newY = ((double)y / scale) + yOffset;
+				newX = ((long double)x / scale) + xOffset;
+				newY = ((long double)y / scale) + yOffset;
 				
 				i = 0;
 				zx = 0;
@@ -182,18 +183,45 @@ void render() {
 
 	//wait until all threads are done, then draw
 	while (threadsFinished < numThreads) {
-		//0.1 seconds
-		usleep(100);
+		//1/50th second
+		usleep(20);
 	}
 
 	// //now draw everything
+	float compound = 0.6 * 0.75;
+	float invCompound = 0.6 * 0.25;
 	for (int x=0; x<width; x++) {
 		for (int y=0; y<height; y++) {
-			glColor3f((1.0 * pixelArr[y][x]) / maxIterations, (1.0 * pixelArr[y][x]) / maxIterations, (1.0 * pixelArr[y][x]) / maxIterations);
-			glVertex2i(x - width / 2, y - height / 2);
+			//actually drawing pixel
 			if (pixelArr[y][x] == maxIterations) {
 				doMaxIncrease = true;
+				glColor3f(0, 0, 0);
+			} else {
+				//get RGB value from iterations
+				float mystery1 = compound * (1 - abs(fmod(4.0 * pixelArr[y][x] / 60, 2) - 1));
+
+				switch((int)(floor(4.0 * pixelArr[y][x] / 60))) {
+					case 0:
+						glColor3f(compound + invCompound, mystery1 + invCompound, invCompound);
+						break;
+					case 1:
+						glColor3f(mystery1 + invCompound, compound + invCompound, invCompound);
+						break;
+					case 2:
+						glColor3f(invCompound, compound + invCompound, mystery1 + invCompound);
+						break;
+					case 3:
+						glColor3f(invCompound, mystery1 + invCompound, compound + invCompound);
+						break;
+					case 4:
+						glColor3f(mystery1 + invCompound, invCompound, compound + invCompound);
+						break;
+					case 5:
+						glColor3f(compound + invCompound, invCompound, mystery1 + invCompound);
+						break;
+				}
 			}
+			glVertex2i(x - width / 2, y - height / 2);
 		}
 	}
 

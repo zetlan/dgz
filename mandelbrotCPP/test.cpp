@@ -1,44 +1,58 @@
-//shamelessly stolen code from https://methi1999.github.io/2020/08/19/opengl.html
-//I have no idea what I'm doing
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+#include <math.h>
 
-#include <GL/glew.h> // include GLEW and new version of GL on Windows
-#include <GLFW/glfw3.h> // GLFW helper library for window management
-#include <iostream> //for cout
+//for compilation: 
 
-int main (int argc, char** argv) {
-  // start GL context and O/S window using the GLFW helper library
-  if (!glfwInit ()) {
-      std::cerr<<"ERROR: could not start GLFW3"<<std::endl;
-      return 1;
-    } 
+#define PROJECT_NAME "Project Name"
+#define SCREEN_WIDTH 800
+#define SCREEN_HEIGHT 800
 
-  //Setting window properties
-  glfwWindowHint (GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint (GLFW_CONTEXT_VERSION_MINOR, 2);
-  glfwWindowHint (GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-  glfwWindowHint (GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  
-  //Actually create the window
-  GLFWwindow* window = glfwCreateWindow (640, 480, "OpenGL Initialization Example", NULL, NULL);
-  if (!window) 
-    {
-      std::cerr<<"ERROR: could not open window with GLFW3"<<std::endl;
-      glfwTerminate();
-      return 1;
-    }
-  glfwMakeContextCurrent (window);
-                                  
-  // start GLEW extension handler
-  glewExperimental = GL_TRUE;
-  glewInit ();
+void render();
 
-  // get version info
-  const GLubyte* renderer = glGetString (GL_RENDERER); // get renderer string
-  const GLubyte* version = glGetString (GL_VERSION); // version as a string
-  std::cout<<"Renderer: "<<renderer<<std::endl;
-  std::cout<<"OpenGL version supported "<<version<<std::endl;
+int main() {
+	double background_color[] = {0.5, 1, 1};
+	//main vars
 
-  // close GL context and any other GLFW resources
-  glfwTerminate();
-  return 0;
+	GLFWwindow *window;
+
+	// Initialize the library
+	if (!glfwInit()) {
+		return -1;
+	}
+
+	// Create a windowed mode window and its OpenGL context
+	window = glfwCreateWindow( SCREEN_WIDTH, SCREEN_HEIGHT, PROJECT_NAME, NULL, NULL );
+
+	// Terminate the window if it refuses to open
+	if (!window) {
+		glfwTerminate();
+		return -1;
+	}
+
+	// Make the window's context current
+	glfwMakeContextCurrent(window);
+
+	// Loop until the user closes the window
+	while ( !glfwWindowShouldClose(window)) {
+		glClearColor(background_color[0], background_color[1], background_color[2], true);
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		render();
+
+
+		// Swap front and back buffers
+		glfwSwapBuffers(window);
+
+		// Poll for and process events
+		glfwPollEvents();
+	}
+
+	glfwTerminate();
+	return 0;
+}
+
+
+void render() {
+	//loop through all pixels
 }
