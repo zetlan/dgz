@@ -43,6 +43,7 @@
 
             var highestI = 0;
             var secondHighestI = 0;
+            var coordStorage = {};
 
             var canvas;
             var ctx;
@@ -86,26 +87,33 @@
             }
 
             function drawRow(y) {
+                var i;
+                var cx;
+                var cy;
+                var zx;
+                var zy;
                 for (var x=0;x<canvas.width/pixelSize;x++) {
                     /*initializing variables. i is number of iterations, 
                     cx/cy are starting coordinates (stay the same), 
-                    and zx/zy are iterating coordiantes (change with every iteration) */
-                    var i = 0;
-                    var cx = ((x * pixelSize) / scale) + cornerCoords[0];
-                    var cy = ((y * pixelSize) / scale) + cornerCoords[1];
-                    var zx = 0;
-                    var zy = 0;
+                    and zx/zy are iterating coordinates (change with every iteration) */
+                    i = 0;
+                    cx = ((x * pixelSize) / scale) + cornerCoords[0];
+                    cy = ((y * pixelSize) / scale) + cornerCoords[1];
+                    zx = 0;
+                    zy = 0;
+
                     //main processing loop
-                    while(i<maxIterations && (zx*zx+zy*zy)<4) {
+                    while(i < maxIterations && zx * zx + zy * zy < 4) {
                         i += 1;
                         //these are kind of cheaty, I can get away with not using complex numbers with this formula
                         //xt = z
-                        xt = zx * zy;
+                        xt = 2 * zx * zy;
                         //z = z^2 + c
                         zx = zx * zx - zy * zy + cx;
-                        zy = 2 * xt + cy;
+                        zy = xt + cy;
                     }
-                    //drawing colors based on i (iterations before escape)
+
+                    //draw colors based on i
 
                     var color;
                     if (i != maxIterations) {
