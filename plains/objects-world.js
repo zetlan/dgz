@@ -119,7 +119,6 @@ class FreePoly extends EditableWorldObject {
 
 	construct() {
 		this.calculateNormal();
-		this.determineHandlePositions();
 		this.calculateCollision();
 	}
 
