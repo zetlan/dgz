@@ -25,45 +25,54 @@
 		</style>
 		<script type="text/javascript">
 			//input setup
+			window.onload = setup;
 			document.addEventListener('pointerlockchange', handleCursorLockChange, false);
 			document.addEventListener('mozpointerlockchange', handleCursorLockChange, false);
 
 			//variables
 			let animation;
-			var movementType = 0;
-			var squares = 10;
+			var squares = 8;
+			var sqSize;
 			
 			var cursor_x = 0;
 			var cursor_y = 0;
 			var cursor_r = 5;
+			var cursor_sens = 100;
 			
-			const color_bg = "#000";
-			const color_lines = "#888";
+			const color_bg = "#002";
+			const color_lines = "#668";
 			const color_cursor = "#FFF";
 
 
 			//functions
 			function setup() {
-				canvas = document.getElementById("canvas");
+				canvas = document.getElementById("canv");
 				ctx = canvas.getContext("2d");
-				ctx.lineWidth = 4;
+				sqSize = canvas.height / squares;
+				ctx.lineWidth = cursor_r * 2;
 				ctx.lineJoin = "round";
-				ctx.font = "20px Century Gothic";
-				ctx.textAlign = "center";
+				ctx.lineCap = "round";
 
-				//cursor setup
+				//cursor lock setup
 				canvas.requestPointerLock = canvas.requestPointerLock || canvas.mozRequestPointerLock;
 				document.exitPointerLock = document.exitPointerLock || document.mozExitPointerLock;
-
 				canvas.onclick = function() {canvas.requestPointerLock();}
 
+				//call main
 				animation = window.requestAnimationFrame(draw);
 			}
 
-			
+			//standard math functions
+			function clamp(num, min, max) {
+				return num <= min ? min : num >= max ? max : num;
+			}
+
+			function boolToSigned(boolValue) {
+				return boolValue * 2 - 1;
+			}
+
 			
 			function draw() {
-				var sqSize = canvas.height / squares;
 				//bg
 				ctx.fillStyle = color_bg;
 				ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -71,44 +80,102 @@
 				//loop through rows, draw those, then loop through columns, draw those
 				ctx.beginPath();
 				ctx.strokeStyle = color_lines;
-				for (var a=1; a<squares-1; a++) {
+				for (var a=1; a<squares; a++) {
 					ctx.moveTo(a * sqSize, sqSize);
 					ctx.lineTo(a * sqSize, canvas.height - sqSize);
 				}
-				for (var b=1; b<squares-1; b++) {
+				for (var b=1; b<squares; b++) {
 					ctx.moveTo(sqSize, b * sqSize);
-					ctxx.lineTo(canvas.height - sqSize, b * sqSize);
+					ctx.lineTo(canvas.height - sqSize, b * sqSize);
 				}
 				ctx.stroke();
 
-				
 				//draw cursor
 				ctx.fillStyle = color_cursor;
 				ctx.beginPath();
 				ctx.ellipse((cursor_x + 1) * sqSize, (cursor_y + 1) * sqSize, cursor_r, cursor_r, 0, 0, Math.PI * 2);
 				ctx.fill();
 
+				//call self
+				animation = window.requestAnimationFrame(draw);
+			}
+
+			function handleCursorLockChange() {
+				if (document.pointerLockElement === canvas || document.mozPointerLockElement === canvas) {
+					document.addEventListener("mousemove", handleMouseMove, false);
+				} else {
+					document.removeEventListener("mousemove", handleMouseMove, false);
+				}
 			}
 
 
-
 			//actual cursor handling
-			function handleMouseMove() {
-				if (movementType == 0) {
-					//detecting if cursor is on a vertical or horizontal line. If x is whole, line is vertical.
-					var lineType = (cursor_x % 1 == 0) * 1;
-					
-				} else {
+			function handleMouseMove(a) {
+				//input vars
+				var xOff = a.movementX / cursor_sens;
+				var yOff = a.movementY / cursor_sens;
+				var magniOff = Math.sqrt(xOff * xOff + yOff * yOff);
+				var unusedMagni = magniOff;
+				var usedMagni = 0;
 
+				//vars for movement calculation
+				var cXPc = cursor_x % 1;
+				var cYPc = cursor_y % 1;
+				var tolerance = (cursor_r / 2) / sqSize;
+				var intersectDist = 0;
+				var vertical = false;
+				var horizontal = false;
+
+				//always use all of the cursor force, even if most of it would normally be directed into a wall
+				while (unusedMagni > 0) {
+					//figure out what type of line the cursor is at, and the maximum distance they can go before reaching an intersection
+					//modulate by 1 to get cursor's position on a square
+					vertical = (cursor_x % 1 < tolerance || cursor_x % 1 > 1 - tolerance);
+					horizontal = (cursor_y % 1 < tolerance || cursor_y % 1 > 1 - tolerance);
+
+					//magnitude is 1 square (I made it 0.99 for safety) if at a corner
+					usedMagni = Math.min(0.99, unusedMagni);
+
+					//if in a corner, break down into one of the side cases
+					if (vertical && horizontal) {
+						//move along whichever axis is greater
+						if (Math.abs(xOff) > Math.abs(yOff)) {
+							vertical = false;
+						} else {
+							horizontal = false;
+						}
+					} else if (vertical) {
+						//for these cases, magnitude is the disatnce to the nearest corner
+						usedMagni = Math.min(Math.min(cYPc, 1 - cYPc), unusedMagni);
+					} else if (horizontal) {
+						usedMagni = Math.min(Math.min(cXPc, 1 - cXPc), unusedMagni);
+					}
+					
+					
+					if (vertical) {
+						//on a vertical line
+						cursor_y += usedMagni * boolToSigned(yOff > 0);
+						cursor_x = Math.round(cursor_x);
+					} else if (horizontal) {
+						//on a horizontal line
+						cursor_x += usedMagni * boolToSigned(xOff > 0);
+						cursor_y = Math.round(cursor_y);
+					} else {
+						console.log('oh no! :(');
+					}
+					unusedMagni -= usedMagni;
 				}
+
+				//clamping to be in bounds
+				cursor_x = clamp(cursor_x, 0, squares-2);
+				cursor_y = clamp(cursor_y, 0, squares-2);
 			}
 		
 		</script>
 	</head>
 	<body>
 		<div id="centerModule">
-		<canvas id="canv" width="400" height="400"></canvas><br>
-		<input type="checkbox" id="haveHighResolution"><label for="haveHighResolution">Alternate cursor movement</label><br>
+		<canvas id="canv" width="480" height="480"></canvas><br>
 		</div>
 	</body>
 </html>
