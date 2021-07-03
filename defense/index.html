@@ -1,14 +1,36 @@
-/*if( window.devicePixelRatio !== 1 ){
-    var c = document.getElementById('mycanvas') // your canvas
-    var w = c.width, h = c.height;
+<!DOCTYPE html>
+<html>
+	<!--
+		Defense v0.1
+		Copyright Cynthia Clementine, July-2-2021
+	-->
+	<head>
+		<title>completely original concept trust me</title>
+		<meta charset="utf-8">
+		<style>
+			body {
+				background-color: slateblue;
+			}
 
-    // scale the canvas by window.devicePixelRatio
-    c.setAttribute('width', w*window.devicePixelRatio);
-    c.setAttribute('height', h*window.devicePixelRatio);
+			#cabin {
+				margin: auto;
+				text-align: center;
+				display: block;
+			}
 
-    // use css to bring it back to regular size
-    c.setAttribute('style', 'width="'+w+'"; height="'+h+'";')
+			#centerModule {
+				text-align: center;
+				margin: auto;
+			}
+		</style>
 
-    // set the scale of the context
-    c.getContext('2d').scale(window.devicePixelRatio, window.devicePixelRatio);
-}*/
+        <script src="./common/functions-math.js"></script>
+		<script src="objects.js"></script>
+		<script src="main.js"></script>
+	</head>
+	<body>
+		<div id="centerModule">
+		<canvas id="cabin" width="640" height="480"></canvas><br>
+		</div>
+	</body>
+</html>
