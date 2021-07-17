@@ -39,6 +39,8 @@ function setup() {
 	canvas = document.getElementById("cabin");
 	ctx = canvas.getContext("2d");
 
+	loading_state = new State_Menu();
+
 	//retina scaling
 	// if(window.devicePixelRatio != 1) {
 	// 	var w = canvas.width;
@@ -60,19 +62,7 @@ function main() {
 	ctx.fillStyle = color_bg;
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-	switch (game_state) {
-		case 0:
-			doMainState();
-			break;
-		case 1:
-			doSwitchState();
-			break;
-	}
-	
-
-	//draw player
-	player.tick();
-	player.beDrawn();
+	loading_state.beRun();
 
 	game_time += 1;
 	page_animation = window.requestAnimationFrame(main);
@@ -81,8 +71,11 @@ function main() {
 function doMainState() {
 	//create object if time
 	if (game_time % game_params.ticksPerBeat == 0) {
-		var randInt = Math.floor(Math.random() * 3.99);
-		game_objs.push(new Projectile(randInt, game_params.bulletSpeed));
+		if ((game_level > 1 && Math.random() > Math.pow(0.99, game_level) || (game_level == 1 && game_time == game_params.ticksPerBeat * 15))) {
+			game_objs.push(new Projectile_Spinning(Math.floor(randomBounded(0, 3.999))));
+		} else {
+			game_objs.push(new Projectile(Math.floor(randomBounded(0, 3.999))));
+		}
 	}
 
 	//run through all objects, tick + draw
@@ -92,8 +85,14 @@ function doMainState() {
 
 		if (game_objs[h].destroy) {
 			game_objs.splice(h, 1);
+			player.projectsBlocked += 1;
 			h -= 1;
 		}
+	}
+
+	if (player.projectsBlocked % 16 == 0 && player.projectsBlocked != 0) {
+		game_state = 1;
+		player.projectsBlocked = 0;
 	}
 }
 
@@ -104,6 +103,7 @@ function doSwitchState() {
 
 		if (game_objs[h].destroy) {
 			game_objs.splice(h, 1);
+			player.projectsBlocked += 1;
 			h -= 1;
 		}
 	}
@@ -111,10 +111,16 @@ function doSwitchState() {
 	//decrease approach rate
 	game_params.bulletSpeed -= 0.06;
 	//wait until all bullets are offscreen
-	if (game_objs[0].distance > canvas.width / 2) {
+	if (game_objs[0].distance > canvas.width * 0.6) {
 		//change back to regular mode, apply effects
 		game_state = 0;
 		game_level += 1;
+		game_objs = [];
+		
+		if (game_params.ticksPerBeat > 4) {
+			game_params.ticksPerBeat = Math.floor(game_params.ticksPerBeat * 0.9);
+		}
+		game_params.bulletSpeed = (game_defaults.bulletSpeed * game_defaults.ticksPerBeat) / game_params.ticksPerBeat;
 	}
 }
 
@@ -140,13 +146,6 @@ function handleKeyPress(a) {
 
 
 
-
-
-
-//all other helper functions
-function linterp(value1, value2, percentage) {
-	return value1 + (percentage * (value2 - value1));
-}
 
 function cLinterp(color1HalfHex, color2HalfHex, percentage) {
 	//performing a linear interpolation on all 3 aspects
