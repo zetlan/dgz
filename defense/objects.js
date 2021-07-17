@@ -14,6 +14,8 @@ class Player {
 		this.shieldOffset = 10;
 		this.shieldSize = 7;
 		this.shieldCoverAngle = this.shieldSize / (this.shieldOffset * Math.PI);
+
+		this.projectsBlocked = 0;
 	}
 
 	tick() {
@@ -68,21 +70,25 @@ class Projectile {
 		this.r = 3;
 	}
 
+	calculateAngle() {
+
+	}
+
 	tick() {
-		this.distance -= game_params.bulletSpeed;
+		var speed = game_params.bulletSpeed;
+		this.distance -= speed;
+		this.calculateAngle();
 
 		//collide with shield if close enough
-		if (this.distance > player.shieldOffset - this.speed && this.distance < player.shieldOffset + this.speed) {
+		if (this.distance - this.r > player.shieldOffset - speed && this.distance - this.r < player.shieldOffset + speed) {
 			if (Math.abs(this.angle - player.angle) < player.shieldCoverAngle || Math.PI * 2 - Math.abs(this.angle - player.angle) < player.shieldCoverAngle) {
 				//collision case
 				this.destroy = true;
 				player.cooldown = 1;
+				audio_block.currentTime = 0;
 				audio_block.play();
 			}
-			
-		}
-
-		if (this.distance < 1) {
+		} else if (this.distance - this.r < 1) {
 			player.health -= 1;
 			this.destroy = true;
 			audio_damage.play();
@@ -98,3 +104,44 @@ class Projectile {
 }
 
 //modified projectiles
+class Projectile_Spinning extends Projectile {
+	constructor(direction) {
+		super(direction);
+		this.hitAngle = this.angle;
+		this.aMult = 0.01;
+	}
+
+	calculateAngle() {
+		this.angle = (this.hitAngle + (Math.PI * 2) - (this.aMult * player.shieldOffset) + (this.distance * this.aMult)) % (Math.PI * 2);
+	}
+}
+
+
+
+
+
+
+
+
+
+
+//game states
+class State_Infinite {
+	constructor() {
+
+	}
+
+	run() {
+		switch (game_state) {
+			case 0:
+				doMainState();
+				break;
+			case 1:
+				doSwitchState();
+				break;
+		}
+		//draw player
+		player.tick();
+		player.beDrawn();
+	}
+}
