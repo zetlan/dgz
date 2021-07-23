@@ -9,16 +9,26 @@ let animation;
 let ctx;
 let canvas;
 
+let camera;
+
+const color_attackBubble = "#3872FF";
 const color_background = "#226";
-const color_player1 = "#FF66FF";
-const color_player2 = "#66FF66";
+const color_foreground = "#64A";
+const color_meter_health = "#F44";
+const color_meter_stamina = "#FF4";
+const color_player = "#FF66FF";
 const color_sword = "#32688A";
+const color_text = "#882288";
 
-let player1;
-let player2;
+var editor_active = false;
 
-var world_cCoords = [1, 0, 19, 15];
-var world_sqSize = 32;
+let player;
+
+var world_cCoords = [1, 0, 15, 12];
+var world_outsideMapFade = 5;
+var world_outsideMapFadeConstant = 5;
+var world_squareSize = 60;
+var world_time = 0;
 
 
 //main functions
@@ -26,8 +36,14 @@ function setup() {
 	canvas = document.getElementById("poderVase");
 	ctx = canvas.getContext("2d");
 
-	player1 = new Player(0, 00, color_player1);
-	player2 = new Player(800, 500, color_player2);
+	camera = new Camera(0, 0, world_squareSize);
+	
+	player = new Player(1, 0, color_player);
+	
+	maps_load();
+
+	loading_map.entities.push(player);
+	player.map = loading_map;
 	animation = window.requestAnimationFrame(main);
 }
 
@@ -35,16 +51,30 @@ function main() {
 	//bege
 	ctx.fillStyle = color_background;
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
-	//draw players
-	player1.tick();
-	player1.beDrawn();
 
-	player2.tick();
-	player2.beDrawn();
+	camera.tick();
+	loading_map.tick();
+
+	loading_map.beDrawn();
+	player.beDrawn();
 
 	//draw map (health + stamina for each)
+	ctx.globalAlpha = 0.4;
+	ctx.fillStyle = color_player;
+	ctx.fillRect(0, 0, camera.scale, canvas.height);
+	ctx.globalAlpha = 1;
+
+	drawMeter(color_meter_health, (camera.scale / 9) * 1, canvas.height * 0.05, camera.scale / 3, canvas.height * 0.9, player.health / player.maxHealth);
+	drawMeter(color_meter_stamina, (camera.scale / 9) * 5, canvas.height * 0.05, camera.scale / 3, canvas.height * 0.9, player.stamina / player.maxStamina);
+
+	//alert if one player has won
+	if (player.health < 0) {
+		alert("You died.");
+		return;
+	}
 
 	animation = window.requestAnimationFrame(main);
+	world_time += 1;
 }
 
 function handleKeyPress(a) {
@@ -53,37 +83,18 @@ function handleKeyPress(a) {
 
 		//arrow keys + /
 		case 37:
-			player.ax = -1;
+			player.handleInput(false, 0);
 			break;
 		case 38:
-			player.ay = -1;
+			player.handleInput(false, 1);
 			break;
 		case 39:
-			player.ax = 1;
+			player.handleInput(false, 2);
 			break;
 		case 40:
-			player.ay = 1;
+			player.handleInput(false, 3);
 			break;
-		case 191:
-			player.attemptAttack();
-			break;
-
-
-		//player 2
-		//SEFD + A
-		case 83:
-			player.ax = -1;
-			break;
-		case 69:
-			player.ay = -1;
-			break;
-		case 70:
-			player.ax = 1;
-			break;
-		case 68:
-			player.ay = 1;
-			break;
-		case 65:
+		case 190:
 			player.attemptAttack();
 			break;
 	}
@@ -92,24 +103,16 @@ function handleKeyPress(a) {
 function handleKeyNegate(a) {
 	switch (a.keyCode) {
 		case 37:
-			if (player.ax < 0) {
-				player.ax = 0;
-			}
+			player.handleInput(true, 0);
 			break;
 		case 38:
-			if (player.ay < 0) {
-				player.ay = 0;
-			}
+			player.handleInput(true, 1);
 			break;
 		case 39:
-			if (player.ax > 0) {
-				player.ax = 0;
-			}
+			player.handleInput(true, 2);
 			break;
 		case 40:
-			if (player.ay > 0) {
-				player.ay = 0;
-			}
+			player.handleInput(true, 3);
 			break;
 	}
 }
@@ -118,4 +121,8 @@ function polToXY(startX, startY, angle, magnitude) {
 	var xOff = magnitude * Math.cos(angle);
 	var yOff = magnitude * Math.sin(angle);
 	return [startX + xOff, startY + yOff];
+}
+
+function spaceToScreen(x, y) {
+	return [(x - camera.cornerCoords[0]) * camera.scale, (y - camera.cornerCoords[1]) * camera.scale];
 }
