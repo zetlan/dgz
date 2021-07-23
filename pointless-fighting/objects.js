@@ -1,29 +1,132 @@
 
+//for camera movement
+class Camera {
+	constructor(x, y, zoom) {
+		this.scale = zoom;
+		this.x = x;
+		this.y = y;
+		this.cornerCoords = [x - ((canvas.width / 2) / zoom), y - ((canvas.height / 2) / zoom), x + ((canvas.width / 2) / zoom), y + ((canvas.height / 2) / zoom)];
+	}
+
+	tick() {
+		//target player
+		if (!editor_active) {
+			this.x = player.x;
+			this.y = player.y;
+		}
+
+		this.cornerCoords = [this.x - ((canvas.width / 2) / this.scale), this.y - ((canvas.height / 2) / this.scale), 
+							this.x + ((canvas.width / 2) / this.scale), this.y + ((canvas.height / 2) / this.scale)];
+	}
+}
+
+
+
+
 //map class, for maps y'know?
 class Zone {
-	constructor(offsetX, offsetY, collisionData) {
+	constructor(offsetX, offsetY, collisionData, exitData) {
 		this.x = offsetX;
 		this.y = offsetY;
 		this.data = collisionData;
 		this.entities = [];
+		this.connections = exitData;
+		if (this.connections == undefined) {
+			this.connections = [];
+		}
 	}
 
 	beDrawn() {
 		//draw self
 		ctx.fillStyle = color_foreground;
-		for (var y=0; y<this.data.length; y++) {
-			for (var x=0; x<this.data[y].length; x++) {
-				if (this.data[y][x] == 0) {
-					//draw square
-					ctx.fillRect(((this.x + x) * world_sqSize) + 1, ((this.y + y) * world_sqSize) + 1, world_sqSize - 2, world_sqSize - 2);
+		if (player.map == this) {
+			for (var y=0; y<this.data.length; y++) {
+				for (var x=0; x<this.data[y].length; x++) {
+					this.drawTile(x, y);
 				}
 			}
+		} else {
+			var store = ctx.globalAlpha;
+
+			var dist;
+			var xDist;
+			var yDist;
+			for (var y=0; y<this.data.length; y++) {
+				for (var x=0; x<this.data[y].length; x++) {
+					//figure out opacity based on distance
+					xDist = player.x - (this.x + x);
+					yDist = player.y - (this.y + y);
+					dist = Math.sqrt(xDist * xDist + yDist * yDist);
+					ctx.globalAlpha = Math.max(0, 1 - (dist / world_outsideMapFade));
+					this.drawTile(x, y);
+				}
+			}
+			ctx.globalAlpha = store;
 		}
+		
 
 		//draw entities
 		this.entities.forEach(e => {
 			e.beDrawn();
 		});
+
+		//if there's another map the player's about to go to, draw that as well
+		var mapNum;
+		if (player.map == this) {
+			//if the player's coordinates round to a map square, show the map but with more fade
+			try {
+				if (this.data[Math.round(player.y) - this.y][Math.round(player.x) - this.x] > 0) {
+					var xDist = player.x - player.lastPos[0];
+					var yDist = player.y - player.lastPos[1];
+					world_outsideMapFade = world_outsideMapFadeConstant * (1 - Math.sqrt(xDist * xDist + yDist * yDist));
+					mapNum = this.data[Math.round(player.y) - this.y][Math.round(player.x) - this.x] - 1;
+				}
+			} catch (er) {
+				//player is off the map, nothing needs to be done because in this case they're leaving / entering
+			}
+
+			if (mapNum == undefined) {
+				//if the player is on a map square, they'll obviously show the new map
+				try {
+					if (this.data[player.lastPos[1] - this.y][player.lastPos[0] - this.x] > 0) {
+						mapNum = this.data[player.lastPos[1] - this.y][player.lastPos[0] - this.x] - 1;
+					}
+				} catch (er) {
+					//also leaving / entering case
+				}
+				
+			}
+			
+
+			
+
+
+			if (this.connections[mapNum] != undefined) {
+				this.connections[mapNum][0].x = this.x + this.connections[mapNum][1][0];
+				this.connections[mapNum][0].y = this.y + this.connections[mapNum][1][1];
+				this.connections[mapNum][0].beDrawn();
+			}
+		}
+	}
+
+	drawTile(x, y) {
+		var drawX = (((this.x + x - 0.5) - camera.cornerCoords[0]) * camera.scale) + 1;
+		var drawY = (((this.y + y - 0.5) - camera.cornerCoords[1]) * camera.scale) + 1;
+
+		//terrain
+		if (this.data[y][x] !== " ") {
+			//draw square
+			ctx.fillRect(drawX, drawY, camera.scale - 2, camera.scale - 2);
+		}
+
+		//if it's a number greater than 0, put a number on it
+		if (this.data[y][x] > 0) {
+			ctx.fillStyle = color_text;
+			ctx.font = `${camera.scale / 2}px Ubuntu`;
+			ctx.textAlign = "center";
+			ctx.fillText(this.data[y][x], drawX + (camera.scale / 2), drawY + (camera.scale * 0.66));
+			ctx.fillStyle = color_foreground;
+		}
 	}
 
 	tick() {
@@ -32,14 +135,46 @@ class Zone {
 		});
 	}
 
-	validateMovementTo(x, y) {
-		if (this.data[y][x] == 1) {
+	transferPlayerToMap(map) {
+		player.map = map;
+		loading_map = map;
+		this.entities.splice(player);
+		player.map.entities.push(player);
+	}
+
+	validateMovementTo(x, y, entity) {
+		//if player is on a map square, check the other map first
+		var playerMap;
+		try {
+			playerMap = this.data[player.lastPos[1] - this.y][player.lastPos[0] - this.x] - 1;
+		} catch (er) {
+			playerMap = -1;
+		}
+		
+		if (this.connections[playerMap] != undefined) {
+			if (this.connections[playerMap][0].validateMovementTo(x, y, entity)) {
+				this.transferPlayerToMap(this.connections[playerMap][0]);
+				return true;
+			} 
+		}
+			
+
+
+		x -= this.x;
+		y -= this.y;
+		if (this.data[y] == undefined) {
+			return false;
+		}
+		if (this.data[y][x] == undefined) {
+			return false;
+		}
+		if (this.data[y][x] === " ") {
 			return false;
 		}
 
 		//loop through entities, if there's an entity there don't allow it
 		for (var e=0; e<this.entities.length; e++) {
-			if (Math.round(this.entities[e].x) == x && Math.round(this.entities[e].y) == y) {
+			if (Math.round(this.entities[e].x) == x && Math.round(this.entities[e].y) == y && this.entities[e] != entity) {
 				return false;
 			}
 		}
@@ -61,18 +196,29 @@ class Player {
 	constructor(x, y, color, parentMap) {
 		this.x = x;
 		this.y = y;
+		this.lastPos = [x, y];
 
-		this.dx = 0;
-		this.dy = 0;
-		this.ax = 0;
-		this.ay = 0;
+		this.attackBoxNum = 10;
+		this.attackBoxLength = 2.8;
+		this.attackBoxRadiusMult = 1.6;
+		this.attackFrame = 0;
+		this.attackLength = 15;
+		this.attackPushMultiplier = 0.4;
+
+		this.friction = 0.95;
+
 		
-		this.dMax = 0.01;
-		this.dMin = 0.004;
-		this.moveDir = undefined;
-		this.speed = 0.03;
-		this.friction = 0.93;
-		this.frictionReverseBoost = 0.17;
+		this.speedDash = 1/2;
+		this.speedHit = 1 / 16;
+		this.speedNormal = 1 / 9;
+		this.speed = 0;
+
+		this.blockInputOf = undefined;
+		this.downQueue = [];
+		this.moveQueue = [];
+		this.queuePos = 0;
+		this.queueMaxLength = 4;
+		this.lastPressTime = -100;
 
 		this.r = 30;
 		this.a = 0;
@@ -80,22 +226,19 @@ class Player {
 
 		this.maxHealth = 6;
 		this.health = this.maxHealth;
+		this.healthRegen = 1 / 720;
 		this.maxStamina = 6;
 		this.stamina = this.maxStamina;
+		this.staminaRegen = 1 / 180;
 
-		this.attackBoxNum = 8;
-		this.attackBoxLength = 2.5;
-
-		this.attackFrame = 0;
-		this.attackLength = 15;
+		
 		this.timeSinceAttackPress = 15;
 
-		this.dashFrequencyLimit = 15;
-		this.dashPower = 10;
+		this.frequencyDashLimit = 15;
+		this.frequencyHaltLimit = 5;
 		this.dashStamina = this.maxStamina * 0.1;
-		this.dashTimeStorage = [0, 0, 0, 0];
 
-		this.parentMap = parentMap;
+		this.map = parentMap;
 	}
 
 	
@@ -103,6 +246,7 @@ class Player {
 	attack() {
 		this.attackFrame += 1;
 
+		/*
 		if (this.attackFrame == Math.floor(this.attackLength / 4)) {
 			//actual attacking
 			//simple p1/2 switch, fix later
@@ -111,28 +255,24 @@ class Player {
 				entity = player2;
 			}
 
-			var boxOffset = polToXY(0, 0, this.a, (this.r * this.attackBoxLength) / this.attackBoxNum);
+			var boxOffset = polToXY(0, 0, this.a, ((this.r * this.attackBoxLength) / this.attackBoxNum) / camera.scale);
 			var boxPos;
 			var boxR;
 
 			//loop through series of collision boxes
 			for (var b=0; b<this.attackBoxNum; b++) {
-				boxPos = [this.x + boxOffset[0] * b, this.y + (boxOffset[1] * b)];
-				boxR = this.r * 2 * Math.pow(0.95, b);
-				var xDist = Math.abs(entity.x - boxPos[0]);
-				var yDist = Math.abs(entity.y - boxPos[1]);
+				boxPos = [this.x + (boxOffset[0] * b), this.y + (boxOffset[1] * b)];
+				boxR = this.r * this.attackBoxRadiusMult * Math.pow(0.95, b);
+				var xDist = Math.abs(entity.x - boxPos[0]) * camera.scale;
+				var yDist = Math.abs(entity.y - boxPos[1]) * camera.scale;
 
 				//if the enemy is close enough, attack and then break out of loop
-				if (Math.sqrt(xDist * xDist + yDist * yDist) < boxR + (entity.r * 0.9)) {
-					var strength = 0.8;//0.8 * sigmoid((this.timeSinceAttackPress * 0.8) - (this.attackLength * 0.5), 0, 1);
-					entity.health -= strength;
-					var pushback = polToXY(0, 0, this.a, strength * 6);
-					entity.dx += pushback[0];
-					entity.dy += pushback[1];
+				if (Math.sqrt(xDist * xDist + yDist * yDist) < boxR + entity.r) {
+					this.hitEntity(entity);
 					return;
 				}
 			}
-		}
+		} */
 
 		if (this.attackFrame > this.attackLength) {
 			this.attackFrame = 0;
@@ -140,47 +280,69 @@ class Player {
 	}
 
 	attemptAttack() {
-		this.timeSinceAttackPress = 0;
 		if (this.attackFrame == 0) {
 			this.attackFrame = 1;
+		} else {
+			this.timeSinceAttackPress = 0;
 		}
 	}
 
+	determineTargetPos() {
+		return this.determinePosFromDir(this.moveQueue[0]);
+	}
+
+	determinePosFromDir(direction) {
+		var targetPos = [this.lastPos[0], this.lastPos[1]];
+		switch (direction) {
+			case 0:
+				targetPos[0] -= 1;
+				break;
+			case 1:
+				targetPos[1] -= 1;
+				break;
+			case 2:
+				targetPos[0] += 1;
+				break;
+			case 3:
+				targetPos[1] += 1;
+				break;
+		}
+		return targetPos;
+	}
+
+	hitEntity(entity) {
+		var strength = 0.8 * sigmoid((this.timeSinceAttackPress * 0.6) - (this.attackLength * 0.5), 0, 1);
+		entity.speed = entity.speedHit;
+		entity.moveQueue.splice(0, 0, ((this.a / (Math.PI / 2)) + 2) % 4);
+		entity.health -= strength;
+	}
+
 	tick() {
-		//dash storage
-		this.handleDashing();
 		//regen
 		if (this.health > 0) {
-			this.health = Math.min(this.maxHealth, this.health + (Math.abs(Math.sin(world_time / 90)) / 270));
-			this.stamina = Math.min(this.maxStamina, this.stamina + (Math.abs(Math.sin(world_time / 90)) / 180));
+			this.health = Math.min(this.maxHealth, this.health + (Math.abs(Math.sin(world_time / 90)) * this.healthRegen));
+			this.stamina = Math.min(this.maxStamina, this.stamina + (Math.abs(Math.sin(world_time / 90)) * this.staminaRegen));
 		}
 
 		//attacking
+		this.timeSinceAttackPress += 1;
 		if (this.attackFrame > 0) {
 			this.attack();
-		} else {
-			//movement
-			if (this.ax != 0) {
-				this.dx += sigmoid((this.dMax * boolToSigned(this.ax > 0) - this.dx) * 6, 0, boolToSigned(this.ax > 0)) * this.speed;
-			}
-			if (this.ay != 0) {
-				this.dy += sigmoid((this.dMax * boolToSigned(this.ay > 0) - this.dy) * 6, 0, boolToSigned(this.ay > 0)) * this.speed;
-			}
 		}
-
-		//actual updating position based on forces
-		this.updatePosition();
+		//movement
+		if (this.attackFrame <= 0 || this.speed != this.speedNormal) {
+			this.updatePosition();
+		}
 	}
 
 	beDrawn() {
 		//get direction + drawing position of self 
-		if (this.dx != 0 || this.dy != 0) {
-			this.a = (Math.atan2(this.dx, -this.dy) + (Math.PI * 1.5)) % (Math.PI * 2);
-			this.a = Math.round(this.a / (Math.PI / 2)) * (Math.PI / 2);
+		if (this.moveQueue.length > 0) {
+			this.a = (this.moveQueue[0] * (Math.PI / 2)) + (Math.PI);
+			this.a %= Math.PI * 2;
 		}
 		
-		var drawX = this.x * (world_sqSize + 0.5);
-		var drawY = this.y * (world_sqSize + 0.5);
+		var [drawX, drawY] = spaceToScreen(this.x, this.y);
 
 		//sword changes angle depending on attack frame
 		var mult = 0.65 + ((this.attackLength / this.attackFrame) * -0.1);
@@ -210,94 +372,106 @@ class Player {
 			//loop through series of collision boxes
 			for (var b=0; b<this.attackBoxNum; b++) {
 				boxPos = [drawX + boxOffset[0] * b, drawY + (boxOffset[1] * b)];
-				boxR = this.r * 2 * Math.pow(0.95, b);
+				boxR = this.r * this.attackBoxRadiusMult * Math.pow(0.95, b);
 				drawCircle(color_attackBubble, boxPos[0], boxPos[1], boxR);
 			}
 			ctx.globalAlpha = 1;
 		}
 	}
 
-	handleDashing(negatingBOOLEAN, index) {
+	handleInput(negatingBOOLEAN, index) {
 		if (negatingBOOLEAN) {
-			//for first press
-			if (this.dashTimeStorage[index] != "dashed") {
-				this.dashTimeStorage[index] = world_time;
-			} else {
-				this.dashTimeStorage[index] = "waiting";
+			//remove index from the down queue
+			if (this.downQueue.includes(index)) {
+				this.downQueue.splice(this.downQueue.indexOf(index), 1);
+			}
+
+			if (index == this.moveQueue[this.moveQueue.length-1] || this.moveQueue.length == 0) {
+				this.blockInputOf = undefined;
 			}
 		} else {
-			//for second press, actual dashing logic
-			if (world_time - this.dashTimeStorage[index] <= this.dashFrequencyLimit && this.stamina > this.maxStamina * 0.1) {
-				//make the negating happen and remove stamina
-				this.dashTimeStorage[index] = "dashed"; 
-				this.stamina -= this.maxStamina * 0.1;
-
-				//update velocity
-				switch (index) {
-					case 0:
-						this.ax = -this.dashPower;
-						break;
-					case 1:
-						this.ay = -this.dashPower;
-						break;
-					case 2:
-						this.ax = this.dashPower;
-						break;
-					case 3:
-						this.ay = this.dashPower;
-						break;
+			if (this.blockInputOf != index || this.moveQueue.length == 0) {
+				if (!this.downQueue.includes(index)) {
+					this.downQueue.push(index);
 				}
+				this.moveQueue.push(index);
+				this.speed = this.speedNormal;
+
+				//if the queue's longer than the max, preserve the start and the end but cut out inputs from the middle
+				if (this.moveQueue.length > this.queueMaxLength) {
+					this.moveQueue.splice(1, 1);
+				}
+
+				//if there's 2 in a row and the click is fast enough, start a dash
+				if (this.moveQueue.length >= 2 && this.moveQueue[this.moveQueue.length-1] == this.moveQueue[this.moveQueue.length-2] && world_time - this.lastPressTime < this.frequencyDashLimit) {
+					this.moveQueue = [this.moveQueue[0], index];
+					this.speed = this.speedDash;
+				}
+
+				this.lastPressTime = world_time;
+				this.blockInputOf = index;
 			}
 		}
 	}
 
 	updatePosition() {
-		//first update momentum
-		this.dx *= this.friction - ((this.ax * this.dx <= 0) * this.frictionReverseBoost);
-		this.dy *= this.friction - ((this.ay * this.dy <= 0) * this.frictionReverseBoost);
-
-		switch (this.moveDir) {
-			case "x":
-				if (Math.abs(this.dx) < this.minSpeed)
-				break;
-			case "y":
-				break;
-		}
-
-		if (Math.abs(this.dx) < 0.001) {
-			this.dx = 0;
-		}
-		if (Math.abs(this.dy) < 0.001) {
-			this.dy = 0;
-		}
-
-		//moving without decision if already moving
-		if (this.x % 1 != 0 || this.y % 1 != 0) {
-			switch (this.moveDir) {
-				case "x":
-					this.x += this.dx;
-					break;
-				case "y":
-					this.y += this.dy;
-					break;
+		//if the queue is empty, add any direction that's down
+		if (this.moveQueue.length == 0) {
+			for (var i=0; i<this.downQueue.length; i++) {
+				var target = this.determinePosFromDir(this.downQueue[i]);
+				if (this.map.validateMovementTo(target[0], target[1], this)) {
+					this.moveQueue.push(this.downQueue[i]);
+					this.blockInputOf = this.downQueue[i];
+					this.speed = this.speedNormal;
+				}
 			}
 		}
-		//only move if it's worth moving
-		if (Math.abs(this.dx) > this.minSpeed || Math.abs(this.dy) > this.minSpeed) {
-			//x/y switch
-			if (Math.abs(this.dx) > Math.abs(this.dy)) {
-				this.moveDir = "x";
-				this.x += this.dx;
-			} else {
-				this.moveDir = "y";
-				this.y += this.dy;
-			}
-		}
-		//this.x += this.dx;
-		//this.y += this.dy;
 
-		//capping x
-		//this.x = clamp(this.x, (world_sqSize * world_cCoords[0]) + this.r, (world_sqSize * world_cCoords[2]) - this.r);
-		//this.y = clamp(this.y, (world_sqSize * world_cCoords[1]) + this.r, (world_sqSize * world_cCoords[3]) - this.r);
+		
+		//get target
+		var targetPos = this.determineTargetPos();
+
+		//if target is invalid, just move on to the next command
+		while (!this.map.validateMovementTo(targetPos[0], targetPos[1], this)) {
+			
+			[this.x, this.y] = this.lastPos;
+			this.moveQueue.splice(0, 1);
+			if (this.moveQueue.length == 0) {
+				this.queuePos = 0;
+				this.speed = 0;
+				return;
+			}
+			targetPos = this.determineTargetPos();
+		}
+		//update speed
+		if (this.speed > this.speedNormal) {
+			this.speed = Math.max(this.speedNormal, this.speed * this.friction);
+		}
+		
+		this.queuePos += this.speed;
+
+		//if queue is far enough along, set target and try again
+		while (this.queuePos > 1) {
+			this.queuePos -= 1;
+			[this.x, this.y] = targetPos;
+			this.lastPos = targetPos;
+
+			//remove object from queue only if that's not the direction the player is currently holding
+			if (this.moveQueue.length > 1 || (this.moveQueue.length == 1 && this.blockInputOf == undefined)) {
+				this.moveQueue.splice(0, 1);
+				//if out of queue, exit early
+				if (this.moveQueue.length == 0) {
+					this.queuePos = 0;
+					this.speed = 0;
+					return;
+				}
+			}
+			
+			targetPos = this.determineTargetPos();
+		}
+
+		//if next position is valid and moving towards it, interpolate between them at the current speed
+		this.x = linterp(this.lastPos[0], targetPos[0], this.queuePos);
+		this.y = linterp(this.lastPos[1], targetPos[1], this.queuePos);
 	}
 }
