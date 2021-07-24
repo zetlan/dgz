@@ -6,6 +6,10 @@ class Camera {
 		this.x = x;
 		this.y = y;
 		this.cornerCoords = [x - ((canvas.width / 2) / zoom), y - ((canvas.height / 2) / zoom), x + ((canvas.width / 2) / zoom), y + ((canvas.height / 2) / zoom)];
+
+		this.dx = 0;
+		this.dy = 0;
+		this.speed = 0.2;
 	}
 
 	tick() {
@@ -13,6 +17,9 @@ class Camera {
 		if (!editor_active) {
 			this.x = player.x;
 			this.y = player.y;
+		} else {
+			this.x += this.dx;
+			this.y += this.dy;
 		}
 
 		this.cornerCoords = [this.x - ((canvas.width / 2) / this.scale), this.y - ((canvas.height / 2) / this.scale), 
@@ -25,12 +32,13 @@ class Camera {
 
 //map class, for maps y'know?
 class Zone {
-	constructor(offsetX, offsetY, collisionData, exitData) {
-		this.x = offsetX;
-		this.y = offsetY;
-		this.data = collisionData;
+	constructor() {
+		this.name = "ERROR: NAME NOT DEFINED";
+		this.x = 0;
+		this.y = 0;
+		this.data = [];
 		this.entities = [];
-		this.connections = exitData;
+		this.connections = [];
 		if (this.connections == undefined) {
 			this.connections = [];
 		}
@@ -94,11 +102,7 @@ class Zone {
 				} catch (er) {
 					//also leaving / entering case
 				}
-				
 			}
-			
-
-			
 
 
 			if (this.connections[mapNum] != undefined) {
@@ -220,7 +224,7 @@ class Player {
 		this.queueMaxLength = 4;
 		this.lastPressTime = -100;
 
-		this.r = 30;
+		this.r = 25;
 		this.a = 0;
 		this.color = color;
 
