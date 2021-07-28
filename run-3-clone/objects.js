@@ -517,7 +517,7 @@ class Texture {
 		var xOff = size * 0.7071 * Math.cos(rotation - (Math.PI * 0.75));
 		var yOff = size * 0.7071 * Math.sin(rotation - (Math.PI * 0.75));
 		//transforming
-		ctx.translate(1 * (x + xOff), y + yOff);
+		ctx.translate(x + xOff, y + yOff);
 		ctx.rotate(rotation);
 		if (this.backwards) {
 			ctx.scale(-1, 1);
