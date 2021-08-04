@@ -2,193 +2,83 @@
 //for camera movement
 class Camera {
 	constructor(x, y, zoom) {
-		this.scale = zoom;
 		this.x = x;
 		this.y = y;
-		this.cornerCoords = [x - ((canvas.width / 2) / zoom), y - ((canvas.height / 2) / zoom), x + ((canvas.width / 2) / zoom), y + ((canvas.height / 2) / zoom)];
+		this.cornerCoords;
 
 		this.dx = 0;
 		this.dy = 0;
 		this.speed = 0.2;
+
+		this.scale = zoom;
+		this.targetScale = this.scale;
+		//all sprites are done at 4/5ths perspective, but the vertical squish has to be set to 0.78 instead of 0.8. Why? Images are strange.
+		this.vSquish = 0.78;
+
+		this.calculateCorners();
 	}
 
-	tick() {
-		//target player
-		if (!editor_active) {
-			this.x = player.x;
-			this.y = player.y;
-		} else {
-			this.x += this.dx;
-			this.y += this.dy;
-		}
+	calculateCorners() {
+		this.cornerCoords = [this.x - ((canvas.width / 2) / this.scale), this.y - ((canvas.height / 2) / this.scale) / this.vSquish,
+							this.x + ((canvas.width / 2) / this.scale), this.y + ((canvas.height / 2) / this.scale) / this.vSquish];
+	}
 
-		this.cornerCoords = [this.x - ((canvas.width / 2) / this.scale), this.y - ((canvas.height / 2) / this.scale), 
-							this.x + ((canvas.width / 2) / this.scale), this.y + ((canvas.height / 2) / this.scale)];
+	tick_free() {
+		this.x += this.dx;
+		this.y += this.dy;
+		this.scale = ((this.scale * 7) + this.targetScale) / 8;
+		this.calculateCorners();
+	}
+
+	tick_follow() {
+		this.x = player.x;
+		this.y = player.y;
+		this.calculateCorners();
 	}
 }
 
 
 
 
-//map class, for maps y'know?
-class Zone {
+
+class Palette {
+	constructor(image, spriteSize) {
+		this.sheet = image;
+		this.size = spriteSize;
+	}
+
+	drawTexture(dataNum, worldX, worldY, drawX, drawY, drawSize) {
+		var mappedNum = tileImage_map[dataNum];
+		if (mappedNum == undefined) {
+			console.error(`"${dataNum}" is not in the tile mapping!`);
+			return;
+		}
+
+		if (mappedNum >= 96) {
+			//terrain
+			ctx.drawImage(this.sheet, this.size * Math.abs(worldX % 3), this.size * (Math.abs(worldY % 2) + Math.floor((mappedNum - 96) / 2) * 2), this.size, this.size, drawX, drawY, drawSize, drawSize);
+		} else {
+			//special tiles
+			ctx.drawImage(this.sheet, this.size * Math.abs(worldX % 3), this.size * Math.abs(worldY % 2), this.size, this.size, drawX, drawY, drawSize, drawSize);
+			ctx.drawImage(this.sheet, this.size * (4 + mappedNum % 12), this.size * Math.floor(mappedNum / 12), this.size, this.size, drawX, drawY, drawSize, drawSize);
+		}
+	}
+}
+
+
+class Palette_Empty {
 	constructor() {
-		this.name = "ERROR: NAME NOT DEFINED";
-		this.x = 0;
-		this.y = 0;
-		this.data = [];
-		this.entities = [];
-		this.connections = [];
-		if (this.connections == undefined) {
-			this.connections = [];
-		}
 	}
 
-	beDrawn() {
-		//draw self
-		ctx.fillStyle = color_foreground;
-		if (player.map == this) {
-			for (var y=0; y<this.data.length; y++) {
-				for (var x=0; x<this.data[y].length; x++) {
-					this.drawTile(x, y);
-				}
-			}
-		} else {
-			var store = ctx.globalAlpha;
-
-			var dist;
-			var xDist;
-			var yDist;
-			for (var y=0; y<this.data.length; y++) {
-				for (var x=0; x<this.data[y].length; x++) {
-					//figure out opacity based on distance
-					xDist = player.x - (this.x + x);
-					yDist = player.y - (this.y + y);
-					dist = Math.sqrt(xDist * xDist + yDist * yDist);
-					ctx.globalAlpha = Math.max(0, 1 - (dist / world_outsideMapFade));
-					this.drawTile(x, y);
-				}
-			}
-			ctx.globalAlpha = store;
+	drawTexture(dataNum, worldX, worldY, drawX, drawY, drawSize) {
+		drawSize -= 2;
+		if (dataNum !== " ") {
+			ctx.fillRect(drawX + 1, drawY + 1 + (drawSize * (1 - camera.vSquish)), drawSize, drawSize * camera.vSquish);
 		}
+
 		
-
-		//draw entities
-		this.entities.forEach(e => {
-			e.beDrawn();
-		});
-
-		//if there's another map the player's about to go to, draw that as well
-		var mapNum;
-		if (player.map == this) {
-			//if the player's coordinates round to a map square, show the map but with more fade
-			try {
-				if (this.data[Math.round(player.y) - this.y][Math.round(player.x) - this.x] > 0) {
-					var xDist = player.x - player.lastPos[0];
-					var yDist = player.y - player.lastPos[1];
-					world_outsideMapFade = world_outsideMapFadeConstant * (1 - Math.sqrt(xDist * xDist + yDist * yDist));
-					mapNum = this.data[Math.round(player.y) - this.y][Math.round(player.x) - this.x] - 1;
-				}
-			} catch (er) {
-				//player is off the map, nothing needs to be done because in this case they're leaving / entering
-			}
-
-			if (mapNum == undefined) {
-				//if the player is on a map square, they'll obviously show the new map
-				try {
-					if (this.data[player.lastPos[1] - this.y][player.lastPos[0] - this.x] > 0) {
-						mapNum = this.data[player.lastPos[1] - this.y][player.lastPos[0] - this.x] - 1;
-					}
-				} catch (er) {
-					//also leaving / entering case
-				}
-			}
-
-
-			if (this.connections[mapNum] != undefined) {
-				this.connections[mapNum][0].x = this.x + this.connections[mapNum][1][0];
-				this.connections[mapNum][0].y = this.y + this.connections[mapNum][1][1];
-				this.connections[mapNum][0].beDrawn();
-			}
-		}
-	}
-
-	drawTile(x, y) {
-		var drawX = (((this.x + x - 0.5) - camera.cornerCoords[0]) * camera.scale) + 1;
-		var drawY = (((this.y + y - 0.5) - camera.cornerCoords[1]) * camera.scale) + 1;
-
-		//terrain
-		if (this.data[y][x] !== " ") {
-			//draw square
-			ctx.fillRect(drawX, drawY, camera.scale - 2, camera.scale - 2);
-		}
-
-		//if it's a number greater than 0, put a number on it
-		if (this.data[y][x] > 0) {
-			ctx.fillStyle = color_text;
-			ctx.font = `${camera.scale / 2}px Ubuntu`;
-			ctx.textAlign = "center";
-			ctx.fillText(this.data[y][x], drawX + (camera.scale / 2), drawY + (camera.scale * 0.66));
-			ctx.fillStyle = color_foreground;
-		}
-	}
-
-	tick() {
-		this.entities.forEach(e => {
-			e.tick();
-		});
-	}
-
-	transferPlayerToMap(map) {
-		player.map = map;
-		loading_map = map;
-		this.entities.splice(player);
-		player.map.entities.push(player);
-	}
-
-	validateMovementTo(x, y, entity) {
-		//if player is on a map square, check the other map first
-		var playerMap;
-		try {
-			playerMap = this.data[player.lastPos[1] - this.y][player.lastPos[0] - this.x] - 1;
-		} catch (er) {
-			playerMap = -1;
-		}
-		
-		if (this.connections[playerMap] != undefined) {
-			if (this.connections[playerMap][0].validateMovementTo(x, y, entity)) {
-				this.transferPlayerToMap(this.connections[playerMap][0]);
-				return true;
-			} 
-		}
-			
-
-
-		x -= this.x;
-		y -= this.y;
-		if (this.data[y] == undefined) {
-			return false;
-		}
-		if (this.data[y][x] == undefined) {
-			return false;
-		}
-		if (this.data[y][x] === " ") {
-			return false;
-		}
-
-		//loop through entities, if there's an entity there don't allow it
-		for (var e=0; e<this.entities.length; e++) {
-			if (Math.round(this.entities[e].x) == x && Math.round(this.entities[e].y) == y && this.entities[e] != entity) {
-				return false;
-			}
-		}
-		return true;
 	}
 }
-
-
-
-
 
 
 
@@ -224,7 +114,7 @@ class Player {
 		this.queueMaxLength = 4;
 		this.lastPressTime = -100;
 
-		this.r = 25;
+		this.r = 0.3125;
 		this.a = 0;
 		this.color = color;
 
@@ -250,25 +140,27 @@ class Player {
 	attack() {
 		this.attackFrame += 1;
 
-		/*
+		
 		if (this.attackFrame == Math.floor(this.attackLength / 4)) {
+			var xDist;
+			var yDist;
 			//actual attacking
-			//simple p1/2 switch, fix later
-			var entity = player1;
-			if (player1 == this) {
-				entity = player2;
-			}
+			//get list of enemies that's possibly close enough
+			var entityList = [];
+			this.map.entities.forEach(e => {
+				var eDist = Math.sqrt(xDist * xDist + yDist * yDist);
+			});
 
-			var boxOffset = polToXY(0, 0, this.a, ((this.r * this.attackBoxLength) / this.attackBoxNum) / camera.scale);
+			var boxOffset = polToXY(0, 0, this.a, ((this.r * camera.scale * this.attackBoxLength)) / camera.scale);
 			var boxPos;
 			var boxR;
 
 			//loop through series of collision boxes
 			for (var b=0; b<this.attackBoxNum; b++) {
 				boxPos = [this.x + (boxOffset[0] * b), this.y + (boxOffset[1] * b)];
-				boxR = this.r * this.attackBoxRadiusMult * Math.pow(0.95, b);
-				var xDist = Math.abs(entity.x - boxPos[0]) * camera.scale;
-				var yDist = Math.abs(entity.y - boxPos[1]) * camera.scale;
+				boxR = this.r * camera.scale * this.attackBoxRadiusMult * Math.pow(0.95, b);
+				xDist = Math.abs(entity.x - boxPos[0]) * camera.scale;
+				yDist = Math.abs(entity.y - boxPos[1]) * camera.scale;
 
 				//if the enemy is close enough, attack and then break out of loop
 				if (Math.sqrt(xDist * xDist + yDist * yDist) < boxR + entity.r) {
@@ -276,7 +168,7 @@ class Player {
 					return;
 				}
 			}
-		} */
+		}
 
 		if (this.attackFrame > this.attackLength) {
 			this.attackFrame = 0;
@@ -347,36 +239,37 @@ class Player {
 		}
 		
 		var [drawX, drawY] = spaceToScreen(this.x, this.y);
+		var drawR = this.r * camera.scale;
 
 		//sword changes angle depending on attack frame
 		var mult = 0.65 + ((this.attackLength / this.attackFrame) * -0.1);
 		if (this.attackFrame == 0) {
 			mult = 0.65;
 		}
-		var swordStartPos = polToXY(drawX, drawY, this.a + (Math.PI * 0.3), this.r);
-		var swordEndPos = polToXY(drawX, drawY, this.a + (Math.PI * mult), this.r * 2);
+		var swordStartPos = polToXY(drawX, drawY, this.a + (Math.PI * 0.3), drawR);
+		var swordEndPos = polToXY(drawX, drawY, this.a + (Math.PI * mult), drawR * 2);
 		drawLine(color_sword, swordStartPos, swordEndPos, 3);
 
 		//circle for body
-		drawCircle(this.color, drawX, drawY, this.r);
+		drawCircle(this.color, drawX, drawY, drawR);
 		
 		//eyes
-		var eye1Pos = polToXY(drawX, drawY, this.a + 0.65, this.r * 0.44);
-		var eye2Pos = polToXY(drawX, drawY, this.a - 0.65, this.r * 0.44);
-		drawCircle("#000", eye1Pos[0], eye1Pos[1], this.r / 10);
-		drawCircle("#000", eye2Pos[0], eye2Pos[1], this.r / 10);
+		var eye1Pos = polToXY(drawX, drawY, this.a + 0.65, drawR * 0.44);
+		var eye2Pos = polToXY(drawX, drawY, this.a - 0.65, drawR * 0.44);
+		drawCircle(color_player_eyes, eye1Pos[0], eye1Pos[1], drawR / 10);
+		drawCircle(color_player_eyes, eye2Pos[0], eye2Pos[1], drawR / 10);
 
 		//attack circles
 		if (this.attackFrame >= Math.floor(this.attackLength / 4)) {
 			ctx.globalAlpha = Math.max(0, 0.3 - ((this.attackFrame - Math.floor(this.attackLength / 4)) * 0.05));
-			var boxOffset = polToXY(0, 0, this.a, (this.r * this.attackBoxLength) / this.attackBoxNum);
+			var boxOffset = polToXY(0, 0, this.a, (drawR * this.attackBoxLength) / this.attackBoxNum);
 			var boxPos;
 			var boxR;
 
 			//loop through series of collision boxes
 			for (var b=0; b<this.attackBoxNum; b++) {
 				boxPos = [drawX + boxOffset[0] * b, drawY + (boxOffset[1] * b)];
-				boxR = this.r * this.attackBoxRadiusMult * Math.pow(0.95, b);
+				boxR = drawR * this.attackBoxRadiusMult * Math.pow(0.95, b);
 				drawCircle(color_attackBubble, boxPos[0], boxPos[1], boxR);
 			}
 			ctx.globalAlpha = 1;
@@ -477,5 +370,255 @@ class Player {
 		//if next position is valid and moving towards it, interpolate between them at the current speed
 		this.x = linterp(this.lastPos[0], targetPos[0], this.queuePos);
 		this.y = linterp(this.lastPos[1], targetPos[1], this.queuePos);
+	}
+}
+
+
+
+
+
+
+
+//map class, for maps y'know?
+class Zone {
+	constructor() {
+		this.name = "ERROR: NAME NOT DEFINED";
+		this.x = 0;
+		this.y = 0;
+
+		this.connections = [];
+		this.data = [];
+		this.display = [];
+		this.entities = [];
+
+		this.dArr = undefined;
+		
+		this.palette = data_palettes.Terrain.North;
+	}
+
+	beDrawn() {
+		//draw self
+		this.dArr = this.display;
+		this.beDrawn_images();
+
+		//draw entities
+		this.entities.forEach(e => {
+			e.beDrawn();
+		});
+
+		//if there's another map the player's about to go to, draw that as well
+		if (player.map == this) {
+			this.drawOtherMap();
+		}
+	}
+
+	beDrawn_collision() {
+		//border
+		ctx.lineWidth = 2;
+		ctx.strokeStyle = color_editor_border;
+		var startXY = spaceToScreen(this.x - 0.5, this.y - 0.5);
+		var endXY = spaceToScreen(this.x + this.data[0].length - 0.5, this.y + this.data.length - 0.5);
+		ctx.rect(startXY[0], startXY[1], endXY[0] - startXY[0], endXY[1] - startXY[1]);
+		ctx.stroke();
+
+		//actual squares
+		this.dArr = this.data;
+		var palStore = this.palette;
+		this.palette = data_palettes.Empty;
+		this.beDrawn_images();
+		this.dArr = this.display;
+		this.palette = palStore;
+		
+
+		//other map
+		if (loading_state.exit != undefined && this == loading_map) {
+			var ref = this.connections[loading_state.exit];
+			ref[0].x = this.x + ref[1][0];
+			ref[0].y = this.y + ref[1][1];
+			ref[0].beDrawn_collision();
+		}
+	}
+
+	beDrawn_images() {
+		//squares
+		var startXY = screenToSpace(0, 0);
+		startXY[0] = Math.max(Math.floor(startXY[0]) - this.x, 0);
+		startXY[1] = Math.max(Math.floor(startXY[1]) - this.y, 0);
+		var pixelStartXY = spaceToScreen(this.x, this.y);
+
+		var xLen = Math.min(Math.ceil(canvas.width / camera.scale) + 1, this.data[0].length - startXY[0]);
+		var yLen = Math.min(Math.ceil(canvas.height / (camera.scale * camera.vSquish)) + 1, this.data.length - startXY[1]);
+
+		ctx.fillStyle = color_collision;
+		var drawXStart = pixelStartXY[0] + 1 + ((startXY[0] - 0.5) * camera.scale);
+		var drawYStart = pixelStartXY[1] + 1 + ((startXY[1] - 0.5) * camera.scale * camera.vSquish) - (camera.scale * (1 - camera.vSquish));
+		for (var y=startXY[1]; y<startXY[1]+yLen; y++) {
+			for (var x=startXY[0]; x<startXY[0]+xLen; x++) {
+				//draw square
+				this.palette.drawTexture(this.dArr[y][x], x, y, drawXStart + ((x - startXY[0]) * camera.scale), drawYStart + ((y - startXY[1]) * camera.scale * camera.vSquish), camera.scale);
+			}
+		}
+	}
+
+	beDrawn_fading() {
+		this.dArr = this.display;
+		var store = ctx.globalAlpha;
+
+		var startXY = screenToSpace(0, 0);
+		startXY[0] = Math.max(Math.floor(startXY[0]) - this.x, 0);
+		startXY[1] = Math.max(Math.floor(startXY[1]) - this.y, 0);
+		var pixelStartXY = spaceToScreen(this.x, this.y);
+		var xLen = Math.min(Math.ceil(canvas.width / camera.scale) + 1, this.data[0].length - startXY[0]);
+		var yLen = Math.min(Math.ceil(canvas.height / (camera.scale * camera.vSquish)) + 1, this.data.length - startXY[1]);
+
+		var dist;
+		var xDist;
+		var yDist;
+		var drawX;
+		var drawY;
+		ctx.fillStyle = color_collision;
+		for (var y=startXY[1]; y<startXY[1]+yLen; y++) {
+			for (var x=startXY[0]; x<startXY[0]+xLen; x++) {
+				//figure out opacity based on distance
+				xDist = player.x - (this.x + x);
+				yDist = player.y - (this.y + y);
+				dist = Math.sqrt(xDist * xDist + yDist * yDist);
+				ctx.globalAlpha = Math.max(0, 1 - (dist / world_outsideMapFade));
+				//draw square
+				drawX = pixelStartXY[0] + 1 + ((x - 0.5) * camera.scale);
+				drawY = pixelStartXY[1] + 1 + ((y - 0.5) * camera.scale * camera.vSquish) - (camera.scale * (1 - camera.vSquish));
+				this.palette.drawTexture(this.dArr[y][x], x, y, drawX, drawY, camera.scale);
+			}
+		}
+		ctx.globalAlpha = store;
+	}
+
+	drawOtherMap() {
+		var mapNum;
+		//if the player's coordinates round to a map square, show the map but with more fade
+		try {
+			if (this.data[Math.round(player.y) - this.y][Math.round(player.x) - this.x] > 0) {
+				var xDist = player.x - player.lastPos[0];
+				var yDist = player.y - player.lastPos[1];
+				world_outsideMapFade = world_outsideMapFadeConstant * (1 - Math.sqrt(xDist * xDist + yDist * yDist));
+				mapNum = this.data[Math.round(player.y) - this.y][Math.round(player.x) - this.x] - 1;
+			}
+		} catch (er) {
+			//player is off the map, nothing needs to be done because in this case they're leaving / entering
+		}
+
+		//actual drawing
+		if (this.connections[mapNum] != undefined) {
+			var ref = this.connections[mapNum];
+			ref[0].x = this.x + ref[1][0];
+			ref[0].y = this.y + ref[1][1];
+			ref[0].beDrawn_fading();
+		}
+	}
+
+	//TODO: this feels horribly inefficient
+	changeCollisionSquare(x, y, newValue) {
+		//if y is invalid
+		for (y; y<0; y++) {
+			this.y -= 1;
+			this.data.splice(0, 0, []);
+			for (var a=0; a<this.data[1].length; a++) {
+				this.data[0][a] = " ";
+			}
+			this.display.splice(0, 0, JSON.parse(JSON.stringify(this.data[0])));
+		}
+			
+		while (y > this.data.length-1) {
+			this.data.push([]);
+			for (var a=0; a<this.data[0].length; a++) {
+				this.data[this.data.length-1][a] = " ";
+			}
+			this.display.push(JSON.parse(JSON.stringify(this.data[this.data.length-1])));
+		}
+		
+		//if x is invalid
+		if (x < 0) {
+			//move self
+			this.x += x;
+
+			//add buffer to all rows
+			for (var c=0; c<this.data.length; c++) {
+				for (var i=0; i<Math.abs(x-1); i++) {
+					this.data[c].splice(0, 0, " ");
+					this.display[c].splice(0, 0, " ");
+				}
+			}
+			x = 0;
+		}
+
+		if (x >= this.data[0].length) {
+			var amount = x - (this.data[0].length - 1);
+			for (var c=0; c<this.data.length; c++) {
+				for (var i=0; i<amount; i++) {
+					this.data[c].push(" ");
+					this.display[c].push(" ");
+				}
+			}
+		}
+
+		//set square
+		this.data[y][x] = newValue;
+	}
+
+	changeDisplaySquare(x, y, newValue) {
+		//only change if in bounds
+		if (x >= 0 && x < this.display[0].length && y >= 0 && y < this.display.length) {
+			this.display[y][x] = newValue;
+		}
+	}
+
+	tick() {
+		this.entities.forEach(e => {
+			e.tick();
+		});
+	}
+
+	transferPlayerToMap(map) {
+		player.map = map;
+		loading_map = map;
+		this.entities.splice(player);
+		player.map.entities.push(player);
+	}
+
+	validateMovementTo(x, y, entity) {
+		//if player is on a map square, check the other map first
+		var playerMap;
+		try {
+			playerMap = this.data[player.lastPos[1] - this.y][player.lastPos[0] - this.x] - 1;
+		} catch (er) {
+			playerMap = -1;
+		}
+		
+		if (this.connections[playerMap] != undefined) {
+			if (this.connections[playerMap][0].validateMovementTo(x, y, entity)) {
+				this.transferPlayerToMap(this.connections[playerMap][0]);
+				return true;
+			} 
+		}
+
+		x -= this.x;
+		y -= this.y;
+		if (this.data[y] == undefined) {
+			return false;
+		}
+		if (this.data[y][x] == undefined) {
+			return false;
+		}
+		if (this.data[y][x] === " ") {
+			return false;
+		}
+
+		//loop through entities, if there's an entity there don't allow it
+		for (var e=0; e<this.entities.length; e++) {
+			if (Math.round(this.entities[e].x) == x && Math.round(this.entities[e].y) == y && this.entities[e] != entity) {
+				return false;
+			}
+		}
+		return true;
 	}
 }
