@@ -3,13 +3,14 @@ INDEX:
 	drawCircle(color, x, y, r);
 	drawLine(color, xyFrom, xyTo, width);
 	drawMeter(color, x, y, width, height, percentage);
+	drawRoundedRectangle(x, y, width, height, arcRadius);
+	drawSelectionBox(x, y, width, height);
 
 	drawEditorOverlay();
 */
 
 
 //general functions
-
 function drawCircle(color, x, y, r) {
 	ctx.beginPath();
 	ctx.fillStyle = color;
@@ -38,36 +39,31 @@ function drawMeter(color, x, y, width, height, percentage) {
 	ctx.fillRect(x + wBuffer, y + hBuffer, (width - (wBuffer * 2)), (height - (hBuffer * 2)) * percentage);
 }
 
-
-
-//specific, complex functions
-function drawEditorOverlay() {
-	//outline
-	ctx.globalAlpha = 0.5;
-	ctx.strokeStyle = color_editor_border;
-	ctx.lineWidth = canvas.height / 50;
+function drawRoundedRectangle(x, y, width, height, arcRadius) {
+	y += ctx.lineWidth / 2;
+	x += ctx.lineWidth / 2;
+	height -= ctx.lineWidth;
+	width -= ctx.lineWidth;
 	ctx.beginPath();
-	ctx.rect(canvas.width * editor_sidebarWidth, 0, canvas.width * (1 - editor_sidebarWidth), canvas.height);
+	ctx.moveTo(x + arcRadius, y);
+	ctx.lineTo(x + width - arcRadius, y);
+	ctx.quadraticCurveTo(x + width, y, x + width, y + arcRadius);
+	ctx.lineTo(x + width, y + height - arcRadius);
+	ctx.quadraticCurveTo(x + width, y + height, x + width - arcRadius, y + height);
+	ctx.lineTo(x + arcRadius, y + height);
+	ctx.quadraticCurveTo(x, y + height, x, y + height - arcRadius);
+	ctx.lineTo(x, y + arcRadius);
+	ctx.quadraticCurveTo(x, y, x + arcRadius, y);
+}
+
+function drawSelectionBox(x, y, width, height) {
+	ctx.lineWidth = 2;
+	ctx.strokeStyle = color_editor_selection;
+	drawRoundedRectangle(x, y, width, height, canvas.height / 100);
 	ctx.stroke();
-	ctx.globalAlpha = 1;
+}
 
-	//actual sidebar
-	ctx.fillStyle = color_editor_background;
-	ctx.fillRect(0, 0, canvas.width * editor_sidebarWidth, canvas.height);
-
-	//text
-	ctx.font = `${canvas.height / 24}px Ubuntu`;
-	ctx.fillStyle = color_text;
-	//top name
-	ctx.fillText(loading_map.name, canvas.width * (editor_sidebarWidth / 2), canvas.height * 0.045);
-	//block ID
-	ctx.textAlign = "left";
-	ctx.fillText(`block: "${editor_block}"`, canvas.width * 0.01, canvas.height * 0.1);
-
-	//connections
-	ctx.fillText(`connections`, canvas.width * 0.01, canvas.height * 0.2);
-	ctx.font = `${canvas.height / 36}px Ubuntu`;
-	for (var e=0; e<loading_map.connections.length; e++) {
-		ctx.fillText(`${e+1} - ${loading_map.connections[e][0].name}, ${JSON.stringify(loading_map.connections[e][1])}`, canvas.width * 0.015, canvas.height * (0.24 + (0.04 * e)));
-	}
+function setCanvasPreferences() {
+	ctx.textBaseline = "middle";
+	ctx.imageSmoothingEnabled = false;
 }
