@@ -67,3 +67,16 @@ function setCanvasPreferences() {
 	ctx.textBaseline = "middle";
 	ctx.imageSmoothingEnabled = false;
 }
+
+function setCanvasResolutionMult(settingNumber) {
+	var defaultSize = 640;
+	var mult = settings_resolutions[settingNumber][0] / 640;
+	canvas.width = settings_resolutions[settingNumber][0];
+	canvas.height = settings_resolutions[settingNumber][1];
+	camera_scaleMin = 10 * mult;
+	camera_scaleMax = 60 * mult;
+	camera_scaleDefault = 40 * mult;
+	camera.targetScale = camera_scaleDefault;
+
+	setCanvasPreferences();
+}
