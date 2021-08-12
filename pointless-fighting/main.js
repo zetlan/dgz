@@ -10,6 +10,10 @@ window.addEventListener("mouseup", handleMouseUp, false);
 //global vars
 let animation;
 
+var audio_channel1 = new AudioChannel(0.5);
+var audio_fadeTime = 50;
+var audio_tolerance = 1 / 30;
+
 let ctx;
 let canvas;
 
@@ -38,12 +42,29 @@ var cursor_down = false;
 var cursor_x = 0;
 var cursor_y = 0;
 
+//[audio object, loop at selected time?, start of loop time, end of loop time]
+var data_audio = {
+	"winter": [new Audio("audio/winter.mp3"), true, 1.436, 59.837],
+	"buriedTreasure": [new Audio("audio/buried treasure.mp3"), false],
+}
 var data_spriteSize = 20;
-var data_palettes = {
+var data_images = {
 	Empty: new Palette_Empty(),
+
 	Terrain: {
-		North: new Palette(getImage('images/terrainNorth.png'), data_spriteSize)
-	} 
+		Empty: new Palette(getImage('images/pseudoEmpty.png'), data_spriteSize),
+		North: new Palette(getImage('images/terrainNorth.png'), data_spriteSize),
+		Treasure: new Palette(getImage('images/terrainTreasure.png'), data_spriteSize)
+	},
+	
+	Characters: {
+		Player: new Texture_Animated(getImage('images/spritesPlayer.png'), data_spriteSize, 1, 1, [0.5, 0.5], [[0, 0], [0, 1], [0, 2], [0, 3]], 1e1001, false)
+	}
+};
+var data_persistent = {
+	settings: {
+		resSelection: 2
+	}
 };
 
 var editor_active = false;
@@ -57,15 +78,21 @@ var menu_animSpeed = 7;
 
 let player;
 
+var settings_resolutions = [
+	[480, 360],
+	[640, 480],
+	[960, 720],
+	[1280, 960]
+];
+
 var tileImage_key = `0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZαγεηικμνυπρσςτφχψωβΓδΔΛξζΣΞΘθΠλΦΨΩ<^> `;
 var tileImage_map = generateTileImageMap();
 
-var world_cCoords = [1, 0, 15, 12];
 var world_outsideMapFade = 5;
 var world_outsideMapFadeConstant = 5.2;
 var world_time = 0;
 
-let world_maps = {};
+let world_maps = [];
 
 
 //main functions
