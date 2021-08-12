@@ -113,6 +113,9 @@ class State_Game {
 		//background fill
 		ctx.fillStyle = color_background;
 		ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+		//soundies
+		audio_channel1.tick();
 	
 		camera.tick_follow();
 		loading_map.tick();
