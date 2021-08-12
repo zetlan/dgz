@@ -12,8 +12,8 @@ class Camera {
 
 		this.scale = zoom;
 		this.targetScale = this.scale;
-		//all sprites are done at 4/5ths perspective, but the vertical squish has to be set to 0.78 instead of 0.8. Why? Images are strange.
-		this.vSquish = 0.78;
+		//all sprites are done at 4/5ths perspective
+		this.vSquish = 0.8;
 
 		this.calculateCorners();
 	}
@@ -38,47 +38,6 @@ class Camera {
 }
 
 
-
-
-
-class Palette {
-	constructor(image, spriteSize) {
-		this.sheet = image;
-		this.size = spriteSize;
-	}
-
-	drawTexture(dataNum, worldX, worldY, drawX, drawY, drawSize) {
-		var mappedNum = tileImage_map[dataNum];
-		if (mappedNum == undefined) {
-			console.error(`"${dataNum}" is not in the tile mapping!`);
-			return;
-		}
-
-		if (mappedNum >= 96) {
-			//terrain
-			ctx.drawImage(this.sheet, this.size * Math.abs(worldX % 3), this.size * (Math.abs(worldY % 2) + Math.floor((mappedNum - 96) / 2) * 2), this.size, this.size, drawX, drawY, drawSize, drawSize);
-		} else {
-			//special tiles
-			ctx.drawImage(this.sheet, this.size * Math.abs(worldX % 3), this.size * Math.abs(worldY % 2), this.size, this.size, drawX, drawY, drawSize, drawSize);
-			ctx.drawImage(this.sheet, this.size * (4 + mappedNum % 12), this.size * Math.floor(mappedNum / 12), this.size, this.size, drawX, drawY, drawSize, drawSize);
-		}
-	}
-}
-
-
-class Palette_Empty {
-	constructor() {
-	}
-
-	drawTexture(dataNum, worldX, worldY, drawX, drawY, drawSize) {
-		drawSize -= 2;
-		if (dataNum !== " ") {
-			ctx.fillRect(drawX + 1, drawY + 1 + (drawSize * (1 - camera.vSquish)), drawSize, drawSize * camera.vSquish);
-		}
-
-		
-	}
-}
 
 
 
@@ -114,7 +73,7 @@ class Player {
 		this.queueMaxLength = 4;
 		this.lastPressTime = -100;
 
-		this.r = 0.3125;
+		this.r = 1;
 		this.a = 0;
 		this.color = color;
 
@@ -132,6 +91,7 @@ class Player {
 		this.frequencyHaltLimit = 5;
 		this.dashStamina = this.maxStamina * 0.1;
 
+		this.texture = data_images.Characters.Player;
 		this.map = parentMap;
 	}
 
@@ -241,39 +201,7 @@ class Player {
 		var [drawX, drawY] = spaceToScreen(this.x, this.y);
 		var drawR = this.r * camera.scale;
 
-		//sword changes angle depending on attack frame
-		var mult = 0.65 + ((this.attackLength / this.attackFrame) * -0.1);
-		if (this.attackFrame == 0) {
-			mult = 0.65;
-		}
-		var swordStartPos = polToXY(drawX, drawY, this.a + (Math.PI * 0.3), drawR);
-		var swordEndPos = polToXY(drawX, drawY, this.a + (Math.PI * mult), drawR * 2);
-		drawLine(color_sword, swordStartPos, swordEndPos, 3);
-
-		//circle for body
-		drawCircle(this.color, drawX, drawY, drawR);
-		
-		//eyes
-		var eye1Pos = polToXY(drawX, drawY, this.a + 0.65, drawR * 0.44);
-		var eye2Pos = polToXY(drawX, drawY, this.a - 0.65, drawR * 0.44);
-		drawCircle(color_player_eyes, eye1Pos[0], eye1Pos[1], drawR / 10);
-		drawCircle(color_player_eyes, eye2Pos[0], eye2Pos[1], drawR / 10);
-
-		//attack circles
-		if (this.attackFrame >= Math.floor(this.attackLength / 4)) {
-			ctx.globalAlpha = Math.max(0, 0.3 - ((this.attackFrame - Math.floor(this.attackLength / 4)) * 0.05));
-			var boxOffset = polToXY(0, 0, this.a, (drawR * this.attackBoxLength) / this.attackBoxNum);
-			var boxPos;
-			var boxR;
-
-			//loop through series of collision boxes
-			for (var b=0; b<this.attackBoxNum; b++) {
-				boxPos = [drawX + boxOffset[0] * b, drawY + (boxOffset[1] * b)];
-				boxR = drawR * this.attackBoxRadiusMult * Math.pow(0.95, b);
-				drawCircle(color_attackBubble, boxPos[0], boxPos[1], boxR);
-			}
-			ctx.globalAlpha = 1;
-		}
+		this.texture.drawTexture(drawX, drawY, drawR, drawR);
 	}
 
 	handleInput(negatingBOOLEAN, index) {
@@ -381,19 +309,22 @@ class Player {
 
 //map class, for maps y'know?
 class Zone {
-	constructor() {
-		this.name = "ERROR: NAME NOT DEFINED";
-		this.x = 0;
-		this.y = 0;
+	constructor(x, y, name, connections, collisionData, display, entities, palettePath, music) {
+		this.name = name;
+		this.x = x;
+		this.y = y;
 
-		this.connections = [];
-		this.data = [];
-		this.display = [];
-		this.entities = [];
+		this.connections = connections;
+		this.data = collisionData;
+		this.display = display;
+		this.entities = entities;
+
+		this.palettePath = palettePath;
+		this.palette = eval(`data_images.${palettePath}`);
+
+		this.musicID = music;
 
 		this.dArr = undefined;
-		
-		this.palette = data_palettes.Terrain.North;
 	}
 
 	beDrawn() {
@@ -424,7 +355,7 @@ class Zone {
 		//actual squares
 		this.dArr = this.data;
 		var palStore = this.palette;
-		this.palette = data_palettes.Empty;
+		this.palette = data_images.Empty;
 		this.beDrawn_images();
 		this.dArr = this.display;
 		this.palette = palStore;
@@ -446,7 +377,7 @@ class Zone {
 		startXY[1] = Math.max(Math.floor(startXY[1]) - this.y, 0);
 		var pixelStartXY = spaceToScreen(this.x, this.y);
 
-		var xLen = Math.min(Math.ceil(canvas.width / camera.scale) + 1, this.data[0].length - startXY[0]);
+		var xLen = Math.min(Math.ceil(canvas.width / camera.scale) + 3, this.data[0].length - startXY[0]);
 		var yLen = Math.min(Math.ceil(canvas.height / (camera.scale * camera.vSquish)) + 1, this.data.length - startXY[1]);
 
 		ctx.fillStyle = color_collision;
@@ -500,7 +431,7 @@ class Zone {
 			if (this.data[Math.round(player.y) - this.y][Math.round(player.x) - this.x] > 0) {
 				var xDist = player.x - player.lastPos[0];
 				var yDist = player.y - player.lastPos[1];
-				world_outsideMapFade = world_outsideMapFadeConstant * (1 - Math.sqrt(xDist * xDist + yDist * yDist));
+				world_outsideMapFade = world_outsideMapFadeConstant * (1 - Math.max(Math.abs(xDist), Math.abs(yDist)));
 				mapNum = this.data[Math.round(player.y) - this.y][Math.round(player.x) - this.x] - 1;
 			}
 		} catch (er) {
@@ -563,6 +494,8 @@ class Zone {
 
 		//set square
 		this.data[y][x] = newValue;
+
+		//this.removeExcessTiles();
 	}
 
 	changeDisplaySquare(x, y, newValue) {
@@ -572,6 +505,36 @@ class Zone {
 		}
 	}
 
+	removeExcessTiles() {
+		//determine which sides are good
+		var removal = [true, true, true, true];
+		while (removal[0] + removal[1] + removal[2] + removal[3] > 0) {
+			//if the left wall worth removing?
+			if (removal[0]) {
+				for (var y=0; y<this.data.length; y++) {
+					if (this.data[y][0] != " " || this.display[y][0] != " ") {
+						removal[0] = false;
+					}
+				}
+				//actual remove
+				if (removal[0]) {
+					for (var y=0; y<this.data.length; y++) {
+						this.data[y].splice(0, 1);
+						this.display[y].splice(0, 1);
+					}
+				}
+			}
+
+			//is the top wall worth removing
+			if (removal[1]) {
+
+			}
+			
+		}
+		
+
+	}
+
 	tick() {
 		this.entities.forEach(e => {
 			e.tick();
@@ -579,6 +542,7 @@ class Zone {
 	}
 
 	transferPlayerToMap(map) {
+		audio_channel1.targetAudio = data_audio[map.musicID];
 		player.map = map;
 		loading_map = map;
 		this.entities.splice(player);
