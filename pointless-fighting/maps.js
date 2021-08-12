@@ -13,8 +13,8 @@ function importConnections(data) {
 		var splitTag = d.split("|");
 		//part 1 is start map, part 2 is end map, part 3 is offset
 		try {
-			var startMap = world_maps[splitTag[0]];
-			var endMap = world_maps[splitTag[1]];
+			var startMap = getZone(splitTag[0]);
+			var endMap = getZone(splitTag[1]);
 			var coordOffset = JSON.parse(splitTag[2]);
 			if (endMap != undefined) {
 				startMap.connections.push([endMap, coordOffset]);
@@ -30,6 +30,9 @@ function importConnections(data) {
 
 //takes in string data and converts it into positions in the array
 function importData(arr, character, data) {
+	//remove stars
+	data = unStarrify(data);
+
 	//first split the data into binary existance
 	var expandedData = ``;
 	for (var g=0; g<data.length; g++) {
@@ -39,14 +42,24 @@ function importData(arr, character, data) {
 	//map binary data onto array
 	var aWidth = arr[0].length;
 	for (var c=0; c<expandedData.length; c++) {
-		if (expandedData[c] == "1") {	
+		if (expandedData[c] == "1") {
 			arr[Math.floor(c / aWidth)][c % aWidth] = character;
 		}
 	}
 }
 
 function importZone(zoneLineString) {
-	var returnZone = new Zone();
+	var zoneProps = {
+		connect: [],
+		data: [],
+		disp: [],
+		entities: [],
+		music: undefined,
+		name: "ERROR: NAME NOT DEFINED",
+		path: "",
+		x: 0,
+		y: 0,
+	}
 	//first split by tag
 	var splitTag = zoneLineString.split("|");
 
@@ -54,43 +67,51 @@ function importZone(zoneLineString) {
 	splitTag.forEach(s => {
 		var superSplit = s.split("~");
 		switch (superSplit[0]) {
-			case "id":
-				returnZone.name = superSplit[1];
-				break;
 			case "coords":
-				returnZone.x = superSplit[1] * 1;
-				returnZone.y = superSplit[2] * 1;
+				zoneProps.x = superSplit[1] * 1;
+				zoneProps.y = superSplit[2] * 1;
 				break;
 			case "dims":
-				returnZone.data = [];
-				returnZone.display = [];
+				zoneProps.data = [];
+				zoneProps.disp = [];
 				//y size
 				for (var b=0; b<superSplit[2]*1; b++) {
-					returnZone.data.push([]);
-					returnZone.display.push([]);
+					zoneProps.data.push([]);
+					zoneProps.disp.push([]);
 					for (var a=superSplit[1]*1 - 1; a>=0; a--) {
-						returnZone.data[b][a] = " ";
-						returnZone.display[b][a] = " ";
+						zoneProps.data[b][a] = " ";
+						zoneProps.disp[b][a] = " ";
 					}
 				}
 				break;
-			case "ground":
-				importData(returnZone.data, superSplit[1], superSplit[2]);
-				break;
 			case "display":
 				//update display array
+				superSplit[1] = unStarrify(superSplit[1]);
 				var char = 0;
 				while (char < superSplit[1].length) {
-					returnZone.display[Math.floor(char/returnZone.display[0].length)][char%returnZone.display[0].length] = superSplit[1][char];
+					zoneProps.disp[Math.floor(char/zoneProps.disp[0].length)][char%zoneProps.disp[0].length] = superSplit[1][char];
 					char += 1;
 				}
 				break;
+			case "ground":
+				importData(zoneProps.data, superSplit[1], superSplit[2]);
+				break;
+			case "id":
+				zoneProps.name = superSplit[1];
+				break;
+			case "music":
+				zoneProps.music = superSplit[1];
+				break;
+			case "palette":
+				zoneProps.path = superSplit[1];
+				break;
+			
 		}
 	});
 
 
 	//add zone to world
-	world_maps[returnZone.name] = returnZone;
+	addZone(new Zone(zoneProps.x, zoneProps.y, zoneProps.name, zoneProps.connect, zoneProps.data, zoneProps.disp, zoneProps.entities, zoneProps.path, zoneProps.music));
 }
 
 
@@ -113,7 +134,7 @@ function maps_load() {
 		importConnections(connections);
 
 		//player stuff
-		loading_map = world_maps["start"];
+		loading_map = getZone("start");
 		loading_map.entities.push(player);
 		player.map = loading_map;
 	});
@@ -125,13 +146,23 @@ function maps_load() {
 
 
 
+function exportConnections() {
+	var toReturn = ``;
+	world_maps.forEach(z => {
+		z.connections.forEach(c => {
+			toReturn += `${z.name}|${c[0].name}|[${c[1][0]}, ${c[1][1]}]\n`;
+		});
+	});
+	return toReturn;
+}
+
 function exportData(data) {
 	var finalString = ``;
 	var typeString = ``;
 	var buffer1 = "";
 	for (var type=0; type<10; type++) {
 		for (var y=0; y<data.length; y++) {
-			for (var x=0; x<data.length; x++) {
+			for (var x=0; x<data[0].length; x++) {
 				buffer1 += "" + (1 * (data[y][x] === "" + type));
 
 				//if buffer1 is long enough, convert to a character
@@ -149,6 +180,9 @@ function exportData(data) {
 		}
 		typeString = typeString.substring(0, typeString.length - lagging0s);
 
+		//add stars
+		typeString = starrify(typeString);
+
 		//add final string
 		if (typeString.length > 0) {
 			finalString += `|ground~${type}~${typeString}`;
@@ -161,34 +195,87 @@ function exportData(data) {
 	return finalString;
 }
 
+function exportWorld() {
+	var maps = ``;
+	var connections = ``;
+
+	//each zone, then each exit
+	world_maps.forEach(z => {
+		maps += exportZone(z) + "\n";
+	});
+
+	connections = exportConnections();
+
+	return maps + "\n\n" + connections;
+}
+
 function exportZone(zoneObj) {
 	var toReturn = ``;
 	//standard properties
 	toReturn += `id~${zoneObj.name}`;
+	toReturn += `|music~${zoneObj.musicID}`;
 	toReturn += `|coords~${zoneObj.x}~${zoneObj.y}`;
 	toReturn += `|dims~${zoneObj.data[0].length}~${zoneObj.data.length}`;
+	toReturn += `|palette~${zoneObj.palettePath}`;
 
-	//collision data
+	//collision data (ground)
 	toReturn += `|${exportData(zoneObj.data)}`;
 
 	//image data
 	toReturn += `|display~`;
+	var imgData = "";
 	for (var y=0; y<zoneObj.display.length; y++) {
 		for (var x=0; x<zoneObj.display[0].length; x++) {
-			toReturn += zoneObj.display[y][x];
+			imgData += zoneObj.display[y][x];
+		}
+	}
+	toReturn += starrify(imgData);
+
+	return toReturn;
+}
+
+
+function starrify(data) {
+	var charBuffer = ["", 0];
+	var newData = "";
+	for (var a=0; a<data.length; a++) {
+		//if the current character is different or the buffer is too long, turn into new string
+		if (data[a] != charBuffer[0] || charBuffer[1] >= tileImage_key.length-1) {
+			//if it's not long enough to become a star
+			if (charBuffer[1] < 4) {
+				for (var b=0; b<charBuffer[1]; b++) {
+					newData += charBuffer[0];
+				}
+			} else {
+				//if it's long enough to be starred
+				newData += `${charBuffer[0]}*${tileImage_key[charBuffer[1]]}`;
+			}
+
+			//reset buffer
+			charBuffer[0] = data[a];
+			charBuffer[1] = 1;
+		} else {
+			//add to the star length
+			charBuffer[1] += 1;
+		}
+	}
+	return newData;
+}
+
+function unStarrify(data) {
+	var newData = "";
+	for (var c=0; c<data.length; c++) {
+		//if the next character is a star
+		if (data[c+1] == "*") {
+			for (var h=0; h<tileImage_map[data[c+2]]; h++) {
+				newData += data[c];
+			}
+			c += 2;
+		} else {
+			//regular case
+			newData += data[c];
 		}
 	}
 
-	return toReturn;
+	return newData;
 }
-
-function exportConnections() {
-	var toReturn = ``;
-	Object.values(world_maps).forEach(z => {
-		z.connections.forEach(c => {
-			toReturn += `${z.name}|${c[0].name}|[${c[1][0]}, ${c[1][1]}]\n`;
-		});
-	});
-	return toReturn;
-}
-
