@@ -3,6 +3,10 @@ class State_Edit {
 		this.titleButton;
 		this.sbarW = 0.25;
 		this.otherEditorOpacity = 0.2;
+
+		this.panelW = 0.8;
+		this.panelH = 0.8;
+		this.panelRows = 5;
 		this.makeButton();
 	}
 
@@ -130,20 +134,33 @@ class State_Edit_Collision extends State_Edit {
 		super();
 		this.block = " ";
 
-		this.exitsHeight = 0.2;
+		this.exitsHeight = 0.3;
 		this.exitsSpacing = 0.04;
 		this.exitMoving = false;
 		this.exit = undefined;
 
+		this.panelUp = false;
+		this.panelType = undefined;
+
 		this.buttons = [
 			new UI_Button(0.5 + this.sbarW / 2, 0.05, 0.1, 0.05, `SYNC NAME PLEASE`, false, `loading_state.newName();`),
-			new UI_Button(this.sbarW * 0.4, 0.98, 0.02, 0.025, "+", true, `loading_state.exitAdd();`),
-			new UI_Button(this.sbarW * 0.6, 0.98, 0.02, 0.025, "-", true, `loading_state.exitRemove();`)
+			new UI_Button(this.sbarW * 0.25, 0.98, 0.02, 0.025, "+", true, `loading_state.exitAdd();`),
+			new UI_Button(this.sbarW * 0.5, 0.98, 0.02, 0.025, "•", true, ``),
+			new UI_Button(this.sbarW * 0.75, 0.98, 0.02, 0.025, "-", true, `loading_state.exitRemove();`)
 		];
+
+		this.panels = [
+			//the 'change what world you're editing' panel
+			//new UI_Panel(a, )
+		]
 		this.syncNameButton();
 	}
 
 	doWorld() {
+		//don't do the whole world thing if the panel is up
+		if (this.panelUp) {
+			return;
+		}
 		ctx.fillStyle = color_background;
 		ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -154,10 +171,11 @@ class State_Edit_Collision extends State_Edit {
 		ctx.globalAlpha = this.otherEditorOpacity;
 		loading_map.beDrawn_images();
 		ctx.globalAlpha = 1;
+
 	}
 
 	exitAdd() {
-		loading_map.connections.push([undefined, [0, -2]]);
+		loading_map.connections.push([world_maps[0], [0, -2]]);
 	}
 
 	exitRemove() {
@@ -170,14 +188,12 @@ class State_Edit_Collision extends State_Edit {
 		if (newNameCheck != null && newNameCheck != undefined && newNameCheck != "") {
 			//remove any vertical seperators or tildes (used in level data)
 			newNameCheck = newNameCheck.replaceAll("|", "").replaceAll("~", "");
-			//if the new name appears to be valid, check with the object, and change it
-			if (world_maps[newNameCheck] == undefined) {
-				//world stuff
-				world_maps[newNameCheck] = loading_map;
-				delete world_maps[loading_map.name];
-				loading_map.name = newNameCheck;
 
-				//button stuff
+			//if the new name appears to be valid, check with the object, and change it
+			if (getZone(newNameCheck) == undefined) {
+				loading_map.name = newNameCheck;
+				world_maps.splice(world_maps.indexOf(loading_map), 1);
+				addZone(loading_map);
 				this.syncNameButton();
 			}
 		}
@@ -195,6 +211,11 @@ class State_Edit_Collision extends State_Edit {
 	}
 
 	drawOverlay() {
+		//panel, if up
+		if (this.panelUp) {
+			
+			return;
+		}
 		//exit, if one is selected
 		ctx.strokeStyle = color_editor_border;
 		if (this.exit != undefined) {
@@ -219,6 +240,9 @@ class State_Edit_Collision extends State_Edit {
 	}
 
 	drawSidebarElements() {
+		if (this.panelUp) {
+			return;
+		}
 		//map title button
 		this.buttons[0].beDrawn();
 
@@ -227,7 +251,7 @@ class State_Edit_Collision extends State_Edit {
 		ctx.fillText(`block: "${this.block}"`, canvas.width * 0.01, canvas.height * 0.1);
 
 		//connections
-		ctx.fillText(`connections`, canvas.width * 0.01, canvas.height * 0.15);
+		ctx.fillText(`connections`, canvas.width * 0.01, canvas.height * (this.exitsHeight - 0.05));
 		ctx.font = `${canvas.height / 36}px Ubuntu`;
 		for (var e=0; e<loading_map.connections.length; e++) {
 			ctx.fillText(`${e+1} - ${loading_map.connections[e][0].name}, ${JSON.stringify(loading_map.connections[e][1])}`, canvas.width * 0.015, canvas.height * (this.exitsHeight + (this.exitsSpacing * e)));
@@ -240,6 +264,7 @@ class State_Edit_Collision extends State_Edit {
 		this.buttons[1].beDrawn();
 		if (this.exit != undefined) {
 			this.buttons[2].beDrawn();
+			this.buttons[3].beDrawn();
 		}
 	}
 
@@ -269,6 +294,11 @@ class State_Edit_Collision extends State_Edit {
 			return 31;
 		}
 
+		//panel goes on top of everything
+		if (this.panelUp) {
+			return;
+		}
+
 		//sidebar
 		if (cursor_x < this.sbarW * canvas.width) {
 			//choosing new exit
@@ -278,12 +308,17 @@ class State_Edit_Collision extends State_Edit {
 			}
 
 			//buttons
-			this.buttons[0].tick();
 			this.buttons[1].tick();
 			if (this.exit != undefined) {
 				this.buttons[2].tick();
+				this.buttons[3].tick();
 			}
 		} else {
+			if (this.buttons[0].over) {
+				this.buttons[0].tick();
+				return;
+			}
+
 			//selecting exit position / changing a square
 			var xy = screenToSpace(cursor_x, cursor_y);
 			xy[0] = Math.round(xy[0]) - loading_map.x;
@@ -326,13 +361,31 @@ class State_Edit_Sprites extends State_Edit {
 
 		this.labelBlockHeight = 0.15;
 		this.buttons = [
-			new UI_Button(this.sbarW * 0.9, this.labelBlockHeight, 0.03, 0.04, "", false, `loading_state.blockSelecting = !loading_state.blockSelecting;`)
+			new UI_Button(this.sbarW / 2, this.labelBlockHeight - 0.05, this.sbarW * 0.94, 0.05, loading_map.palettePath, false, `loading_state.changePath();`),
+			new UI_Button(this.sbarW * 0.9, this.labelBlockHeight, 0.03, 0.04, "", false, `loading_state.blockSelecting = !loading_state.blockSelecting;`),
+			new UI_Button(this.sbarW / 2, this.labelBlockHeight + 0.05, this.sbarW * 0.94, 0.05, `song: ${loading_map.musicID}`, false, `loading_state.newMusic();`)
+			
 		];
+	}
+
+	changePath() {
+		var newPathAttempt = prompt(`enter new path`, loading_map.palettePath);
+		if (eval(`data_images.${newPathAttempt}`) instanceof Palette) {
+			loading_map.palettePath = newPathAttempt;
+			loading_map.palette = eval(`data_images.${loading_map.palettePath}`);
+			this.buttons[1].text = newPathAttempt;
+		} else {
+			alert(`invalid path recieved`);
+		}
 	}
 
 	makeButton() {
 		super.makeButton();
-		this.titleButton.text = `Sprite Editor`;
+		this.titleButton.text = `Display Editor`;
+	}
+
+	newMusic() {
+
 	}
 
 	doWorld() {
@@ -348,6 +401,7 @@ class State_Edit_Sprites extends State_Edit {
 		ctx.fillText(`block: ${this.block}`, canvas.width * 0.01, canvas.height * this.labelBlockHeight);
 
 		this.buttons[0].beDrawn();
+		this.buttons[1].beDrawn();
 
 		//if selecting a block, put up menu
 		if (this.blockSelecting) {
@@ -365,6 +419,7 @@ class State_Edit_Sprites extends State_Edit {
 		}
 
 		this.buttons[0].tick();
+		this.buttons[1].tick();
 
 		if (this.blockSelecting) {
 			var aspect = (canvas.width * (1 - this.sbarW)) / loading_map.palette.sheet.width;
