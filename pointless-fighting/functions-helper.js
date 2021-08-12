@@ -1,7 +1,9 @@
 /*
 INDEX
+	addZone(zoneObj);
 	generateTileImageMap();
 	getImage(url);
+	getZone(zoneID);
 	polToXY(startX, startY, angle, magnitude);
 	spaceToScreen(x, y);
 	screenToSpace(x, y);
@@ -9,7 +11,19 @@ INDEX
 */
 
 
+//adds a zone to the zone array, in alphabetical order
+function addZone(zoneObj) {
+	//add zone in correct spot
+	for (var r=0; r<world_maps.length; r++) {
+		//if out of alphabetical order, add to the previous index
+		if (world_maps[r].name.localeCompare(zoneObj.name) > 0) {
+			world_maps.splice(r, 0, zoneObj);
+			return;
+		}
+	}
 
+	world_maps.splice(world_maps.length, 0, zoneObj);
+}
 
 function generateTileImageMap() {
 	var map = {};
@@ -23,6 +37,26 @@ function getImage(url) {
 	var image = new Image();
 	image.src = url;
 	return image;
+}
+
+function getZone(zoneID) {
+	var low = 0;
+	var high = world_maps.length - 1;
+
+	//binary search
+	while (low < high) {
+		if (world_maps[Math.floor((low + high) / 2)].name.localeCompare(zoneID) < 0) {
+			low = Math.floor((low + high) / 2) + 1;
+		} else {
+			high = Math.floor((low + high) / 2);
+		}
+	}
+
+	console.log(low, high);
+	if (world_maps[low].name == zoneID) {
+		return world_maps[low];
+	}
+	return undefined;
 }
 
 function polToXY(startX, startY, angle, magnitude) {
