@@ -143,9 +143,10 @@ class Texture_Animated {
 	drawTexture(drawX, drawY, drawSize) {
 		//draw the texture
 		try {
-			ctx.drawImage
+			var frame = this.frames[Math.floor(this.frame)];
+			ctx.drawImage(this.sheet, this.size * frame[0], this.size * frame[1], this.size * this.w, this.size * this.h, drawX - (drawSize * this.center[0]), drawY - (drawSize * this.center[1]), drawSize, drawSize);
 		} catch (er) {
-			console.error(`problem drawing animated texture! On frame ${this.frame} with frames ${JSON.stringify(this.frames)}`);
+			console.error(er, `problem drawing animated texture! On frame ${this.frame} with frames ${JSON.stringify(this.frames)}`);
 		}
 
 		//do looping stuff
