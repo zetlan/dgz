@@ -1,12 +1,16 @@
-id~start|coords~1~0|dims~13~12|palette~Terrain.North|ground~0~wγγγγγg7M7Ufγγγγγγγ|ground~1~g|ground~2~8|ground~3~4|ground~4~2|ground~5~1|display~<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<031101010<<<<<<ooo<ooo<<<<<<<oo1oo<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+id~start|music~winter|coords~0~0|dims~22~14|palette~Terrain.North|ground~0~fγγY7γγM0vγα1xγγα0fγγw3γγγMγγNYvγnαdYvα7NγUvγγPγγγ|display~<*m1*5<*hp*51*677<*ep*6771*4<*g77p*41*5<*hp*51*4<*m1*4<*eABC<*5111<*bc<e<*8111<<1<*5013<*ad11d<*5opq<*aoddq<*jdd<*kpp
 
-id~demo1|dims~12~8|palette~Terrain.North|ground~0~γTγγγγγγvD|ground~1~00w
+id~demo1|music~winter|coords~-1~-5|dims~12~8|palette~Terrain.North|ground~0~γTvγ*5vDvDvD|ground~1~00|display~<*8 <*D <*6  <<<
 
-id~demo2|dims~12~8|palette~Terrain.North|ground~0~γ3YUfPYγfz
+id~demo2|music~winter|dims~12~8|palette~Terrain.North|ground~0~γ3YUfPYγfz
+
+id~some assembly required|music~undefined|coords~-1~-15|dims~15~16|palette~Terrain.Empty|ground~0~v0280r01jαagnuWU7vNVYvfhVXnfTγγf70UU|display~ *τ<<<> *5δ<<   <Δ< *6<F<   <<<^^   ^<<<   <<<^   ^^<<<   <<ε ^   ^<<<   φ<< ^^ ^ Ξ<<   <<<^^ ^^^<<<   <<<^^^  ^<<<   <3<> *5<<<   <<<> *5<<α
+
+id~Buried Treasure - south|music~buriedTreasure|coords~-1~-5|dims~15~12|palette~Terrain.Treasure|ground~0~LγγWγXZγ*4LLXYγXγγγtγLγγααγγ|display~<0<*j0<1<*90<*4^^0^<*b^*4<*a1<<^^<0<*71<*610<*90<*k1<<<0<*81<*l1<*51<*c10
 
 
 start|demo1|[-1, -8]
 start|demo2|[0, -8]
-start|demo3|[-1, -10]
+start|some assembly required|[-1, -10]
 start|demo4|[-1, -10]
 start|demo5|[-1, -10]
