@@ -120,7 +120,7 @@ class Monster {
 	constructor(x, y) {
 		this.x = x;
 		this.y = y;
-		this.r = 13;
+		this.r = monster_radius;
 
 		this.homeX = x;
 		this.homeY = y;
@@ -131,17 +131,22 @@ class Monster {
 		this.playerFriction = 0.97;
 		this.dx = 0;
 		this.dy = 0;
-		this.dMax = 2;
+		this.dMax = 2.1;
 
 		this.speed = 0.2;
 		this.dir = 0;
 
 		this.target = [0, 0];
 		this.eyeOffset = [0, 0];
-		this.followDist = 150;
+		this.followDist = 165;
 	}
 
 	tick() {
+		if (editor_active) {
+			this.x = this.homeX;
+			this.y = this.homeY;
+			return;
+		}
 		//set target
 		this.setTarget();
 
@@ -161,42 +166,8 @@ class Monster {
 
 		this.x = clamp(this.x + this.dx, -camera.limitX, camera.limitX);
 		this.y = clamp(this.y + this.dy, -camera.limitY, camera.limitY);
-	}
 
-	setTarget() {
-		var pXDist = this.x - player.x;
-		var pYDist = this.y - player.y;
-		var pDist = Math.sqrt(pXDist * pXDist + pYDist * pYDist);
-
-		//if player's close enough, the target is the player. If player is too far, target is random spot chosen every once in a while.
-		if (pDist < this.followDist) {
-			this.npTime = 0;
-			this.target = [player.x, player.y];
-
-			//if close enough, slow down the player
-			if (pDist < player.r + this.r - 1) {
-				player.dx *= this.playerFriction;
-				player.dy *= this.playerFriction;
-			}
-		} else {
-			//count up time without player
-			this.npTime += 1;
-			var newCoords;
-
-			//if np time is too great, return close to home
-			if (this.npTime > this.npTimeMax) {
-				if (Math.random() < 0.01) {
-					newCoords = polToXY(this.x, this.y, this.dir + randomBounded(-0.5, 0.5), 150);
-					this.target = [clamp(newCoords[0], -camera.limitX, camera.limitX), clamp(newCoords[1], -camera.limitY, camera.limitY)];
-				}
-			} else {
-
-			} if (Math.random() < 0.015) {
-				//choose a random target nearby
-				newCoords = polToXY(this.x, this.y, this.dir + randomBounded(-0.5, 0.5), 150);
-				this.target = [clamp(newCoords[0], -camera.limitX, camera.limitX), clamp(newCoords[1], -camera.limitY, camera.limitY)];
-			}
-		}
+		this.collide();
 	}
 
 	beDrawn() {
@@ -224,10 +195,76 @@ class Monster {
 		}
 	}
 
+	collide() {
+		if (game_dynamicObjects.length < 3) {
+			return;
+		}
+
+		//collide with other monsters
+		var xDist;
+		var yDist;
+		var dist;
+		for (var m=0; m<game_dynamicObjects.length; m++) {
+			if (game_dynamicObjects[m] != this && game_dynamicObjects[m] != player) {
+				xDist = game_dynamicObjects[m].x - this.x;
+				yDist = game_dynamicObjects[m].y - this.y;
+				dist = Math.sqrt(xDist * xDist + yDist * yDist);
+				if (dist < this.r * 2) {
+					//get the distance, push self away and push other entity away
+					var unitDist = [xDist / dist * Math.sign(xDist), yDist / dist * Math.sign(yDist)];
+					var requiredMore = ((this.r * 2) - dist) / 2;
+
+					this.x += unitDist[0] * requiredMore;
+					this.y += unitDist[1] * requiredMore;
+
+					game_dynamicObjects[m].x -= unitDist[0] * requiredMore;
+					game_dynamicObjects[m].y -= unitDist[1] * requiredMore;
+				}
+			}
+			
+		}
+	}
+
 	reset() {
 		this.x = this.homeX;
 		this.y = this.homeY;
 		this.dx = 0;
 		this.dy = 0;
+	}
+
+	setTarget() {
+		var pXDist = this.x - player.x;
+		var pYDist = this.y - player.y;
+		var pDist = Math.sqrt(pXDist * pXDist + pYDist * pYDist);
+
+		//if player's close enough, the target is the player. If player is too far, target is random spot chosen every once in a while.
+		if (pDist < this.followDist) {
+			this.npTime = 0;
+			this.target = [player.x, player.y];
+
+			//if close enough, slow down the player
+			if (pDist < player.r + this.r - 1) {
+				player.dx *= this.playerFriction;
+				player.dy *= this.playerFriction;
+			}
+		} else {
+			//count up time without player
+			this.npTime += 1;
+			var newCoords;
+
+			//if np time is too great, return close to home
+			if (this.npTime > this.npTimeMax) {
+				if (Math.random() < 0.01) {
+					newCoords = [this.homeX + randomBounded(-150, 150), this.homeY + randomBounded(-150, 150)];
+					this.target = [clamp(newCoords[0], -camera.limitX, camera.limitX), clamp(newCoords[1], -camera.limitY, camera.limitY)];
+				}
+			} else if (Math.random() < 0.015) {
+				//choose a random target nearby
+				newCoords = polToXY(this.x, this.y, this.dir + randomBounded(-0.5, 0.5), 150);
+			}
+			if (newCoords != undefined) {
+				this.target = [clamp(newCoords[0], -camera.limitX, camera.limitX), clamp(newCoords[1], -camera.limitY, camera.limitY)];
+			}
+		}
 	}
 }
