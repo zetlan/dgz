@@ -16,13 +16,14 @@ let ctx;
 let canvas;
 
 var camera = {
-	x: 0,
+	x: 2,
 	y: 0,
 	scale: 200,
-	parallax: 0.1,
+	parallax: 0.2,
 	limitX: 600,
 	limitY: 600,
 }
+var camera_menuCoords = [camera.x, camera.y];
 var camera_scale_game = 4;
 var camera_scale_menu = 200;
 
@@ -32,10 +33,12 @@ const color_editor_border = "#FFF";
 const color_editor_orb = "#F00";
 const color_editor_selection = "#8F8";
 
+const color_level_completed = "#0C4";
 const color_monster = "#FA0";
 const color_monster_eye = "#804";
 const color_orbs = ["#FFF", "#AEF", "#7FB", "#FC2", "#F70", "#E09", "#909", "#406", "#324", "#112", "#000"];
 const color_player = "#F8F";
+const color_text = "#102";
 
 var cursor_down = false;
 var cursor_x = 0;
@@ -54,8 +57,8 @@ var game_time = 0;
 
 var menu_nodeSize = 0.5;
 var menu_nodeStruct = [
-	[`i0`, `i1`],
-	[`IM`, `un`],
+	[`un`, `un`, `i0`, `i1`, `i2`],
+	[`un`, `un`, `IM`, `un`, `m0`],
 	[],
 ]
 //turn readable nodeStruct into computable nodeStruct
@@ -64,12 +67,14 @@ for (var a=0; a<menu_nodeStruct.length; a++) {
 		menu_nodeStruct[a][b] = eval(`levels_${menu_nodeStruct[a][b]}`);
 	}
 }
-var menu_x = 0;
+var menu_x = 2;
 var menu_y = 0;
 var menu_lastPos = [menu_x, menu_y];
 var menu_nextPos = [menu_x, menu_y];
 var menu_progress = 0;
-var menu_increment = 1 / 40;
+var menu_increment = 1 / 30;
+
+var monster_radius = 13;
 
 
 var orb_animTime = 15;
@@ -83,8 +88,9 @@ var player;
 
 var scan_alertWidth = 10;
 var scan_energyCost = 1 / 50;
+var scan_windowScale = [0.96, 0.95];
 var scan_time = 0;
-var scan_time_static = 50;
+var scan_time_static = 200;
 
 var text_buffer = "";
 var text_time = 0;
@@ -121,7 +127,7 @@ function main() {
 			doMenuState();
 			break;
 		case 1:
-			//bege
+			//gaime
 			doGameState();
 			break;
 	}
@@ -180,6 +186,10 @@ function handleKeyPress(a) {
 		if (a.keyCode > 48 && a.keyCode < 58) {
 			editor_type = a.keyCode - 48;
 			return;
+		}
+		if (a.keyCode == 192) {
+			//-1 is for monsters
+			editor_type = -1;
 		}
 	}
 
@@ -260,6 +270,10 @@ function handleMouseDown(a) {
 
 		//if one isn't selected, create a new object
 		if (editor_selected == undefined && minObjDist > orb_radius * 1.99) {
+			if (editor_type == -1) {
+				game_dynamicObjects.push(new Monster(Math.round(cursorWP[0]), Math.round(cursorWP[1])));
+				return;
+			}
 			game_staticObjects.push(new Orb(Math.round(cursorWP[0]), Math.round(cursorWP[1]), editor_type));
 		}
 	}
@@ -279,9 +293,18 @@ function handleMouseMove(a) {
 			if (button_altPressed) {
 				//destroy an orb if close enough
 				if (storeArr[0] < orb_radius) {
-					game_staticObjects.splice(game_staticObjects.indexOf(storeArr[1]), 1);
+					var index = game_staticObjects.indexOf(storeArr[1]);
+					if (index != -1) {
+						game_staticObjects.splice(index, 1);
+					} else {
+						game_dynamicObjects.splice(game_dynamicObjects.indexOf(storeArr[1]), 1);
+					}
+					
 				}
 			} else {
+				if (editor_type == -1) {
+					return;
+				}
 				//create a new orb if far away enough and not pressing alt
 				if (storeArr[0] > orb_radius * 1.99) {
 					game_staticObjects.push(new Orb(Math.round(movePos[0]), Math.round(movePos[1]), editor_type));
@@ -291,6 +314,11 @@ function handleMouseMove(a) {
 			//move the existing orb
 			editor_selected.x = Math.round(movePos[0]);
 			editor_selected.y = Math.round(movePos[1]);
+
+			if (editor_selected.homeX != undefined) {
+				editor_selected.homeX = editor_selected.x;
+				editor_selected.homeY = editor_selected.y;
+			}
 		}
 	}
 
@@ -380,6 +408,7 @@ function doMenuState() {
 	ctx.fillStyle = color_bg_menu;
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+	ctx.lineWidth = canvas.height / 240;
 	//map nodes
 	var drawOffset = spaceToScreen(0, 0);
 	var nSize = camera.scale * menu_nodeSize;
@@ -389,7 +418,7 @@ function doMenuState() {
 			if (menu_nodeStruct[y][x] != undefined && (y != menu_y || x != menu_x)) {
 				//color node
 				ctx.fillStyle = menu_nodeStruct[y][x].bg;
-
+				ctx.strokeStyle = menu_nodeStruct[y][x].completed ? color_level_completed : color_bg_menu;
 
 
 				//position + size
@@ -422,42 +451,6 @@ function doMenuState() {
 	ctx.fill();
 }
 
-function drawScanResults() {
-
-}
-
-function drawTutorialText() {
-	//first determine what needs to be drawn
-	if (!tutorial.hasDone[0]) {
-		if (game_time > 600) {
-			text_buffer = tutorial.texts[0];
-			text_time = text_time_static;
-		}
-	} else if (!tutorial.hasDone[1]) {
-		//get minimum distance to orb, if it's large enough do the scan prompt
-	}
-
-
-
-
-
-
-
-	if (text_time > 0) {
-		//draw text
-		ctx.font = `${canvas.height / 30}px Ubuntu`;
-		ctx.textAlign = "center";
-		//opacity is based on time
-		ctx.globalAlpha = 1 - Math.pow((text_time_static - text_time) / text_time_static, 16);
-		ctx.fillText(text_buffer, canvas.width / 2, canvas.height * 0.96);
-		ctx.globalAlpha = 1;
-
-
-		//increment time
-		text_time -= 1;
-	}
-}
-
 //uses cursor position to get an object and the distance to the closest object
 function editorSelectObject() {
 	var cursorWorldPos = screenToSpace(cursor_x, cursor_y);
@@ -473,12 +466,29 @@ function editorSelectObject() {
 			}
 		}
 	}
+
+	//dynamic objects as well
+	for (var p=0; p<game_dynamicObjects.length; p++) {
+		if (game_dynamicObjects[p] != player) {
+			dist = Math.sqrt(Math.pow(cursorWorldPos[0] - game_staticObjects[p].x, 2) + Math.pow(cursorWorldPos[1] - game_staticObjects[p].y, 2));
+			if (dist < toReturn[0]) {
+				toReturn[0] = dist;
+				if (dist < monster_radius) {
+					toReturn[1] = game_staticObjects[p];
+					p = game_staticObjects.length;
+				}
+			}
+		}
+		
+	}
+
 	return toReturn;
 }
 
 
 function exportMap() {
 	var toReturn = {
+		bg: game_data.bg,
 		contents: {}, 
 		time: -1
 	};
@@ -488,14 +498,25 @@ function exportMap() {
 	//orbs
 	game_staticObjects.forEach(u => {
 		//push each orb into the contents array
-		if (toReturn.contents[u.layers + ""] == undefined) {
-			toReturn.contents[u.layers + ""] = [];
+		if (toReturn.contents[u.layers] == undefined) {
+			toReturn.contents[u.layers] = [];
 		}
-		toReturn.contents[u.layers + ""].push([u.x, u.y]);
+		toReturn.contents[u.layers].push([u.x, u.y]);
 	});
 
+	//monsters
+	game_dynamicObjects.forEach(u => {
+		if (u != player) {
+			if (toReturn.contents["M"] == undefined) {
+				toReturn.contents["M"] = [];
+			}
+			toReturn.contents["M"].push([u.homeX, u.homeY]);
+		}
+	});
 
-	return JSON.stringify(toReturn);
+	var finalString = JSON.stringify(toReturn);
+	finalString = finalString.replaceAll(`"`, ``);
+	console.log(finalString);
 }
 
 //turns map data into a loading map
@@ -505,11 +526,18 @@ function loadMap(mapDat) {
 
 	//convert data into objects
 	for (var a=1; a<10; a++) {
-		if (mapDat.contents[a + ""] != undefined) {
-			mapDat.contents[a + ""].forEach(e => {
+		if (mapDat.contents[a] != undefined) {
+			mapDat.contents[a].forEach(e => {
 				game_staticObjects.push(new Orb(e[0], e[1], a));
 			});
 		}
+	}
+
+	//monsters
+	if (mapDat.contents["M"] != undefined) {
+		mapDat.contents["M"].forEach(e => {
+			game_dynamicObjects.push(new Monster(e[0], e[1]));
+		});
 	}
 
 	//time?
@@ -521,6 +549,8 @@ function loadMap(mapDat) {
 
 function loadMenu() {
 	camera.scale = camera_scale_menu;
+	camera.x = camera_menuCoords[0];
+	camera.y = camera_menuCoords[1];
 	game_mode = 0;
 }
 
@@ -545,6 +575,21 @@ function nodeterp(node1, node2, directionINT, percentage) {
 	return [node2.x, node2.y];
 }
 
+//boolean function, returns true if there are orbs on screen
+function orbsAreOnScreen() {
+	for (var h=0; h<game_staticObjects.length; h++) {
+		if (orbIsOnScreen(game_staticObjects[h])) {
+			return true;
+		}
+	}
+	return false;
+}
+
+//boolean function, returns true if an orb is on screen
+function orbIsOnScreen(orb) {
+	return (Math.abs(orb.x - camera.x) < canvas.height * scan_windowScale[1] / camera.scale / 2 || Math.abs(orb.y - camera.y) < canvas.width * scan_windowScale[0] / camera.scale / 2);
+}
+
 function polToXY(startX, startY, angle, magnitude) {
 	var xOff = magnitude * Math.cos(angle);
 	var yOff = magnitude * Math.sin(angle);
@@ -552,7 +597,8 @@ function polToXY(startX, startY, angle, magnitude) {
 }
 
 function scanWorld() {
-	
+	player.energy -= scan_energyCost;
+	scan_time = scan_time_static;
 }
 
 
