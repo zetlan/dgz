@@ -1,4 +1,227 @@
 
+class Level {
+	constructor(bg, contents, music, time, completedByDefaultBOOLEAN) {
+		this.bg = bg;
+
+		this.music = music;
+		this.time = time;
+		this.statics = [];
+		this.dynamics = [];
+		this.playerObj = invertRolesBOOLEAN ? new MonsterControllable(0, 0) : new Player(0, 0);
+
+		this.completed = completedByDefaultBOOLEAN;
+		this.inverted = invertRolesBOOLEAN;
+		this.frictionless = frictionlessBOOLEAN;
+		this.fCost = frictionCost;
+
+		//convert contents
+		this.addObjects(contents);
+	}
+
+	addObjects(contents) {
+		if (contents.prefab != undefined) {
+			//prefab is easy
+			this.statics = contents.prefab.statics;
+			this.dynamics = contents.prefab.dynamics;
+			return;
+		}
+
+		//non-prefab case
+		for (var a=1; a<10; a++) {
+			if (contents[a] != undefined) {
+				contents[a].forEach(e => {
+					this.statics.push(new Orb(e[0], e[1], a));
+				});
+			}
+		}
+	
+		//monsters
+		if (contents.M != undefined) {
+			contents.M.forEach(e => {
+				this.dynamics.push(this.inverted ? new PlayerAI(e[0], e[1]) : new Monster(e[0], e[1]));
+			});
+		}
+	}
+
+	//drawing uwu
+	beDrawn() {
+		//bg
+		ctx.globalAlpha = 1;
+		ctx.fillStyle = this.bg;
+		ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+		//editor's edge box
+		if (editor_active) {
+			var boxStart = spaceToScreen(-camera.limitX, -camera.limitY);
+			var boxEnd = spaceToScreen(camera.limitX, camera.limitY);
+
+			ctx.strokeStyle = color_editor_border;
+			ctx.beginPath();
+			ctx.rect(boxStart[0], boxStart[1], boxEnd[0] - boxStart[0], boxEnd[1] - boxStart[1]);
+			ctx.stroke();
+		}
+
+		//entities
+		this.dynamics.forEach(d => {
+			d.beDrawn();
+		});
+
+		//world
+		this.statics.forEach(o => {
+			o.beDrawn();
+		});
+
+		//UI
+		drawScanResults();
+		drawTutorialText();
+
+		//cover if transitioning
+		if (transitionProgress > 0) {
+			ctx.fillStyle = this.bg;
+			ctx.globalAlpha = droperp(1, 0, 1 - transitionProgress);
+			ctx.fillRect(0, 0, canvas.width, canvas.height);
+		}
+	}
+
+	exportSelf() {
+		//reset contents, then fix. After that just export everything
+		this.contents = [];
+
+		//orbs
+		game_staticObjects.forEach(u => {
+			//push each orb into the contents array
+			if (toReturn.contents[u.layers] == undefined) {
+				toReturn.contents[u.layers] = [];
+			}
+			toReturn.contents[u.layers].push([u.x, u.y]);
+		});
+
+		//monsters
+		game_dynamicObjects.forEach(u => {
+			if (u != player) {
+				if (toReturn.contents.M == undefined) {
+					toReturn.contents.M = [];
+				}
+				toReturn.contents.M.push([u.homeX, u.homeY]);
+			}
+		});
+
+		var finalString = JSON.stringify(toReturn);
+		finalString = finalString.replaceAll(`"`, ``);
+	}
+
+	//load self into the main game
+	load() {
+		game_data = this;
+	
+		//music
+		if (this.music != undefined) {
+			audio_current = audios[this.music];
+		}
+		
+		if (audio_current != undefined) {
+			audio_levelSpeed = audio_current.duration / this.time;
+		}
+		
+	
+		//convert data into objects
+	
+		//time + other player stuff
+		
+		camera.x = 0;
+		camera.y = 0;
+		player.x = 0;
+		player.y = 0;
+		player.dx = 0;
+		player.dy = 0;
+		player.energy = 1;
+		player.energyDepleteNatural = 1 / (this.time * 60);
+		player.energyDepleteFriction = 0;
+		camera.scale = camera_scale_game;
+	
+		//finish transition
+		transitionModeGoal = 1;
+		transitionSpeed = transitionSpeedConstant;
+		console.log("setting to game");
+	}
+
+	//ticking. Like a clock. but with more function
+	tick() {
+		this.dynamics.forEach(s => {
+			s.tick();
+		});
+		
+		//camera movement
+		this.tick_camera();
+	
+		//orbs
+		this.statics.forEach(o => {
+			o.tick();
+		});
+
+		//exit
+		if (orbsAreAllBounced()) {
+			loadMenu(true);
+		} else if (player.energy <= 0) {
+			loadMenu(false);
+		}
+	}
+
+	tick_camera() {
+		//exit if camera box is too large
+		if (canvas.width / camera.scale > camera.limitX * 2 || canvas.height / camera.scale > camera.limitY * 2) {
+			camera.x = 0;
+			camera.y = 0;
+			return;
+		}
+
+		//I'm not really sure how to comment this. This formula does the camera parallax? it's important and was a pain to figure out.
+		var unitWidth = canvas.width / camera.scale / 2;
+		var unitHeight = canvas.height / camera.scale / 2;
+		var newX = player.x - (player.x / (camera.limitX - unitWidth)) * camera.parallax * unitWidth;
+		var newY = player.y - (player.y / (camera.limitY - unitHeight)) * camera.parallax * unitHeight;
+		camera.x = clamp(newX, -camera.limitX + (canvas.width * 0.5 / camera.scale), camera.limitX - (canvas.width * 0.5 / camera.scale));
+		camera.y = clamp(newY, -camera.limitY + (canvas.height * 0.5 / camera.scale), camera.limitY - (canvas.height * 0.5 / camera.scale));
+	}
+
+	//reset everything back to defaults
+	reset() {
+
+	}
+}
+
+class Level_Facade {
+	constructor(bg) {
+		this.bg = bg;
+	}
+
+	load() {
+		return;
+	}
+}
+
+class Level_Frictionless extends Level {
+	constructor(bg, contents, music, time, frictionCost, completedByDefaultBOOLEAN) {
+		super(bg, contents, music, time, completedByDefaultBOOLEAN);
+		this.frictionless = true;
+		this.fCost = frictionCost;
+	}
+}
+
+class Level_Inverse extends Level {
+	constructor(bg, contents, music, time, completedByDefaultBOOLEAN) {
+		super(bg, contents, music, time, completedByDefaultBOOLEAN);
+	}
+}
+
+class Level_Prefab extends Level {
+	constructor() {
+		super(bg, false, )
+	}
+}
+
+
+
 class Player {
 	constructor(x, y) {
 		this.x = x;
@@ -18,32 +241,90 @@ class Player {
 
 		this.energy = 1;
 		this.energyDepleteNatural = 0;
+		this.energyDepleteCreature = 1 / 200;
+		this.energyDepleteFriction = 0;
 	}
 
 	tick() {
-		this.dx += this.ax * this.speed * sigmoid((Math.abs(this.dx - this.dMax * this.ax) / this.dMax) * 12 - 6, 0, 1);
-		this.dy += this.ay * this.speed * sigmoid((Math.abs(this.dy - this.dMax * this.ay) / this.dMax) * 12 - 6, 0, 1);
-
-		//natural friction
-		if (this.dx * this.ax <= 0) {
-			this.dx *= this.friction;
-		}
-
-		if (this.dy * this.ay <= 0) {
-			this.dy *= this.friction;
-		}
-
-		//cap x and y to world boundaries
-		this.x = clamp(this.x + this.dx, -camera.limitX, camera.limitX);
-		this.y = clamp(this.y + this.dy, -camera.limitY, camera.limitY);
+		this.updateMomentum();
+		this.updatePosition();
 	}
 
 	beDrawn() {
-		var [drawX, drawY] = spaceToScreen(this.x, this.y);
+		var center = spaceToScreen(this.x, this.y);
+		var radius = this.r * camera.scale;
 		ctx.fillStyle = color_player;
-		ctx.beginPath();
-		drawCircle(drawX, drawY, this.r * camera.scale);
+		drawStar(center[0], center[1], radius, 16);
 		ctx.fill();
+
+		//draw self's energy pie
+
+		//drawing
+		ctx.globalAlpha = 0.6;
+		ctx.strokeStyle = color_energy;
+		ctx.fillStyle = color_energy;
+
+		if (this.energy < 0.05) {
+			ctx.globalAlpha = (this.energy * 20) * 0.6;
+		}
+		drawStar(center[0], center[1], radius * this.energy, 16);
+		ctx.stroke();
+		ctx.fill();
+		ctx.globalAlpha = 1;
+
+		//draw eye 
+		var multiplier = (this.r * camera.scale / this.dMax) * 0.5;
+		ctx.fillStyle = "#003";
+		drawCircle(center[0] + this.dx * multiplier, center[1] + this.dy * multiplier, this.r * 0.4);
+		ctx.fill();
+	}
+
+	updateMomentum() {
+		this.dx += this.ax * this.speed * sigmoid((Math.abs(this.dx - this.dMax * this.ax) / this.dMax) * 12 - 6, 0, 1);
+		this.dy += this.ay * this.speed * sigmoid((Math.abs(this.dy - this.dMax * this.ay) / this.dMax) * 12 - 6, 0, 1);
+
+		
+		if (game_data.frictionless) {
+			//frictionless levels take energy to move, but don't have friction
+			this.energy -= (this.ax != 0 || this.ay != 0) * this.energyDepleteFriction;
+		} else {
+			//natural friction
+			if (this.dx * this.ax <= 0) {
+				this.dx *= this.friction;
+			}
+	
+			if (this.dy * this.ay <= 0) {
+				this.dy *= this.friction;
+			}
+		}
+	}
+
+	updatePosition() {
+		//cap x and y to world boundaries
+		this.x += this.dx;
+		this.y += this.dy;
+		if (game_data.frictionless) {
+			if (this.x < -camera.limitX || this.x > camera.limitX) {
+				this.dx *= -1;
+			}
+			if (this.y < -camera.limitY || this.y > camera.limitY) {
+				this.dy *= -1;
+			}
+		}
+		this.x = clamp(this.x, -camera.limitX, camera.limitX);
+		this.y = clamp(this.y, -camera.limitY, camera.limitY);
+
+		//energy
+		this.energy -= this.energyDepleteNatural;
+		if (this.energy < 0) {
+			this.energy = 0;
+		}
+	}
+}
+
+class PlayerAI extends Player {
+	constructor(x, y) {
+
 	}
 }
 
@@ -69,13 +350,27 @@ class Orb {
 		//if player is inside self, pop and push player out
 		var pXDist = this.x - player.x;
 		var pYDist = this.y - player.y;
+		var pDist = Math.sqrt(pXDist * pXDist + pYDist * pYDist);
 
-		if (Math.sqrt(pXDist * pXDist + pYDist * pYDist) < this.r + player.r) {
+		if (pDist < this.r + player.r) {
 			this.layersCurrent -= 1;
 			this.animTime = 1;
 			var dir = Math.atan2(pYDist, pXDist) + Math.PI;
 			[player.x, player.y] = polToXY(this.x, this.y, dir, this.r + player.r);
-			[player.dx, player.dy] = polToXY(0, 0, dir, player.dMax * (0.4 + 0.05 * this.layersCurrent));
+
+			//different behavior depending on type
+			if (game_data.frictionless) {
+				//bounce player away at a slightly greater force
+				[player.dx, player.dy] = polToXY(0, 0, dir, Math.sqrt(player.dx * player.dx + player.dy * player.dy) * (0.96 + 0.05 * this.layersCurrent));
+				return;
+			}
+			var moveDir = polToXY(0, 0, dir, player.dMax * (0.3 + 0.06 * this.layersCurrent));
+			if (this.layersCurrent > 0) {
+				[player.dx, player.dy] = moveDir;
+				return;
+			}
+			player.dx += moveDir[0];
+			player.dy += moveDir[1];
 		}
 	}
 
@@ -120,7 +415,7 @@ class Monster {
 	constructor(x, y) {
 		this.x = x;
 		this.y = y;
-		this.r = monster_radius;
+		this.r = 13;
 
 		this.homeX = x;
 		this.homeY = y;
@@ -149,24 +444,8 @@ class Monster {
 		}
 		//set target
 		this.setTarget();
-
-		//path towards target
-		if (this.target != undefined) {
-			var xOff = this.target[0] - this.x;
-			var yOff = this.target[1] - this.y;
-			this.dir = Math.atan2(yOff, xOff);
-		}
-
-		//actual position + momentum updating
-		var off = polToXY(0, 0, this.dir, this.speed);
-		this.dx *= this.friction;
-		this.dy *= this.friction;
-		this.dx = clamp(this.dx + off[0], -this.dMax, this.dMax);
-		this.dy = clamp(this.dy + off[1], -this.dMax, this.dMax);
-
-		this.x = clamp(this.x + this.dx, -camera.limitX, camera.limitX);
-		this.y = clamp(this.y + this.dy, -camera.limitY, camera.limitY);
-
+		this.pathToTarget();
+		this.updatePositionAndMomentum();
 		this.collide();
 	}
 
@@ -175,7 +454,7 @@ class Monster {
 		var sz = camera.scale * this.r;
 
 		if (loc[0] > 0 - sz && loc[1] > 0 - sz && loc[0] < canvas.width + sz && loc[1] < canvas.height + sz) {
-			ctx.globalAlpha = 0.5;
+			ctx.globalAlpha = 0.4;
 			ctx.fillStyle = color_monster;
 			ctx.beginPath();
 			drawCircle(loc[0], loc[1], sz);
@@ -225,6 +504,14 @@ class Monster {
 		}
 	}
 
+	pathToTarget() {
+		if (this.target != undefined) {
+			var xOff = this.target[0] - this.x;
+			var yOff = this.target[1] - this.y;
+			this.dir = Math.atan2(yOff, xOff);
+		}
+	}
+
 	reset() {
 		this.x = this.homeX;
 		this.y = this.homeY;
@@ -240,12 +527,13 @@ class Monster {
 		//if player's close enough, the target is the player. If player is too far, target is random spot chosen every once in a while.
 		if (pDist < this.followDist) {
 			this.npTime = 0;
-			this.target = [player.x, player.y];
+			this.setTargetToPlayer();
 
 			//if close enough, slow down the player
 			if (pDist < player.r + this.r - 1) {
 				player.dx *= this.playerFriction;
 				player.dy *= this.playerFriction;
+				player.energy = clamp(player.energy - player.energyDepleteCreature, 0, 1);
 			}
 		} else {
 			//count up time without player
@@ -266,5 +554,87 @@ class Monster {
 				this.target = [clamp(newCoords[0], -camera.limitX, camera.limitX), clamp(newCoords[1], -camera.limitY, camera.limitY)];
 			}
 		}
+	}
+
+	setTargetToPlayer() {
+		this.target = [player.x, player.y];
+	}
+
+	updatePositionAndMomentum() {
+		this.dx *= this.friction;
+		this.dy *= this.friction;
+		var off = polToXY(0, 0, this.dir, this.speed);
+		this.dx = clamp(this.dx + off[0], -this.dMax, this.dMax);
+		this.dy = clamp(this.dy + off[1], -this.dMax, this.dMax);
+
+		this.x = clamp(this.x + this.dx, -camera.limitX, camera.limitX);
+		this.y = clamp(this.y + this.dy, -camera.limitY, camera.limitY);
+	}
+}
+
+class MonsterSpace extends Monster {
+	constructor(x, y) {
+		super(x, y);
+		this.dMax *= 0.75;
+		this.frequency = 150;
+	}
+
+	setTargetToPlayer() {
+		this.target = [player.x + player.dx, player.y + player.dy];
+	}
+
+	updatePositionAndMomentum() {
+		//just path directly towards the target
+		var tOff = [this.target[0] - this.x, this.target[1] - this.y];
+		var tMagni = Math.sqrt(tOff[0] * tOff[0] + tOff[1] * tOff[1]);
+
+		//slow self down if too close
+		if (game_time % Math.floor(this.frequency / 20) == 0 && tMagni < player.r + this.r) {
+			this.dx *= 0.95;
+			this.dy *= 0.95;
+			this.eyeOffset = [0, 0];
+		} else if (game_time % this.frequency == 0) {
+			//normalize then multiply by max
+			this.dx = (tOff[0] / tMagni) * this.dMax;
+			this.dy = (tOff[1] / tMagni) * this.dMax;
+			this.eyeOffset = [0, 0];
+		}
+		
+
+		this.x += this.dx;
+		this.y += this.dy;
+
+		if (Math.abs(this.x) > camera.limitX) {
+			this.dx *= -1;
+			this.x = clamp(this.x, -camera.limitX, camera.limitX);
+		}
+		if (Math.abs(this.y) > camera.limitY) {
+			this.dy *= -1;
+			this.y = clamp(this.y, -camera.limitY, camera.limitY);
+		}
+	}
+}
+
+class SettingsChanger {
+	constructor(centerX, centerY, displayText, functionOnChange, valuesArr) {
+		this.x = centerX;
+		this.y = centerY;
+		this.text = displayText;
+		this.orbs = [];
+		this.func = functionOnChange;
+		this.values = valuesArr;
+		this.generateOrbs();
+	}
+
+	beDrawn() {
+
+	}
+
+	generateOrbs() {
+
+	}
+
+	tick() {
+
 	}
 }
