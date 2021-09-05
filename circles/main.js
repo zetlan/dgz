@@ -9,6 +9,19 @@ window.addEventListener("mouseup", handleMouseUp, false);
 
 //global vars
 let animation;
+var animation_frameRate = 60;
+
+var audios = {
+	"welcome": new Audio(`audio/collect_your_bearings.mp3`),
+	"cellular": new Audio(`audio/cellular.mp3`),
+	"cellularFar": new Audio(`audio/cellular (distanced).mp3`),
+	"clearAndPresent": new Audio(`audio/clear_and_present_danger.mp3`),
+	"colonize": new Audio(`audio/colonizer.mp3`),
+};
+var audio_current = undefined;
+var audio_levelSpeed = 1;
+var audio_catchupTime = 0.5;
+var audio_speedBounds = [0.08, 15];
 
 var button_altPressed = false;
 
@@ -17,9 +30,9 @@ let canvas;
 
 var camera = {
 	x: 2,
-	y: 0,
+	y: 1.5,
 	scale: 200,
-	parallax: 0.2,
+	parallax: 0.5,
 	limitX: 600,
 	limitY: 600,
 }
@@ -33,11 +46,12 @@ const color_editor_border = "#FFF";
 const color_editor_orb = "#F00";
 const color_editor_selection = "#8F8";
 
+const color_energy = "#F8F";
 const color_level_completed = "#0C4";
 const color_monster = "#FA0";
 const color_monster_eye = "#804";
 const color_orbs = ["#FFF", "#AEF", "#7FB", "#FC2", "#F70", "#E09", "#909", "#406", "#324", "#112", "#000"];
-const color_player = "#F8F";
+const color_player = "#868";
 const color_text = "#102";
 
 var cursor_down = false;
@@ -50,16 +64,15 @@ var editor_type = 1;
 
 
 var game_mode = 0;
-var game_data = undefined;
-var game_staticObjects = [];
-var game_dynamicObjects = [];
+var game_map = undefined;
 var game_time = 0;
 
 var menu_nodeSize = 0.5;
 var menu_nodeStruct = [
-	[`un`, `un`, `i0`, `i1`, `i2`],
-	[`un`, `un`, `IM`, `un`, `m0`],
-	[],
+	[`mn`, `i0`, `i1`, `i2`, `m0`],
+	[`f0`, `un`, `un`, `un`, `m1`],
+	[`st`, `un`, `un`, `un`, `m2`],
+	[`un`, `IM`, `f2`, `f1`, `f0`]
 ]
 //turn readable nodeStruct into computable nodeStruct
 for (var a=0; a<menu_nodeStruct.length; a++) {
@@ -67,15 +80,11 @@ for (var a=0; a<menu_nodeStruct.length; a++) {
 		menu_nodeStruct[a][b] = eval(`levels_${menu_nodeStruct[a][b]}`);
 	}
 }
-var menu_x = 2;
+var menu_x = 0;
 var menu_y = 0;
-var menu_lastPos = [menu_x, menu_y];
-var menu_nextPos = [menu_x, menu_y];
+var menu_queue = [[menu_x, menu_y]];
 var menu_progress = 0;
-var menu_increment = 1 / 30;
-
-var monster_radius = 13;
-
+var menu_increment = 1 / 20;
 
 var orb_animTime = 15;
 var orb_opacity = 0.6;
@@ -86,8 +95,7 @@ var overlay_pieMargin = 0.01;
 
 var player;
 
-var scan_alertWidth = 10;
-var scan_energyCost = 1 / 50;
+var scan_energyCost = 1 / 80;
 var scan_windowScale = [0.96, 0.95];
 var scan_time = 0;
 var scan_time_static = 200;
@@ -95,6 +103,11 @@ var scan_time_static = 200;
 var text_buffer = "";
 var text_time = 0;
 var text_time_static = 200;
+
+var transitionModeGoal = 0;
+var transitionProgress = 0;
+var transitionSpeed = 0;
+var transitionSpeedConstant = 1 / 20;
 
 var tutorial = {
 	texts: [
@@ -132,8 +145,10 @@ function main() {
 			break;
 	}
 
-	//draw text if necessary
-	drawTutorialText();
+	//transitions
+	if (transitionSpeed != 0) {
+		doTransitions();
+	}
 
 
 	animation = window.requestAnimationFrame(main);
@@ -157,10 +172,16 @@ function handleKeyPress(a) {
 				menuMove([0, 1]);
 				break;
 			case 13:
-				if (game_mode == 0) {
-					//in menu, try to enter a map
-					if (menu_x % 1 == 0 && menu_y % 1 == 0) {
-						loadMap(menu_nodeStruct[menu_y][menu_x]);
+				//load the level on the square the player is on
+				var q = menu_queue;
+				menu_nodeStruct[q[q.length-1][1]][q[q.length-1][0]].load();
+				break;
+			case 221:
+				for (var a=0; a<menu_nodeStruct.length; a++) {
+					for (var b=0; b<menu_nodeStruct[a].length; b++) {
+						if (menu_nodeStruct[a][b] != undefined) {
+							menu_nodeStruct[a][b].completed = true;
+						}
 					}
 				}
 				break;
@@ -175,8 +196,10 @@ function handleKeyPress(a) {
 		editor_active = !editor_active;
 		if (editor_active) {
 			camera.scale = 0.7;
+			ctx.lineWidth = 2;
 		} else {
 			camera.scale = camera_scale_game;
+			setCanvasPreferences();
 		}
 		return;
 	}
@@ -195,10 +218,10 @@ function handleKeyPress(a) {
 
 	switch (a.keyCode) {
 		case 37:
-			player.ax = -1;
+			game_data.player.ax = -1;
 			break;
 		case 38:
-			player.ay = -1;
+			game_data.player.ay = -1;
 			break;
 		case 39:
 			player.ax = 1;
@@ -343,64 +366,11 @@ function handleMouseUp(a) {
 
 
 function doGameState() {
-	//bg
-	ctx.fillStyle = game_data.bg;
-	ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-	//player + camera
-	game_dynamicObjects.forEach(s => {
-		s.tick();
-	});
-	
-	if (canvas.width / camera.scale < camera.limitX * 2 && canvas.height / camera.scale < camera.limitY * 2) {
-		camera.x = clamp(player.x * (1 - camera.parallax), -camera.limitX + (canvas.width * 0.5 / camera.scale), camera.limitX - (canvas.width * 0.5 / camera.scale));
-		camera.y = clamp(player.y * (1 - camera.parallax), -camera.limitY + (canvas.height * 0.5 / camera.scale), camera.limitY - (canvas.height * 0.5 / camera.scale));
-	} else {
-		camera.x = 0;
-		camera.y = 0;
+	if (transitionProgress == 0) {
+		game_map.tick();
 	}
-	
-
-	game_dynamicObjects.forEach(d => {
-		d.beDrawn();
-	});
-
-
-	//world
-	game_staticObjects.forEach(o => {
-		o.tick();
-		o.beDrawn();
-	});
-
-	//edge boxes
-	if (editor_active) {
-		var boxStart = spaceToScreen(-camera.limitX, -camera.limitY);
-		var boxEnd = spaceToScreen(camera.limitX, camera.limitY);
-
-		if (Math.max(boxStart[0], boxStart[1]) > 0 || boxEnd[0] < canvas.width || boxEnd[1] < canvas.height) {
-			ctx.globalAlpha = 1;
-			ctx.strokeStyle = color_editor_border;
-			ctx.beginPath();
-			ctx.rect(boxStart[0], boxStart[1], boxEnd[0] - boxStart[0], boxEnd[1] - boxStart[1]);
-			ctx.stroke();
-		}
-	}
-
-
-	//UI - energy pie
-
-	//UI - scan arrows
-	drawScanResults();
-
-
-	//exit
-	var maxLayers = 0;
-	game_staticObjects.forEach(s => {
-		maxLayers = Math.max(maxLayers, s.layersCurrent);
-	});
-	if (maxLayers == 0) {
-		loadMenu();
-	}
+	game_map.beDrawn();
+	gameAudio();
 }
 
 function doMenuState() {
@@ -408,7 +378,6 @@ function doMenuState() {
 	ctx.fillStyle = color_bg_menu;
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-	ctx.lineWidth = canvas.height / 240;
 	//map nodes
 	var drawOffset = spaceToScreen(0, 0);
 	var nSize = camera.scale * menu_nodeSize;
@@ -420,8 +389,6 @@ function doMenuState() {
 				ctx.fillStyle = menu_nodeStruct[y][x].bg;
 				ctx.strokeStyle = menu_nodeStruct[y][x].completed ? color_level_completed : color_bg_menu;
 
-
-				//position + size
 				drawRoundedRectangle(drawOffset[0] + (x * camera.scale) - (nSize / 2), drawOffset[1] + (y * camera.scale) - (nSize / 2), nSize, nSize, canvas.height / 100);
 			}
 		}
@@ -430,25 +397,51 @@ function doMenuState() {
 	//final node
 	if (menu_x % 1 == 0 && menu_y % 1 == 0) {
 		ctx.fillStyle = menu_nodeStruct[menu_y][menu_x].bg;
+		ctx.strokeStyle = menu_nodeStruct[menu_y][menu_x].completed ? color_level_completed : color_bg_menu;
 		drawRoundedRectangle(drawOffset[0] + (menu_x * camera.scale) - (nSize / 2), drawOffset[1] + (menu_y * camera.scale) - (nSize / 2), nSize, nSize, canvas.height / 100);
 	}
 
 	//move player
-	if (menu_lastPos[0] != menu_nextPos[0] || menu_lastPos[1] != menu_nextPos[1]) {
-		menu_progress += menu_increment;
+	if (menu_queue.length > 1) {
+		menu_x = easerp(menu_queue[0][0], menu_queue[1][0], menu_progress);
+		menu_y = easerp(menu_queue[0][1], menu_queue[1][1], menu_progress);
+
+		menu_progress += menu_increment * (1 + (menu_queue.length > 2));
 		if (menu_progress >= 1) {
-			menu_progress = 0;
-			menu_lastPos = menu_nextPos;
+			menu_progress -= 1;
+			//don't let the length go below 2 if transitioning
+			if (menu_queue.length > 1 + (transitionProgress > 0)) {
+				menu_queue.splice(0, 1);
+			}
 		}
-		menu_x = easerp(menu_lastPos[0], menu_nextPos[0], menu_progress);
-		menu_y = easerp(menu_lastPos[1], menu_nextPos[1], menu_progress);
 	}
 
 	//draw player
-	ctx.fillStyle = color_player;
+	ctx.fillStyle = color_energy;
 	var dCoords = spaceToScreen(menu_x, menu_y);
 	drawCircle(dCoords[0], dCoords[1], 5)
 	ctx.fill();
+
+	if (transitionProgress > 0) {
+		ctx.globalAlpha = linterp(0, 1, transitionProgress);
+		ctx.fillStyle = game_data.bg;
+		ctx.fillRect(0, 0, canvas.width, canvas.height);
+		ctx.globalAlpha = 1;
+	}
+}
+
+function doTransitions() {
+	transitionProgress += transitionSpeed;
+	if (transitionProgress >= 1) {
+		transitionProgress = 1;
+		transitionSpeed = -transitionSpeedConstant;
+		game_mode = transitionModeGoal;
+	}
+
+	if (transitionProgress < 0) {
+		transitionProgress = 0;
+		transitionSpeed = 0;
+	}
 }
 
 //uses cursor position to get an object and the distance to the closest object
@@ -470,12 +463,12 @@ function editorSelectObject() {
 	//dynamic objects as well
 	for (var p=0; p<game_dynamicObjects.length; p++) {
 		if (game_dynamicObjects[p] != player) {
-			dist = Math.sqrt(Math.pow(cursorWorldPos[0] - game_staticObjects[p].x, 2) + Math.pow(cursorWorldPos[1] - game_staticObjects[p].y, 2));
+			dist = Math.sqrt(Math.pow(cursorWorldPos[0] - game_dynamicObjects[p].x, 2) + Math.pow(cursorWorldPos[1] - game_dynamicObjects[p].y, 2));
 			if (dist < toReturn[0]) {
 				toReturn[0] = dist;
 				if (dist < monster_radius) {
-					toReturn[1] = game_staticObjects[p];
-					p = game_staticObjects.length;
+					toReturn[1] = game_dynamicObjects[p];
+					p = game_dynamicObjects.length;
 				}
 			}
 		}
@@ -485,136 +478,39 @@ function editorSelectObject() {
 	return toReturn;
 }
 
+function gameAudio() {
+	if (audio_current == undefined) {
+		return;
+	}
 
-function exportMap() {
-	var toReturn = {
-		bg: game_data.bg,
-		contents: {}, 
-		time: -1
-	};
+	if (transitionProgress == 0 && audio_current.paused && player.energy > 0.5) {
+		audio_current.play();
+		audio_current.playbackRate = audio_levelSpeed;
+	}
 
-	//time
-
-	//orbs
-	game_staticObjects.forEach(u => {
-		//push each orb into the contents array
-		if (toReturn.contents[u.layers] == undefined) {
-			toReturn.contents[u.layers] = [];
-		}
-		toReturn.contents[u.layers].push([u.x, u.y]);
-	});
-
-	//monsters
-	game_dynamicObjects.forEach(u => {
-		if (u != player) {
-			if (toReturn.contents["M"] == undefined) {
-				toReturn.contents["M"] = [];
-			}
-			toReturn.contents["M"].push([u.homeX, u.homeY]);
-		}
-	});
-
-	var finalString = JSON.stringify(toReturn);
-	finalString = finalString.replaceAll(`"`, ``);
-	console.log(finalString);
-}
-
-//turns map data into a loading map
-function loadMap(mapDat) {
-	//bg
-	game_data = mapDat;
-
-	//convert data into objects
-	for (var a=1; a<10; a++) {
-		if (mapDat.contents[a] != undefined) {
-			mapDat.contents[a].forEach(e => {
-				game_staticObjects.push(new Orb(e[0], e[1], a));
-			});
+	//adjust volume for fade out
+	if (transitionProgress > 0) {
+		audio_current.volume = 1 - transitionProgress;
+		if (transitionProgress >= 1 - transitionSpeed) {
+			audio_current.volume = 1;
+			audio_current.currentTime = 0;
+			audio_current.pause();
+			return;
 		}
 	}
 
-	//monsters
-	if (mapDat.contents["M"] != undefined) {
-		mapDat.contents["M"].forEach(e => {
-			game_dynamicObjects.push(new Monster(e[0], e[1]));
-		});
-	}
+	//adjust audio playback speed for alignment
+	var realGameTime = (1 - player.energy) / player.energyDepleteNatural / 60;
+	var realAudioTime = audio_current.currentTime / audio_levelSpeed;
+	var temporalDistance = realGameTime - realAudioTime;
+	//console.log(realGameTime, realAudioTime, temporalDistance);
 
-	//time?
-
-	//finish transition
-	game_mode = 1;
-	camera.scale = camera_scale_game;
-}
-
-function loadMenu() {
-	camera.scale = camera_scale_menu;
-	camera.x = camera_menuCoords[0];
-	camera.y = camera_menuCoords[1];
-	game_mode = 0;
-}
-
-//handles move inputs in the menu
-function menuMove(moveArr) {
-	var squareVal;
-	try {
-		squareVal = menu_nodeStruct[menu_nextPos[1] + moveArr[1]][menu_nextPos[0] + moveArr[0]];
-	} catch (er) {
-		//squareVal will remain undefined
-	}
-	if (squareVal != undefined) {
-		menu_lastPos = [menu_x, menu_y];
-		menu_progress = 0;
-		menu_nextPos[0] += moveArr[0];
-		menu_nextPos[1] += moveArr[1];
+	if (temporalDistance > 4 / 60) {
+		//set to a rate that will solve the distortion in the catch up rate, or speed * 3, whichever is greater
+		audio_current.playbackRate = Math.min(audio_speedBounds[1], Math.max(audio_levelSpeed * 3, audio_levelSpeed * (temporalDistance / audio_catchupTime)));
+	} else if (temporalDistance > -4 / 60) {
+		audio_current.playbackRate = audio_levelSpeed;
+	} else {
+		audio_current.playbackRate = Math.max(audio_speedBounds[0], audio_levelSpeed * 0.7);
 	}
 }
-
-//interpolates between the positions of two map nodes, given a direction
-function nodeterp(node1, node2, directionINT, percentage) {
-	return [node2.x, node2.y];
-}
-
-//boolean function, returns true if there are orbs on screen
-function orbsAreOnScreen() {
-	for (var h=0; h<game_staticObjects.length; h++) {
-		if (orbIsOnScreen(game_staticObjects[h])) {
-			return true;
-		}
-	}
-	return false;
-}
-
-//boolean function, returns true if an orb is on screen
-function orbIsOnScreen(orb) {
-	return (Math.abs(orb.x - camera.x) < canvas.height * scan_windowScale[1] / camera.scale / 2 || Math.abs(orb.y - camera.y) < canvas.width * scan_windowScale[0] / camera.scale / 2);
-}
-
-function polToXY(startX, startY, angle, magnitude) {
-	var xOff = magnitude * Math.cos(angle);
-	var yOff = magnitude * Math.sin(angle);
-	return [startX + xOff, startY + yOff];
-}
-
-function scanWorld() {
-	player.energy -= scan_energyCost;
-	scan_time = scan_time_static;
-}
-
-
-
-
-function screenToSpace(x, y) {
-	return [((x - (canvas.width / 2)) / camera.scale) + camera.x, ((y - (canvas.height / 2)) / camera.scale) + camera.y];
-}
-
-function setCanvasPreferences() {
-	ctx.lineWidth = 3;
-	ctx.lineCap = "butt";
-	ctx.textBaseline = "middle";
-}
-
-function spaceToScreen(x, y) {
-	return [((x - camera.x) * camera.scale) + canvas.width / 2, ((y - camera.y) * camera.scale) + canvas.height / 2];
-}
-
