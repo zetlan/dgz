@@ -17,6 +17,7 @@ var audios = {
 	"cellularFar": new Audio(`audio/cellular (distanced).mp3`),
 	"clearAndPresent": new Audio(`audio/clear_and_present_danger.mp3`),
 	"colonize": new Audio(`audio/colonizer.mp3`),
+	"ether": new Audio(`audio/cresting_ether_slow.mp3`), 
 };
 var audio_current = undefined;
 var audio_levelSpeed = 1;
@@ -30,7 +31,7 @@ let canvas;
 
 var camera = {
 	x: 2,
-	y: 1.5,
+	y: 2,
 	scale: 200,
 	parallax: 0.5,
 	limitX: 600,
@@ -60,6 +61,7 @@ var cursor_y = 0;
 
 var editor_active = false;
 var editor_selected = undefined;
+var editor_radius = 10;
 var editor_type = 1;
 
 
@@ -69,10 +71,11 @@ var game_time = 0;
 
 var menu_nodeSize = 0.5;
 var menu_nodeStruct = [
-	[`mn`, `i0`, `i1`, `i2`, `m0`],
-	[`f0`, `un`, `un`, `un`, `m1`],
-	[`st`, `un`, `un`, `un`, `m2`],
-	[`un`, `IM`, `f2`, `f1`, `f0`]
+	[`mn`, `i0`, `i1`, `i2`, `f0`],
+	[`st`, `un`, `un`, `un`, `f1`],
+	[`un`, `m2`, `m1`, `m0`, `f2`],
+	[`un`, `e1`, `un`, `un`, `un`],
+	[`un`, `e2`, `un`, `un`, `IM`]
 ]
 //turn readable nodeStruct into computable nodeStruct
 for (var a=0; a<menu_nodeStruct.length; a++) {
@@ -86,14 +89,9 @@ var menu_queue = [[menu_x, menu_y]];
 var menu_progress = 0;
 var menu_increment = 1 / 20;
 
-var orb_animTime = 15;
-var orb_opacity = 0.6;
-var orb_radius = 10;
 
 var overlay_pieRad = 0.04;
 var overlay_pieMargin = 0.01;
-
-var player;
 
 var scan_energyCost = 1 / 80;
 var scan_windowScale = [0.96, 0.95];
@@ -126,9 +124,6 @@ function setup() {
 	canvas = document.getElementById("poderVase");
 	ctx = canvas.getContext("2d");
 	setCanvasPreferences();
-
-	player = new Player(0, 0);
-	game_dynamicObjects.push(player);
 
 	animation = window.requestAnimationFrame(main);
 }
@@ -218,16 +213,16 @@ function handleKeyPress(a) {
 
 	switch (a.keyCode) {
 		case 37:
-			game_data.player.ax = -1;
+			game_map.playerObj.ax = -1;
 			break;
 		case 38:
-			game_data.player.ay = -1;
+			game_map.playerObj.ay = -1;
 			break;
 		case 39:
-			player.ax = 1;
+			game_map.playerObj.ax = 1;
 			break;
 		case 40:
-			player.ay = 1;
+			game_map.playerObj.ay = 1;
 			break;
 		//space
 		case 32:
@@ -241,9 +236,7 @@ function handleKeyPress(a) {
 		//enter, +, and -
 		case 13:
 			if (editor_active) {
-				game_staticObjects.forEach(o => {
-					o.layersCurrent = o.layers;
-				});
+				game_map.reset();
 			}
 			break;
 		case 173:
@@ -256,6 +249,10 @@ function handleKeyPress(a) {
 }
 
 function handleKeyNegate(a) {
+	if (game_mode == 0) {
+		return;
+	}
+	var player = game_map.playerObj;
 	switch (a.keyCode) {
 		case 37:
 			player.ax = Math.max(player.ax, 0);
@@ -292,12 +289,12 @@ function handleMouseDown(a) {
 		[minObjDist, editor_selected] = editorSelectObject();
 
 		//if one isn't selected, create a new object
-		if (editor_selected == undefined && minObjDist > orb_radius * 1.99) {
+		if (editor_selected == undefined && minObjDist > editor_radius * 1.99) {
 			if (editor_type == -1) {
-				game_dynamicObjects.push(new Monster(Math.round(cursorWP[0]), Math.round(cursorWP[1])));
+				game_map.dynamics.push(new game_map.monsterClass(Math.round(cursorWP[0]), Math.round(cursorWP[1])));
 				return;
 			}
-			game_staticObjects.push(new Orb(Math.round(cursorWP[0]), Math.round(cursorWP[1]), editor_type));
+			game_map.statics.push(new Orb(Math.round(cursorWP[0]), Math.round(cursorWP[1]), editor_type));
 		}
 	}
 }
@@ -315,12 +312,12 @@ function handleMouseMove(a) {
 			var storeArr = editorSelectObject();
 			if (button_altPressed) {
 				//destroy an orb if close enough
-				if (storeArr[0] < orb_radius) {
-					var index = game_staticObjects.indexOf(storeArr[1]);
+				if (storeArr[0] < editor_radius) {
+					var index = game_map.statics.indexOf(storeArr[1]);
 					if (index != -1) {
-						game_staticObjects.splice(index, 1);
+						game_map.statics.splice(index, 1);
 					} else {
-						game_dynamicObjects.splice(game_dynamicObjects.indexOf(storeArr[1]), 1);
+						game_map.dynamics.splice(game_map.dynamics.indexOf(storeArr[1]), 1);
 					}
 					
 				}
@@ -329,8 +326,8 @@ function handleMouseMove(a) {
 					return;
 				}
 				//create a new orb if far away enough and not pressing alt
-				if (storeArr[0] > orb_radius * 1.99) {
-					game_staticObjects.push(new Orb(Math.round(movePos[0]), Math.round(movePos[1]), editor_type));
+				if (storeArr[0] > editor_radius * 1.99) {
+					game_map.statics.push(new Orb(Math.round(movePos[0]), Math.round(movePos[1]), editor_type));
 				}
 			}
 		} else {
@@ -401,30 +398,20 @@ function doMenuState() {
 		drawRoundedRectangle(drawOffset[0] + (menu_x * camera.scale) - (nSize / 2), drawOffset[1] + (menu_y * camera.scale) - (nSize / 2), nSize, nSize, canvas.height / 100);
 	}
 
-	//move player
-	if (menu_queue.length > 1) {
-		menu_x = easerp(menu_queue[0][0], menu_queue[1][0], menu_progress);
-		menu_y = easerp(menu_queue[0][1], menu_queue[1][1], menu_progress);
-
-		menu_progress += menu_increment * (1 + (menu_queue.length > 2));
-		if (menu_progress >= 1) {
-			menu_progress -= 1;
-			//don't let the length go below 2 if transitioning
-			if (menu_queue.length > 1 + (transitionProgress > 0)) {
-				menu_queue.splice(0, 1);
-			}
-		}
+	menuAnimateMovement();
+	if (!tutorial.hasDone[0]) {
+		drawTutorialText();
 	}
 
 	//draw player
 	ctx.fillStyle = color_energy;
 	var dCoords = spaceToScreen(menu_x, menu_y);
-	drawCircle(dCoords[0], dCoords[1], 5)
+	drawCircle(dCoords[0], dCoords[1], 10);
 	ctx.fill();
 
 	if (transitionProgress > 0) {
 		ctx.globalAlpha = linterp(0, 1, transitionProgress);
-		ctx.fillStyle = game_data.bg;
+		ctx.fillStyle = game_map.bg;
 		ctx.fillRect(0, 0, canvas.width, canvas.height);
 		ctx.globalAlpha = 1;
 	}
@@ -449,30 +436,27 @@ function editorSelectObject() {
 	var cursorWorldPos = screenToSpace(cursor_x, cursor_y);
 	var toReturn = [1e1001, undefined];
 	var dist;
-	for (var p=0; p<game_staticObjects.length; p++) {
-		dist = Math.sqrt(Math.pow(cursorWorldPos[0] - game_staticObjects[p].x, 2) + Math.pow(cursorWorldPos[1] - game_staticObjects[p].y, 2));
+	for (var p=0; p<game_map.statics.length; p++) {
+		dist = Math.sqrt(Math.pow(cursorWorldPos[0] - game_map.statics[p].x, 2) + Math.pow(cursorWorldPos[1] - game_map.statics[p].y, 2));
 		if (dist < toReturn[0]) {
 			toReturn[0] = dist;
-			if (dist < orb_radius) {
-				toReturn[1] = game_staticObjects[p];
-				p = game_staticObjects.length;
+			if (dist < game_map.statics[p].r) {
+				toReturn[1] = game_map.statics[p];
+				p = game_map.statics.length;
 			}
 		}
 	}
 
 	//dynamic objects as well
-	for (var p=0; p<game_dynamicObjects.length; p++) {
-		if (game_dynamicObjects[p] != player) {
-			dist = Math.sqrt(Math.pow(cursorWorldPos[0] - game_dynamicObjects[p].x, 2) + Math.pow(cursorWorldPos[1] - game_dynamicObjects[p].y, 2));
-			if (dist < toReturn[0]) {
-				toReturn[0] = dist;
-				if (dist < monster_radius) {
-					toReturn[1] = game_dynamicObjects[p];
-					p = game_dynamicObjects.length;
-				}
+	for (var p=0; p<game_map.dynamics.length; p++) {
+		dist = Math.sqrt(Math.pow(cursorWorldPos[0] - game_map.dynamics[p].x, 2) + Math.pow(cursorWorldPos[1] - game_map.dynamics[p].y, 2));
+		if (dist < toReturn[0]) {
+			toReturn[0] = dist;
+			if (dist < game_map.dynamics[p].r) {
+				toReturn[1] = game_map.dynamics[p];
+				p = game_map.dynamics.length;
 			}
 		}
-		
 	}
 
 	return toReturn;
@@ -483,7 +467,7 @@ function gameAudio() {
 		return;
 	}
 
-	if (transitionProgress == 0 && audio_current.paused && player.energy > 0.5) {
+	if (transitionProgress == 0 && audio_current.paused && game_map.playerObj.energy > 0.5) {
 		audio_current.play();
 		audio_current.playbackRate = audio_levelSpeed;
 	}
@@ -500,7 +484,7 @@ function gameAudio() {
 	}
 
 	//adjust audio playback speed for alignment
-	var realGameTime = (1 - player.energy) / player.energyDepleteNatural / 60;
+	var realGameTime = (1 - game_map.playerObj.energy) / game_map.playerObj.energyDepleteNatural / 60;
 	var realAudioTime = audio_current.currentTime / audio_levelSpeed;
 	var temporalDistance = realGameTime - realAudioTime;
 	//console.log(realGameTime, realAudioTime, temporalDistance);
@@ -511,6 +495,32 @@ function gameAudio() {
 	} else if (temporalDistance > -4 / 60) {
 		audio_current.playbackRate = audio_levelSpeed;
 	} else {
-		audio_current.playbackRate = Math.max(audio_speedBounds[0], audio_levelSpeed * 0.7);
+		audio_current.playbackRate = Math.max(audio_speedBounds[0], Math.min(audio_levelSpeed * 0.75, audio_levelSpeed * (audio_catchupTime / (-1 * temporalDistance))));
+	}
+}
+
+function menuAnimateMovement() {
+	if (menu_queue.length < 2) {
+		return;
+	}
+	//move player
+	menu_x = easerp(menu_queue[0][0], menu_queue[1][0], menu_progress);
+	menu_y = easerp(menu_queue[0][1], menu_queue[1][1], menu_progress);
+
+	menu_progress += menu_increment * (1 + (menu_queue.length > 2));
+	//don't need to do anything else if not finishing a section
+	if (menu_progress < 1) {
+		return;
+	}
+	//if transitioning, don't allow for running out of areas
+	if (menu_queue.length < 3 && transitionProgress > 0) {
+		menu_progress = 1 - menu_increment;
+		return;
+	}
+
+	//don't let the length go below 2 regularly
+	menu_progress -= 1;
+	if (menu_queue.length > 1) {
+		menu_queue.splice(0, 1);
 	}
 }
