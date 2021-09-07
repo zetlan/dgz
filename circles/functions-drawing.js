@@ -35,12 +35,13 @@ function drawScanLine(entityX, entityY, reqYDist, reqXDist, yCutoff) {
 }
 
 function drawScanResults() {
+	var isInverted = game_map.playerObj.constructor.name == "MonsterControllable";
 	if (scan_time <= 0) {
 		return;
 	}
 	scan_time -= 1;
 	ctx.fillStyle = "#000";
-	ctx.globalAlpha = 1 - Math.pow(1 - (scan_time / scan_time_static), 12);
+	ctx.globalAlpha = droperp(1, 0, 1 - (scan_time / scan_time_static));
 
 	//required distance away for the object to be scanned
 	var reqYDist = canvas.height * scan_windowScale[1] / camera.scale / 2;
@@ -50,7 +51,7 @@ function drawScanResults() {
 	
 	//loop through visible orbs
 	ctx.fillStyle = color_orbs[0];
-	game_staticObjects.forEach(s => {
+	game_map.statics.forEach(s => {
 		//only continue if it's visible
 		if (s.layersCurrent > 0) {
 			//I pass in arguments so I don't have to redefine these semi-constants for every single object
@@ -59,9 +60,9 @@ function drawScanResults() {
 	});
 
 	//monsters
-	ctx.fillStyle = color_monster_eye;
-	game_dynamicObjects.forEach(d => {
-		if (d != player) {
+	ctx.fillStyle = isInverted ? color_energy : color_monster_eye;
+	game_map.dynamics.forEach(d => {
+		if (!isInverted || d.energy > 0) {
 			drawScanLine(d.x, d.y, reqYDist, reqXDist, yCutoff);
 		}
 	});
@@ -69,11 +70,27 @@ function drawScanResults() {
 	ctx.globalAlpha = 1;
 }
 
+function drawStar(x, y, r, sides) {
+	ctx.beginPath();
+	ctx.moveTo(x + r, y);
+	var angle = ((Math.PI * 2) / sides);
+	for (var a=0; a<sides+1; a++) {
+		ctx.lineTo(x + r * (0.75 + 0.25 * (a % 2 == 0)) * Math.cos(angle * a), y + r * (0.75 + 0.25 * (a % 2 == 0)) * Math.sin(angle * a));
+	}
+}
+
 function drawTutorialText() {
 	//finish functions
-	if (player.ax != 0 || player.ay != 0) {
-		tutorial.hasDone[0] = true;
+	if (game_mode == 1) {
+		if (game_map.playerObj.ax != 0 || game_map.playerObj.ay != 0) {
+			tutorial.hasDone[0] = true;
+		}
+	} else {
+		if (menu_x != 0 || menu_y != 0) {
+			tutorial.hasDone[0] = true;
+		}
 	}
+	
 	if (scan_time > 0) {
 		tutorial.hasDone[1] = true;
 	}
@@ -84,11 +101,16 @@ function drawTutorialText() {
 			text_buffer = tutorial.texts[0];
 			text_time = text_time_static;
 		}
-	} else if (!tutorial.hasDone[1]) {
-		//get minimum distance to orb, if it's large enough do the scan prompt
-		if (game_time % 10 == 0) {
-
+	} else if (!tutorial.hasDone[1] && game_mode != 0) {
+		//if there are orbs there
+		if (!orbsAreAllBounced()) {
+			//get minimum distance to orb, if it's large enough do the scan prompt
+			if (!orbsAreOnScreen()) {
+				text_buffer = tutorial.texts[1];
+				text_time = text_time_static;
+			}
 		}
+		
 	}
 
 
@@ -98,7 +120,7 @@ function drawTutorialText() {
 		ctx.textAlign = "center";
 		ctx.fillStyle = color_text;
 		//opacity is based on time
-		ctx.globalAlpha = 1 - Math.pow((text_time_static - text_time) / text_time_static, 16);
+		ctx.globalAlpha = droperp(0, 1, text_time / text_time_static);
 		ctx.fillText(text_buffer, canvas.width / 2, canvas.height * 0.96);
 		ctx.globalAlpha = 1;
 
@@ -106,4 +128,12 @@ function drawTutorialText() {
 		//increment time
 		text_time -= 1;
 	}
+}
+
+
+
+function setCanvasPreferences() {
+	ctx.lineWidth = canvas.height / 120;
+	ctx.lineCap = "butt";
+	ctx.textBaseline = "middle";
 }
