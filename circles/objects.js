@@ -112,9 +112,7 @@ class Level {
 		game_map = this;
 	
 		//music
-		if (this.music != undefined) {
-			audio_current = audios[this.music];
-		}
+		audio_current = audios[this.music];
 		
 		if (audio_current != undefined) {
 			audio_levelSpeed = audio_current.duration / this.time;
@@ -147,11 +145,7 @@ class Level {
 		});
 
 		//exit
-		if (orbsAreAllBounced()) {
-			loadMenu(true);
-		} else if (this.playerObj.energy <= 0) {
-			loadMenu(false);
-		}
+		this.tick_exit();
 	}
 
 	tick_camera() {
@@ -171,8 +165,19 @@ class Level {
 		camera.y = clamp(newY, -camera.limitY + (canvas.height * 0.5 / camera.scale), camera.limitY - (canvas.height * 0.5 / camera.scale));
 	}
 
+	tick_exit() {
+		if (orbsAreAllBounced()) {
+			loadMenu(true);
+		} else if (this.playerObj.energy <= 0) {
+			loadMenu(false);
+		}
+	}
+
 	//reset everything back to defaults
 	reset() {
+		//stop visibility from previous scans
+		scan_time = 0;
+
 		this.statics.forEach(o => {
 			o.layersCurrent = o.layers;
 		});
@@ -184,7 +189,7 @@ class Level {
 		this.dynamics = newDynams;
 
 		var p = this.playerObj;
-		[p.x, p.y, p.dx, p.dy, p.energy] = [0, 0, 0, 0, 1];
+		[p.x, p.y, p.dx, p.dy, p.ax, p.ay, p.energy] = [0, 0, 0, 0, 0, 0, 1];
 	}
 }
 
@@ -222,7 +227,27 @@ class Level_Inverse extends Level {
 		});
 	}
 
+	tick_exit() {
+		if (this.playerObj.energy <= 0) {
+			loadMenu(true);
+		} else if (orbsAreAllBounced()) {
+			loadMenu(false);
+		}
+	}
+}
 
+class Level_Final extends Level_Inverse {
+	constructor(bg, contents, music, time, completedByDefaultBOOLEAN) {
+		super(bg, contents, music, time, completedByDefaultBOOLEAN);
+		this.playerObj.speed = 0;
+		this.monsterClass = PlayerEnder;
+		this.addObjects(contents);
+	}
+
+	load() {
+		super.load();
+		this.playerObj.r = this.playerObj.rStable;
+	}
 }
 
 class Level_Prefab extends Level {
@@ -256,6 +281,7 @@ class Player {
 		this.frictionNatural = 0.96;
 
 		this.r = 6;
+		this.eyeR = 0.13;
 
 		this.energy = 1;
 		this.energyDepleteNatural = 0;
@@ -281,24 +307,28 @@ class Player {
 		//draw self's energy pie
 
 		//drawing
-		ctx.globalAlpha = 0.6;
-		ctx.strokeStyle = color_energy;
-		ctx.fillStyle = color_energy;
-
-		if (this.energy < 0.05) {
-			ctx.globalAlpha = (this.energy * 20) * 0.6;
-		}
-		drawStar(center[0], center[1], radius * this.energy, 16);
-		ctx.stroke();
-		ctx.fill();
+		this.beDrawn_energy(center[0], center[1], radius);
 		ctx.globalAlpha = Math.min(this.energy / 0.03, 1);
 
 		//draw eye 
 		var multiplier = (this.r * camera.scale / this.dMax) * 0.5;
 		ctx.fillStyle = "#003";
-		drawCircle(center[0] + this.dx * multiplier, center[1] + this.dy * multiplier, this.r * 0.4);
+		drawCircle(center[0] + this.dx * multiplier, center[1] + this.dy * multiplier, radius * this.eyeR);
 		ctx.fill();
 		ctx.globalAlpha = 1;
+	}
+
+	beDrawn_energy(x, y, r) {
+		ctx.globalAlpha = 0.6;
+		ctx.strokeStyle = color_energy;
+		ctx.fillStyle = color_energy;
+
+		if (this.energy < 0.05) {
+			ctx.globalAlpha = (this.energy / 0.05) * 0.6;
+		}
+		drawStar(x, y, r * this.energy, 16);
+		ctx.stroke();
+		ctx.fill();
 	}
 
 	updateMomentum() {
@@ -376,7 +406,7 @@ class PlayerAI extends Player {
 		
 		this.nearestOrb = undefined;
 		this.nearChaseTime = 0;
-		this.nearChaseTimeMax = 200;
+		this.nearChaseTimeMax = 180;
 
 		this.badOrbs = [];
 	}
@@ -462,7 +492,7 @@ class PlayerAI extends Player {
 
 		//now that the vectors are gotten, can decide pathing
 		if (toPVec[0] < this.monsterTolerance) {
-			this.nearChaseTime += 1;
+			this.nearChaseTime += 1.2;
 			//if too close to the monster, path away from it
 			pathDirection = toPVec[1] + Math.PI * 0.8;
 			this.nearestOrb = undefined;
@@ -480,6 +510,48 @@ class PlayerAI extends Player {
 			this.path();
 		}
 		super.updateMomentum();
+	}
+}
+
+class PlayerEnder extends PlayerAI {
+	constructor(x, y) {
+		super(x, y);
+		this.r = 18;
+		this.rMult = 0.94;
+		this.rStore = undefined;
+		this.energyDepleteCreature = 0;
+	}
+
+	beDrawn_energy(x, y, r) {
+		super.beDrawn_energy(x, y, r / this.energy);
+	}
+
+	path() {
+		var plr = game_map.playerObj;
+
+		if (plr.r <= 0) {
+			return;
+		}
+		//go straight towards the player
+		var xDist = plr.x - this.x;
+		var yDist = plr.y - this.y;
+		var toPD = Math.sqrt(xDist ** 2 + yDist ** 2);
+		var toPA = Math.atan2(yDist, xDist);
+		this.ax = Math.cos(toPA);
+		this.ay = Math.sin(toPA);
+
+		//if distance is close enough, push out and weaken the player
+		if (toPD < this.r + plr.r) {
+			//super hacky but whatever
+			if (this.rStore == undefined) {
+				this.rStore = plr.r;
+			}
+			plr.r *= this.rMult;
+			if (plr.r < 0.5) {
+				console.log('hi');
+				plr.r = 0;
+			}
+		}
 	}
 }
 
@@ -756,6 +828,7 @@ class Monster {
 class MonsterControllable extends Monster {
 	constructor(x, y) {
 		super(x, y);
+		this.rStable = this.r;
 		this.ax = 0;
 		this.ay = 0;
 		//LDC = last down coords
@@ -850,22 +923,65 @@ class SettingsChanger {
 	constructor(centerX, centerY, displayText, functionOnChange, valuesArr) {
 		this.x = centerX;
 		this.y = centerY;
+		this.w = 120;
 		this.text = displayText;
-		this.orbs = [];
 		this.func = functionOnChange;
 		this.values = valuesArr;
+
+		this.orbs = [];
+		this.orbOut = -1;
+
 		this.generateOrbs();
 	}
 
 	beDrawn() {
+		this.orbs.forEach(o => {
+			o.beDrawn();
+			//force a draw with 0 layers
+			if (o.layersCurrent == 0) {
+				var pos = spaceToScreen(o.x, o.y);
+				o.drawLayer(pos[0], pos[1], o.r * camera.scale, 0, o.alpha)
+			}
+		});
 
+		//draw text as well
+		var textPos = spaceToScreen(this.x, this.y - 25);
+		ctx.font = `${canvas.height * text_size}px Ubuntu`;
+		ctx.textAlign = "center";
+		ctx.fillStyle = color_text;
+		ctx.fillText(this.text, textPos[0], textPos[1]);
 	}
 
 	generateOrbs() {
+		//calculation and resetting
+		this.orbs = [];
+		var offset = (this.values.length - 1) / 2;
+		var interval = this.w / (this.values.length - 1);
 
+		//object pushing
+		for (var g=0; g<this.values.length; g++) {
+			this.orbs.push(new Orb(this.x - (offset * interval) + (g * interval), this.y, 1));
+		}
 	}
 
 	tick() {
+		var newOrbOut = -1;
+		for (var a=0; a<this.orbs.length; a++) {
+			this.orbs[a].tick();
+			if (this.orbs[a].layersCurrent == 0 && a != this.orbOut) {
+				newOrbOut = a;
+			}
+		}
 
+		//if one of the orbs is out, restore the others and set function
+		if (newOrbOut != -1) {
+			this.orbOut = newOrbOut;
+			for (var b=0; b<this.orbs.length; b++) {
+				if (b != this.orbOut) {
+					this.orbs[b].layersCurrent = 1;
+				}
+			}
+			this.func(this.values[this.orbOut]);
+		}
 	}
 }
