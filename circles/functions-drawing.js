@@ -29,7 +29,7 @@ function drawScanLine(entityX, entityY, reqYDist, reqXDist, yCutoff) {
 
 		//draw actual dot
 		ctx.beginPath();
-		drawCircle(canvas.width / 2 + xDist, canvas.height / 2 + yDist, 5);
+		drawCircle(canvas.width / 2 + xDist, canvas.height / 2 + yDist, canvas.height / 160);
 		ctx.fill();
 	}
 }
@@ -80,43 +80,11 @@ function drawStar(x, y, r, sides) {
 }
 
 function drawTutorialText() {
-	//finish functions
-	if (game_mode == 1) {
-		if (game_map.playerObj.ax != 0 || game_map.playerObj.ay != 0) {
-			tutorial.hasDone[0] = true;
-		}
-	} else {
-		if (menu_x != 0 || menu_y != 0) {
-			tutorial.hasDone[0] = true;
-		}
-	}
-	
-	if (scan_time > 0) {
-		tutorial.hasDone[1] = true;
-	}
-
-	//first determine what needs to be drawn
-	if (!tutorial.hasDone[0]) {
-		if (game_time > 600) {
-			text_buffer = tutorial.texts[0];
-			text_time = text_time_static;
-		}
-	} else if (!tutorial.hasDone[1] && game_mode != 0) {
-		//if there are orbs there
-		if (!orbsAreAllBounced()) {
-			//get minimum distance to orb, if it's large enough do the scan prompt
-			if (!orbsAreOnScreen()) {
-				text_buffer = tutorial.texts[1];
-				text_time = text_time_static;
-			}
-		}
-		
-	}
-
+	determineTutorialText();
 
 	if (text_time > 0) {
 		//draw text
-		ctx.font = `${canvas.height / 30}px Ubuntu`;
+		ctx.font = `${canvas.height * text_size}px Ubuntu`;
 		ctx.textAlign = "center";
 		ctx.fillStyle = color_text;
 		//opacity is based on time
@@ -136,4 +104,8 @@ function setCanvasPreferences() {
 	ctx.lineWidth = canvas.height / 120;
 	ctx.lineCap = "butt";
 	ctx.textBaseline = "middle";
+
+	camera_scale_game = canvas.height / 240;
+	camera_scale_menu = canvas.height / 4.8;
+	camera.scale = (game_mode == 0) ? camera_scale_menu : camera_scale_game;
 }
