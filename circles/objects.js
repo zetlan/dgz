@@ -494,7 +494,7 @@ class PlayerAI extends Player {
 		if (toPVec[0] < this.monsterTolerance) {
 			this.nearChaseTime += 1.2;
 			//if too close to the monster, path away from it
-			pathDirection = toPVec[1] + Math.PI * 0.8;
+			pathDirection = toPVec[1] + Math.PI * (1 + 0.2 * boolToSigned(getOrientation([this.x, this.y], [game_map.playerObj.x, game_map.playerObj.y], [this.nearestOrb.x, this.nearestOrb.y]) > 0));
 			this.nearestOrb = undefined;
 		}
 		
@@ -924,7 +924,8 @@ class SettingsChanger {
 		this.x = centerX;
 		this.y = centerY;
 		this.w = 120;
-		this.text = displayText;
+		//objects are bad but I didn't want to duplicate the text drawing code and I'm lazy
+		this.text = new TextExecutor(this.x, this.y - 25, displayText, function(){});
 		this.func = functionOnChange;
 		this.values = valuesArr;
 
@@ -945,11 +946,7 @@ class SettingsChanger {
 		});
 
 		//draw text as well
-		var textPos = spaceToScreen(this.x, this.y - 25);
-		ctx.font = `${canvas.height * text_size}px Ubuntu`;
-		ctx.textAlign = "center";
-		ctx.fillStyle = color_text;
-		ctx.fillText(this.text, textPos[0], textPos[1]);
+		this.text.beDrawn();
 	}
 
 	generateOrbs() {
@@ -983,5 +980,27 @@ class SettingsChanger {
 			}
 			this.func(this.values[this.orbOut]);
 		}
+	}
+}
+
+//an object that's placed in the world
+class TextExecutor {
+	constructor(x, y, text, functionToExecute) {
+		this.x = x;
+		this.y = y;
+		this.text = text;
+		this.func = functionToExecute;
+	}
+
+	beDrawn() {
+		var textPos = spaceToScreen(this.x, this.y);
+		ctx.font = `${canvas.height * text_size}px Ubuntu`;
+		ctx.textAlign = "center";
+		ctx.fillStyle = color_text;
+		ctx.fillText(this.text, textPos[0], textPos[1]);
+	}
+
+	tick() {
+		this.func();
 	}
 }
