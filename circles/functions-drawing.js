@@ -89,7 +89,7 @@ function drawTutorialText() {
 		ctx.fillStyle = color_text;
 		//opacity is based on time
 		ctx.globalAlpha = droperp(0, 1, text_time / text_time_static);
-		ctx.fillText(text_buffer, canvas.width / 2, canvas.height * 0.96);
+		ctx.fillText(text_buffer, canvas.width / 2, canvas.height * ((game_mode == 0) ? text_height_menu : text_height_game));
 		ctx.globalAlpha = 1;
 
 
