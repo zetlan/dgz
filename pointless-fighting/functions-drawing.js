@@ -6,7 +6,10 @@ INDEX:
 	drawRoundedRectangle(x, y, width, height, arcRadius);
 	drawSelectionBox(x, y, width, height);
 
-	drawEditorOverlay();
+	drawBackground();
+	drawKeys();
+	setCanvasPreferences();
+	setCanvasResolutionMult(settingNumber);
 */
 
 
@@ -61,6 +64,32 @@ function drawSelectionBox(x, y, width, height) {
 	ctx.strokeStyle = color_editor_selection;
 	drawRoundedRectangle(x, y, width, height, canvas.height / 100);
 	ctx.stroke();
+}
+
+
+
+
+
+
+function drawBackground() {
+	ctx.fillStyle = color_background;
+	ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+function drawKeys() {
+	var unit = 10;
+
+	ctx.fillStyle = player.keysDown[0] ? color_grey_light : color_grey_dark;
+	ctx.fillRect(unit, canvas.height - unit * 3, unit * 2, unit * 2);
+
+	ctx.fillStyle = player.keysDown[1] ? color_grey_light : color_grey_dark;
+	ctx.fillRect(unit * 4, canvas.height - unit * 6, unit * 2, unit * 2);
+
+	ctx.fillStyle = player.keysDown[2] ? color_grey_light : color_grey_dark;
+	ctx.fillRect(unit * 7, canvas.height - unit * 3, unit * 2, unit * 2);
+
+	ctx.fillStyle = player.keysDown[3] ? color_grey_light : color_grey_dark;
+	ctx.fillRect(unit * 4, canvas.height - unit * 3, unit * 2, unit * 2);
 }
 
 function setCanvasPreferences() {

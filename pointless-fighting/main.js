@@ -21,6 +21,7 @@ let camera;
 var camera_scaleMin = 20;
 var camera_scaleMax = 120;
 var camera_scaleDefault = 80;
+var camera_scaleStep = 20;
 
 const color_attackBubble = "#47F";
 const color_background = "#226";
@@ -30,6 +31,9 @@ const color_editor_background = "#335";
 const color_editor_border = "#4F4";
 const color_editor_selection = "#0FF";
 
+const color_grey = "#999";
+const color_grey_light = "#CCC";
+const color_grey_dark = "#666";
 const color_meter_health = "#F44";
 const color_meter_stamina = "#FF4";
 const color_player = "#F6F";
@@ -59,7 +63,13 @@ var data_images = {
 	
 	Characters: {
 		Player: new Texture_Animated(getImage('images/spritesPlayer.png'), data_spriteSize, 1, 1, [0.5, 0.5], [[0, 0], [0, 1], [0, 2], [0, 3]], 1e1001, false)
-	}
+	},
+
+	Decoration: {
+		Spikes: new Texture_Set(getImage('images/treasureSpikes.png'), data_spriteSize, [[[0, 0], [1, 2], [0.5, 1.5]], [[1, 0], [1, 2], [0.5, 1.5]], [[2, 0], [1, 2], [0.5, 1.5]], [[3, 0], [1, 2], [0.5, 1.5]], [[4, 0], [1, 2], [0.5, 1.5]], [[5, 0], [1, 2], [0.5, 1.5]], [[6, 0], [1, 2], [0.5, 1.5]],
+			[[0, 2], [2, 3], [0.5, 2.5]],
+			[[10, 2], [3, 6], [1.5, 5.5]], [[13, 1], [3, 7], [1.5, 6.5]]])
+	},
 };
 var data_persistent = {
 	settings: {
@@ -71,11 +81,12 @@ var editor_active = false;
 var editor_block = " ";
 var editor_sidebarWidth = 0.2;
 
+var entities_listing = ["SPK"]
 let loading_map;
 let loading_state;
 
 var menu_animSpeed = 7;
-
+var menu_curve = 100;
 let player;
 
 var settings_resolutions = [

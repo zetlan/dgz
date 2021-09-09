@@ -27,7 +27,7 @@ class AudioChannel {
 
 		//set volume
 		if (this.audio != undefined) {
-			this.audio.volume = this.volume * (1 - (this.time / audio_fadeTime));
+			this.audio[0].volume = this.volume * (1 - (this.time / audio_fadeTime));
 		}
 	}
 
@@ -40,6 +40,9 @@ class AudioChannel {
 			//alternatively, a change from undefined happens instantly
 			if (this.time > audio_fadeTime || this.audio == undefined) {
 				this.time = 0;
+				if (this.audio != undefined) {
+					this.audio[0].pause();
+				}
 				this.audio = this.targetAudio;
 				if (this.audio != undefined) {
 					this.reset();
@@ -122,7 +125,6 @@ class Texture {
 	}
 
 	drawTexture() {
-
 	}
 }
 
@@ -140,11 +142,11 @@ class Texture_Animated {
 		this.loop = loopingBOOLEAN;
 	}
 
-	drawTexture(drawX, drawY, drawSize) {
+	drawTexture(drawX, drawY, squareSize) {
 		//draw the texture
 		try {
 			var frame = this.frames[Math.floor(this.frame)];
-			ctx.drawImage(this.sheet, this.size * frame[0], this.size * frame[1], this.size * this.w, this.size * this.h, drawX - (drawSize * this.center[0]), drawY - (drawSize * this.center[1]), drawSize, drawSize);
+			ctx.drawImage(this.sheet, this.size * frame[0], this.size * frame[1], this.size * this.w, this.size * this.h, drawX - (squareSize * this.center[0]), drawY - (squareSize * this.center[1]), squareSize * this.w, squareSize * this.h);
 		} catch (er) {
 			console.error(er, `problem drawing animated texture! On frame ${this.frame} with frames ${JSON.stringify(this.frames)}`);
 		}
@@ -157,6 +159,25 @@ class Texture_Animated {
 			} else {
 				this.frame = this.frames.length - 1;
 			}
+		}
+	}
+}
+
+//for a set of textures that aren't necessarily connected to each other in a linear order
+class Texture_Set {
+	constructor(image, spriteSize, frameData) {
+		//frame data is an array of [position, dimensions, center], which are all in image coords
+		this.sheet = image;
+		this.sz = spriteSize;
+		this.frames = frameData;
+	}
+
+	drawTexture(frame, drawX, drawY, squareSize) {
+		try {
+			var frm = this.frames[frame];
+			ctx.drawImage(this.sheet, this.sz * frm[0][0], this.sz * frm[0][1], this.sz * frm[1][0], this.sz * frm[1][1], drawX - (squareSize * frm[2][0]), drawY - (squareSize * frm[2][1]), squareSize * frm[1][0], squareSize * frm[1][1]);
+		} catch (er) {
+			console.error(`problem drawing texture with parameters ${frame}, ${drawX}, ${drawY}, ${squareSize}, in set ${JSON.stringify(this.frames)}!`);
 		}
 	}
 }

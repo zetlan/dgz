@@ -48,6 +48,23 @@ function importData(arr, character, data) {
 	}
 }
 
+function importEntities(entityData) {
+	console.log(entityData);
+	var entityArray = [];
+
+	//loop through all entity constructors
+	entityData.forEach(e => {
+		//split by underscore
+		var trueTag = e.split("_");
+		switch (trueTag[0]) {
+			case "SPK":
+				entityArray.push(new Spike(trueTag[1] * 1, trueTag[2] * 1, trueTag[3] * 1))
+				break;
+		}
+	});
+	return entityArray;
+}
+
 function importZone(zoneLineString) {
 	var zoneProps = {
 		connect: [],
@@ -93,6 +110,9 @@ function importZone(zoneLineString) {
 					char += 1;
 				}
 				break;
+			case "entities":
+				zoneProps.entities = importEntities(superSplit);
+				break;
 			case "ground":
 				importData(zoneProps.data, superSplit[1], superSplit[2]);
 				break;
@@ -121,8 +141,8 @@ function maps_load() {
 	//access file
 	fetch('./maps.txt').then(r => r.text()).then((data) => {
 		//different spacing determines which are maps and which are connections
-		var parts = data.split("\n\n\n");
-		var maps = parts[0].split("\n\n");
+		var parts = data.split("\n\n");
+		var maps = parts[0].split("\n");
 		var connections = parts[1].split("\n");
 
 		//turn the maps into actual maps
@@ -136,7 +156,6 @@ function maps_load() {
 		//player stuff
 		loading_map = getZone("start");
 		loading_map.entities.push(player);
-		player.map = loading_map;
 	});
 }
 
@@ -167,10 +186,20 @@ function exportData(data) {
 
 				//if buffer1 is long enough, convert to a character
 				if (buffer1.length > 5) {
+					
 					typeString += tileImage_key[Number.parseInt(buffer1, 2)];
 					buffer1 = "";
 				}
 			}
+		}
+
+		//if there are blocks remaining, pad the rest with zeroes
+		if (buffer1.length > 0) {
+			while (buffer1.length <= 5) {
+				buffer1 += "0";
+			}
+			typeString += tileImage_key[Number.parseInt(buffer1, 2)];
+			buffer1 = "";
 		}
 
 		//remove lagging 0s
@@ -231,6 +260,12 @@ function exportZone(zoneObj) {
 	}
 	toReturn += starrify(imgData);
 
+	//entity data
+	var entDat = loading_map.stringifyEntities();
+	if (entDat.length > 0) {
+		toReturn += `|${entDat}`;
+	}
+
 	return toReturn;
 }
 
@@ -259,6 +294,16 @@ function starrify(data) {
 			charBuffer[1] += 1;
 		}
 	}
+
+	//final character
+	if (charBuffer[1] < 4) {
+		for (var b=0; b<charBuffer[1]; b++) {
+			newData += charBuffer[0];
+		}
+	} else {
+		newData += `${charBuffer[0]}*${tileImage_key[charBuffer[1]]}`;
+	}
+
 	return newData;
 }
 

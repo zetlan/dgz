@@ -25,6 +25,18 @@ function addZone(zoneObj) {
 	world_maps.splice(world_maps.length, 0, zoneObj);
 }
 
+//takes map coords and converts them to other map coords
+function convertMapCoords(x, y, map, otherMap) {
+	//convert to world coordinates
+	x += map.x;
+	y += map.y;
+
+	x -= otherMap.x;
+	y -= otherMap.y;
+
+	return [x, y];
+}
+
 function generateTileImageMap() {
 	var map = {};
 	for (var c=0; c<tileImage_key.length; c++) {
@@ -52,7 +64,6 @@ function getZone(zoneID) {
 		}
 	}
 
-	console.log(low, high);
 	if (world_maps[low].name == zoneID) {
 		return world_maps[low];
 	}

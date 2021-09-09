@@ -111,8 +111,7 @@ class State_Game {
 
 	execute() {
 		//background fill
-		ctx.fillStyle = color_background;
-		ctx.fillRect(0, 0, canvas.width, canvas.height);
+		drawBackground();
 
 		//soundies
 		audio_channel1.tick();
@@ -128,8 +127,9 @@ class State_Game {
 		ctx.fillRect(0, 0, camera.scale, canvas.height);
 		ctx.globalAlpha = 1;
 
-		drawMeter(color_meter_health, (camera.scale / 9) * 1, canvas.height * 0.05, camera.scale / 3, canvas.height * 0.9, player.health / player.maxHealth);
-		drawMeter(color_meter_stamina, (camera.scale / 9) * 5, canvas.height * 0.05, camera.scale / 3, canvas.height * 0.9, player.stamina / player.maxStamina);
+		// drawMeter(color_meter_health, (camera.scale / 9) * 1, canvas.height * 0.05, camera.scale / 3, canvas.height * 0.9, player.health / player.maxHealth);
+		// drawMeter(color_meter_stamina, (camera.scale / 9) * 5, canvas.height * 0.05, camera.scale / 3, canvas.height * 0.9, player.stamina / player.maxStamina);
+		drawKeys();
 		world_time += 1;
 	}
 
@@ -200,5 +200,40 @@ class State_Game {
 	}
 
 	handleMouseUp() {
+	}
+}
+
+class State_Cutscene {
+	constructor(cutsceneData, returnState) {
+
+	}
+
+	execute() {
+		//most things in regular game, minus UI
+		drawBackground();
+		audio_channel1.tick();
+		camera.tick_follow();
+		loading_map.beDrawn();
+		world_time += 1;
+	}
+
+	handleKeyPress(a) {
+
+	}
+
+	handleKeyNegate(a) {
+
+	}
+
+	handleMouseDown() {
+
+	}
+
+	handleMouseMove() {
+
+	}
+
+	handleMouseUp() {
+
 	}
 }
