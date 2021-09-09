@@ -88,8 +88,8 @@ var menu_levelOrder = [
 ];
 var menu_nodeSize = 0.5;
 var menu_nodeStruct = [
-	[`mn`, `i0`, `i1`, `i2`, `f0`],
-	[`st`, `un`, `un`, `un`, `f1`],
+	[`st`, `i0`, `i1`, `i2`, `f0`],
+	[`un`, `un`, `un`, `un`, `f1`],
 	[`un`, `m2`, `m1`, `m0`, `f2`],
 	[`un`, `e0`, `un`, `un`, `un`],
 	[`un`, `e1`, `en`, `un`, `un`]
@@ -118,6 +118,8 @@ var scan_time = 0;
 var scan_time_static = 200;
 
 var text_buffer = "";
+var text_height_game = 0.96;
+var text_height_menu = 0.82;
 var text_size = 1 / 25;
 var text_time = 0;
 var text_time_static = 200;
@@ -186,15 +188,19 @@ function handleKeyPress(a) {
 		//in the menu
 		switch (a.keyCode) {
 			case 37:
+			case 65:
 				menuMove([-1, 0]);
 				break;
 			case 38:
+			case 87:
 				menuMove([0, -1]);
 				break;
 			case 39:
+			case 68:
 				menuMove([1, 0]);
 				break;
 			case 40:
+			case 83:
 				menuMove([0, 1]);
 				break;
 			case 13:
@@ -245,15 +251,19 @@ function handleKeyPress(a) {
 
 	switch (a.keyCode) {
 		case 37:
+		case 65:
 			game_map.playerObj.ax = -1;
 			break;
 		case 38:
+		case 87:
 			game_map.playerObj.ay = -1;
 			break;
 		case 39:
+		case 68:
 			game_map.playerObj.ax = 1;
 			break;
 		case 40:
+		case 83:
 			game_map.playerObj.ay = 1;
 			break;
 		//space
@@ -287,15 +297,19 @@ function handleKeyNegate(a) {
 	var player = game_map.playerObj;
 	switch (a.keyCode) {
 		case 37:
+		case 65:
 			player.ax = Math.max(player.ax, 0);
 			break;
 		case 38:
+		case 87:
 			player.ay = Math.max(player.ay, 0);
 			break;
 		case 39:
+		case 68:
 			player.ax = Math.min(player.ax, 0);
 			break;
 		case 40:
+		case 83:
 			player.ay = Math.min(player.ay, 0);
 			break;
 
