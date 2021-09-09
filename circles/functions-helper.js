@@ -136,7 +136,7 @@ function orbsAreAllBounced() {
 //boolean function, returns true if there are orbs on screen
 function orbsAreOnScreen() {
 	for (var h=0; h<game_map.statics.length; h++) {
-		if (orbIsOnScreen(game_map.statics[h])) {
+		if ((game_map.statics[h].layersCurrent > 0) && orbIsOnScreen(game_map.statics[h])) {
 			return true;
 		}
 	}
@@ -145,7 +145,7 @@ function orbsAreOnScreen() {
 
 //boolean function, returns true if an orb is on screen
 function orbIsOnScreen(orb) {
-	return (orb.layersCurrent > 0) && (Math.abs(orb.y - camera.y) < canvas.height * 0.5 * scan_windowScale[1] / camera.scale) && (Math.abs(orb.x - camera.x) < canvas.width * 0.5 * scan_windowScale[0] / camera.scale);
+	return (Math.abs(orb.y - camera.y) - (orb.r * camera.scale) < canvas.height * 0.5 / camera.scale) && (Math.abs(orb.x - camera.x) - (orb.r * camera.scale) < canvas.width * 0.5 / camera.scale);
 }
 
 function polToXY(startX, startY, angle, magnitude) {
