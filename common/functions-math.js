@@ -32,7 +32,7 @@ function getPercentage(val1, val2, checkVal) {
 
 //performs a linear interpolation between 2 values
 function linterp(a, b, percentage) {
-	return a + ((b - a) * percentage);
+	return a + (b - a) * percentage;
 }
 
 //like the modulo operator, but keeps the number in bounds both ways
@@ -51,4 +51,12 @@ function randomBounded(min, max) {
 function sigmoid(input, outputLowerBound, outputUpperBound) {
 	//haha good luck reading this ;)
 	return ((1 / (1 + Math.pow(Math.E, -input))) + outputLowerBound) * (outputUpperBound - outputLowerBound);
+}
+
+//an interpolation, but with an ease in + out
+function easerp(a, b, percentage) {
+	if (percentage < 0.5) {
+		return a + (b - a) * 2 * percentage * percentage;
+	}
+	return a + (b - a) * (1 - 2 * (percentage - 1) * (percentage - 1));
 }
