@@ -1,16 +1,16 @@
 //functions for determining 2d collision are stored here, such as if two line segments intersect, if a point is inside a polygon, and other helpful functions relating to 2d position.
 
-//will return 0 if points are colinear, 1 if points are counterclockwise, and 2 if points are clockwise.
+//will return 0 if points are colinear, -1 if points are counterclockwise, and 1 if points are clockwise.
 function getOrientation(p1, p2, p3) {
 	//formula compares slope and gets direction based off of that
 	var value = (p2[1] - p1[1]) * (p3[0] - p2[0]) - (p2[0] - p1[0]) * (p3[1] - p2[1]); 
 	
 	//If second slope is greater, clockwise. If second slope is smaller, counterclockwise. If not, it must be colinear.
 	if (value > 0) {
-		return 2;
-	} 
-	if (value < 0) {
 		return 1;
+	}
+	if (value < 0) {
+		return -1;
 	}
 	return 0;
 }
