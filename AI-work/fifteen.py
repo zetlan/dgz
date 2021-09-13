@@ -25,7 +25,17 @@ def find_goal(boardState):
 
 #returns the list of possible board states you can get from the input board state
 def get_children(boardState):
-    return
+    #convert the string to a list, get the position of the dot
+    splitStruct = [][:0] = boardState
+    spacePos = splitStruct.find('.')
+    sideLen = len(splitStruct) ** 0.5
+
+    #4 possible moves: the -1 swap, the +1 swap, the -n swap, and the +n swap. 
+    
+    #create children that aren't illegal
+
+    #return children
+    return []
 
 #returns true if the board matches board goal, and false if not
 def goal_test(boardState):
