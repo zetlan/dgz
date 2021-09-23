@@ -1,0 +1,233 @@
+>python word_ladder_eckel.py words_06_letters.txt puzzlesA.txt
+
+Time to create the data structure was: 0.0318899 seconds
+There are 4969 words in this dict.
+
+Line: 0
+Length is: 2
+abased
+abases
+
+Line: 1
+Length is: 3
+garden
+harden
+harder
+
+Line: 2
+Length is: 5
+foiled
+fooled
+cooled
+cooped
+cooper
+
+Line: 3
+Length is: 6
+boiler
+bowler
+bowled
+bawled
+balled
+bulled
+
+Line: 4
+Length is: 7
+parked
+barked
+banked
+banded
+bonded
+bonder
+yonder
+
+Line: 5
+Length is: 8
+hooked
+cooked
+cooled
+tooled
+toiled
+tailed
+railed
+raided
+
+Line: 6
+Length is: 9
+broker
+booker
+booked
+cooked
+corked
+corded
+corder
+colder
+solder
+
+Line: 7
+Length is: 10
+basket
+basked
+barked
+barred
+warred
+warmed
+farmed
+formed
+foamed
+flamed
+
+Line: 8
+Length is: 11
+copier
+copper
+cooper
+cooler
+cooled
+tooled
+toiled
+tailed
+railed
+rained
+ruined
+
+Line: 9
+Length is: 13
+ballot
+ballet
+balled
+balked
+basked
+basted
+busted
+busied
+buried
+burped
+bumped
+bummed
+summed
+
+Line: 10
+Length is: 14
+sloped
+scoped
+scored
+scared
+seared
+seamed
+seemed
+seeded
+seeder
+sender
+sander
+sadder
+sadden
+sudden
+
+Line: 11
+Length is: 15
+bilked
+bulked
+bucked
+sucked
+socked
+soaked
+soared
+shared
+shares
+sharks
+shacks
+shocks
+chocks
+clocks
+cloaks
+
+Line: 12
+Length is: 16
+forges
+forged
+forked
+corked
+cooked
+cooled
+coiled
+soiled
+smiled
+smiles
+stiles
+stills
+spills
+spells
+smells
+smelly
+
+Line: 13
+Length is: 17
+sinked
+linked
+licked
+picked
+pecked
+peaked
+beaked
+braked
+braced
+braces
+traces
+tracks
+cracks
+crocks
+croaks
+creaks
+breaks
+
+Line: 14
+Length is: 18
+blinds
+blinks
+blanks
+planks
+planes
+plates
+plated
+slated
+seated
+sealed
+sealer
+seller
+teller
+tiller
+miller
+milder
+molder
+molded
+
+Line: 15
+Length is: 22
+horned
+hornet
+cornet
+corner
+corder
+carder
+harder
+herder
+header
+heaver
+beaver
+braver
+braves
+braces
+traces
+tracks
+tricks
+pricks
+prices
+prides
+brides
+bribes
+
+Line: 16
+No solution!
+
+Time to solve all of these puzzles was: 0.024755799999999994 seconds
