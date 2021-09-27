@@ -104,6 +104,13 @@ function polToCart(theta, phi, radius) {
 			radius * Math.cos(theta) * Math.cos(phi)];
 }
 
+//like polToCart, but 2d
+function polToXY(startX, startY, angle, magnitude) {
+	var xOff = magnitude * Math.cos(angle);
+	var yOff = magnitude * Math.sin(angle);
+	return [startX + xOff, startY + yOff];
+}
+
 function rotate(x, z, radians) {
 	var sin = Math.sin(radians);
 	var cos = Math.cos(radians);
