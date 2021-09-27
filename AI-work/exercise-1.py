@@ -1,4 +1,4 @@
-#NAME: 1, Zetlan, Davis
+#NAME: 1, [REDACTED]
 
 import sys
 import math

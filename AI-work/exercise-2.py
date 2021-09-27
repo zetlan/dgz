@@ -1,4 +1,4 @@
-#NAME: 1, Davis Zetlan
+#NAME: 1, [REDACTED]
 
 import sys
 

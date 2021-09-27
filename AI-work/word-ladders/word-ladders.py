@@ -2,8 +2,15 @@
 #PERIOD: 1
 #DATE: September-23-2021
 
-fileNameWORDS = "words_06_letters.txt"
-fileNamePUZZLE = "puzzles_normal.txt"
+import sys
+import time
+
+fileNameWORDS = sys.argv[1]
+fileNamePUZZLE = sys.argv[2]
+
+wordsGraph = {}
+
+chars = "abcdefghijklnopqrstuvwxyz"
 
 
 
@@ -22,7 +29,6 @@ specifications:
 
 
 
-
 questions: 
 1. how many words are singletons?
 
@@ -34,3 +40,53 @@ questions:
 
 4. what is the longest ideal path? and print that path!
 """
+
+#returns a list of all possible words with one-letter differences
+def createPossibleNeighbors(wordStr):
+    chars = "abcdefghijklmnopqrstuvwxyz"
+    neighborsList = []
+
+    for h in range(len(wordStr)):
+        for c in chars:
+            newStr = wordStr[0:h] + c + wordStr[h+1:]
+            if newStr != wordStr and newStr in wordsGraph:
+                neighborsList.append(newStr)
+
+    return neighborsList
+
+def makeDictionary():
+    with open(fileNameWORDS) as wordFile:
+        #create initial words
+        lines = [line.strip() for line in wordFile]
+        for word in lines:
+            wordsGraph[word] = []
+
+        #create attached words
+        for word in wordsGraph:
+            wordsGraph[word] = createPossibleNeighbors(word)
+    
+    
+def removeSingletons():
+    singletonCount = 0
+    for word in list(wordsGraph):
+        if wordsGraph[word] == []:
+            #print("{} are s;ingleton".format(word))
+            wordsGraph.pop(word)
+            singletonCount += 1
+    return singletonCount
+
+def solveLadder(startStr, endStr):
+    #commit DFS
+    return
+
+
+#program
+tStart = time.perf_counter()
+makeDictionary()
+tEnd = time.perf_counter()
+print("dictionary creation took {:.5f}s".format(tEnd - tStart))
+
+tStart = time.perf_counter()
+count = removeSingletons()
+tEnd = time.perf_counter()
+print("removed {} singletons in {:.5f}s".format(count, tEnd - tStart))
