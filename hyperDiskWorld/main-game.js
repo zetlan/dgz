@@ -1,181 +1,329 @@
 //globals here
 window.onload = setup;
-window.addEventListener("keydown", keyPress, false);
-window.addEventListener("keyup", keyNegate, false);
+// window.addEventListener("keydown", keyPress, false);
+// window.addEventListener("keyup", keyNegate, false);
+window.addEventListener("mousedown", handleMouseDown, false);
+window.addEventListener("mousemove", handleMouseMove, false);
+window.addEventListener("mouseup", handleMouseUp, false);
+
 
 //global vars
+var animation;
 var canvas;
 var ctx;
 
-var size = 20;
-var pSpeed = 1;
+var editor_active = false;
+
+var scale = undefined;
+
+var hypPoints = [];
+//parameters for the space, in p q format
+var space_params = [7, 3];
+var space_recursions = 0;
+var space_nodeTree = new WorldTreeNode(space_params[0]);
+var space_nodeHash = {};
+var space_nodeArray = [];
+var space_hash_sigFigs = 2;
+
+var circle_maxComputeR = 10000;
+var circle_maxDrawR = 100;
+
+
+var cursor_x = 0;
+var cursor_y = 0;
+var cursor_down = false;
+var cursor_tolerance = 0.3;
 
 
 
 //functions
 
 function setup() {
-    canvas = document.getElementById("centralStation");
+	canvas = document.getElementById("centralStation");
 	ctx = canvas.getContext("2d");
+	ctx.translate(canvas.width / 2, canvas.height / 2);
 	ctx.lineWidth = 2;
 	ctx.lineJoin = "round";
+	scale = canvas.height * 0.4;
 
-	camera = new Camera(100, 100, canvas.height * 0.5);	
-	player = new Character(0, 0);
-	timer = window.requestAnimationFrame(main);
-	
-}
+	updateSpace(7, 3);
 
-function keyPress(u) {
-	//normal mode controls
-	//switch statement for keys, J+L or Z+C controls camera while WASD or ↑←↓→ controls character
-	switch (u.keyCode) {
-		//player controls
-		case 37:
-		case 65:
-			player.dx = -1 * pSpeed;
-			break;
-		case 38:
-		case 87:
-			player.dy = pSpeed;
-			break;
-		case 39:
-		case 68:
-			player.dx = pSpeed;
-			break;
-		case 40:
-		case 83:
-			player.dy = -1 * pSpeed;
-			break;
-	}
-}
-
-function keyNegate(u) {
-    //similar to keyPress, but for negation. The if statements are so the controls feel smooth.
-    switch (u.keyCode) {
-		//movement
-        case 37:
-        case 65:
-			if (player.dx < 0) {
-				player.dx = 0;
-			}
-            break;
-        case 38:
-        case 87:
-			if (player.dy > 0) {
-				player.dy = 0;
-			}
-            break;
-        case 39:
-        case 68:
-			if (player.dx > 0) {
-				player.dx = 0;
-			}
-            break;
-        case 40:
-        case 83:
-			if (player.dy < 0) {
-				player.dy = 0;
-			}
-			break;
-    }
+	animation = window.requestAnimationFrame(main);
 }
 
 function main() {
 	//background
+	ctx.globalAlpha = 1;
 	ctx.fillStyle = "#FFFFFF";
-	ctx.fillRect(0, 0, canvas.width, canvas.height);
+	ctx.fillRect(-canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height);
 
+	ctx.fillStyle = "#404";
 
-	ctx.fillStyle = "#888888";
-	dPoint(canvas.width * 0.5, canvas.height * 0.5, camera.dR);
+	
+
+	//disk
+	ctx.globalAlpha = 0.5;
+	ctx.beginPath();
+	drawCircle(0, 0, scale);
 	ctx.stroke();
 
-	player.tick();
-	ctx.fillStyle = "#000000";
-	var screenPoint = hyperToDisk(player.y, player.x);
-	dPoint(screenPoint[0], screenPoint[1], 3);
-	ctx.fill();
+	//traceHypLine([0.9178121173544146, 5.379869450548097], [0.8596071760922103, 5.379900528557607]);
 
-	ctx.globalAlpha = 0.3;
-	//drawing points grid
-	for (var a=-1 * size; a<size;a+= 3) {
-		for (b=-1*size;b<size;b+=0.75) {
-			ctx.fillStyle = `hsl(${(Math.abs(a) + Math.abs(b)) * 7}, 90%, 40%)`;
-			var screenPoint = hyperToDisk(a, b);
-			dPoint(screenPoint[0], screenPoint[1], 2);
-			ctx.fill();
+
+	
+	//reflections
+	traceHypGrid(space_recursions, space_nodeTree);
+	//reset draw state
+	space_nodeArray.forEach(n => {
+		n.drawnInFrame = false;
+	});
+
+	//cursor stuff
+	if (editor_active) {
+		var tetsPts = [];
+		var a = Math.tan(Math.PI / 2 - Math.PI / space_params[1]);
+		var b = Math.tan(Math.PI / space_params[0]);
+		var d = Math.sqrt((a - b) / (a + b));
+
+		for (var a=0; a<space_params[0]; a++) {
+			tetsPts.push([d, ((Math.PI * 2) / space_params[0]) * a]);
+		}
+		ctx.lineWidth = 1;
+		ctx.strokeStyle = "#000";
+		traceHypPoly(tetsPts);
+
+		var polarCursorPos = [Math.sqrt(cursor_x ** 2 + cursor_y ** 2) / scale, (Math.atan2(cursor_y, cursor_x) + Math.PI * 2) % (Math.PI * 2)];
+
+		ctx.strokeStyle = "#F0F";
+		
+
+
+		var MLen = (polarCursorPos[0] + (1 / polarCursorPos[0])) / 2;
+		var MCenter = polToXY(0, 0, polarCursorPos[1], MLen);
+		var OBcirc = [0, 0, polarCursorPos[0]];
+		var MOcirc = [MCenter[0], MCenter[1], MLen];
+		var intersectPts = intersectionOfTwoCircles(OBcirc, MOcirc);
+		var bisectorLine = circleFrom3Points(intersectPts[0], intersectPts[1], hypInvert(intersectPts[0]));
+
+		drawCircle(OBcirc[0] * scale, OBcirc[1] * scale, OBcirc[2] * scale);
+		ctx.stroke();
+		drawCircle(MOcirc[0] * scale, MOcirc[1] * scale, MOcirc[2] * scale);
+		ctx.stroke();
+
+		ctx.strokeStyle = "#088";
+		traceHypLine(XYtoPol(intersectPts[0][0], intersectPts[0][1]), XYtoPol(intersectPts[1][0], intersectPts[1][1]));
+
+		traceHypLine([0.9178121173544146, 5.379869450548097], [0.8596071760922103, 5.379900528557607]);
+		ctx.lineWidth = 2.5;
+	}
+	
+	animation = window.requestAnimationFrame(main);
+}
+
+function handleMouseDown(a) {
+	cursor_down = true;
+	//clear all points from the nodes
+	space_nodeArray.forEach(n => {
+		n.hypPoints = undefined;
+	});
+
+	updateBasePoints();
+
+	//convert cursor to polar coordinates
+	var polarCursorPos = [Math.sqrt(cursor_x ** 2 + cursor_y ** 2) / scale, (Math.atan2(cursor_y, cursor_x) + Math.PI * 2) % (Math.PI * 2)];
+	//M is halfway between B (cursor coords) and B' (inverse of B)
+	var MLen = (polarCursorPos[0] + (1 / polarCursorPos[0])) / 2;
+	var MCenter = polToXY(0, 0, polarCursorPos[1], MLen);
+
+	//that's B, now get the two circles
+	var OBcirc = [0, 0, polarCursorPos[0]];
+	var MOcirc = [MCenter[0], MCenter[1], MLen];
+
+	var intersectPts = intersectionOfTwoCircles(OBcirc, MOcirc);
+	var bisectorLine = circleFrom3Points(intersectPts[0], intersectPts[1], hypInvert(intersectPts[0]));
+
+	hypPoints = hypInvertGroup(hypPoints, undefined, bisectorLine);
+	space_nodeArray[0].hypPoints = hypPoints;
+
+	//renew points
+	for (var n=0; n<space_nodeArray.length; n++) {
+		space_nodeArray[n].propogatePoints();
+		if (space_nodeArray[n].hypPoints == undefined) {
+			console.log(n, space_nodeArray[n].hasChildren, space_nodeArray[n].children);
 		}
 	}
-	ctx.globalAlpha = 1;
-	timer = window.requestAnimationFrame(main);
-	//camera.r -= 0.05;
 }
+
+function handleMouseMove(a) {
+	var canvasArea = canvas.getBoundingClientRect();
+	cursor_x = a.clientX - canvasArea.left - canvas.width / 2;
+	cursor_y = a.clientY - canvasArea.top - canvas.height / 2;
+
+	if (cursor_down) {
+		handleMouseDown();
+	}
+}
+
+function handleMouseUp(a) {
+	cursor_down = false;
+}
+
+
 
 
 
 //computation functions below this point
+function calculateHypDistance(xyP1, xyP2) {
 
-
-
-
-
-/*
-Takes in an xy point on the map and outputs it's position on the poincáre disk projection of the hyperbola. 
-Since the hyperbola is the same all the way around, and only the positive hyperbola is used, the z position is implied.
-
-formula for a circle is x^2 + y^2 = r^2
-that can be collapsed to y = sqrt(r^2 + x^2) + h 
-
-formula for a hyperbola is y^2/a^2 - x^2/a^2 = 1
-that can be collapsed to y = sqrt(h^2 + x^2) in positive case when a and b are the same
-*/
-
-
-
-function hyperToDisk(x, y) {
-	//step 1, take the xy point and turn into vector
-	
-	var dist = Math.sqrt((x * x) + (y * y));
-	var angle = Math.atan2(x, y) - Math.PI / 2;
-
-	/*step 2, use the angle information to collapse the problem to 1 dimension 
-	(sphere is the same in all directions rotated around polar axis) */
-
-	//distance angle is the angle that matches the distance given
-	var angDist = dist * ((Math.PI / 3) / camera.r);
-
-	//angDist is vertical inclination, angle is horizontal
-	var x = camera.r * Math.cos(angle) * Math.sin(angDist);
-	var y = camera.r * Math.cos(angDist);
-	var z = camera.r * Math.sin(angle) * Math.sin(angDist);
-
-	y += camera.sH;
-
-	//spherical
-
-
-	var tX = x / y;
-	var tY = z / (-1 * y);
-
-	[tX, tY] = [tX * camera.dR, tY * camera.dR];
-	[tX, tY] = [tX + canvas.width * 0.5, tY + canvas.height * 0.5];
-
-    //step 5, return it
-    return [tX, tY];
 }
 
-function loggery(theta, phi) {
-	var x = camera.r * Math.cos(phi) * Math.sin(theta);
-	var y = camera.r * Math.cos(theta);
-	var z = camera.r * Math.sin(phi) * Math.sin(theta);
+function hypInvert(xyPoint) {
+	//convert to polar
+	var polConversion = XYtoPol(xyPoint[0], xyPoint[1]);
+	//convert back to xy
+	return polToXY(0, 0, polConversion[1], 1 / polConversion[0]);
+}
 
-	y += camera.sH;
-	x /= y;
-	z /= y;
+//returns a set of polar hypPoints inverted over the inversionCircle. Only polarGroup OR xyGroup is required, not both
+function hypInvertGroup(polarGroup, xyGroup, inversionCircle) {
+	var cRef = inversionCircle;
+	if (xyGroup == undefined) {
+		//create xyGroup
+		xyGroup = polarGroup.map(a => polToXY(0, 0, a[1], a[0]));
+	}
+	if (inversionCircle == undefined) {
+		console.error(`cannot invert over an undefined arc!`);
+		if (polarGroup != undefined) {
+			return polarGroup;
+		}
+		return xyGroup.map(a => XYtoPol(a[0], a[1]));
+	}
 
-	[x, z] = [x * camera.dR, z * camera.dR];
-	[x, z] = [x + canvas.width * 0.5, z + canvas.height * 0.5];
+	//xy case
+	return xyGroup.map(function process(a) {
+		//translate to center of the circle
+		a[0] -= cRef[0];
+		a[1] -= cRef[1];
+		a = XYtoPol(a[0], a[1]);
+		//invert the new vector, make sure inversion uses self's circle and not unit circle
+		a[0] /= cRef[2];
+		a[0] = 1 / a[0];
+		a[0] *= cRef[2];
 
-	return [x, z];
+		//convert back to world coordinates
+		a = polToXY(cRef[0], cRef[1], a[1], a[0]);
+		
+		//convert those to polar coordinates
+		return XYtoPol(a[0], a[1]);
+	});
+}
+
+function traceHypGrid() {
+	var treeNode;
+	for (var i=space_nodeArray.length-1; i>=0; i--) {
+		treeNode = space_nodeArray[i];
+		if (treeNode.distance <= space_recursions) {
+			//draw the poly
+			ctx.strokeStyle = `hsl(${treeNode.color.h}, ${treeNode.color.s}%, ${treeNode.color.v}%)`;
+			traceHypPoly(treeNode.hypPoints);
+			treeNode.drawnInFrame = true;
+
+			//create children if none exist
+			if (treeNode.distance < space_recursions) {
+				if (!treeNode.hasChildren) {
+					treeNode.makeChildren();
+				}
+			}
+		}
+	}
+}
+
+function reflectHypPoly(inputPoints, indexOfReflect1, indexOfReflect2) {
+	//get xy coords of each point
+	var pCoords = inputPoints.map(a => polToXY(0, 0, a[1], a[0]));
+	var invPoint = polToXY(0, 0, inputPoints[indexOfReflect1][1], 1 / inputPoints[indexOfReflect1][0]);
+
+	//get the circle to reflect over
+	
+	var cRef = circleFrom3Points(pCoords[indexOfReflect1], pCoords[indexOfReflect2], invPoint);
+	if (cRef != undefined) {
+		//reflecting over the circle
+		pCoords = hypInvertGroup(undefined, pCoords, cRef);
+	} else {
+		//reflecting over a line
+		pCoords = invertGroup(pCoords, pCoords[indexOfReflect1], pCoords[indexOfReflect2]);
+	}
+	
+
+	return pCoords;
+}
+
+function updateBasePoints() {
+	hypPoints = [];
+	var a = Math.tan(Math.PI / 2 - Math.PI / space_params[1]);
+	var b = Math.tan(Math.PI / space_params[0]);
+	var d = Math.sqrt((a - b) / (a + b));
+
+	for (var a=0; a<space_params[0]; a++) {
+		hypPoints.push([d, ((Math.PI * 2) / space_params[0]) * a]);
+	}
+}
+
+function updateSpace(p, q) {
+	// if ((p - 2) * (q - 2) <= 4) {
+	// 	console.error(`invalid space parameters! H[${p}, ${q}] is not hyperbolic!`);
+	// 	return;
+	// }
+	space_params = [p, q];
+	hypPoints = [];
+	updateBasePoints();
+
+	space_nodeArray = [];
+	space_nodeHash = {};
+	space_nodeTree = undefined;
+
+	space_nodeTree = new WorldTreeNode(p, hypPoints);
+	space_nodeTree.distance = 0;
+	space_nodeTree.updateColor();
+	space_nodeArray.push(space_nodeTree);
+}
+
+
+//takes in xy coords and turns into polar coordinates, in [distance, angle format]
+function XYtoPol(x, y) {
+	return [Math.sqrt(x * x + y * y), (Math.atan2(y, x) + (Math.PI * 2)) % (Math.PI * 2)];
+}
+
+
+
+
+//takes in a series of polar hyper-coordinates and returns a WorldTreeNode with those hyper-coordinates.
+//Creates a new node if none exists at those coordinates, but if one exists there it will instead link the parent to the child
+function nodeCreateOfficial(hypPointArr, parentNode, parentPos) {
+	//first get the hash of the hypercoordinates
+	var preHash = hypPointArr.map(a => polToXY(0, 0, a[1], a[0]));
+	preHash = preHash.reduce((a, b) => [a[0] + b[0], a[1] + b[1]]);
+	preHash[0] /= hypPointArr.length;
+	preHash[1] /= hypPointArr.length;
+
+	//fix to sigfigs
+	preHash[0] = preHash[0].toFixed(space_hash_sigFigs);
+	preHash[1] = preHash[1].toFixed(space_hash_sigFigs);
+	var hashbrown = `${preHash[0]},${preHash[1]}`
+	//turn into string and then search through the hash table
+	//is there a node already in the hash table?
+	var currentCell = space_nodeHash[hashbrown];
+	if (currentCell == undefined) {
+		//if there's no one, add one
+		currentCell = new WorldTreeNode(hypPointArr.length, hypPointArr);
+		space_nodeArray.push(currentCell);
+		space_nodeHash[hashbrown] = currentCell;
+		
+	}
+	//link the child node to the parent node
+	currentCell.children[parentPos] = parentNode;
+	currentCell.distance = Math.min(currentCell.distance, parentNode.distance + 1);
+	currentCell.updateColor();
+
+	return currentCell;
 }
