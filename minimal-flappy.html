@@ -13,6 +13,7 @@
 
 			#centerModule {
 				margin: auto;
+				text-align: center;
 			}
 		</style>
 		<script type="text/javascript">
@@ -27,8 +28,16 @@
 			var birdX;
 			var birdY;
 			var dy = -0.4;
-			var dForce = 1;
-			var columnSpace = 20;
+			var forceJump = 5;
+			var forceGrav = 0.3;
+
+			var columnHeightGap = 60;
+			var columnWidthGap = 200;
+			var columnWidth = 30;
+			var columnSpeedMax = 3;
+			var columnSpeedMin = 0.5;
+			var columnSpeed = columnSpeedMin;
+			var columnShift = columnWidthGap;
 			var columns = [];
 
 			var score = 0;
@@ -36,13 +45,21 @@
 
 			function handleInput(a) {
 				//flap the bird
+				dy = Math.min(-forceJump, dy - forceJump / 2);
 			}
 
 			//pause the game for a second, then restart
 			function die() {
+				//reset things
 				window.cancelAnimationFrame(animation);
+
 				scoreHigh = Math.max(score, scoreHigh);
+				window.localStorage["flappy_data"] = scoreHigh;
 				score = 0;
+				columnShift = columnWidthGap;
+				columnSpeed = columnSpeedMin;
+				columns = [];
+
 				window.setTimeout(() => {
 					setup2();
 				}, 1000);
@@ -52,30 +69,82 @@
 			function setup1() {
 				canvas = document.getElementById("cromer");
 				ctx = canvas.getContext("2d");
+
+				if (window.localStorage["flappy_data"] != undefined) {
+					scoreHigh = window.localStorage["flappy_data"] * 1;
+				}
 				setup2();
 			}
 
 			function setup2() {
 				birdX = canvas.width / 10;
 				birdY = canvas.height / 2;
+				dy = 0;
 				animation = window.requestAnimationFrame(main);
 			}
 
 			function main() {
-				//bege
-				ctx.fillStyle =  "#88F";
-				ctx.fillRect(0, 0, canvas.width, canvas.height);
-				ctx.fillStyle = "#8F8";
-				ctx.fillRect(0, canvas.height * 0.9, canvas.width, canvas.height * 0.1);
+				animation = window.requestAnimationFrame(main);
 
-				//bird
-				ctx.fillStyle = "#FF8";
-				ctx.beginPath();
-				ctx.ellipse(birdX, birdY, birdR * 1.25, birdR, 0, 0, Math.PI);
+				draw();
+				compute();
 			}
 
 			function compute() {
+				//columns
+				while (columns.length < canvas.width / columnWidthGap) {
+					columns.push(Math.random() * 0.6 + 0.2);
+				}
+				columnSpeed = columnSpeed + (columnSpeedMax - columnSpeed) / 300;
+				columnShift -= columnSpeed;
+				if (columnShift < columnWidth / -2) {
+					columnShift += columnWidthGap;
+					columns.splice(0, 1);
+					score += 1;
+				}
 				
+				//bird
+				dy += forceGrav;
+				birdY += dy;
+
+				//kill bird if out of bounds
+				if (birdY > canvas.height) {
+					die();
+				}
+
+				//kill bird if intersecting with a column
+				if (birdX > columnShift - (columnWidth / 2) && birdX < columnShift + (columnWidth / 2) && ((birdY < (canvas.height * columns[0]) - columnHeightGap / 2) || birdY > (canvas.height * columns[0]) + (columnHeightGap / 2))) {
+					die();
+				}
+			}
+
+			function draw() {
+				//bege
+				ctx.fillStyle =  "#C6B9CD";
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+				ctx.fillStyle = "#D6D3F0";
+				ctx.fillRect(0, 0, canvas.width, canvas.height * 0.1);
+				ctx.fillStyle = "#B1A6B8";
+				ctx.fillRect(0, canvas.height * 0.9, canvas.width, canvas.height * 0.1);
+
+				//bird
+				ctx.fillStyle = "#FDE12D";
+				ctx.beginPath();
+				ctx.ellipse(birdX, birdY, birdR * 1.25, birdR, Math.atan(dy) / 4, 0, Math.PI * 2);
+				ctx.fill();
+
+				//columns
+				ctx.fillStyle = "#40B590";
+				for (var a=0; a<columns.length; a++) {
+					ctx.fillRect(columnShift + (columnWidthGap * a) - columnWidth / 2, 0, columnWidth, (canvas.height * columns[a]) - columnHeightGap / 2);
+					ctx.fillRect(columnShift + (columnWidthGap * a) - columnWidth / 2, (canvas.height * columns[a]) + (columnHeightGap / 2), columnWidth, canvas.height);
+				}
+
+				//text
+				ctx.fillStyle = "#224";
+				ctx.font = `${canvas.height / 20}px Century Gothic`;
+				ctx.textAlign = "center";
+				ctx.fillText(`${score} | ${scoreHigh}`, canvas.width / 2, canvas.height / 15);
 			}
 
 		</script>
@@ -84,11 +153,10 @@
 	</head>
 	<body>
 		<div id="centerModule">
-		<canvas id="cromer" width="640" height="480"></canvas><br>
+			<canvas id="cromer" width="640" height="480"></canvas><br>
+			<p id="oregano">
+				A flappy bird clone I wrote in less than an hour. Press any key to flap. 
+			</p>
 		</div>
-
-		<p id="oregano">
-			A flappy bird clone I wrote in less than an hour. Press any key to flap. 
-		</p>
 	</body>
 </html>
