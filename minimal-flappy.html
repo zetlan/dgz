@@ -1,0 +1,94 @@
+<html>
+	<head>
+		<title>Minimalist flappy bird</title>
+		<style>
+			body {
+				background-color: slateblue;
+			}
+
+			#cromer {
+				margin: auto;
+				display: block;
+			}
+
+			#centerModule {
+				margin: auto;
+			}
+		</style>
+		<script type="text/javascript">
+			window.onload = setup1;
+			window.addEventListener("keydown", handleInput, false);
+
+			var animation;
+			var canvas;
+			var ctx;
+
+			var birdR = 10;
+			var birdX;
+			var birdY;
+			var dy = -0.4;
+			var dForce = 1;
+			var columnSpace = 20;
+			var columns = [];
+
+			var score = 0;
+			var scoreHigh = 0;
+
+			function handleInput(a) {
+				//flap the bird
+			}
+
+			//pause the game for a second, then restart
+			function die() {
+				window.cancelAnimationFrame(animation);
+				scoreHigh = Math.max(score, scoreHigh);
+				score = 0;
+				window.setTimeout(() => {
+					setup2();
+				}, 1000);
+
+			}
+
+			function setup1() {
+				canvas = document.getElementById("cromer");
+				ctx = canvas.getContext("2d");
+				setup2();
+			}
+
+			function setup2() {
+				birdX = canvas.width / 10;
+				birdY = canvas.height / 2;
+				animation = window.requestAnimationFrame(main);
+			}
+
+			function main() {
+				//bege
+				ctx.fillStyle =  "#88F";
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+				ctx.fillStyle = "#8F8";
+				ctx.fillRect(0, canvas.height * 0.9, canvas.width, canvas.height * 0.1);
+
+				//bird
+				ctx.fillStyle = "#FF8";
+				ctx.beginPath();
+				ctx.ellipse(birdX, birdY, birdR * 1.25, birdR, 0, 0, Math.PI);
+			}
+
+			function compute() {
+				
+			}
+
+		</script>
+		
+		
+	</head>
+	<body>
+		<div id="centerModule">
+		<canvas id="cromer" width="640" height="480"></canvas><br>
+		</div>
+
+		<p id="oregano">
+			A flappy bird clone I wrote in less than an hour. Press any key to flap. 
+		</p>
+	</body>
+</html>
