@@ -76,6 +76,9 @@ def removeSingletons():
     return singletonCount
 
 def solveLadder(startStr, endStr):
+    with open(fileNamePUZZLE) as puzzFile:
+        lines = [line.strip().split(" ") for line in puzzFile]
+        print(lines)
     #commit DFS
     return
 
@@ -90,3 +93,5 @@ tStart = time.perf_counter()
 count = removeSingletons()
 tEnd = time.perf_counter()
 print("removed {} singletons in {:.5f}s".format(count, tEnd - tStart))
+
+solveLadder(1, 1)
