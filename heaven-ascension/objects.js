@@ -14,7 +14,7 @@ class Player {
 		//the farthest x + y distance you can get from the center and still be inside the circle
 		this.innerR = this.r * Math.sqrt(2) * 0.4;
 
-		this.dMax = 0.2;
+		this.dMax = 0.18;
 		this.fallMax = 0.99;
 
 		this.friction = physics_friction;
