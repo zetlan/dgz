@@ -29,6 +29,8 @@ function drawMap() {
 
 	//which pixel the drawing will start from
 	var [screenStartX, screenStartY] = spaceToScreen(startX, startY);
+	screenStartX = Math.floor(screenStartX);
+	screenStartY = Math.floor(screenStartY);
 	
 	//sizeX + sizeY refers to the number of tiles that will be drawn
 	var sizeX = Math.ceil(canvas.width / camera.scale) + 1;
@@ -43,74 +45,7 @@ function drawMap() {
 
 //draws a map square of a certain type at predetermined coordinates
 function drawMapSquare(x, y, type, size) {
-	switch (type) {
-		case "1":
-			ctx.globalAlpha = cloudOpacity;
-			ctx.fillStyle = color_cloudDark;
-			ctx.fillRect(x, y, size-1, size-1);
-			ctx.globalAlpha = 1;
-			break;
-		case "2":
-			ctx.globalAlpha = cloudOpacity;
-			ctx.fillStyle = color_cloudMedium;
-			ctx.fillRect(x, y, size-1, size-1);
-			ctx.globalAlpha = 1;
-			break;
-		case "3":
-			ctx.globalAlpha = cloudOpacity;
-			ctx.fillStyle = color_cloudLight;
-			ctx.fillRect(x, y, size-1, size-1);
-			ctx.globalAlpha = 1;
-			break;
-
-		//deco
-		case "5":
-			drawMapSquare(x, y, "6", size);
-			var div8 = size / 8;
-			var div4 = size / 4;
-			var div2 = size / 2;
-			var lnW = ctx.lineWidth;
-			ctx.strokeStyle = color_rune;
-			ctx.lineWidth = div4;
-			ctx.beginPath();
-			//ctx.filter = `blur(${Math.floor(size / 10)}px)`;
-			ctx.moveTo(x + div8, y);
-			ctx.lineTo(x + div8, y + div4);
-			ctx.lineTo(x + div4, y + div2);
-			ctx.lineTo(x + div8, y + div2 + div4);
-			ctx.lineTo(x + div8, y + size);
-
-			ctx.moveTo(x + size - div8, y);
-			ctx.lineTo(x + size - div8, y + div4);
-			ctx.lineTo(x + div2 + div4, y + div2);
-			ctx.lineTo(x + size - div8, y + div2 + div4);
-			ctx.lineTo(x + size - div8, y + size);
-			ctx.stroke();
-
-			drawCircle(x + size / 2, y + size / 8, size / 8, color_rune);
-			drawCircle(x + size / 2, y + size / 8 * 7, size / 8, color_rune);
-			//ctx.filter = "none";
-			ctx.lineWidth = lnW;
-			break;
-		case "6":
-			ctx.globalAlpha = 0.5;
-			drawMapSquare(x, y, "9", size);
-			ctx.globalAlpha = 1;
-			break;
-		//unbreakable terrain
-		case "7":
-			ctx.fillStyle = color_terrainHell;
-			ctx.fillRect(x, y, size, size);
-			break;
-		case "8":
-			ctx.fillStyle = color_terrainNeutral;
-			ctx.fillRect(x, y, size, size);
-			break;
-		case "9":
-			ctx.fillStyle = color_terrainHeaven;
-			ctx.fillRect(x, y, size, size);
-			break;
-	}
+	ctx.drawImage(image_data, image_squareSize * (type - 1), 0, image_squareSize, image_squareSize, x, y, size, size);
 }
 
 
@@ -139,6 +74,12 @@ function findObstacleAtPosition(x, y, entity) {
 
 	//no blockage case
 	return undefined;
+}
+
+function getImage(url) {
+	var image = new Image();
+	image.src = url;
+	return image;
 }
 
 function isOnScreen(worldX, worldY) {
@@ -185,6 +126,7 @@ function setCanvasPreferences() {
 	ctx.lineJoin = "round";
 	ctx.textAlign = "center";
 	ctx.textBaseline = "middle";
+	ctx.imageSmoothingEnabled = false;
 }
 
 //converts world coordinates to screen coordinates, it's pretty handy

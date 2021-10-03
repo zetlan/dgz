@@ -50,6 +50,9 @@ var editor_selected = "0";
 
 var entities = [];
 
+var image_data = getImage('terrains.png');
+var image_squareSize = 41;
+
 var physics_gravity = 0.007;
 var physics_friction = 0.85;
 var physics_reachDistance = 2.4;

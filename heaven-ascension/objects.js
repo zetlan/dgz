@@ -70,6 +70,13 @@ class Player {
 			this.dx = 0;
 		}
 
+		colPoints = [
+			[this.x + this.r, this.y + this.r],
+			[this.x + this.r, this.y - this.r],
+			[this.x - this.r, this.y + this.r],
+			[this.x - this.r, this.y - this.r]
+		]
+
 		problemFound = false;
 		for (var p=0; p<colPoints.length; p++) {
 			if (findObstacleAtPosition(colPoints[p][0], colPoints[p][1] + this.dy, this) != undefined) {
@@ -87,6 +94,13 @@ class Player {
 			}
 			this.dy = 0;
 		}
+
+		colPoints = [
+			[this.x + this.r, this.y + this.r],
+			[this.x + this.r, this.y - this.r],
+			[this.x - this.r, this.y + this.r],
+			[this.x - this.r, this.y - this.r]
+		]
 
 		//if there's still a problem now, push player out
 		problemFound = false;
@@ -300,7 +314,7 @@ class FreeBlock {
 		}
 
 		//don't tick if offscreen and without substantial momentum
-		if (!isOnScreen(this.x, this.y) && Math.abs(this.dy) < this.ay * 4) {
+		if (!isOnScreen(this.x, this.y) && Math.abs(this.dy) < this.ay * 4 && Math.abs(this.dx) < 0.05) {
 			return;
 		}
 
