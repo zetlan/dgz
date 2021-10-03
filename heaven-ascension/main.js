@@ -68,16 +68,20 @@ var npcs = [
 	//hell dwellers
 	new NPC(72.57, 88.6, "#020", [`We mostly just sit around here all day. It's quite fun.`], 150),
 	new NPC(60.09, 87.6, "#020", data_interactVoid, 150),
-	new NPC(5.57, 81.60, "#200", data_interactClouds, 150),
+	new NPC(5.57, 81.6, "#200", data_interactClouds, 150),
 
 	//climb dwellers
-	new NPC(36.57, 47.60, "#086", data_interactPreacher, 200),
-	new NPC(45.45, 56.60, "#F2B", [`I'm a degenerate nyaa~`], 125),
-	new NPC(46.51, 49.60, "#C3C", data_interactDegenerate, 170),
+	new NPC(36.57, 47.6, "#086", data_interactPreacher, 210),
+	new NPC(45.45, 56.6, "#F2B", [`I'm a degenerate nyaa~`], 150),
+	new NPC(46.51, 49.6, "#C3C", data_interactDegenerate, 200),
+
+	new NPC(6.40, 46.6, "#FB2", data_interactFly, 130),
 
 	//heaven dwellers
-	new NPC(53.50, 12.50, "#FFF", data_interactAngel, 150),
+	new NPC(53.50, 12.5, "#FFF", data_interactAngel, 150),
 ];
+
+var timeoutBuffer = undefined;
 
 
 //functions
@@ -190,6 +194,9 @@ function handleMouseUp(a) {
 }
 
 function handleKeyDown(a) {
+	if (player.constructor.name == "FreeBox") {
+		return;
+	}
 	switch (a.keyCode) {
 		//arrow keys, for movement
 		case 37:
@@ -241,16 +248,15 @@ function handleKeyDown(a) {
 }
 
 function handleKeyUp(a) {
+	if (player.constructor.name == "FreeBox") {
+		return;
+	}
 	switch (a.keyCode) {
 		case 37:
 			player.ax = Math.max(player.ax, 0);
 			break;
-		case 38:
-			break;
 		case 39:
 			player.ax = Math.min(player.ax, 0);
-			break;
-		case 40:
 			break;
 	}
 }
