@@ -300,8 +300,20 @@ class FreeBlock {
 				towardsVec[0] /= magnitude;
 				towardsVec[1] /= magnitude;
 
-				obj.x -= towardsVec[0];
-				obj.y -= towardsVec[1];
+				obj.x -= towardsVec[0] / 4;
+				obj.y -= towardsVec[1] / 4;
+			} else {
+				//I know that the intersection happened at a certain point
+				var coordinates = this.points[this.pointsIntersection.indexOf(obj)];
+
+				//pretend that the fixed block is an object in the center 
+				var towardsVec = [this.x - (Math.floor(coordinates[0]) + 0.5), this.y - (Math.floor(coordinates[1]) + 0.5)];
+				var magnitude = Math.sqrt(towardsVec[0] * towardsVec[0] + towardsVec[1] * towardsVec[1]);
+				towardsVec[0] /= magnitude;
+				towardsVec[1] /= magnitude;
+
+				this.x += towardsVec[0] / 4;
+				this.y += towardsVec[1] / 4;
 			}
 		}
 	}
