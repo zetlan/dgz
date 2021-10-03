@@ -28,6 +28,20 @@ var data_interactVoid = [
 	`We're not barbarians over here.`
 ];
 
+var data_interactFly = [
+	`Hey, check out what I can do!`,
+	`CODE~window.setInterval(() => {
+		for (var e=0; e<npcs.length; e++) {
+			if (npcs[e].color == "#FB2") {
+				npcs[e].x -= 0.1;
+				npcs[e].y -= 0.2;
+				e = npcs.length + 1;
+			}
+		}
+	}, 16);`,
+	`Wheee!!`
+]
+
 var data_interactPreacher = [
 	`Why are you here? Another sinner I see?`,
 	`People must be strong, and virtuous.`,
@@ -35,7 +49,7 @@ var data_interactPreacher = [
 	`That, my friend, is how one gets into heaven.`,
 	`But people nowadays do not pray.`,
 	`They do not join their brothers (And sisters!) in the virtuous path.`,
-	`They due their hair, they wear mixed fabrics, the degenerates.`,
+	`They dye their hair, they wear mixed fabrics, the degenerates.`,
 	`You all must repent!`,
 	`You all must join the heavenly hosts.`,
 	`Follow the sacred texts, and return to heaven.`,
@@ -45,7 +59,7 @@ var data_interactPreacher = [
 ];
 
 var data_interactDegenerate = [
-	`I see  people talk about teh importance of getting into heaven.`,
+	`I see  people talk about the importance of getting into heaven.`,
 	`I suppose I have to wonder, why?`,
 	`Heaven is authoritarian.`,
 	`No this, no that, worship here, follow the sacred texts!`,
