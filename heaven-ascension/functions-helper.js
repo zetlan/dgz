@@ -4,6 +4,16 @@ function activateEnding() {
 	//hacky solution but whatever
 
 	//turns the player into a box once they leave the final area
+	timeoutBuffer = window.setInterval(() => {
+		//if player is outside the bounds of the heaven box, turn them into a box
+		if (player.x < 41.7 || player.x > 62.3 || player.y < 0.7 || player.y > 17.3) {
+			var oldPlayer = player;
+			player = new FreeBlock("1", player.x, player.y);
+			player.dx = oldPlayer.dx;
+			player.dy = oldPlayer.dy;
+			window.clearInterval(timeoutBuffer);
+		}
+	}, 32);
 }
 
 
@@ -122,7 +132,6 @@ function rotate(x, y, radians) {
 
 //sets default canvas settings
 function setCanvasPreferences() {
-	ctx.lineWidth = 2;
 	ctx.lineJoin = "round";
 	ctx.textAlign = "center";
 	ctx.textBaseline = "middle";
