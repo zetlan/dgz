@@ -8,7 +8,7 @@ import time
 fileNameWORDS = sys.argv[1]
 fileNamePUZZLE = sys.argv[2]
 
-wordsGraph = {}
+wordsGraph = set()
 
 chars = "abcdefghijklnopqrstuvwxyz"
 
@@ -43,49 +43,84 @@ questions:
 
 #returns a list of all possible words with one-letter differences
 def createPossibleNeighbors(wordStr):
-    chars = "abcdefghijklmnopqrstuvwxyz"
-    neighborsList = []
+    neighborsList = set() #bad and I hate it
 
+    #loop through all characters, changing one at a time
     for h in range(len(wordStr)):
         for c in chars:
             newStr = wordStr[0:h] + c + wordStr[h+1:]
+            #if the changed word is valid, add it to the list of possible neighbors
             if newStr != wordStr and newStr in wordsGraph:
-                neighborsList.append(newStr)
-
+                neighborsList.add(newStr)
     return neighborsList
 
-def makeDictionary():
+def makeGraph():
     with open(fileNameWORDS) as wordFile:
         #create initial words
-        lines = [line.strip() for line in wordFile]
-        for word in lines:
-            wordsGraph[word] = []
-
-        #create attached words
-        for word in wordsGraph:
-            wordsGraph[word] = createPossibleNeighbors(word)
+        global wordsGraph
+        wordsGraph = set([line.strip() for line in wordFile])
     
     
 def removeSingletons():
     singletonCount = 0
     for word in list(wordsGraph):
-        if wordsGraph[word] == []:
+        if len(createPossibleNeighbors(word)) == 0:
             #print("{} are s;ingleton".format(word))
-            wordsGraph.pop(word)
+            wordsGraph.remove(word)
             singletonCount += 1
     return singletonCount
 
 def solveLadder(startStr, endStr):
-    with open(fileNamePUZZLE) as puzzFile:
-        lines = [line.strip().split(" ") for line in puzzFile]
-        print(lines)
-    #commit DFS
+    #problem declaration
+    print("start: {}, end: {}".format(startStr, endStr))
+    #commit BFS, but in both directions for maximum speed
+    frontQueue = [startStr]
+    frontVisited = {}
+
+    backQueue = [endStr]
+    backVisited = {}
+
+    #iterate through both searches
+    foundSolution = False
+    while len(frontQueue) > 0 and not foundSolution:
+        currentWord = frontQueue.pop(0)
+        newChildren = createPossibleNeighbors(currentWord)
+        #add children to queue
+        frontQueue += newChildren
+        #loop through children and assign parents
+        for child in newChildren:
+            if child not in frontVisited:
+                frontVisited[child] = currentWord
+                #print(len(frontVisited), currentWord, child)
+                #if the new word is the goal, exit out
+                if child == endStr:
+                    foundSolution = True
+
+    #if the path was never found, exit out
+    if endStr not in frontVisited:
+        print("goal not found ):")
+        print("")
+        return
+
+    #printing the path!
+    path = []
+    ref = endStr
+
+    while frontVisited[ref] != startStr:
+        path.insert(0, frontVisited[ref])
+        ref = frontVisited[ref]
+
+    path.insert(0, startStr)
+    path.append(endStr)
+    print(path)
+    #whitespace
+    print("")
     return
 
 
 #program
 tStart = time.perf_counter()
-makeDictionary()
+makeGraph()
 tEnd = time.perf_counter()
 print("dictionary creation took {:.5f}s".format(tEnd - tStart))
 
@@ -94,4 +129,7 @@ count = removeSingletons()
 tEnd = time.perf_counter()
 print("removed {} singletons in {:.5f}s".format(count, tEnd - tStart))
 
-solveLadder(1, 1)
+with open(fileNamePUZZLE) as puzzFile:
+    lines = [line.strip().split(" ") for line in puzzFile]
+    for line in lines:
+        solveLadder(line[0], line[1])
