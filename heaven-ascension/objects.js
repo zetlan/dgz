@@ -206,23 +206,45 @@ class Player {
 		var rayDistance = 0;
 		var found;
 		while (Math.abs(rayDistance) < physics_reachDistance) {
-			found = findObstacleAtPosition(this.x + rayDistance, this.y, this)
-			if (found != undefined) {
-				//if it's a string, it's a data block and should be removed
-				if (found.constructor.name == "String" && data_pickable.indexOf(found) != -1) {
-					data_map[Math.floor(this.y)][Math.floor(this.x + rayDistance)] = "0";
-					this.carrying = new FreeBlock(found, Math.floor(this.x + rayDistance), Math.floor(this.y));
-					return;
-				}
-
-				//if it's an entity
-				if (found.constructor.name == "FreeBlock") {
-					this.carrying = found;
-					entities.splice(entities.indexOf(found), 1);
-					return;
-				}
+			this.pickBlockWithOffset(rayDistance, 0);
+			if (this.carrying != undefined) {
+				return;
 			}
 			rayDistance += rayIncrement;
+		}
+
+		//still here? Quick check on all 4 points, to fix player accidentally getting stuck
+		var colPoints = [
+			[this.r, this.r],
+			[this.r, -this.r],
+			[-this.r, this.r],
+			[-this.r, -this.r]
+		]
+
+		for (var p=0; p<colPoints.length; p++) {
+			this.pickBlockWithOffset(colPoints[0], colPoints[1]);
+			if (this.carrying != undefined) {
+				return;
+			}
+		}
+	}
+
+	pickBlockWithOffset(x, y) {
+		var found = findObstacleAtPosition(this.x + x, this.y + y, this)
+		if (found != undefined) {
+			//if it's a string, it's a data block and should be removed
+			if (found.constructor.name == "String" && data_pickable.indexOf(found) != -1) {
+				data_map[Math.floor(this.y + y)][Math.floor(this.x + x)] = "0";
+				this.carrying = new FreeBlock(found, Math.floor(this.x + x), Math.floor(this.y + y));
+				return;
+			}
+
+			//if it's an entity
+			if (found.constructor.name == "FreeBlock") {
+				this.carrying = found;
+				entities.splice(entities.indexOf(found), 1);
+				return;
+			}
 		}
 	}
 }
