@@ -64,6 +64,7 @@ var npcs = [
 	//tutorial friendos
 	new NPC(13.7, 88.6, "#000", data_interact1, 200),
 	new NPC(29.39, 85.6, "#000", data_interact2, 200),
+	new NPC(50.84, 80.6, "#000", [`I've heard you can use WASD and spacebar to control as well.`], 200),
 
 	//hell dwellers
 	new NPC(72.57, 88.6, "#020", [`We mostly just sit around here all day. It's quite fun.`], 150),
@@ -194,28 +195,30 @@ function handleMouseUp(a) {
 }
 
 function handleKeyDown(a) {
-	if (player.constructor.name == "FreeBox") {
+	if (player.constructor.name == "FreeBlock") {
 		return;
 	}
 	switch (a.keyCode) {
 		//arrow keys, for movement
 		case 37:
+		case 65:
 			player.ax = -player.speed;
 			break;
 		case 38:
+		case 87:
 			if (player.onGround) {
 				player.dy = -player.jumpStrength;
 				player.onGround = false;
 			}
 			break;
 		case 39:
+		case 68:
 			player.ax = player.speed;
-			break;
-		case 40:
 			break;
 
 		//Z, for picking blocks
 		case 90:
+		case 32:
 			player.pickBlock();
 			break;
 
@@ -248,14 +251,16 @@ function handleKeyDown(a) {
 }
 
 function handleKeyUp(a) {
-	if (player.constructor.name == "FreeBox") {
+	if (player.constructor.name == "FreeBlock") {
 		return;
 	}
 	switch (a.keyCode) {
 		case 37:
+		case 65:
 			player.ax = Math.max(player.ax, 0);
 			break;
 		case 39:
+		case 68:
 			player.ax = Math.min(player.ax, 0);
 			break;
 	}

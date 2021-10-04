@@ -222,7 +222,7 @@ class Player {
 		]
 
 		for (var p=0; p<colPoints.length; p++) {
-			this.pickBlockWithOffset(colPoints[0], colPoints[1]);
+			this.pickBlockWithOffset(colPoints[p][0], colPoints[p][1]);
 			if (this.carrying != undefined) {
 				return;
 			}
