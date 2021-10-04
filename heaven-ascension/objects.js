@@ -335,7 +335,7 @@ class FreeBlock {
 				towardsVec[1] /= magnitude;
 
 				this.x += towardsVec[0] / 4;
-				this.y += towardsVec[1] / 4;
+				this.y -= towardsVec[1] / 4;
 			}
 		}
 	}
