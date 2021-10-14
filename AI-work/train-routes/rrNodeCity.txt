@@ -1,0 +1,50 @@
+3500060 Albuquerque
+1300287 Atlanta
+4801193 Austin
+3600348 Brooklyn
+8801670 Calgary
+3700421 Charlotte
+1701291 Chicago
+9100509 Chihuahua
+9100015 Ciudad Juarez
+3900511 Columbus
+4800100 Dallas
+0800292 Denver
+2600346 Detroit
+8800126 Edmonton
+4800471 Fort Worth
+9100069 Guadalajara
+9100007 Hermosillo
+4800445 Houston
+1800091 Indianapolis
+1200490 Jacksonville
+2900275 Kansas City
+3200014 Las Vegas
+9100092 Leon
+0600316 Los Angeles
+9100463 Merida
+9100001 Mexicali
+9100327 Mexico City
+1200297 Miami
+5500248 Milwaukee
+2700091 Minneapolis
+9100351 Monterrey
+8800845 Montreal
+1200469 Orlando
+8801197 Ottawa
+4201162 Philadelphia
+0400017 Phoenix
+4100109 Portland
+8801212 Quebec City
+2900190 St Louis
+4800332 San Antonio
+0600580 San Diego
+0600209 San Francisco
+0600212 San Jose
+5300198 Seattle
+1200148 Tampa
+8801159 Toronto
+0400118 Tucson
+8802522 Vancouver
+1100005 Washington DC
+8801752 Winnipeg
