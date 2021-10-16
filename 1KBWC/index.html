@@ -1,0 +1,52 @@
+<html>
+	<head>
+		<title>1K blank white cards - web access</title>
+		<meta charset="UTF-8">
+		<style>
+			body {
+				background-color: slateblue;
+			}
+
+			#caaaaa {
+				margin: auto;
+				text-align: center;
+				display: block;
+			}
+
+			#centerModule {
+				text-align: center;
+				margin: auto;
+			}
+
+			#oregano {
+				text-align: center;
+			}
+		</style>
+		<script type="text/javascript">
+			window.onload = setup;
+
+			function setup() {
+			}
+
+
+			/**
+			 * @param {String} arg1 the first argument
+			 * @param {Number} arg2 the second argument
+			 * @param {String} arg3 the third argument
+			*/
+			function testing(arg1, arg2, arg3) {
+				return arg1 + arg2 + arg3;
+			}
+		</script>
+		
+		
+	</head>
+	<body>
+		<div id="centerModule">
+			<h1>There are <span id="cardNumDisplay">[[NUMBER UNAVAILABLE]]</span> cards</h1>
+		</div>
+
+		<p id="oregano">
+		</p>
+	</body>
+</html>
