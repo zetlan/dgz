@@ -1,3 +1,17 @@
+/*
+TAGS IN THIS STRUCTURE
+question mark before tag name means it's optional
+
+{
+    name: [display name]
+    url: [not included to start, is gathered from index, don't worry about it]
+    ?imgType: [the extension the image is stored as. If not provided will be .png]
+    ?groups: [array, the groups that this card belongs to.]
+
+}
+*/
+
+
 var cardData = [{
     name: `______ in another world`
     }, {
@@ -27,23 +41,19 @@ var cardData = [{
     }, {
     name: `+500 points`
     }, {
-    name: `05 Access Keycard`
-    }, {
     name: `1-KILOGRAM FEATHER`
     }, {
     name: `1,000 Blank White Cards Star`
     }, {
     name: `1,000 Blank White Cards`
     }, {
-    name: `1K BLANK WHITE CARDS`
+    name: `1K BLANK WHITE CARDS RULES`
     }, {
-    name: `1K BWC`
+    name: `1K BWC rules!`
     }, {
     name: `1KBWC-ISNOTABOUTWINNING`
     }, {
     name: `2's Day - Pizza Squirrel`
-    }, {
-    name: `23.5°`
     }, {
     name: `3:05 Friday`
     }, {
@@ -59,19 +69,23 @@ var cardData = [{
     }, {
     name: `4-dimensional cube`
     }, {
-    name: `420 IS DIVISIBLE BY 7`
+    name: `4th Dimension`,
     }, {
-    name: `4th Dimension`
+    name: `05 Access Keycard`
     }, {
     name: `5 DARK`
     }, {
     name: `5-card hand`
     }, {
+    name: `23.5°`
+    }, {
     name: `64-bit address`
     }, {
     name: `84 IQ`
     }, {
-    name: `a 2`
+    name: `420 IS DIVISIBLE BY 7`
+    }, {
+    name: `a`
     }, {
     name: `A bag of catnip`
     }, {
@@ -179,7 +193,8 @@ var cardData = [{
     }, {
     name: `Art #8`
     }, {
-    name: `Artificial Intelligence - Joseph Rother`
+    name: `Artificial Intelligence - Joseph Rother`,
+    imgType: `jpg`
     }, {
     name: `Ash Ketchum and his Pikachu`
     }, {
@@ -209,7 +224,8 @@ var cardData = [{
     }, {
     name: `Bad Card IV`
     }, {
-    name: `Bad Grade - Aadarsh Natarajan`
+    name: `Bad Grade - Aadarsh Natarajan`,
+    imgType: `jpg`
     }, {
     name: `Bad Idea`
     }, {
@@ -225,13 +241,15 @@ var cardData = [{
     }, {
     name: `BAR TOOLS`
     }, {
-    name: `Basic Math - Aadarsh Natarajan`
+    name: `Basic Math - Aadarsh Natarajan`,
+    imgType: `jpg`,
     }, {
     name: `Battle Potion`
     }, {
     name: `Beginners Pitfall`
     }, {
-    name: `Beherit - Alex Boezer`
+    name: `Beherit - Alex Boezer`,
+    imgType: `jpg`
     }, {
     name: `Ben Shapiro`
     }, {
@@ -287,7 +305,8 @@ var cardData = [{
     }, {
     name: `Boneless Pizza`
     }, {
-    name: `Bonfire - Alex Boezer`
+    name: `Bonfire - Alex Boezer`,
+    imgType: `jpg`
     }, {
     name: `Bonjourno`
     }, {
@@ -301,7 +320,8 @@ var cardData = [{
     }, {
     name: `Brass Section`
     }, {
-    name: `Break-Out Rooms - Tushar Rangaswamy`
+    name: `Break-Out Rooms - Tushar Rangaswamy`,
+    imgType: `jpg`
     }, {
     name: `Buckets`
     }, {
@@ -355,9 +375,9 @@ var cardData = [{
     }, {
     name: `CARDS AGAINST governmentality`
     }, {
-    name: `Cat 2`
+    name: `Cat`
     }, {
-    name: `CAT 3`
+    name: `CAT 2`
     }, {
     name: `CAT BELL`
     }, {
@@ -647,7 +667,8 @@ var cardData = [{
     }, {
     name: `El niño`
     }, {
-    name: `Eldritch Horror - Alex Boezer`
+    name: `Eldritch Horror - Alex Boezer`,
+    imgType: `jpg`
     }, {
     name: `Electric Arc Furnace`
     }, {
@@ -1257,7 +1278,8 @@ var cardData = [{
     }, {
     name: `Name Thief`
     }, {
-    name: `Nanite Swarm - Alex Boezer`
+    name: `Nanite Swarm - Alex Boezer`,
+    imgType: `jpg`
     }, {
     name: `Nation Park Quarter Collection`
     }, {
@@ -1282,6 +1304,9 @@ var cardData = [{
     name: `No point in it`
     }, {
     name: `No U`
+    }, {
+        //spacer because I accidentally put in 2 "No U" cards, but now they're indexed and I can't just remove the card
+        hide: true,
     }, {
     name: `Noah's Balance`
     }, {
@@ -1523,9 +1548,9 @@ var cardData = [{
     }, {
     name: `Quintuple Helix`
     }, {
-    name: `r:Iamverysmartcard`
+    name: `r/Iamverysmartcard`
     }, {
-    name: `r:whooooosh`
+    name: `r/whooooosh`
     }, {
     name: `Rabid Animal`
     }, {
@@ -1613,7 +1638,8 @@ var cardData = [{
     }, {
     name: `Rusthead`
     }, {
-    name: `Sadism - Charles Morse`
+    name: `Sadism - Charles Morse`,
+    imgType: `jpg`
     }, {
     name: `Sadness`
     }, {
@@ -2035,13 +2061,13 @@ var cardData = [{
     }, {
     name: `Trade Policy`
     }, {
-    name: `Train 2`
+    name: `Train (blue)`
     }, {
-    name: `Train 3`
+    name: `Train (red)`
     }, {
-    name: `Train 4`
+    name: `Train (brown)`
     }, {
-    name: `Train`
+    name: `Train (green)`
     }, {
     name: `Tranquilizer Dart`
     }, {
