@@ -8,11 +8,27 @@
 		<title>1K blank white cards - web access</title>
 		<meta charset="UTF-8">
 		<style>
+			/*buttons*/
 			.labelImage {
 				display: none;
 				max-height: 150;
 			}
 
+			button {
+				border: none;
+				background-color: white;
+				text-align: center;
+				transition-duration: 0.4s;
+				color: black;
+				border: solid #000;
+				height: 25px;
+			}
+
+			button:hover {
+				background-color: slateblue;
+			}
+
+			/*main DOM*/
 			body {
 				background-color: slateblue;
 			}
@@ -20,99 +36,201 @@
 			#topBar {
 				text-align: center;
 				margin: auto;
+				
 			}
 
 			#centerModule {
 				text-align: center;
 				margin: auto;
-
 				display: grid;
 				grid-template-columns: repeat(3, 1fr);
 				gap: 10px;
-				grid-auto-rows: minmax(imageHeightLimit, auto);
+				grid-auto-rows: auto;
 			}
 
-			#oregano {
-				text-align: center;
+			#selectionModule {
+				margin-top: -80px;
+				background-color: slategray;
+				display: inline-block;
+				position: absolute;
+				padding: 0 24px;
+				z-index: 1;
 			}
+
+			#download {
+				display: none;
+			}
+
+			/*slider*/
+			#imgSizeSlider {
+				-webkit-appearance: none;
+				width: 20%;
+				height: 10px;
+				background: black;
+				outline: none;
+			}
+
+			#imgSizeSlider::-webkit-slider-thumb {
+				appearance: none;
+				width: 25px;
+				height: 25px;
+				background: white;
+				cursor: pointer;
+				}
 		</style>
 		<script src="data.js"></script>
 		<script type="text/javascript">
-			window.onload = setupFromArray;
+			window.onload = setup;
 
 			var imageHeightLimit = 150;
-			var imageClassName = "labelImage";
+			var allImagesShown = false;
+			var selectorSettings = {
+				type: `inclusive`,
+				strings: []
+			};
 
 
-			function setupFromArray() {
-				var bufferLocation = document.getElementById("centerModule");
-
+			function setup() {
 				formatArray();
-
-				//turn all elements in the card array into clickable links
-				var linkElem;
-				var imagElem;
-				for (var c=0; c<cardData.length; c++) {
-					try {
-						//image to go inside the link with title
-						imagElem = document.createElement("img");
-						imagElem.src = cardData[c].url;
-						//imagElem.style = `max-height: ${imageHeightLimit}px;`;
-						imagElem.classList.add(imageClassName);
-
-						//create link element and then put it in the main center column
-						linkElem = document.createElement("a");
-						linkElem.innerHTML = cardData[c].name;
-						linkElem.href = cardData[c].url;
-						linkElem.appendChild(document.createElement("br"));
-						linkElem.appendChild(imagElem);
-						
-
-						bufferLocation.appendChild(linkElem);
-					} catch (error) {
-						console.error(`Problem making card link with data ~~${cardData[c]}~~`, error);
-					}
-					
-				}
+				createSearchButtons();
+				createImageGrid();
 
 				//update title number
 				document.getElementById("cardNumDisplay").innerHTML = cardData.length;
 			}
 
+			function createImageGrid() {
+				//turn all elements in the card array into clickable links
+				var bufferLocation = document.getElementById("centerModule");
+				var linkElem;
+				var imagElem;
+				for (var c=0; c<cardData.length; c++) {
+					//image to go inside the link with title
+					imagElem = document.createElement("img");
+					imagElem.src = `all-card-images/card~${cardData[c].id}.${cardData[c].imgType || "png"}`;
+					imagElem.style = `display: none;`;
+					imagElem.classList.add("labelImage");
+					//get just the number as the ID
+					imagElem.id = cardData[c].id + "_img";
+
+					//create link element and then put it in the main center column
+					linkElem = document.createElement("a");
+					linkElem.innerHTML = cardData[c].name;
+					linkElem.href = `card.html#${cardData[c].id}`;
+					linkElem.maxWidth = `100px`;
+					linkElem.id = cardData[c].id + "_link";
+					linkElem.appendChild(document.createElement("br"));
+					linkElem.appendChild(imagElem);
+
+					bufferLocation.appendChild(linkElem);
+				}
+			}
+
+			function createSearchButtons() {
+				var checkElem;
+				var labelElem;
+				var bufferLocation = document.getElementById("selectionModule");
+				cardPossibleTags.forEach(s => {
+					checkElem = document.createElement("input");
+					checkElem.type = "checkbox";
+					checkElem.id = s;
+					checkElem.setAttribute(`onclick`, `toggleSelector("${s}");`);
+					labelElem = document.createElement("label");
+					labelElem.for = s;
+					labelElem.innerHTML = s;
+
+					bufferLocation.appendChild(checkElem);
+					bufferLocation.appendChild(labelElem);
+					bufferLocation.appendChild(document.createElement("br"));
+
+				});
+			}
+
+			function addTagTo(tag, cardNames) {
+				cardNames.forEach(n => {
+					//loop through all cards
+					for (var r=0; r<cardData.length; r++) {
+						//if the card has the correct name, give it the tag
+						if (cardData[r].name == n) {
+							if (cardData[r].tags.indexOf(tag) == -1) {
+								cardData[r].tags.push(tag);
+							}
+							return;
+						}
+					}
+					//if finished the loop, realize it's a problem
+					console.error(`could not find card with name ${n}!`);
+				});
+			}
+
 			function formatArray() {
 				var hiddenOnes = [];
-				//first link each data entry with its correct image
+				//destroy hiddens
 				for (var c=0; c<cardData.length; c++) {
-					if (cardData[c].hide != true) {
-						cardData[c].url = `all-card-images/card~${c}.${cardData[c].imgType || "png"}`;
-					} else {
-						hiddenOnes.push(c);
+					if (cardData[c].hide == true) {
+						cardData.splice(c, 1);
+						c -= 1;
 					}
 				}
 
-				//actually remove hiddens, do it backwards so that removing doesn't affect the index numbers
-				var num;
-				while (hiddenOnes.length > 0) {
-					num = hiddenOnes.pop();
-					cardData.splice(num, 1);
-				}
-
-
 				//next sort the array CORRECTLY
-				// cardData.sort((a, b) => {
-				// 	return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
-				// });
+				cardData.sort((a, b) => {
+					return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+				});
 			}
 
 			function toggleImages() {
-				var currentVal = [...document.styleSheets[0].cssRules].find(x=> x.selectorText==`.${imageClassName}`).style.display;
+				//decide which way self is going
+				allImagesShown = !allImagesShown;
+				var newDisplay = allImagesShown ? "inline" : "none";
+				document.getElementById("imgSizeSlider").style.display = newDisplay;
 
-				//pretty simple toggle
-				if (currentVal == "none") {
-					[...document.styleSheets[0].cssRules].find(x=> x.selectorText==`.${imageClassName}`).style.display = "inline";
-				} else {
-					[...document.styleSheets[0].cssRules].find(x=> x.selectorText==`.${imageClassName}`).style.display = "none";
+				//loop through all links in the center module
+				var collectRef = document.getElementById("centerModule").children;
+				for (var n=0; n<collectRef.length; n++) {
+					collectRef[n].children[1].style.display = newDisplay;
 				}
+			}
+
+			function toggleImage(imgNum) {
+				var ref = document.getElementById(imgNum + "_img");
+				ref.style.display = (ref.style.display == "none") ? "inline" : "none";
+			}
+
+			function toggleSelector(str) {
+				var strArr = selectorSettings.strings;
+				var elem = document.getElementById(str);
+				console.log(strArr, str);
+				//if the string is already in the array, remove it. If not, add it.
+				//Basically toggle whether the string is in the array or not
+				if (strArr.includes(str)) {
+					//also toggle the background color of the button
+					strArr.splice(strArr.indexOf(str), 1)
+				} else {
+					strArr.push(str);
+
+				}
+
+
+				//use selectors to toggle images
+				if (selectorSettings.type == "inclusive") {
+					cardData.forEach(card => {
+						//inclusive means that if the card contains any of the added tags, it will be displayed
+						document.getElementById(card.id + "_link").style.display = card.tags.some(item => selectorSettings.strings.includes(item)) ? "inline" : "none";
+					});
+				} else {
+					//exclusive means that if the card contains any of the added tags, it will NOT be displayed
+					document.getElementById(card.id + "_link").style.display = "none";
+				}
+			}
+
+			function toggleSelectorOpen() {
+
+			}
+
+			function updateImageSize() {
+				var size = document.getElementById("imgSizeSlider").value;
+				[...document.styleSheets[0].cssRules].find(x=> x.selectorText==`.labelImage`).style.maxHeight = size;
 			}
 		</script>
 		
@@ -121,13 +239,17 @@
 	<body>
 		<div id="topBar">
 			<h1>There are <span id="cardNumDisplay">[[NUMBER UNAVAILABLE]]</span> cards</h1>
-			<button onclick="toggleImages()">Toggle Image Previews</button>
-			<br>
-			<br>
+			<button onclick="toggleImages()">Toggle All Image Previews</button>
+			<input type="range" id="imgSizeSlider" onchange="updateImageSize();" min=50 max=500 style="display: none;"></input>
 		</div>
+		<div id="selectionModule">
+			<p>~~search selectors~~</p>
+		</div>
+		<br>
+		<br>
 		<div id="centerModule">
 		</div>
-		<p id="oregano">
-		</p>
+		<!--the download link-->
+		<a id="download" download="cardData.txt"></a>
 	</body>
 </html>
