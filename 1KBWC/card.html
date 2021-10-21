@@ -1,0 +1,97 @@
+<html>
+	<head>
+		<!--
+		Copyright Cynthia Clementine
+		October-20-2021
+		-->
+		<title>1KBWC - Single Card View</title>
+		<meta charset="UTF-8">
+		<style>
+			body {
+				background-color: slateblue;
+			}
+
+			#main {
+				text-align: center;
+				margin: auto;
+			}
+		</style>
+		<script src="data.js"></script>
+		<script type="text/javascript">
+			window.onload = setup;
+
+			function setup() {
+				//get card ID from the hash code
+				var cardID = location.hash.slice(1);
+				if (cardID.length < 1 || !Number.isSafeInteger(cardID * 1)) {
+					document.getElementById("errorSpot").innerHTML = `invalid reference hash ):`;
+					return;
+				}
+
+				//get card data
+				var thisCard;
+				var j;
+				for (j=0; j<cardData.length; j++) {
+					if (cardData[j].id == cardID) {
+						thisCard = cardData[j];
+						//don't show hidden cards. Offset j by a few if its a hidden card so it won't trip the "card is good" flag
+						j = cardData.length + 4 + (6 * (thisCard.hide == true));
+						console.log(j);
+					}
+				}
+
+				//make sure self has actually found a card
+				console.log(j, thisCard);
+				if (j != cardData.length + 5 || thisCard == undefined) {
+					document.getElementById("errorSpot").innerHTML = `angery`;
+					return;
+				}
+
+				//actually post card stuff to the Document
+
+				//title
+				document.getElementById("titleArea").innerHTML = thisCard.name;
+
+				//image
+				document.getElementById("cardImg").src = `all-card-images/card~${thisCard.id}.${thisCard.imgType || "png"}`;
+				document.getElementById("cardImg").style.maxHeight = window.innerHeight * 0.8;
+
+				var cardText = ``;
+				//authors
+				var authors = ("" + thisCard.authors).replaceAll("\"", "").replaceAll(",", ", ");
+				var authorExtraChar = "";
+				if (authors == "undefined") {
+					authors = "unknown";
+				} else {
+					authorExtraChar = (thisCard.authors.length > 1) ? "s" : "";
+				}
+				
+				//tags
+				console.log(thisCard.tags, JSON.stringify(thisCard.tags));
+				var tags = ("" + thisCard.tags).replaceAll("\"", "").replaceAll(",", ", ");
+				if (tags == "undefined") {
+					tags = "none";
+				}
+
+				cardText += `author${authorExtraChar}: ${authors}<br>`;
+				cardText += `tags: ${tags}`;
+
+				
+				document.getElementById("cardDat").innerHTML = cardText;
+
+			}
+		</script>
+	</head>
+	<body>
+		<div id="main">
+			<h1 id="titleArea">[Card Title]</h1>
+			<img id="cardImg">
+			<p id="cardDat">
+				Heya! Typically there would be a card here, but as you can most likely see. there is not. <br>
+				This may be due to several factors. Here's most likely what went wrong: <br>
+				<br>
+				<span id="errorSpot">[CODE NOT WORKING]</span>
+			</p>
+		</div>
+	</body>
+</html>
