@@ -42,19 +42,31 @@
 			#centerModule {
 				text-align: center;
 				margin: auto;
+				margin-left: 10%;
+				margin-right: 10%;
 				display: grid;
 				grid-template-columns: repeat(3, 1fr);
 				gap: 10px;
 				grid-auto-rows: auto;
 			}
 
-			#selectionModule {
+			#selectionModule_p {
 				margin-top: -80px;
 				background-color: slategray;
 				display: inline-block;
 				position: absolute;
 				padding: 0 24px;
 				z-index: 1;
+			}
+
+			#selectionModule_n {
+				margin-top: -80px;
+				background-color: slategray;
+				display: inline-block;
+				position: absolute;
+				padding: 0 24px;
+				z-index: 1;
+				margin-left: 85%;
 			}
 
 			#download {
@@ -85,8 +97,8 @@
 			var imageHeightLimit = 150;
 			var allImagesShown = false;
 			var selectorSettings = {
-				type: `inclusive`,
-				strings: []
+				posStrings: [`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`, `V`, `W`, `X`, `Y`, `Z`, `non-letter start`, `number start`],
+				negStrings: []
 			};
 
 
@@ -129,19 +141,35 @@
 			function createSearchButtons() {
 				var checkElem;
 				var labelElem;
-				var bufferLocation = document.getElementById("selectionModule");
+				var bufferLocationPositive = document.getElementById("selectionModule_p");
+				var bufferLocationNegative = document.getElementById("selectionModule_n");
 				cardPossibleTags.forEach(s => {
+					//positive tags
 					checkElem = document.createElement("input");
 					checkElem.type = "checkbox";
-					checkElem.id = s;
-					checkElem.setAttribute(`onclick`, `toggleSelector("${s}");`);
+					checkElem.id = `pos_${s}`;
+					checkElem.checked = selectorSettings.posStrings.includes(s);
+					checkElem.setAttribute(`onclick`, `toggleSelector("${s}", selectorSettings.posStrings);`);
 					labelElem = document.createElement("label");
-					labelElem.for = s;
+					labelElem.for = `pos_${s}`;
 					labelElem.innerHTML = s;
 
-					bufferLocation.appendChild(checkElem);
-					bufferLocation.appendChild(labelElem);
-					bufferLocation.appendChild(document.createElement("br"));
+					bufferLocationPositive.appendChild(checkElem);
+					bufferLocationPositive.appendChild(labelElem);
+					bufferLocationPositive.appendChild(document.createElement("br"));
+
+					//negative tags
+					checkElem = document.createElement("input");
+					checkElem.type = "checkbox";
+					checkElem.id = `neg_${s}`;
+					checkElem.setAttribute(`onclick`, `toggleSelector("${s}", selectorSettings.negStrings);`);
+					labelElem = document.createElement("label");
+					labelElem.for = `neg_${s}`;
+					labelElem.innerHTML = s;
+
+					bufferLocationNegative.appendChild(checkElem);
+					bufferLocationNegative.appendChild(labelElem);
+					bufferLocationNegative.appendChild(document.createElement("br"));
 
 				});
 			}
@@ -197,35 +225,49 @@
 				ref.style.display = (ref.style.display == "none") ? "inline" : "none";
 			}
 
-			function toggleSelector(str) {
-				var strArr = selectorSettings.strings;
+			function toggleSelector(str, arr) {
 				var elem = document.getElementById(str);
-				console.log(strArr, str);
 				//if the string is already in the array, remove it. If not, add it.
 				//Basically toggle whether the string is in the array or not
-				if (strArr.includes(str)) {
-					//also toggle the background color of the button
-					strArr.splice(strArr.indexOf(str), 1)
+				if (arr.includes(str)) {
+					arr.splice(arr.indexOf(str), 1)
 				} else {
-					strArr.push(str);
-
+					arr.push(str);
 				}
 
-
-				//use selectors to toggle images
-				if (selectorSettings.type == "inclusive") {
-					cardData.forEach(card => {
-						//inclusive means that if the card contains any of the added tags, it will be displayed
-						document.getElementById(card.id + "_link").style.display = card.tags.some(item => selectorSettings.strings.includes(item)) ? "inline" : "none";
-					});
-				} else {
-					//exclusive means that if the card contains any of the added tags, it will NOT be displayed
-					document.getElementById(card.id + "_link").style.display = "none";
-				}
+				updateCardsVisibility();
 			}
 
-			function toggleSelectorOpen() {
+			function updateCardsVisibility() {
+				var cardsVisible = 0;
+				//first do positive selectors
+				cardData.forEach(card => {
+					//inclusive means that if the card contains any of the added tags, it will be displayed
+					if (card.tags.some(item => selectorSettings.posStrings.includes(item))) {
+						document.getElementById(card.id + "_link").style.display = "inline";
+						cardsVisible += 1;
+					} else {
+						document.getElementById(card.id + "_link").style.display = "none";
+					}
+				});
 
+				//negative selectors
+				cardData.forEach(card => {
+					//exclusive means that if the card contains any of the added tags, it will be forcibly undisplayed. Do not display it if it doesn't match tags though.
+					if (card.tags.some(item => selectorSettings.negStrings.includes(item))) {
+						if (document.getElementById(card.id + "_link").style.display == "inline") {
+							document.getElementById(card.id + "_link").style.display = "none";
+							cardsVisible -= 1;
+						}
+					}
+				});
+
+				//update title text
+				document.getElementById("cardNumDisplay").innerHTML = cardsVisible;
+				document.getElementById("cardNumDisplayExtra").innerHTML = "";
+				if (cardsVisible != cardData.length) {
+					document.getElementById("cardNumDisplayExtra").innerHTML = ` (${cardData.length} total)`;
+				}
 			}
 
 			function updateImageSize() {
@@ -238,12 +280,17 @@
 	</head>
 	<body>
 		<div id="topBar">
-			<h1>There are <span id="cardNumDisplay">[[NUMBER UNAVAILABLE]]</span> cards</h1>
+			<h1>There are <span id="cardNumDisplay">[[NUMBER UNAVAILABLE]]</span> cards<span id="cardNumDisplayExtra"></span></h1>
+			<h7><a href="about.html">About</a> ~~~ <a href="contact.html">Contact</a></h7>
+			<br>
 			<button onclick="toggleImages()">Toggle All Image Previews</button>
 			<input type="range" id="imgSizeSlider" onchange="updateImageSize();" min=50 max=500 style="display: none;"></input>
 		</div>
-		<div id="selectionModule">
-			<p>~~search selectors~~</p>
+		<div id="selectionModule_p">
+			<p>~~include tags~~</p>
+		</div>
+		<div id="selectionModule_n">
+			<p>~~exclude tags~~</p>
 		</div>
 		<br>
 		<br>
