@@ -3,2283 +3,4674 @@ TAGS IN THIS STRUCTURE
 question mark before tag name means it's optional
 
 {
-    name: [display name]
-    url: [not included to start, is gathered from index, don't worry about it]
-    ?imgType: [the extension the image is stored as. If not provided will be .png]
-    ?groups: [array, the groups that this card belongs to.]
+	name: [display name]
+	url: [not included to start, is gathered from index, don't worry about it]
+
+	?imgType: [the extension the image is stored as. If not provided will be .png]
+
+	?authors: an array, the people or persons who made the card
+
+	?tags: [an array of groups that the card belongs to]
 
 }
 */
+var cardDataFile;
+
+function tagForAll() {
+	cardData.forEach(c => {
+		if (c.tags == undefined) {
+			c.tags = [];
+		}
+
+		//check for letters 
+		var char = c.name[0].toLowerCase();
+		var tags = c.tags;
+		
+		if (char.match(/[a-z]/i)) {
+			//letter
+			if (!tags.includes(char.toUpperCase())) {
+				tags.splice(0, 0, char.toUpperCase());
+			}
+		} else if (char.match(/[0-9]/i)) {
+			//number
+			if (!tags.includes(`number start`)) {
+				tags.splice(0, 0, `number start`);
+			}
+		} else {
+			//non-letter
+			if (!tags.includes(`non-letter start`)) {
+				tags.splice(0, 0, `non-letter start`);
+			}
+		}
+	});
+}
+
+//for downloading
+function downloadData() {
+	//create data
+	var textDat = ``;
+
+	//post to data
+	textDat += `[{`;
+
+	//first sort card data
+	cardData.sort((a, b) => {
+		return (a.id * 1 - b.id * 1);
+	});
+
+	//take all nodes and add them
+	cardData.forEach(c => {
+		//take all keys and add them
+		//make sure string delimiter is the grave (`), so that backslashes won't come up and be weird
+		var keys = Object.keys(c);
+		keys = keys.sort();
+
+		keys.forEach(k => {
+			if (k == `authors` || k == "tags") {
+				textDat += `\n\t${k}: ${JSON.stringify(c[k])},`;
+			} else {
+				textDat += `\n\t${k}: \`${c[k]}\`,`;
+			}
+			
+		});
+
+		textDat += `\n}, {`;
+	});
+
+	//slice off the final `, {`;
+	textDat = textDat.slice(0, -3);
+	textDat += `];`;
+	
+	var fileObj = new Blob([textDat], {type: 'text/plain'});
+
+	//make sure a world file doesn't already exist
+	if (cardDataFile != undefined) {
+		window.URL.revokeObjectURL(cardDataFile);
+	}
+	cardDataFile = window.URL.createObjectURL(fileObj);
+	var link = document.getElementById('download');
+	link.href = cardDataFile;
+	link.click();
+}
 
 
+var cardPossibleTags = [
+	`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`, `V`, `W`, `X`, `Y`, `Z`,
+	`non-letter start`, `number start`,
+	`ELEMENT`, 
+	`wide`,
+	`that one style`,
+	`multi-colored`
+];
 var cardData = [{
-    name: `______ in another world`
-    }, {
-    name: `_______`
-    }, {
-    name: `[math]`
-    }, {
-    name: `[unnamed]`
-    }, {
-    name: `[untranslatable] 2`
-    }, {
-    name: `[untranslatable]`
-    }, {
-    name: `}finally}finally{system.out.print("Done! Ok!");})`
-    }, {
-    name: `@everyone`
-    }, {
-    name: `/b/ `
-    }, {
-    name: `/gamerule randomtickspeed`
-    }, {
-    name: `/r/2dank4u`
-    }, {
-    name: `#closefcps`
-    }, {
-    name: `+500 points 2`
-    }, {
-    name: `+500 points`
-    }, {
-    name: `1-KILOGRAM FEATHER`
-    }, {
-    name: `1,000 Blank White Cards Star`
-    }, {
-    name: `1,000 Blank White Cards`
-    }, {
-    name: `1K BLANK WHITE CARDS RULES`
-    }, {
-    name: `1K BWC rules!`
-    }, {
-    name: `1KBWC-ISNOTABOUTWINNING`
-    }, {
-    name: `2's Day - Pizza Squirrel`
-    }, {
-    name: `3:05 Friday`
-    }, {
-    name: `3-bit address decoder`
-    }, {
-    name: `3-Star Review`
-    }, {
-    name: `3D Printer 20mm Calibration Cube`
-    }, {
-    name: `3D Tetris`
-    }, {
-    name: `4 Million Points`
-    }, {
-    name: `4-dimensional cube`
-    }, {
-    name: `4th Dimension`,
-    }, {
-    name: `05 Access Keycard`
-    }, {
-    name: `5 DARK`
-    }, {
-    name: `5-card hand`
-    }, {
-    name: `23.5°`
-    }, {
-    name: `64-bit address`
-    }, {
-    name: `84 IQ`
-    }, {
-    name: `420 IS DIVISIBLE BY 7`
-    }, {
-    name: `a`
-    }, {
-    name: `A bag of catnip`
-    }, {
-    name: `A bud Grade`
-    }, {
-    name: `A fast cat`
-    }, {
-    name: `A FREAKING BAZOOKA`
-    }, {
-    name: `A Mob of Cats`
-    }, {
-    name: `A PRICKLY SITUATION`
-    }, {
-    name: `a strange face tendriu`
-    }, {
-    name: `A Tiny Sphere which annihilates every card touching whichever card that adds a bomb to your left toenail (aka freshmen cards are best cards)`
-    }, {
-    name: `A`
-    }, {
-    name: `AAAAaaaaarrghhh`
-    }, {
-    name: `AAHRT`
-    }, {
-    name: `Abandoned Shop`
-    }, {
-    name: `Abraham Lincoln`
-    }, {
-    name: `Abstract Art 2`
-    }, {
-    name: `Abstract Art`
-    }, {
-    name: `Acoin`
-    }, {
-    name: `ACTIVE TRANSPORT`
-    }, {
-    name: `ADC -> DAC`
-    }, {
-    name: `Advent`
-    }, {
-    name: `Airless Vacuum of Space`
-    }, {
-    name: `ALASKA CARD`
-    }, {
-    name: `Aleph-null guantlet`
-    }, {
-    name: `Alexander Graham Bell`
-    }, {
-    name: `ALTERNATIVE FACTS`
-    }, {
-    name: `Altocumulus`
-    }, {
-    name: `AMERICAN Government`
-    }, {
-    name: `Amplifier`
-    }, {
-    name: `An Extremely Fluffy Dog`
-    }, {
-    name: `An Honest Email`
-    }, {
-    name: `and Hobbes`
-    }, {
-    name: `Andrew Carnage-e`
-    }, {
-    name: `Andrew Carnegie`
-    }, {
-    name: `Angry cat`
-    }, {
-    name: `Another non-Noah Card`
-    }, {
-    name: `ANTI DERIVATIVE`
-    }, {
-    name: `Anti-Bias Training`
-    }, {
-    name: `Anti-Pen warfare`
-    }, {
-    name: `Anti-Peridoxifier`
-    }, {
-    name: `Anti-vaxxer`
-    }, {
-    name: `Anvil`
-    }, {
-    name: `AP° Calculus`
-    }, {
-    name: `Aquaculture`
-    }, {
-    name: `Arachnophobia - Garrett Phlegar`
-    }, {
-    name: `Arc Welding`
-    }, {
-    name: `Array->Pointer Degradation`
-    }, {
-    name: `Art #1`
-    }, {
-    name: `Art #2`
-    }, {
-    name: `Art #3`
-    }, {
-    name: `Art #4`
-    }, {
-    name: `Art #5`
-    }, {
-    name: `Art #6`
-    }, {
-    name: `Art #7`
-    }, {
-    name: `Art #8`
-    }, {
-    name: `Artificial Intelligence - Joseph Rother`,
-    imgType: `jpg`
-    }, {
-    name: `Ash Ketchum and his Pikachu`
-    }, {
-    name: `At least 5 cats`
-    }, {
-    name: `Attempt and get Fatally Wounded`
-    }, {
-    name: `Australlian Card`
-    }, {
-    name: `AutoCorrectInsurance`
-    }, {
-    name: `Automation - 64`
-    }, {
-    name: `Average treasure hunt`
-    }, {
-    name: `Azinoazide Azide`
-    }, {
-    name: `Babelicious`
-    }, {
-    name: `Backpack of Knapsacks`
-    }, {
-    name: `Bad Card I`
-    }, {
-    name: `Bad Card II`
-    }, {
-    name: `Bad Card III`
-    }, {
-    name: `Bad Card IV`
-    }, {
-    name: `Bad Grade - Aadarsh Natarajan`,
-    imgType: `jpg`
-    }, {
-    name: `Bad Idea`
-    }, {
-    name: `BAG OF TRICKS`
-    }, {
-    name: `Bail-Out`
-    }, {
-    name: `Bakugo`
-    }, {
-    name: `Balled Fist`
-    }, {
-    name: `BAN`
-    }, {
-    name: `BAR TOOLS`
-    }, {
-    name: `Basic Math - Aadarsh Natarajan`,
-    imgType: `jpg`,
-    }, {
-    name: `Battle Potion`
-    }, {
-    name: `Beginners Pitfall`
-    }, {
-    name: `Beherit - Alex Boezer`,
-    imgType: `jpg`
-    }, {
-    name: `Ben Shapiro`
-    }, {
-    name: `Better worded dis-card`
-    }, {
-    name: `Between 2 and 2 or more`
-    }, {
-    name: `beyond the firmament`
-    }, {
-    name: `Big Boy Jay`
-    }, {
-    name: `Big Tabasco`
-    }, {
-    name: `Big Toe`
-    }, {
-    name: `bill wurtz`
-    }, {
-    name: `Billy la Bufanda`
-    }, {
-    name: `BLACK HOLE`
-    }, {
-    name: `BLAST FURNACE`
-    }, {
-    name: `Blessed By The Physics Gods`
-    }, {
-    name: `BLOOD MANOS`
-    }, {
-    name: `Bloody Hands`
-    }, {
-    name: `BLUE LIZARD`
-    }, {
-    name: `Blue Shell`
-    }, {
-    name: `Blue Slime`
-    }, {
-    name: `Bode's Rule`
-    }, {
-    name: `Bold Face`
-    }, {
-    name: `Bomb Man`
-    }, {
-    name: `Bomb Transmutation`
-    }, {
-    name: `Bombed the test`
-    }, {
-    name: `Bomkar's attendance`
-    }, {
-    name: `Bomkar's wisdom`
-    }, {
-    name: `Boneful Pizza`
-    }, {
-    name: `Boneless Fossil`
-    }, {
-    name: `Boneless Pizza`
-    }, {
-    name: `Bonfire - Alex Boezer`,
-    imgType: `jpg`
-    }, {
-    name: `Bonjourno`
-    }, {
-    name: `Borat [I'm not translating this one either, sorry]`
-    }, {
-    name: `BOSS OF THIS GYM`
-    }, {
-    name: `Bozo 1`
-    }, {
-    name: `BRAIN ON DRUGS`
-    }, {
-    name: `Brass Section`
-    }, {
-    name: `Break-Out Rooms - Tushar Rangaswamy`,
-    imgType: `jpg`
-    }, {
-    name: `Buckets`
-    }, {
-    name: `Build A WALL!`
-    }, {
-    name: `Bulgarian Slap Dance`
-    }, {
-    name: `Bully Pulpit`
-    }, {
-    name: `Burn at Both Ends`
-    }, {
-    name: `Burn the Books`
-    }, {
-    name: `Burnet Resistor`
-    }, {
-    name: `Burnt Pan`
-    }, {
-    name: `burp`
-    }, {
-    name: `C O V E R`
-    }, {
-    name: `Cactus Emoji`
-    }, {
-    name: `CAKE`
-    }, {
-    name: `Calculus`
-    }, {
-    name: `Calvin`
-    }, {
-    name: `Calvinball`
-    }, {
-    name: `Campaign Donations`
-    }, {
-    name: `Candidate Centered Campaigns`
-    }, {
-    name: `Capitalism`
-    }, {
-    name: `Capture The Flag`
-    }, {
-    name: `CARAMEL`
-    }, {
-    name: `CARD 2`
-    }, {
-    name: `card castle`
-    }, {
-    name: `Card Shortage`
-    }, {
-    name: `CARD`
-    }, {
-    name: `Cardboard Tube`
-    }, {
-    name: `CARDS AGAINST governmentality`
-    }, {
-    name: `Cat`
-    }, {
-    name: `CAT 2`
-    }, {
-    name: `CAT BELL`
-    }, {
-    name: `CAT`
-    }, {
-    name: `CATACLYSM`
-    }, {
-    name: `CATHARTIC REONION`
-    }, {
-    name: `Caution Wet Floor`
-    }, {
-    name: `CELL TO CELL TRANSPORT`
-    }, {
-    name: `CENSORED`
-    }, {
-    name: `Centrol Balance`
-    }, {
-    name: `Ceph OSD failure`
-    }, {
-    name: `Chaos Emeralds`
-    }, {
-    name: `Chester Arthur`
-    }, {
-    name: `Chibi`
-    }, {
-    name: `Choose one`
-    }, {
-    name: `Chose uOwen AdvEnturE`
-    }, {
-    name: `Chris Christoph Christopher Christopherson`
-    }, {
-    name: `CHRISTIAN MINECRAFT`
-    }, {
-    name: `Cirrocumulus`
-    }, {
-    name: `Cirrostratus`
-    }, {
-    name: `Cirrus`
-    }, {
-    name: `Civil Rights Act of 1964`
-    }, {
-    name: `ClF3`
-    }, {
-    name: `Cloud in a Bottle`
-    }, {
-    name: `CMD ACCESS Granted`
-    }, {
-    name: `COASTER`
-    }, {
-    name: `Combo-Wombo`
-    }, {
-    name: `Comedian`
-    }, {
-    name: `Communism strikes`
-    }, {
-    name: `Communism v2`
-    }, {
-    name: `Communism`
-    }, {
-    name: `Communist Takeover`
-    }, {
-    name: `Companion Cube`
-    }, {
-    name: `Composite Gang`
-    }, {
-    name: `Computer table`
-    }, {
-    name: `Computer Vision`
-    }, {
-    name: `Concern`
-    }, {
-    name: `congratulations, you broke time`
-    }, {
-    name: `Congressional Hearing`
-    }, {
-    name: `Conical Pendulum`
-    }, {
-    name: `CONSOLATION PRIZE`
-    }, {
-    name: `Consoltation Prize`
-    }, {
-    name: `Constitutional Democracy`
-    }, {
-    name: `CONSTRUCTION ZONE`
-    }, {
-    name: `Cool math James`
-    }, {
-    name: `Coping mechanisms`
-    }, {
-    name: `Copper Pickaxe`
-    }, {
-    name: `Copywrited`
-    }, {
-    name: `Cornelius Vanderbilt`
-    }, {
-    name: `Corrin's Side Special`
-    }, {
-    name: `Counter spell`
-    }, {
-    name: `Counter-counter spell`
-    }, {
-    name: `Counter-Counterspell Counter`
-    }, {
-    name: `Counterfeit points`
-    }, {
-    name: `Cozy Mine craft home`
-    }, {
-    name: `CRAB RAVE (BASS BOOSTED)`
-    }, {
-    name: `Cram time`
-    }, {
-    name: `CRAYON CARD`
-    }, {
-    name: `Crazy Hand`
-    }, {
-    name: `crd o edm`
-    }, {
-    name: `CREEPER! Aw man`
-    }, {
-    name: `Creeper`
-    }, {
-    name: `CREEPY JEFFERSON MASCOT`
-    }, {
-    name: `Crowdsourcing`
-    }, {
-    name: `Crusty sean, destroyer of worlds`
-    }, {
-    name: `Cryptocurrency`
-    }, {
-    name: `Crystal Heart`
-    }, {
-    name: `Ctrl + S`
-    }, {
-    name: `Cumulocirroaltonimbostratocirronumbus`
-    }, {
-    name: `Cumulus`
-    }, {
-    name: `Cursive Whoo`
-    }, {
-    name: `Cyber Jaw`
-    }, {
-    name: `CYKA блять`
-    }, {
-    name: `ↃT`
-    }, {
-    name: `DANCE PARTY`
-    }, {
-    name: `DANGER`
-    }, {
-    name: `Dante's Matchstick™`
-    }, {
-    name: `DARK KERMIT`
-    }, {
-    name: `Dark Money`
-    }, {
-    name: `Dark Sacrifice`
-    }, {
-    name: `Dash Crystal`
-    }, {
-    name: `Dated Reference`
-    }, {
-    name: `DAWN of the IRON AGE`
-    }, {
-    name: `DAY`
-    }, {
-    name: `DEAD on the Inside`
-    }, {
-    name: `DEATH BY BLEED THROUGH`
-    }, {
-    name: `DEATH NOTE 2`
-    }, {
-    name: `DEATH NOTE`
-    }, {
-    name: `Deathspacito`
-    }, {
-    name: `DEBT`
-    }, {
-    name: `DEGENERATE`
-    }, {
-    name: `Delayed reaction`
-    }, {
-    name: `Delegate`
-    }, {
-    name: `DelSaurus`
-    }, {
-    name: `Development Card`
-    }, {
-    name: `Diamond Shovel`
-    }, {
-    name: `Dictionary`
-    }, {
-    name: `Did Not Strike Oil`
-    }, {
-    name: `DIE BUTTER IST ALLE`
-    }, {
-    name: `DIE, DYE, DIE!`
-    }, {
-    name: `Die`
-    }, {
-    name: `Differential Equations 2`
-    }, {
-    name: `DIFFERENTIAL equations`
-    }, {
-    name: `Difficult Search`
-    }, {
-    name: `Diglet`
-    }, {
-    name: `Dimple`
-    }, {
-    name: `Direct Democracy`
-    }, {
-    name: `Dis-cord`
-    }, {
-    name: `Disintegration`
-    }, {
-    name: `DISOBEDIENCE`
-    }, {
-    name: `Disproportionate Features`
-    }, {
-    name: `dissapointment`
-    }, {
-    name: `Dissenting Opinion`
-    }, {
-    name: `DISTUWBINGWY DETAWED UWU`
-    }, {
-    name: `DL;Discord or TS;Discard`
-    }, {
-    name: `DN?`
-    }, {
-    name: `Doesn't Make it onto the Docket`
-    }, {
-    name: `Dog Ate your Homework`
-    }, {
-    name: `DOG`
-    }, {
-    name: `Dominator`
-    }, {
-    name: `Domo`
-    }, {
-    name: `Don't know where your 8th period is`
-    }, {
-    name: `Donke mee-mee`
-    }, {
-    name: `Dot`
-    }, {
-    name: `Double Jeopardy`
-    }, {
-    name: `Double Trouble`
-    }, {
-    name: `DOUBLE VAMPIRE CARD`
-    }, {
-    name: `Double-Jointed`
-    }, {
-    name: `Doubt card`
-    }, {
-    name: `Dragons!!`
-    }, {
-    name: `Draw Card Curse`
-    }, {
-    name: `DRONE STRIKE`
-    }, {
-    name: `DRUNKEN TIGER`
-    }, {
-    name: `Dscore:dt`
-    }, {
-    name: `Duck Rabbit`
-    }, {
-    name: `Dungeons and...`
-    }, {
-    name: `Dungeons, Dungeons, and more Dungeons`
-    }, {
-    name: `Dut dut dut`
-    }, {
-    name: `Dwayne the "Block" Johnson`
-    }, {
-    name: `Earl Warren`
-    }, {
-    name: `Ecchi`
-    }, {
-    name: `Egad`
-    }, {
-    name: `Eggfacts dot fun`
-    }, {
-    name: `Eidos manipulation`
-    }, {
-    name: `el niño 2`
-    }, {
-    name: `El niño`
-    }, {
-    name: `Eldritch Horror - Alex Boezer`,
-    imgType: `jpg`
-    }, {
-    name: `Electric Arc Furnace`
-    }, {
-    name: `ELON DUSK`
-    }, {
-    name: `Empty Check`
-    }, {
-    name: `Enchilada of Magic and Justice`
-    }, {
-    name: `Ene`
-    }, {
-    name: `Engage in unliving`
-    }, {
-    name: `enots emit`
-    }, {
-    name: `EPIPLECTIC BIKE`
-    }, {
-    name: `ERERRORREORRRERRORRORERROR`
-    }, {
-    name: `Everybody Hates Noah`
-    }, {
-    name: `Everyone is here!`
-    }, {
-    name: `Evil Platypus`
-    }, {
-    name: `EXE`
-    }, {
-    name: `EXEcutive Order`
-    }, {
-    name: `Existence Trophy`
-    }, {
-    name: `Exit Poll`
-    }, {
-    name: `Expand Protector A`
-    }, {
-    name: `Expand Protector B`
-    }, {
-    name: `EXPAND`
-    }, {
-    name: `Explosion Magic - Tushar Rangaswamy`
-    }, {
-    name: `Expo Marker`
-    }, {
-    name: `Extreme Range High Capacity Self-charging swapper`
-    }, {
-    name: `Extremophile`
-    }, {
-    name: `Eye of Corruption`
-    }, {
-    name: `Eyjafjallajokull`
-    }, {
-    name: `F^-1(x)`
-    }, {
-    name: `fancy wireframe cube`
-    }, {
-    name: `Fault Line`
-    }, {
-    name: `FCPSON`
-    }, {
-    name: `Federalism`
-    }, {
-    name: `FERACTAL`
-    }, {
-    name: `Fermata Rest`
-    }, {
-    name: `Filming vertically`
-    }, {
-    name: `Find all of the parts of the TI-84 to get 10000pts! (BR)`
-    }, {
-    name: `Find all of the parts of the TI-84 to get 1000pts! (TL)`
-    }, {
-    name: `Find all of the parts of the TI-84 to get 1000pts! (TR)`
-    }, {
-    name: `Find all the parts of the TI-84 to get 1000pts! (BL)`
-    }, {
-    name: `finite glove`
-    }, {
-    name: `Fire Emoji`
-    }, {
-    name: `Fire Flower`
-    }, {
-    name: `Fire Roasted Fire`
-    }, {
-    name: `Fireworks!!`
-    }, {
-    name: `Fish Bunjin's Down Special`
-    }, {
-    name: `FishBinjin's Neutral Special`
-    }, {
-    name: `Flash STopper`
-    }, {
-    name: `Flip Badge`
-    }, {
-    name: `floating point precision error`
-    }, {
-    name: `Flow Chart`
-    }, {
-    name: `Flowey the Flower`
-    }, {
-    name: `Flux Capacitor`
-    }, {
-    name: `Fog`
-    }, {
-    name: `Fool's Gold`
-    }, {
-    name: `for (int i=1; i≤playerCount; i++) {cardEffect(i, effect)}`
-    }, {
-    name: `for loop`
-    }, {
-    name: `FOREST FIRE`
-    }, {
-    name: `FPSON`
-    }, {
-    name: `Franklin D. Roosevelt`
-    }, {
-    name: `Free Or Reduced Price Lunch`
-    }, {
-    name: `Freeze Sign - Tushar Rangaswamy`
-    }, {
-    name: `Freezing Rain`
-    }, {
-    name: `Freshman Robot`
-    }, {
-    name: `Frostbite`
-    }, {
-    name: `Frozen : creepy mario`
-    }, {
-    name: `Future Value`
-    }, {
-    name: `GADSBY`
-    }, {
-    name: `Game Over`
-    }, {
-    name: `Garbage Truck`
-    }, {
-    name: `Gecko Farmers State of the Union`
-    }, {
-    name: `Generational Divide`
-    }, {
-    name: `generic POINT CARD`
-    }, {
-    name: `George A. Custer`
-    }, {
-    name: `Gerald Beaver`
-    }, {
-    name: `German Immigrant`
-    }, {
-    name: `Germaphobe`
-    }, {
-    name: `Gerrymandering`
-    }, {
-    name: `Get slapped by guy to left`
-    }, {
-    name: `Ghost of Imaginary sidekick`
-    }, {
-    name: `Glass Swap`
-    }, {
-    name: `GLASSWARE`
-    }, {
-    name: `GLOO`
-    }, {
-    name: `Gold Bus`
-    }, {
-    name: `Good Card I`
-    }, {
-    name: `Good Card II`
-    }, {
-    name: `Good Card III`
-    }, {
-    name: `Good Card IV`
-    }, {
-    name: `Good Card V`
-    }, {
-    name: `Good Card VI`
-    }, {
-    name: `Good Card VII`
-    }, {
-    name: `Good Card`
-    }, {
-    name: `Good Citizen`
-    }, {
-    name: `Goomba`
-    }, {
-    name: `Gotem`
-    }, {
-    name: `Government cover-up`
-    }, {
-    name: `Greco-Russian Cyrillic Alphabet`
-    }, {
-    name: `Greed`
-    }, {
-    name: `Green Light`
-    }, {
-    name: `GREEN NEW DEAL`
-    }, {
-    name: `Grover Cleveland`
-    }, {
-    name: `Grumpy Cat`
-    }, {
-    name: `Ha, You were under the presumption that this card would be usefull`
-    }, {
-    name: `Half Finished Card`
-    }, {
-    name: `Hand-drawn Italics`
-    }, {
-    name: `Happy Birthday! (not really)`
-    }, {
-    name: `Hats`
-    }, {
-    name: `Haunted Hourglass`
-    }, {
-    name: `Heads or Guillotines`
-    }, {
-    name: `Heart Locket`
-    }, {
-    name: `help me makecards`
-    }, {
-    name: `Herm`
-    }, {
-    name: `Hermes Boots`
-    }, {
-    name: `Hg`
-    }, {
-    name: `Hidden Reinforcements`
-    }, {
-    name: `High Effort Card`
-    }, {
-    name: `Hindsight`
-    }, {
-    name: `Holdity Spirit(?)`
-    }, {
-    name: `Hole Puncher Cut Card`
-    }, {
-    name: `holy purge`
-    }, {
-    name: `Hot Chocolate`
-    }, {
-    name: `Hot Dogs & Cats`
-    }, {
-    name: `Hot Glue`
-    }, {
-    name: `Huff and Puff`
-    }, {
-    name: `Hungry Node`
-    }, {
-    name: `Hunter`
-    }, {
-    name: `Hydration Nation`
-    }, {
-    name: `Hydraulic Engineering`
-    }, {
-    name: `I Saw Mommy Kissing Santa Claus`
-    }, {
-    name: `I want you, to join the PILE`
-    }, {
-    name: `I'M ALREADY TRACER`
-    }, {
-    name: `I've run out of creativity`
-    }, {
-    name: `IBET Teachers`
-    }, {
-    name: `ICEBERG`
-    }, {
-    name: `Idk, I just wanted to draw Garfield`
-    }, {
-    name: `IF YOU Take off TWO articles of clothing`
-    }, {
-    name: `Illuminati`
-    }, {
-    name: `Imaginary Contract`
-    }, {
-    name: `Imagine playing the game`
-    }, {
-    name: `Immediate Distribution`
-    }, {
-    name: `Impeachment and Indictment`
-    }, {
-    name: `IMPERIAL PRESIDENCY`
-    }, {
-    name: `Improper yet Humorous Punctuation`
-    }, {
-    name: `IN CASE OF EMERGENCY`
-    }, {
-    name: `Incredibly Inconsistent Amount of Points`
-    }, {
-    name: `INDEFINΛTE INTEGRΛL`
-    }, {
-    name: `Index Card`
-    }, {
-    name: `Indian 2`
-    }, {
-    name: `Indian Mother`
-    }, {
-    name: `Indian`
-    }, {
-    name: `Individual Donations`
-    }, {
-    name: `INFERIOR SIEGE WEAPON`
-    }, {
-    name: `Infinigon`
-    }, {
-    name: `Infinity^2 Gauntlet`
-    }, {
-    name: `Inflation`
-    }, {
-    name: `Infusion`
-    }, {
-    name: `iNite MC`
-    }, {
-    name: `Inktober`
-    }, {
-    name: `Inkwell`
-    }, {
-    name: `INSPECTION`
-    }, {
-    name: `Inspirationally Deficient Card`
-    }, {
-    name: `INTERGNAT`
-    }, {
-    name: `INTERSTATE HIGHWAY SYSTEM`
-    }, {
-    name: `INTO THE GOOD KNIGHT`
-    }, {
-    name: `Intrusive Advertising`
-    }, {
-    name: `Iowa Caucuses`
-    }, {
-    name: `Irish Immigrant`
-    }, {
-    name: `Is that even sustainable?`
-    }, {
-    name: `IS`
-    }, {
-    name: `It slices`
-    }, {
-    name: `It's ok dude`
-    }, {
-    name: `It's time to d-d-d-d-duel`
-    }, {
-    name: `James Handlon #1`
-    }, {
-    name: `James Handlon #2`
-    }, {
-    name: `James Handlon #3`
-    }, {
-    name: `James Playlist - Separate Ways`
-    }, {
-    name: `James`
-    }, {
-    name: `James's Artistic Talent`
-    }, {
-    name: `Jewish`
-    }, {
-    name: `Joe`
-    }, {
-    name: `Joeseph's literally trolling #2`
-    }, {
-    name: `Joeseph's literally trolling`
-    }, {
-    name: `John F. Kennedy`
-    }, {
-    name: `John Marshall`
-    }, {
-    name: `Jones Big @$$ BBQ + Foot Massage`
-    }, {
-    name: `Joseph Joestar`
-    }, {
-    name: `Joseph Stalin`
-    }, {
-    name: `Jotaro Kujo`
-    }, {
-    name: `jsFiddle`
-    }, {
-    name: `Judicial Review`
-    }, {
-    name: `Jumping Jacks`
-    }, {
-    name: `JUMPING, JUMPING`
-    }, {
-    name: `Just an average F`
-    }, {
-    name: `Just Breathe`
-    }, {
-    name: `Just like in real life!`
-    }, {
-    name: `Just normal Kirby`
-    }, {
-    name: `Just Your Imagination`
-    }, {
-    name: `karel.explode();`
-    }, {
-    name: `Karma (sorta)`
-    }, {
-    name: `KARMA`
-    }, {
-    name: `Keeling Curve - Alexander`
-    }, {
-    name: `Keeling curve`
-    }, {
-    name: `KERCHOO`
-    }, {
-    name: `Ketchup`
-    }, {
-    name: `KGB Hit`
-    }, {
-    name: `Killer Queen`
-    }, {
-    name: `Kind Cat Lady`
-    }, {
-    name: `KING CRIMSON`
-    }, {
-    name: `KING LEAR`
-    }, {
-    name: `Kira Yoshikage`
-    }, {
-    name: `Kirby's special`
-    }, {
-    name: `Kirkland Signature`
-    }, {
-    name: `L'Hôpital's card`
-    }, {
-    name: `lämp`
-    }, {
-    name: `LASER GUIDED LASER`
-    }, {
-    name: `Last Christmas`
-    }, {
-    name: `Late Bus Pass`
-    }, {
-    name: `LaTex`
-    }, {
-    name: `LBQQMESIQBWIIHIHEQNOBEAIL and so on`
-    }, {
-    name: `LEATHERMAN`
-    }, {
-    name: `Legs`
-    }, {
-    name: `LEO`
-    }, {
-    name: `Lesser Healing Potion`
-    }, {
-    name: `Level II Loot Crate`
-    }, {
-    name: `Li'l Macho Legs Cat`
-    }, {
-    name: `Liam`
-    }, {
-    name: `Light-Emitting Capacitor`
-    }, {
-    name: `Lightning Strike!`
-    }, {
-    name: `Limited Time Offer!`
-    }, {
-    name: `Line-Item veto`
-    }, {
-    name: `Liquid DEATH`
-    }, {
-    name: `little toe`
-    }, {
-    name: `LIVING LIFE TO THE FULLEST`
-    }, {
-    name: `LOCK PICK SET`
-    }, {
-    name: `LOCKDOWN`
-    }, {
-    name: `Long Sock`
-    }, {
-    name: `Loophole finder`
-    }, {
-    name: `Loot Crate`
-    }, {
-    name: `Loss`
-    }, {
-    name: `Lucas`
-    }, {
-    name: `Lucky Charms`
-    }, {
-    name: `Luigi in da Femur Breaker - Joseph Rother`
-    }, {
-    name: `Lvl. 35 Mafia Boss`
-    }, {
-    name: `MACCHIATO`
-    }, {
-    name: `Mairo's coinless challenge`
-    }, {
-    name: `MAJORITY RULE`
-    }, {
-    name: `Mako Mankanshoku`
-    }, {
-    name: `MANY CATS`
-    }, {
-    name: `Mario Maker stacking trick`
-    }, {
-    name: `Marketing`
-    }, {
-    name: `Mary Poppins`
-    }, {
-    name: `MATH BOMB`
-    }, {
-    name: `Math Team A`
-    }, {
-    name: `Matthew Cox??`
-    }, {
-    name: `Mayoi Hachikoji`
-    }, {
-    name: `Me Me Big Boy`
-    }, {
-    name: `MEDIC!!!`
-    }, {
-    name: `Mediocre Card 2`
-    }, {
-    name: `Mediocre Card 3`
-    }, {
-    name: `Mediocre Card 4`
-    }, {
-    name: `Mediocre Card 5`
-    }, {
-    name: `Mediocre Card 6`
-    }, {
-    name: `Meditation`
-    }, {
-    name: `Medusa`
-    }, {
-    name: `Memory Theft`
-    }, {
-    name: `MEMORY.`
-    }, {
-    name: `MENACE TO SOCIETY`
-    }, {
-    name: `Message in a Bottle`
-    }, {
-    name: `Mettaton Neo`
-    }, {
-    name: `Mia Mamma pet the goat again`
-    }, {
-    name: `Midas Touch`
-    }, {
-    name: `Middle Finger of Exodia`
-    }, {
-    name: `Midiocre Card 1`
-    }, {
-    name: `Midnight Baseball`
-    }, {
-    name: `Mikiri Counter`
-    }, {
-    name: `Minecraft Shovel (unpixelated)`
-    }, {
-    name: `MINISCULE GLYPH`
-    }, {
-    name: `Mirror Temple Crystal`
-    }, {
-    name: `Missile Silo`
-    }, {
-    name: `Missle Launcher Missle Launcher`
-    }, {
-    name: `Mitosis, when cells divide`
-    }, {
-    name: `MLM`
-    }, {
-    name: `Mobile Hotspot`
-    }, {
-    name: `Module Modular Modulest`
-    }, {
-    name: `Moment of Bruh`
-    }, {
-    name: `Mono`
-    }, {
-    name: `Monty Mole`
-    }, {
-    name: `MONUMENTAL OSBORNE`
-    }, {
-    name: `Mowing the lawn`
-    }, {
-    name: `Mozart's K231`
-    }, {
-    name: `Mr. Minecraft`
-    }, {
-    name: `Ms. Kucko`
-    }, {
-    name: `MTT Cooking Show`
-    }, {
-    name: `MTT Opera`
-    }, {
-    name: `MTT Quiz Show`
-    }, {
-    name: `Muckrakers`
-    }, {
-    name: `Multi-coin block`
-    }, {
-    name: `MUSE`
-    }, {
-    name: `Mutually Assured Destruction -Alexander`
-    }, {
-    name: `Mutually Assured Destruction`
-    }, {
-    name: `Mutually Assured Thano-cycling`
-    }, {
-    name: `My art representation of Ash Ketchum`
-    }, {
-    name: `Mystery Goo`
-    }, {
-    name: `Mystery Slicer`
-    }, {
-    name: `Mystery Smoosher`
-    }, {
-    name: `Name That Tune`
-    }, {
-    name: `Name Thief`
-    }, {
-    name: `Nanite Swarm - Alex Boezer`,
-    imgType: `jpg`
-    }, {
-    name: `Nation Park Quarter Collection`
-    }, {
-    name: `NEGATIVE WORMHOLE`
-    }, {
-    name: `NEOSTEEL ENTHUSIASTS`
-    }, {
-    name: `Nerf Gun`
-    }, {
-    name: `New South`
-    }, {
-    name: `Nice Cream`
-    }, {
-    name: `Nikola Tesla`
-    }, {
-    name: `Nimbostratus`
-    }, {
-    name: `No more pies!`
-    }, {
-    name: `No one likes you`
-    }, {
-    name: `No point in it`
-    }, {
-    name: `No U`
-    }, {
-        //spacer because I accidentally put in 2 "No U" cards, but now they're indexed and I can't just remove the card
-        hide: true,
-    }, {
-    name: `Noah's Balance`
-    }, {
-    name: `Noah's Hair`
-    }, {
-    name: `Noah's Left Eye`
-    }, {
-    name: `Noah's Left Leg`
-    }, {
-    name: `Noah's Right Leg`
-    }, {
-    name: `Noah's Super Synergy`
-    }, {
-    name: `Noah's Synergy`
-    }, {
-    name: `Noisy Sign - Tushar Rangaswamy`
-    }, {
-    name: `NOODLE`
-    }, {
-    name: `Nope`
-    }, {
-    name: `NOT A NOAH CARD`
-    }, {
-    name: `Not on Eggplant`
-    }, {
-    name: `Not yours, anyway`
-    }, {
-    name: `NSA rootkit`
-    }, {
-    name: `Nugget`
-    }, {
-    name: `Nuke`
-    }, {
-    name: `O-qué, so now what?`
-    }, {
-    name: `Obamacare`
-    }, {
-    name: `Observer`
-    }, {
-    name: `Obviously Not a Card`
-    }, {
-    name: `Oddball`
-    }, {
-    name: `Office Home and Student 2007`
-    }, {
-    name: `OILY MACARONI`
-    }, {
-    name: `Old Potion - Aaron Liu`
-    }, {
-    name: `OMNI CARD`
-    }, {
-    name: `On any music player, listen to all of Moral Kombat theme by Misterious-theme`
-    }, {
-    name: `One Blank White Card`
-    }, {
-    name: `One Ring to Rule Them All`
-    }, {
-    name: `One Time Use`
-    }, {
-    name: `Oops! Hah!`
-    }, {
-    name: `ORANGE LIZARD`
-    }, {
-    name: `Oregon Trail`
-    }, {
-    name: `ORONAMIN C`
-    }, {
-    name: `Out With A Bang`
-    }, {
-    name: `Overcompensation`
-    }, {
-    name: `Overstuffed Piñata`
-    }, {
-    name: `Package Manager`
-    }, {
-    name: `Paper Scissors Rock`
-    }, {
-    name: `Paper Tax!`
-    }, {
-    name: `Parched Desert`
-    }, {
-    name: `Pardis Sabeti`
-    }, {
-    name: `Parry`
-    }, {
-    name: `PAS UNE PIPE`
-    }, {
-    name: `Paspyr`
-    }, {
-    name: `Pass Go`
-    }, {
-    name: `Pass-Through Gate`
-    }, {
-    name: `Pass!`
-    }, {
-    name: `Passive Observation`
-    }, {
-    name: `PASSIVE TRANSPORT`
-    }, {
-    name: `Patent`
-    }, {
-    name: `pay2win`
-    }, {
-    name: `Pedestrian Mall Restaurant`
-    }, {
-    name: `Peer Pressure`
-    }, {
-    name: `Pelosi at the 2020 SOTU`
-    }, {
-    name: `PEN`
-    }, {
-    name: `Pet Preferences`
-    }, {
-    name: `Philisphical Fence`
-    }, {
-    name: `Pi`
-    }, {
-    name: `Pickpocket`
-    }, {
-    name: `Pig Latin`
-    }, {
-    name: `Plausable deniability`
-    }, {
-    name: `Player's Trap`
-    }, {
-    name: `Playlist #1 - 911 : Mr. Lonely`
-    }, {
-    name: `Playlist #1 - Deep Web`
-    }, {
-    name: `Playlist #1 - don't play your card`
-    }, {
-    name: `Playlist #1 - Flamingo`
-    }, {
-    name: `Playlist #1 - Mr. Lonely`
-    }, {
-    name: `Playlist #1 - narashite`
-    }, {
-    name: `Playlist #1 - Playlist Pack #1`
-    }, {
-    name: `Playlist #1 - Say It Ain't So`
-    }, {
-    name: `Playlist #1 - Self Care`
-    }, {
-    name: `Playlist #1 - Solo`
-    }, {
-    name: `Playlist #1 - SWEET`
-    }, {
-    name: `Playlist #1 - あふれる`
-    }, {
-    name: `Playlist #2 - Battle Lines`
-    }, {
-    name: `Playlist #2 - EARFQUAKE`
-    }, {
-    name: `Playlist #2 - Hacker`
-    }, {
-    name: `Playlist #2 - Magic Ways`
-    }, {
-    name: `Playlist #2 - Playlist Pack #2`
-    }, {
-    name: `Playlist #2 - PONPONPON`
-    }, {
-    name: `Playlist #2 - Run`
-    }, {
-    name: `Playlist #2 - RUNAWAY`
-    }, {
-    name: `Playlist #2 - Sunflower`
-    }, {
-    name: `Playlist #2 - The Prawn Song`
-    }, {
-    name: `Playlist #2 - 真っ黒`
-    }, {
-    name: `Playlist #3`
-    }, {
-    name: `please stop`
-    }, {
-    name: `Plot Armor`
-    }, {
-    name: `Pocket Veto`
-    }, {
-    name: `Poetic Gyre`
-    }, {
-    name: `Pointer`
-    }, {
-    name: `Pokeball 2`
-    }, {
-    name: `Pokeball`
-    }, {
-    name: `Pokémon GUN`
-    }, {
-    name: `Political Action Committee`
-    }, {
-    name: `Politically Correct Period of Wintertime Festivities and Celebration`
-    }, {
-    name: `Politico`
-    }, {
-    name: `POPSTAR`
-    }, {
-    name: `Port-rait`
-    }, {
-    name: `POSITIVE WORMHOLE`
-    }, {
-    name: `Powered Minecart`
-    }, {
-    name: `Prawn Begone`
-    }, {
-    name: `Prawns Against Humanity`
-    }, {
-    name: `Presidential Democracy`
-    }, {
-    name: `Presidential Veto`
-    }, {
-    name: `PRETZELS IN A pringle can`
-    }, {
-    name: `Price is Right`
-    }, {
-    name: `Prime Line`
-    }, {
-    name: `Proactive Voting`
-    }, {
-    name: `PROBABILITY`
-    }, {
-    name: `PROCRASTINATION GIANT`
-    }, {
-    name: `Procrastination`
-    }, {
-    name: `PROXY PYLON`
-    }, {
-    name: `Pure Nail`
-    }, {
-    name: `Purple Man learns Fractions`
-    }, {
-    name: `Pzkpwf VI Tiger`
-    }, {
-    name: `Q`
-    }, {
-    name: `Quarantine`
-    }, {
-    name: `Quest`
-    }, {
-    name: `Quintuple Helix`
-    }, {
-    name: `r/Iamverysmartcard`
-    }, {
-    name: `r/whooooosh`
-    }, {
-    name: `Rabid Animal`
-    }, {
-    name: `Racoon`
-    }, {
-    name: `Rags to Riches`
-    }, {
-    name: `Ratthew's Wrath`
-    }, {
-    name: `Real Knife`
-    }, {
-    name: `Recursion`
-    }, {
-    name: `Recycle Bin`
-    }, {
-    name: `Recycling Bin`
-    }, {
-    name: `RECYCLING INITIATIVE`
-    }, {
-    name: `Recycling`
-    }, {
-    name: `Red Berry`
-    }, {
-    name: `Red Mushroom`
-    }, {
-    name: `Redstone comparator`
-    }, {
-    name: `Redstone Repeater`
-    }, {
-    name: `REEEEEEEEEEEEMAN SUM`
-    }, {
-    name: `Reminder 2`
-    }, {
-    name: `Reminder`
-    }, {
-    name: `Representative Democracy 2`
-    }, {
-    name: `Representative Democracy`
-    }, {
-    name: `Republican Party`
-    }, {
-    name: `Research Statistics`
-    }, {
-    name: `Reservation`
-    }, {
-    name: `Reset the game`
-    }, {
-    name: `Reset the power supply`
-    }, {
-    name: `Retroactive Voting`
-    }, {
-    name: `Riffle Force`
-    }, {
-    name: `RIP`
-    }, {
-    name: `RNGesus`
-    }, {
-    name: `ROACH POP`
-    }, {
-    name: `Robbit Royale`
-    }, {
-    name: `Robin Hood`
-    }, {
-    name: `Roblox kid`
-    }, {
-    name: `Rod of Discord`
-    }, {
-    name: `ROLY POLY`
-    }, {
-    name: `Rotation card `
-    }, {
-    name: `ROUGE MILL`
-    }, {
-    name: `Rube Goldberg Card`
-    }, {
-    name: `Rubik's cube`
-    }, {
-    name: `Rule Breaker`
-    }, {
-    name: `Rule of 3`
-    }, {
-    name: `Rules Lawyer`
-    }, {
-    name: `Runic Shielding XI`
-    }, {
-    name: `Rusthead`
-    }, {
-    name: `Sadism - Charles Morse`,
-    imgType: `jpg`
-    }, {
-    name: `Sadness`
-    }, {
-    name: `Sams Undergtaggle`
-    }, {
-    name: `SAMURAI SWORD`
-    }, {
-    name: `Sands Undertale`
-    }, {
-    name: `Sanic`
-    }, {
-    name: `Sans Deltarune`
-    }, {
-    name: `SASQUATCH!`
-    }, {
-    name: `SATAN'S FLIP`
-    }, {
-    name: `Scavenging Ooze - Garrett Phlegar`
-    }, {
-    name: `Scenic Vista`
-    }, {
-    name: `School Spirit`
-    }, {
-    name: `SCP-500`
-    }, {
-    name: `Scream`
-    }, {
-    name: `Sea Plane`
-    }, {
-    name: `Search Engine`
-    }, {
-    name: `Sehr Lecker`
-    }, {
-    name: `Self-Distruct`
-    }, {
-    name: `Self-important cat`
-    }, {
-    name: `SEM;COL;N`
-    }, {
-    name: `Senior Class T-Shirt`
-    }, {
-    name: `Senior Lab Pre-reqs`
-    }, {
-    name: `Senior Lab`
-    }, {
-    name: `Senioritis - Charles Morse`
-    }, {
-    name: `seperate but equal`
-    }, {
-    name: `Sett, The Boss`
-    }, {
-    name: `Sexy Chicken`
-    }, {
-    name: `SGA is ASTUDY Hall`
-    }, {
-    name: `Shape s`
-    }, {
-    name: `Share the Wealth`
-    }, {
-    name: `Sharecropping`
-    }, {
-    name: `Shoot The Moon`
-    }, {
-    name: `SHOULDER`
-    }, {
-    name: `Sideways Illuminati`
-    }, {
-    name: `Significant Figures`
-    }, {
-    name: `Silence the idiot or send them away`
-    }, {
-    name: `SILENT SPRING`
-    }, {
-    name: `Silver Spoon`
-    }, {
-    name: `Silver Telescope`
-    }, {
-    name: `SIM Card`
-    }, {
-    name: `Singing Contest`
-    }, {
-    name: `Singularity`
-    }, {
-    name: `Skin`
-    }, {
-    name: `Skip Day`
-    }, {
-    name: `Smart Card`
-    }, {
-    name: `Smash Ball`
-    }, {
-    name: `Smeared Ink`
-    }, {
-    name: `Smile Box`
-    }, {
-    name: `SMOKE SCREEN`
-    }, {
-    name: `Smug Penguin`
-    }, {
-    name: `Snake`
-    }, {
-    name: `Snow Day 2`
-    }, {
-    name: `SNOW DAY`
-    }, {
-    name: `Snowman`
-    }, {
-    name: `Social Anxiety Girl`
-    }, {
-    name: `Solar Energy`
-    }, {
-    name: `Sole stone`
-    }, {
-    name: `SOLID Of REVOLUTION`
-    }, {
-    name: `Solve`
-    }, {
-    name: `Sonia Sotomayor`
-    }, {
-    name: `Sooper Smesh Brus`
-    }, {
-    name: `Sooz`
-    }, {
-    name: `Spaceport Academy`
-    }, {
-    name: `spaghett`
-    }, {
-    name: `Sparknotes`
-    }, {
-    name: `Speedrun`
-    }, {
-    name: `Spelling Bee`
-    }, {
-    name: `Spin-2-Win`
-    }, {
-    name: `Spirit Sign - Tushar Rangaswamy`
-    }, {
-    name: `spooderman`
-    }, {
-    name: `Squigles`
-    }, {
-    name: `Squirrel`
-    }, {
-    name: `Stable Equilibrium`
-    }, {
-    name: `Stage Fright - Derek C.`
-    }, {
-    name: `STALINGRAD CARD`
-    }, {
-    name: `Stampede`
-    }, {
-    name: `STAPLES Blank Index Cards`
-    }, {
-    name: `State Of The Union`
-    }, {
-    name: `Stealth Mode`
-    }, {
-    name: `Stick`
-    }, {
-    name: `Stongest card`
-    }, {
-    name: `Stonks`
-    }, {
-    name: `Stool on head`
-    }, {
-    name: `STOOL ON TABLE`
-    }, {
-    name: `STORK`
-    }, {
-    name: `Strange Purple Thing`
-    }, {
-    name: `Stratocumulus`
-    }, {
-    name: `Stratus`
-    }, {
-    name: `Strength in Numbers`
-    }, {
-    name: `Stretchy Arms`
-    }, {
-    name: `Strike!!!`
-    }, {
-    name: `Struck Oil`
-    }, {
-    name: `Student Loans`
-    }, {
-    name: `STUDY CARD`
-    }, {
-    name: `Study Hall`
-    }, {
-    name: `Stylish Scarf`
-    }, {
-    name: `Subito`
-    }, {
-    name: `Subpoena`
-    }, {
-    name: `Subscribe to PewDiePie`
-    }, {
-    name: `Subscription To A Corporate-Run, For-Profit Educational System Which Harms Lower-Income Students And Creates An Atmosphere Less Attuned To Individuals And Life Skills And Instead Focused On Rote Memorization And Extensive Standardized Testing`
-    }, {
-    name: `Suicide Burn`
-    }, {
-    name: `Sumday - Anish G.`
-    }, {
-    name: `Summoning Runes`
-    }, {
-    name: `Super Dimentid`
-    }, {
-    name: `Super Hardcore`
-    }, {
-    name: `Super P.A.C`
-    }, {
-    name: `Super-heat snowball`
-    }, {
-    name: `Super`
-    }, {
-    name: `Supportive Friends`
-    }, {
-    name: `Supreme Bee Yeeter`
-    }, {
-    name: `Supreme Court Superiority`
-    }, {
-    name: `Supreme Court`
-    }, {
-    name: `Swapper - Pythonic swap.py`
-    }, {
-    name: `Switzerland`
-    }, {
-    name: `SWORD BEHIND INAPPROPRIATE PREPOSITIONS`
-    }, {
-    name: `T HERE C AN ONLY BE ONE`
-    }, {
-    name: `T`
-    }, {
-    name: `TAINT`
-    }, {
-    name: `Tall-nut`
-    }, {
-    name: `TARDIS`
-    }, {
-    name: `Teaming in Solo Mode`
-    }, {
-    name: `Tear up speech paper`
-    }, {
-    name: `Technobabble`
-    }, {
-    name: `Technology is the future of learning`
-    }, {
-    name: `Teemo Mushroom`
-    }, {
-    name: `Teenage boy after doing literally anything`
-    }, {
-    name: `TELL ME WHY ~`
-    }, {
-    name: `Tem Shop`
-    }, {
-    name: `Temmie`
-    }, {
-    name: `TEMPORAL RESOLUTION`
-    }, {
-    name: `Tenement`
-    }, {
-    name: `TETRIS 99`
-    }, {
-    name: `Tetris`
-    }, {
-    name: `THANOS CARD`
-    }, {
-    name: `Thanos Snap`
-    }, {
-    name: `Thanos v4`
-    }, {
-    name: `That one card whose title is too long but whose description makes you read the entire title alou`
-    }, {
-    name: `The Anime Eye`
-    }, {
-    name: `The Bass-Boosted Eye, Back for Revenge`
-    }, {
-    name: `The Challenge`
-    }, {
-    name: `The Clock`
-    }, {
-    name: `The Count!!!`
-    }, {
-    name: `THE CREATOR`
-    }, {
-    name: `The Crude Eye`
-    }, {
-    name: `The DESTROYER`
-    }, {
-    name: `THE DOME`
-    }, {
-    name: `The end of the world as we k`
-    }, {
-    name: `The Eye, Unflawed`
-    }, {
-    name: `The Flaming Eye`
-    }, {
-    name: `The Frog of Evil Crosses your path`
-    }, {
-    name: `The Future is NOW`
-    }, {
-    name: `The Gamble - Joseph Rother`
-    }, {
-    name: `The Gamble`
-    }, {
-    name: `The Geometric`
-    }, {
-    name: `The Good One`
-    }, {
-    name: `The Grinch`
-    }, {
-    name: `the happiest birthday`
-    }, {
-    name: `The Harcut That Changed Me™`
-    }, {
-    name: `The Hat`
-    }, {
-    name: `The House of Representatives`
-    }, {
-    name: `The Invisible Eye`
-    }, {
-    name: `THE INVISIBLE HAND OF`
-    }, {
-    name: `The Light, it burns`
-    }, {
-    name: `The Locket`
-    }, {
-    name: `The Monitor monitor is a monitor`
-    }, {
-    name: `The Night King`
-    }, {
-    name: `The Osborne`
-    }, {
-    name: `The PACIFIER`
-    }, {
-    name: `The Reverse Parrot`
-    }, {
-    name: `The Rich get Richer`
-    }, {
-    name: `The rocky thing, BUT BACKWARDS`
-    }, {
-    name: `The smudge`
-    }, {
-    name: `The WEEB!`
-    }, {
-    name: `The White Whale`
-    }, {
-    name: `Theodore Roosevelt 2`
-    }, {
-    name: `Theodore Roosevelt`
-    }, {
-    name: `They're assimilated`
-    }, {
-    name: `They're here`
-    }, {
-    name: `They're malicious`
-    }, {
-    name: `This card intentionally left blank`
-    }, {
-    name: `This card is upside-down`
-    }, {
-    name: `This Card`
-    }, {
-    name: `This cool stick`
-    }, {
-    name: `This sad Man I drew`
-    }, {
-    name: `Thomas Jefferson`
-    }, {
-    name: `THUNDER TOWER`
-    }, {
-    name: `Ticking Time Bomb`
-    }, {
-    name: `TIME BOMB`
-    }, {
-    name: `Time Machine`
-    }, {
-    name: `Time Sign - Tushar Rangaswamy`
-    }, {
-    name: `Tinsel Barbed Wire`
-    }, {
-    name: `Tippi`
-    }, {
-    name: `Tipsy`
-    }, {
-    name: `TITANIC`
-    }, {
-    name: `TJ """"""""""Henry"""""""""" Yoshi`
-    }, {
-    name: `TJ Football`
-    }, {
-    name: `TJ HIGH SCHOOL FOR SCIENCE AND TECHNOLOGY - Sahishnu H.`
-    }, {
-    name: `TJ Star`
-    }, {
-    name: `TJ1KBWC Discord`
-    }, {
-    name: `TNT Minecart`
-    }, {
-    name: `Toll`
-    }, {
-    name: `Tongue Twisted`
-    }, {
-    name: `Too complicated!`
-    }, {
-    name: `Tootsie Re-Roll®`
-    }, {
-    name: `Totem of Undying`
-    }, {
-    name: `Tough Gloves`
-    }, {
-    name: `Tough Phoenix`
-    }, {
-    name: `TOWER N`
-    }, {
-    name: `Toxic Waste`
-    }, {
-    name: `Tracking poll`
-    }, {
-    name: `Trade Policy`
-    }, {
-    name: `Train (blue)`
-    }, {
-    name: `Train (red)`
-    }, {
-    name: `Train (brown)`
-    }, {
-    name: `Train (green)`
-    }, {
-    name: `Tranquilizer Dart`
-    }, {
-    name: `Transmute`
-    }, {
-    name: `Trap card`
-    }, {
-    name: `Trick up your (Sle)eve`
-    }, {
-    name: `Trump 2020`
-    }, {
-    name: `TRUMP CARD`
-    }, {
-    name: `Trumpet`
-    }, {
-    name: `Trust Bust`
-    }, {
-    name: `Trustee`
-    }, {
-    name: `Try Jumping`
-    }, {
-    name: `TUNNEL AUS DEUTSCH`
-    }, {
-    name: `Turban Man`
-    }, {
-    name: `Twelve`
-    }, {
-    name: `Twins 2`
-    }, {
-    name: `Twins`
-    }, {
-    name: `twitch simp`
-    }, {
-    name: `Two Drops per Quarter`
-    }, {
-    name: `u tried`
-    }, {
-    name: `uh oh you boosted banoko, you've just been BEANED`
-    }, {
-    name: `ULA's Altas-V`
-    }, {
-    name: `Ultra Olympics`
-    }, {
-    name: `ULTRAWIDE DISPLAY`
-    }, {
-    name: `Un-BEAR-able Pun`
-    }, {
-    name: `Unblank White card`
-    }, {
-    name: `Undo`
-    }, {
-    name: `Unexpected GNOME`
-    }, {
-    name: `Unfair Trade Deal`
-    }, {
-    name: `Unhandled Exception`
-    }, {
-    name: `Unification Failed`
-    }, {
-    name: `United Airlines`
-    }, {
-    name: `Unknown Chaos`
-    }, {
-    name: `Uno Reverse Card`
-    }, {
-    name: `UNO®`
-    }, {
-    name: `Unplanned card`
-    }, {
-    name: `UNREALISTIC IDEALISM`
-    }, {
-    name: `UNSCREWABLE POMMEL`
-    }, {
-    name: `Unstable Time Loop`
-    }, {
-    name: `Unwarmness`
-    }, {
-    name: `Ur mom`
-    }, {
-    name: `US of A`
-    }, {
-    name: `USA PATRIOT Act`
-    }, {
-    name: `Used Car Salesman`
-    }, {
-    name: `Usopp Usoland Black`
-    }, {
-    name: `UTILITARIANISM`
-    }, {
-    name: `UwU, not made on enough cards`
-    }, {
-    name: `Van Darkholme`
-    }, {
-    name: `Violin`
-    }, {
-    name: `Voice Augmentation`
-    }, {
-    name: `Voodoo Card`
-    }, {
-    name: `Voronoi`
-    }, {
-    name: `Vowel Scowl`
-    }, {
-    name: `W.E.B. Du Bois`
-    }, {
-    name: `WAIT. That's illegal.`
-    }, {
-    name: `walcc`
-    }, {
-    name: `Walrus operator`
-    }, {
-    name: `Water Sleighing`
-    }, {
-    name: `Water to Wine`
-    }, {
-    name: `water`
-    }, {
-    name: `Waterflower`
-    }, {
-    name: `Wave Dash (celeste)`
-    }, {
-    name: `We Need To Go Deeper`
-    }, {
-    name: `Weeb-inator 9000®™`
-    }, {
-    name: `WEIRD FLEX`
-    }, {
-    name: `Well-meaning Lobbyist`
-    }, {
-    name: `What the heck?`
-    }, {
-    name: `What's a webpage, something ducks walk on?`
-    }, {
-    name: `Wheel of Fortune`
-    }, {
-    name: `WHEN I'm GRANDMASTER`
-    }, {
-    name: `White Elephant`
-    }, {
-    name: `WHITE TO MOVE, MATE IN THREE`
-    }, {
-    name: `Whoa! This is worthless!`
-    }, {
-    name: `WHOEVER SMELT IT, DEALT IT`
-    }, {
-    name: `Whose Line is it Anyway?`
-    }, {
-    name: `Wiki Master`
-    }, {
-    name: `WIN-ter`
-    }, {
-    name: `Winter cap`
-    }, {
-    name: `Winter Gloves`
-    }, {
-    name: `WInter Jacket`
-    }, {
-    name: `With - Paul Appler`
-    }, {
-    name: `Wolverine`
-    }, {
-    name: `WONDER VICTORY`
-    }, {
-    name: `WTF.....?`
-    }, {
-    name: `WWII Italy`
-    }, {
-    name: `YAH YEET (yuh... ayy...)`
-    }, {
-    name: `yearbook`
-    }, {
-    name: `Yearning`
-    }, {
-    name: `Yeetus Yeetus Ctrl+Alt+Deletus`
-    }, {
-    name: `YELLOW LIZARD`
-    }, {
-    name: `YI PACKET`
-    }, {
-    name: `Yos`
-    }, {
-    name: `You Can Hold 1 Card In Your Pocket`
-    }, {
-    name: `You have 2 seconds to moan`
-    }, {
-    name: `You have 2 seconds to mow`
-    }, {
-    name: `You have died of dysentery`
-    }, {
-    name: `You have started Studying for your test`
-    }, {
-    name: `You Know the Rules, Say Goodbye - Tushar Rangaswamy`
-    }, {
-    name: `You Lose`
-    }, {
-    name: `You Touch My Tralala`
-    }, {
-    name: `YOU WIN!!!`
-    }, {
-    name: `You've triggered your trap card`
-    }, {
-    name: `Your Lucky Card`
-    }, {
-    name: `YOUR MUSIC TASTE SUCKS™`
-    }, {
-    name: `Yus`
-    }, {
-    name: `Zombie Apocalypse`
-    }, {
-    name: `Zookeeper`
-    }, {
-    name: `イマクニ？のドードー`
-    }, {
-    name: `ひらがな`
-    }];
+	id: `0`,
+	name: `______ in another world`,
+	tags: ["non-letter start"],
+}, {
+	id: `1`,
+	name: `_______`,
+	tags: ["non-letter start"],
+}, {
+	id: `2`,
+	name: `[math]`,
+	tags: ["non-letter start"],
+}, {
+	id: `3`,
+	name: `[unnamed]`,
+	tags: ["non-letter start"],
+}, {
+	id: `4`,
+	name: `[untranslatable] 2`,
+	tags: ["non-letter start"],
+}, {
+	id: `5`,
+	name: `[untranslatable]`,
+	tags: ["non-letter start"],
+}, {
+	id: `6`,
+	name: `}finally}finally{system.out.print("Done! Ok!");})`,
+	tags: ["non-letter start"],
+}, {
+	id: `7`,
+	name: `@everyone`,
+	tags: ["non-letter start"],
+}, {
+	id: `8`,
+	name: `/b/`,
+	tags: ["non-letter start"],
+}, {
+	id: `9`,
+	name: `/gamerule randomtickspeed`,
+	tags: ["non-letter start"],
+}, {
+	id: `10`,
+	name: `/r/2dank4u`,
+	tags: ["non-letter start","multi-colored"],
+}, {
+	id: `11`,
+	name: `#closefcps`,
+	tags: ["non-letter start"],
+}, {
+	id: `12`,
+	name: `+500 points 2`,
+	tags: ["non-letter start","number start"],
+}, {
+	id: `13`,
+	name: `+500 points`,
+	tags: ["non-letter start","number start"],
+}, {
+	id: `14`,
+	name: `1-KILOGRAM FEATHER`,
+	tags: ["number start"],
+}, {
+	id: `15`,
+	name: `1,000 Blank White Cards Star`,
+	tags: ["number start","multi-colored"],
+}, {
+	id: `16`,
+	name: `1,000 Blank White Cards`,
+	tags: ["number start"],
+}, {
+	id: `17`,
+	name: `1K BLANK WHITE CARDS RULES`,
+	tags: ["number start"],
+}, {
+	id: `18`,
+	name: `1K BWC rules!`,
+	tags: ["number start"],
+}, {
+	id: `19`,
+	name: `1KBWC-ISNOTABOUTWINNING`,
+	tags: ["number start"],
+}, {
+	authors: ["Anish G.","Pizza Squirrel"],
+	id: `20`,
+	name: `2's Day`,
+	tags: ["number start","multi-colored"],
+}, {
+	id: `21`,
+	name: `3:05 Friday`,
+	tags: ["number start"],
+}, {
+	id: `22`,
+	name: `3-bit address decoder`,
+	tags: ["number start"],
+}, {
+	id: `23`,
+	name: `3-Star Review`,
+	tags: ["number start","multi-colored"],
+}, {
+	id: `24`,
+	name: `3D Printer 20mm Calibration Cube`,
+	tags: ["number start","multi-colored"],
+}, {
+	id: `25`,
+	name: `3D Tetris`,
+	tags: ["number start","multi-colored"],
+}, {
+	id: `26`,
+	name: `4 Million Points`,
+	tags: ["number start"],
+}, {
+	id: `27`,
+	name: `4-dimensional cube`,
+	tags: ["number start"],
+}, {
+	id: `28`,
+	name: `4th Dimension`,
+	tags: ["number start"],
+}, {
+	id: `29`,
+	name: `05 Access Keycard`,
+	tags: ["number start","wide"],
+}, {
+	id: `30`,
+	name: `5 DARK`,
+	tags: ["number start"],
+}, {
+	id: `31`,
+	name: `5-card hand`,
+	tags: ["number start"],
+}, {
+	id: `32`,
+	name: `23.5°`,
+	tags: ["number start"],
+}, {
+	id: `33`,
+	name: `64-bit address`,
+	tags: ["number start"],
+}, {
+	id: `34`,
+	name: `84 IQ`,
+	tags: ["number start"],
+}, {
+	id: `35`,
+	name: `420 IS DIVISIBLE BY 7`,
+	tags: ["number start","multi-colored"],
+}, {
+	id: `36`,
+	name: `a`,
+	tags: ["A"],
+}, {
+	id: `37`,
+	name: `A bag of catnip`,
+	tags: ["A"],
+}, {
+	id: `38`,
+	name: `A bud Grade`,
+	tags: ["A"],
+}, {
+	id: `39`,
+	name: `A fast cat`,
+	tags: ["A"],
+}, {
+	id: `40`,
+	name: `A FREAKING BAZOOKA`,
+	tags: ["A"],
+}, {
+	id: `41`,
+	name: `A Mob of Cats`,
+	tags: ["A"],
+}, {
+	id: `42`,
+	name: `A PRICKLY SITUATION`,
+	tags: ["A","multi-colored"],
+}, {
+	authors: "Cynthia Clementine",
+	id: `43`,
+	name: `a strange face tendriu`,
+	tags: ["A","multi-colored"],
+}, {
+	id: `44`,
+	name: `A Tiny Sphere which annihilates every card touching whichever card that adds a bomb to your left toenail (aka freshmen cards are best cards)`,
+	tags: ["A"],
+}, {
+	id: `45`,
+	name: `A`,
+	tags: ["A"],
+}, {
+	id: `46`,
+	name: `AAAAaaaaarrghhh`,
+	tags: ["A"],
+}, {
+	id: `47`,
+	name: `AAHRT`,
+	tags: ["A"],
+}, {
+	id: `48`,
+	name: `Abandoned Shop`,
+	tags: ["A"],
+}, {
+	id: `49`,
+	name: `Abraham Lincoln`,
+	tags: ["A"],
+}, {
+	id: `50`,
+	name: `Abstract Art 2`,
+	tags: ["A"],
+}, {
+	id: `51`,
+	name: `Abstract Art`,
+	tags: ["A"],
+}, {
+	id: `52`,
+	name: `Acoin`,
+	tags: ["A"],
+}, {
+	id: `53`,
+	name: `ACTIVE TRANSPORT`,
+	tags: ["A"],
+}, {
+	id: `54`,
+	name: `ADC -> DAC`,
+	tags: ["A","multi-colored"],
+}, {
+	id: `55`,
+	name: `Advent`,
+	tags: ["A","multi-colored"],
+}, {
+	id: `56`,
+	name: `Airless Vacuum of Space`,
+	tags: ["A"],
+}, {
+	id: `57`,
+	name: `ALASKA CARD`,
+	tags: ["A","wide"],
+}, {
+	id: `58`,
+	name: `Aleph-null guantlet`,
+	tags: ["A"],
+}, {
+	id: `59`,
+	name: `Alexander Graham Bell`,
+	tags: ["A","multi-colored"],
+}, {
+	id: `60`,
+	name: `ALTERNATIVE FACTS`,
+	tags: ["A"],
+}, {
+	id: `61`,
+	name: `Altocumulus`,
+	tags: ["A"],
+}, {
+	id: `62`,
+	name: `AMERICAN Government`,
+	tags: ["A","multi-colored"],
+}, {
+	id: `63`,
+	name: `Amplifier`,
+	tags: ["A"],
+}, {
+	id: `64`,
+	name: `An Extremely Fluffy Dog`,
+	tags: ["A"],
+}, {
+	id: `65`,
+	name: `An Honest Email`,
+	tags: ["A"],
+}, {
+	id: `66`,
+	name: `and Hobbes`,
+	tags: ["A","multi-colored"],
+}, {
+	id: `67`,
+	name: `Andrew Carnage-e`,
+	tags: ["A"],
+}, {
+	id: `68`,
+	name: `Andrew Carnegie`,
+	tags: ["A","multi-colored"],
+}, {
+	id: `69`,
+	name: `Angry cat`,
+	tags: ["A"],
+}, {
+	id: `70`,
+	name: `Another non-Noah Card`,
+	tags: ["A"],
+}, {
+	id: `71`,
+	name: `ANTI DERIVATIVE`,
+	tags: ["A","multi-colored"],
+}, {
+	id: `72`,
+	name: `Anti-Bias Training`,
+	tags: ["A"],
+}, {
+	id: `73`,
+	name: `Anti-Pen warfare`,
+	tags: ["A"],
+}, {
+	id: `74`,
+	name: `Anti-Peridoxifier`,
+	tags: ["A"],
+}, {
+	id: `75`,
+	name: `Anti-vaxxer`,
+	tags: ["A"],
+}, {
+	id: `76`,
+	name: `Anvil`,
+	tags: ["A","multi-colored"],
+}, {
+	id: `77`,
+	name: `AP° Calculus`,
+	tags: ["A"],
+}, {
+	id: `78`,
+	name: `Aquaculture`,
+	tags: ["A"],
+}, {
+	authors: "Garrett Phlegar",
+	id: `79`,
+	name: `Arachnophobia`,
+	tags: ["A","multi-colored"],
+}, {
+	id: `80`,
+	name: `Arc Welding`,
+	tags: ["A"],
+}, {
+	id: `81`,
+	name: `Array->Pointer Degradation`,
+	tags: ["A"],
+}, {
+	id: `82`,
+	name: `Art #1`,
+	tags: ["A"],
+}, {
+	id: `83`,
+	name: `Art #2`,
+	tags: ["A"],
+}, {
+	id: `84`,
+	name: `Art #3`,
+	tags: ["A"],
+}, {
+	id: `85`,
+	name: `Art #4`,
+	tags: ["A"],
+}, {
+	id: `86`,
+	name: `Art #5`,
+	tags: ["A"],
+}, {
+	id: `87`,
+	name: `Art #6`,
+	tags: ["A"],
+}, {
+	id: `88`,
+	name: `Art #7`,
+	tags: ["A"],
+}, {
+	id: `89`,
+	name: `Art #8`,
+	tags: ["A"],
+}, {
+	authors: "Joseph Rother",
+	id: `90`,
+	imgType: `jpg`,
+	name: `Artificial Intelligence`,
+	tags: ["A"],
+}, {
+	id: `91`,
+	name: `Ash Ketchum and his Pikachu`,
+	tags: ["A"],
+}, {
+	id: `92`,
+	name: `At least 5 cats`,
+	tags: ["A"],
+}, {
+	id: `93`,
+	name: `Attempt and get Fatally Wounded`,
+	tags: ["A"],
+}, {
+	id: `94`,
+	name: `Australlian Card`,
+	tags: ["A"],
+}, {
+	id: `95`,
+	name: `AutoCorrectInsurance`,
+	tags: ["A"],
+}, {
+	id: `96`,
+	name: `Automation: 64`,
+	tags: ["A"],
+}, {
+	id: `97`,
+	name: `Average treasure hunt`,
+	tags: ["A"],
+}, {
+	id: `98`,
+	name: `Azinoazide Azide`,
+	tags: ["A"],
+}, {
+	id: `99`,
+	name: `Babelicious`,
+	tags: ["B"],
+}, {
+	id: `100`,
+	name: `Backpack of Knapsacks`,
+	tags: ["B"],
+}, {
+	id: `101`,
+	name: `Bad Card I`,
+	tags: ["B"],
+}, {
+	id: `102`,
+	name: `Bad Card II`,
+	tags: ["B"],
+}, {
+	id: `103`,
+	name: `Bad Card III`,
+	tags: ["B"],
+}, {
+	id: `104`,
+	name: `Bad Card IV`,
+	tags: ["B"],
+}, {
+	authors: "Aadarsh Natarajan",
+	id: `105`,
+	imgType: `jpg`,
+	name: `Bad Grade`,
+	tags: ["B"],
+}, {
+	id: `106`,
+	name: `Bad Idea`,
+	tags: ["B","multi-colored"],
+}, {
+	id: `107`,
+	name: `BAG OF TRICKS`,
+	tags: ["B"],
+}, {
+	id: `108`,
+	name: `Bail-Out`,
+	tags: ["B"],
+}, {
+	id: `109`,
+	name: `Bakugo`,
+	tags: ["B"],
+}, {
+	id: `110`,
+	name: `Balled Fist`,
+	tags: ["B"],
+}, {
+	id: `111`,
+	name: `BAN`,
+	tags: ["B"],
+}, {
+	id: `112`,
+	name: `BAR TOOLS`,
+	tags: ["B"],
+}, {
+	authors: "Aadarsh Natarajan",
+	id: `113`,
+	imgType: `jpg`,
+	name: `Basic Math`,
+	tags: ["B"],
+}, {
+	id: `114`,
+	name: `Battle Potion`,
+	tags: ["B","multi-colored"],
+}, {
+	id: `115`,
+	name: `Beginners Pitfall`,
+	tags: ["B"],
+}, {
+	authors: "Alex Boezer",
+	id: `116`,
+	imgType: `jpg`,
+	name: `Beherit`,
+	tags: ["B"],
+}, {
+	id: `117`,
+	name: `Ben Shapiro`,
+	tags: ["B"],
+}, {
+	id: `118`,
+	name: `Better worded dis-card`,
+	tags: ["B"],
+}, {
+	id: `119`,
+	name: `Between 2 and 2 or more`,
+	tags: ["B"],
+}, {
+	id: `120`,
+	name: `beyond the firmament`,
+	tags: ["B", "multi-colored"],
+}, {
+	id: `121`,
+	name: `Big Boy Jay`,
+	tags: ["B"],
+}, {
+	id: `122`,
+	name: `Big Tabasco`,
+	tags: ["B"],
+}, {
+	id: `123`,
+	name: `Big Toe`,
+	tags: ["B"],
+}, {
+	id: `124`,
+	name: `bill wurtz`,
+	tags: ["B","multi-colored"],
+}, {
+	id: `125`,
+	name: `Billy la Bufanda`,
+	tags: ["B"],
+}, {
+	id: `126`,
+	name: `BLACK HOLE`,
+	tags: ["B"],
+}, {
+	id: `127`,
+	name: `BLAST FURNACE`,
+	tags: ["B"],
+}, {
+	id: `128`,
+	name: `Blessed By The Physics Gods`,
+	tags: ["B","multi-colored"],
+}, {
+	id: `129`,
+	name: `BLOOD MANOS`,
+	tags: ["B","multi-colored"],
+}, {
+	id: `130`,
+	name: `Bloody Hands`,
+	tags: ["B"],
+}, {
+	id: `131`,
+	name: `BLUE LIZARD`,
+	tags: ["B"],
+}, {
+	id: `132`,
+	name: `Blue Shell`,
+	tags: ["B","multi-colored"],
+}, {
+	id: `133`,
+	name: `Blue Slime`,
+	tags: ["B","multi-colored"],
+}, {
+	id: `134`,
+	name: `Bode's Rule`,
+	tags: ["B"],
+}, {
+	id: `135`,
+	name: `Bold Face`,
+	tags: ["B"],
+}, {
+	id: `136`,
+	name: `Bomb Man`,
+	tags: ["B"],
+}, {
+	id: `137`,
+	name: `Bomb Transmutation`,
+	tags: ["B"],
+}, {
+	id: `138`,
+	name: `Bombed the test`,
+	tags: ["B"],
+}, {
+	id: `139`,
+	name: `Bomkar's attendance`,
+	tags: ["B","multi-colored"],
+}, {
+	id: `140`,
+	name: `Bomkar's wisdom`,
+	tags: ["B","multi-colored"],
+}, {
+	id: `141`,
+	name: `Boneful Pizza`,
+	tags: ["B"],
+}, {
+	id: `142`,
+	name: `Boneless Fossil`,
+	tags: ["B","multi-colored"],
+}, {
+	id: `143`,
+	name: `Boneless Pizza`,
+	tags: ["B"],
+}, {
+	authors: "Alex Boezer",
+	id: `144`,
+	imgType: `jpg`,
+	name: `Bonfire`,
+	tags: ["B"],
+}, {
+	id: `145`,
+	name: `Bonjourno`,
+	tags: ["B"],
+}, {
+	id: `146`,
+	name: `Borat [I'm not translating this one either, sorry]`,
+	tags: ["B"],
+}, {
+	id: `147`,
+	name: `BOSS OF THIS GYM`,
+	tags: ["B"],
+}, {
+	id: `148`,
+	name: `Bozo 1`,
+	tags: ["B"],
+}, {
+	id: `149`,
+	name: `BRAIN ON DRUGS`,
+	tags: ["B"],
+}, {
+	id: `150`,
+	name: `Brass Section`,
+	tags: ["B","multi-colored"],
+}, {
+	authors: "Tushar Rangaswamy",
+	id: `151`,
+	imgType: `jpg`,
+	name: `Break-Out Rooms`,
+	tags: ["B"],
+}, {
+	id: `152`,
+	name: `Buckets`,
+	tags: ["B"],
+}, {
+	id: `153`,
+	name: `Build A WALL!`,
+	tags: ["B"],
+}, {
+	id: `154`,
+	name: `Bulgarian Slap Dance`,
+	tags: ["B"],
+}, {
+	id: `155`,
+	name: `Bully Pulpit`,
+	tags: ["B"],
+}, {
+	id: `156`,
+	name: `Burn at Both Ends`,
+	tags: ["B"],
+}, {
+	id: `157`,
+	name: `Burn the Books`,
+	tags: ["B"],
+}, {
+	id: `158`,
+	name: `Burnt Resistor`,
+	tags: ["B","multi-colored"],
+}, {
+	id: `159`,
+	name: `Burnt Pan`,
+	tags: ["B"],
+}, {
+	id: `160`,
+	name: `burp`,
+	tags: ["B"],
+}, {
+	id: `161`,
+	name: `C O V E R`,
+	tags: ["C"],
+}, {
+	id: `162`,
+	name: `Cactus Emoji`,
+	tags: ["C","multi-colored"],
+}, {
+	id: `163`,
+	name: `CAKE`,
+	tags: ["C"],
+}, {
+	id: `164`,
+	name: `CalculuS`,
+	tags: ["C","multi-colored"],
+}, {
+	id: `165`,
+	name: `Calvin`,
+	tags: ["C","multi-colored"],
+}, {
+	id: `166`,
+	name: `CaLViNbaLL`,
+	tags: ["C","multi-colored"],
+}, {
+	id: `167`,
+	name: `Campaign Donations`,
+	tags: ["C"],
+}, {
+	id: `168`,
+	name: `Candidate Centered Campaigns`,
+	tags: ["C"],
+}, {
+	id: `169`,
+	name: `Capitalism`,
+	tags: ["C"],
+}, {
+	id: `170`,
+	name: `Capture The Flag`,
+	tags: ["C"],
+}, {
+	id: `171`,
+	name: `CARAMEL`,
+	tags: ["C"],
+}, {
+	id: `172`,
+	name: `CARD 2`,
+	tags: ["C"],
+}, {
+	id: `173`,
+	name: `card castle`,
+	tags: ["C"],
+}, {
+	id: `174`,
+	name: `Card Shortage`,
+	tags: ["C"],
+}, {
+	id: `175`,
+	name: `CARD`,
+	tags: ["C"],
+}, {
+	id: `176`,
+	name: `Cardboard Tube`,
+	tags: ["C"],
+}, {
+	id: `177`,
+	name: `CARDS AGAINST governmentality`,
+	tags: ["C"],
+}, {
+	id: `178`,
+	name: `Cat`,
+	tags: ["C"],
+}, {
+	id: `179`,
+	name: `CAT 2`,
+	tags: ["C"],
+}, {
+	id: `180`,
+	name: `CAT BELL`,
+	tags: ["C"],
+}, {
+	id: `181`,
+	name: `CAT`,
+	tags: ["C"],
+}, {
+	id: `182`,
+	name: `CATACLYSM`,
+	tags: ["C","multi-colored"],
+}, {
+	id: `183`,
+	name: `CATHARTIC REONION`,
+	tags: ["C"],
+}, {
+	id: `184`,
+	name: `Caution Wet Floor`,
+	tags: ["C","multi-colored"],
+}, {
+	id: `185`,
+	name: `CELL TO CELL TRANSPORT`,
+	tags: ["C"],
+}, {
+	id: `186`,
+	name: `CENSORED`,
+	tags: ["C"],
+}, {
+	id: `187`,
+	name: `Centrol Balance`,
+	tags: ["C"],
+}, {
+	id: `188`,
+	name: `Ceph OSD failure`,
+	tags: ["C"],
+}, {
+	id: `189`,
+	name: `Chaos Emeralds`,
+	tags: ["C","multi-colored"],
+}, {
+	id: `190`,
+	name: `Chester Arthur`,
+	tags: ["C","multi-colored"],
+}, {
+	id: `191`,
+	name: `Chibi`,
+	tags: ["C","multi-colored"],
+}, {
+	id: `192`,
+	name: `Choose one`,
+	tags: ["C","multi-colored"],
+}, {
+	id: `193`,
+	name: `Chose uOwen AdvEnturE`,
+	tags: ["C","multi-colored"],
+}, {
+	id: `194`,
+	name: `Chris Christoph Christopher Christopherson`,
+	tags: ["C"],
+}, {
+	id: `195`,
+	name: `CHRISTIAN MINECRAFT`,
+	tags: ["C"],
+}, {
+	id: `196`,
+	name: `Cirrocumulus`,
+	tags: ["C"],
+}, {
+	id: `197`,
+	name: `Cirrostratus`,
+	tags: ["C"],
+}, {
+	id: `198`,
+	name: `Cirrus`,
+	tags: ["C"],
+}, {
+	id: `199`,
+	name: `Civil Rights Act of 1964`,
+	tags: ["C"],
+}, {
+	id: `200`,
+	name: `ClF3`,
+	tags: ["C","multi-colored"],
+}, {
+	id: `201`,
+	name: `Cloud in a Bottle`,
+	tags: ["C"],
+}, {
+	id: `202`,
+	name: `CMD ACCESS Granted`,
+	tags: ["C","multi-colored"],
+}, {
+	id: `203`,
+	name: `COASTER`,
+	tags: ["C"],
+}, {
+	id: `204`,
+	name: `Combo-Wombo`,
+	tags: ["C"],
+}, {
+	id: `205`,
+	name: `Comedian`,
+	tags: ["C"],
+}, {
+	id: `206`,
+	name: `Communism strikes`,
+	tags: ["C"],
+}, {
+	id: `207`,
+	name: `Communism v2`,
+	tags: ["C","multi-colored"],
+}, {
+	id: `208`,
+	name: `Communism`,
+	tags: ["C","multi-colored"],
+}, {
+	id: `209`,
+	name: `Communist Takeover`,
+	tags: ["C"],
+}, {
+	id: `210`,
+	name: `Companion Cube`,
+	tags: ["C"],
+}, {
+	id: `211`,
+	name: `Composite Gang`,
+	tags: ["C","multi-colored"],
+}, {
+	id: `212`,
+	name: `Computer table`,
+	tags: ["C","wide"],
+}, {
+	id: `213`,
+	name: `Computer Vision`,
+	tags: ["C"],
+}, {
+	authors: "Cynthia Clementine",
+	id: `214`,
+	name: `Concern`,
+	tags: ["C","multi-colored"],
+}, {
+	id: `215`,
+	name: `congratulations, you broke time`,
+	tags: ["C"],
+}, {
+	id: `216`,
+	name: `Congressional Hearing`,
+	tags: ["C"],
+}, {
+	id: `217`,
+	name: `Conical Pendulum`,
+	tags: ["C","multi-colored"],
+}, {
+	id: `218`,
+	name: `CONSOLATION PRIZE`,
+	tags: ["C","multi-colored"],
+}, {
+	id: `219`,
+	name: `Consoltation Prize`,
+	tags: ["C"],
+}, {
+	id: `220`,
+	name: `Constitutional Democracy`,
+	tags: ["C"],
+}, {
+	id: `221`,
+	name: `CONSTRUCTION ZONE`,
+	tags: ["C","multi-colored"],
+}, {
+	id: `222`,
+	name: `Cool math James`,
+	tags: ["C"],
+}, {
+	authors: "Cynthia Clementine",
+	id: `223`,
+	name: `Coping mechanisms`,
+	tags: ["C","multi-colored"],
+}, {
+	id: `224`,
+	name: `Copper Pickaxe`,
+	tags: ["C","multi-colored"],
+}, {
+	id: `225`,
+	name: `Copywrited`,
+	tags: ["C"],
+}, {
+	id: `226`,
+	name: `Cornelius Vanderbilt`,
+	tags: ["C","multi-colored"],
+}, {
+	id: `227`,
+	name: `Corrin's Side Special`,
+	tags: ["C"],
+}, {
+	id: `228`,
+	name: `Counter spell`,
+	tags: ["C"],
+}, {
+	id: `229`,
+	name: `Counter-counter spell`,
+	tags: ["C"],
+}, {
+	id: `230`,
+	name: `Counter-Counterspell Counter`,
+	tags: ["C"],
+}, {
+	id: `231`,
+	name: `Counterfeit points`,
+	tags: ["C"],
+}, {
+	id: `232`,
+	name: `Cozy Mine craft home`,
+	tags: ["C"],
+}, {
+	id: `233`,
+	name: `CRAB RAVE (BASS BOOSTED)`,
+	tags: ["C"],
+}, {
+	id: `234`,
+	name: `Cram time`,
+	tags: ["C"],
+}, {
+	id: `235`,
+	name: `CRAYON CARD`,
+	tags: ["C","multi-colored"],
+}, {
+	id: `236`,
+	name: `Crazy Hand`,
+	tags: ["C"],
+}, {
+	authors: "Cynthia Clementine",
+	id: `237`,
+	name: `crd o edm`,
+	tags: ["C","multi-colored"],
+}, {
+	id: `238`,
+	name: `CREEPER! Aw man`,
+	tags: ["C"],
+}, {
+	id: `239`,
+	name: `Creeper`,
+	tags: ["C"],
+}, {
+	id: `240`,
+	name: `CREEPY JEFFERSON MASCOT`,
+	tags: ["C"],
+}, {
+	id: `241`,
+	name: `Crowdsourcing`,
+	tags: ["C","multi-colored"],
+}, {
+	id: `242`,
+	name: `Crusty sean, destroyer of worlds`,
+	tags: ["C"],
+}, {
+	id: `243`,
+	name: `Cryptocurrency`,
+	tags: ["C","multi-colored"],
+}, {
+	id: `244`,
+	name: `Crystal Heart`,
+	tags: ["C","multi-colored"],
+}, {
+	id: `245`,
+	name: `Ctrl + S`,
+	tags: ["C","multi-colored"],
+}, {
+	id: `246`,
+	name: `Cumulocirroaltonimbostratocirronumbus`,
+	tags: ["C"],
+}, {
+	id: `247`,
+	name: `Cumulus`,
+	tags: ["C"],
+}, {
+	id: `248`,
+	name: `Cursive Whoo`,
+	tags: ["C"],
+}, {
+	id: `249`,
+	name: `Cyber Jaw`,
+	tags: ["C"],
+}, {
+	id: `250`,
+	name: `CYKA блять`,
+	tags: ["C"],
+}, {
+	id: `251`,
+	name: `ↃT`,
+	tags: ["non-letter start"],
+}, {
+	id: `252`,
+	name: `DANCE PARTY`,
+	tags: ["D"],
+}, {
+	id: `253`,
+	name: `DANGER`,
+	tags: ["D"],
+}, {
+	id: `254`,
+	name: `Dante's Matchstick™`,
+	tags: ["D"],
+}, {
+	id: `255`,
+	name: `DARK KERMIT`,
+	tags: ["D"],
+}, {
+	id: `256`,
+	name: `Dark Money`,
+	tags: ["D"],
+}, {
+	id: `257`,
+	name: `Dark Sacrifice`,
+	tags: ["D"],
+}, {
+	id: `258`,
+	name: `Dash Crystal`,
+	tags: ["D","multi-colored"],
+}, {
+	authors: "Cynthia Clementine",
+	id: `259`,
+	name: `Dated Reference`,
+	tags: ["D"],
+}, {
+	id: `260`,
+	name: `DAWN of the IRON AGE`,
+	tags: ["D"],
+}, {
+	id: `261`,
+	name: `DAY`,
+	tags: ["D","ELEMENT"],
+}, {
+	id: `262`,
+	name: `DEAD on the Inside`,
+	tags: ["D"],
+}, {
+	id: `263`,
+	name: `DEATH BY BLEED THROUGH`,
+	tags: ["D"],
+}, {
+	id: `264`,
+	name: `DEATH NOTE 2`,
+	tags: ["D"],
+}, {
+	id: `265`,
+	name: `DEATH NOTE`,
+	tags: ["D"],
+}, {
+	id: `266`,
+	name: `Deathspacito`,
+	tags: ["D"],
+}, {
+	id: `267`,
+	name: `DEBT`,
+	tags: ["D","multi-colored"],
+}, {
+	id: `268`,
+	name: `DEGENERATE`,
+	tags: ["D"],
+}, {
+	id: `269`,
+	name: `Delayed reaction`,
+	tags: ["D"],
+}, {
+	id: `270`,
+	name: `Delegate`,
+	tags: ["D"],
+}, {
+	id: `271`,
+	name: `DelSaurus`,
+	tags: ["D"],
+}, {
+	id: `272`,
+	name: `Development Card`,
+	tags: ["D"],
+}, {
+	id: `273`,
+	name: `Diamond Shovel`,
+	tags: ["D","multi-colored"],
+}, {
+	id: `274`,
+	name: `Dictionary`,
+	tags: ["D"],
+}, {
+	id: `275`,
+	name: `Did Not Strike Oil`,
+	tags: ["D"],
+}, {
+	id: `276`,
+	name: `DIE BUTTER IST ALLE`,
+	tags: ["D"],
+}, {
+	id: `277`,
+	name: `DIE, DYE, DIE!`,
+	tags: ["D"],
+}, {
+	id: `278`,
+	name: `Die`,
+	tags: ["D"],
+}, {
+	id: `279`,
+	name: `Differential Equations 2`,
+	tags: ["D","multi-colored"],
+}, {
+	id: `280`,
+	name: `DIFFERENTIAL equations`,
+	tags: ["D","multi-colored"],
+}, {
+	id: `281`,
+	name: `Difficult Search`,
+	tags: ["D"],
+}, {
+	id: `282`,
+	name: `Diglet`,
+	tags: ["D","multi-colored"],
+}, {
+	id: `283`,
+	name: `Dimple`,
+	tags: ["D"],
+}, {
+	id: `284`,
+	name: `Direct Democracy`,
+	tags: ["D"],
+}, {
+	id: `285`,
+	name: `Dis-cord`,
+	tags: ["D"],
+}, {
+	id: `286`,
+	name: `Disintegration`,
+	tags: ["D"],
+}, {
+	id: `287`,
+	name: `DISOBEDIENCE`,
+	tags: ["D"],
+}, {
+	id: `288`,
+	name: `Disproportionate Features`,
+	tags: ["D"],
+}, {
+	id: `289`,
+	name: `dissapointment`,
+	tags: ["D"],
+}, {
+	id: `290`,
+	name: `Dissenting Opinion`,
+	tags: ["D"],
+}, {
+	id: `291`,
+	name: `DISTUWBINGWY DETAWED UWU`,
+	tags: ["D"],
+}, {
+	id: `292`,
+	name: `DL;Discord or TS;Discard`,
+	tags: ["D"],
+}, {
+	id: `293`,
+	name: `DN?`,
+	tags: ["D"],
+}, {
+	id: `294`,
+	name: `Doesn't Make it onto the Docket`,
+	tags: ["D"],
+}, {
+	id: `295`,
+	name: `Dog Ate your Homework`,
+	tags: ["D"],
+}, {
+	id: `296`,
+	name: `DOG`,
+	tags: ["D","multi-colored"],
+}, {
+	id: `297`,
+	name: `Dominator`,
+	tags: ["D"],
+}, {
+	id: `298`,
+	name: `Domo`,
+	tags: ["D","multi-colored"],
+}, {
+	id: `299`,
+	name: `Don't know where your 8th period is`,
+	tags: ["D","multi-colored"],
+}, {
+	id: `300`,
+	name: `Donke mee-mee`,
+	tags: ["D"],
+}, {
+	id: `301`,
+	name: `Dot`,
+	tags: ["D"],
+}, {
+	id: `302`,
+	name: `Double Jeopardy`,
+	tags: ["D"],
+}, {
+	id: `303`,
+	name: `Double Trouble`,
+	tags: ["D","multi-colored"],
+}, {
+	id: `304`,
+	name: `DOUBLE VAMPIRE CARD`,
+	tags: ["D"],
+}, {
+	id: `305`,
+	name: `Double-Jointed`,
+	tags: ["D"],
+}, {
+	id: `306`,
+	name: `Doubt card`,
+	tags: ["D"],
+}, {
+	id: `307`,
+	name: `Dragons!!`,
+	tags: ["D"],
+}, {
+	id: `308`,
+	name: `Draw Card Curse`,
+	tags: ["D","multi-colored"],
+}, {
+	id: `309`,
+	name: `DRONE STRIKE`,
+	tags: ["D"],
+}, {
+	id: `310`,
+	name: `DRUNKEN TIGER`,
+	tags: ["D"],
+}, {
+	id: `311`,
+	name: `Dscore:dt`,
+	tags: ["D"],
+}, {
+	id: `312`,
+	name: `Duck Rabbit`,
+	tags: ["D"],
+}, {
+	id: `313`,
+	name: `Dungeons and...`,
+	tags: ["D"],
+}, {
+	id: `314`,
+	name: `Dungeons, Dungeons, and more Dungeons`,
+	tags: ["D"],
+}, {
+	id: `315`,
+	name: `Dut dut dut`,
+	tags: ["D"],
+}, {
+	id: `316`,
+	name: `Dwayne the "Block" Johnson`,
+	tags: ["D"],
+}, {
+	id: `317`,
+	name: `Earl Warren`,
+	tags: ["E"],
+}, {
+	id: `318`,
+	name: `Ecchi`,
+	tags: ["E"],
+}, {
+	id: `319`,
+	name: `Egad`,
+	tags: ["E"],
+}, {
+	id: `320`,
+	name: `Eggfacts dot fun`,
+	tags: ["E"],
+}, {
+	id: `321`,
+	name: `Eidos manipulation`,
+	tags: ["E"],
+}, {
+	id: `322`,
+	name: `el niño 2`,
+	tags: ["E", "multi-colored"],
+}, {
+	id: `323`,
+	name: `El niño`,
+	tags: ["E", "multi-colored"],
+}, {
+	authors: "Alex Boezer",
+	id: `324`,
+	imgType: `jpg`,
+	name: `Eldritch Horror`,
+	tags: ["E"],
+}, {
+	id: `325`,
+	name: `Electric Arc Furnace`,
+	tags: ["E"],
+}, {
+	id: `326`,
+	name: `ELON DUSK`,
+	tags: ["E"],
+}, {
+	id: `327`,
+	name: `Empty Check`,
+	tags: ["E"],
+}, {
+	id: `328`,
+	name: `Enchilada of Magic and Justice`,
+	tags: ["E","multi-colored"],
+}, {
+	id: `329`,
+	name: `Ene`,
+	tags: ["E"],
+}, {
+	id: `330`,
+	name: `Engage in unliving`,
+	tags: ["E"],
+}, {
+	id: `331`,
+	name: `enots emit`,
+	tags: ["E"],
+}, {
+	id: `332`,
+	name: `EPIPLECTIC BIKE`,
+	tags: ["E"],
+}, {
+	id: `333`,
+	name: `ERERRORREORRRERRORRORERROR`,
+	tags: ["E"],
+}, {
+	id: `334`,
+	name: `Everybody Hates Noah`,
+	tags: ["E"],
+}, {
+	id: `335`,
+	name: `Everyone is here!`,
+	tags: ["E"],
+}, {
+	id: `336`,
+	name: `Evil Platypus`,
+	tags: ["E","multi-colored"],
+}, {
+	id: `337`,
+	name: `EXE`,
+	tags: ["E"],
+}, {
+	id: `338`,
+	name: `EXEcutive Order`,
+	tags: ["E"],
+}, {
+	id: `339`,
+	name: `Existence Trophy`,
+	tags: ["E"],
+}, {
+	id: `340`,
+	name: `Exit Poll`,
+	tags: ["E"],
+}, {
+	id: `341`,
+	name: `Expand Protector A`,
+	tags: ["E"],
+}, {
+	id: `342`,
+	name: `Expand Protector B`,
+	tags: ["E"],
+}, {
+	id: `343`,
+	name: `EXPAND`,
+	tags: ["E"],
+}, {
+	authors: "Tushar Rangaswamy",
+	id: `344`,
+	name: `Explosion Magic`,
+	tags: ["E","multi-colored"],
+}, {
+	id: `345`,
+	name: `Expo Marker`,
+	tags: ["E"],
+}, {
+	id: `346`,
+	name: `Extreme Range High Capacity Self-charging swapper`,
+	tags: ["E"],
+}, {
+	id: `347`,
+	name: `Extremophile`,
+	tags: ["E"],
+}, {
+	id: `348`,
+	name: `Eye of Corruption`,
+	tags: ["E"],
+}, {
+	id: `349`,
+	name: `Eyjafjallajokull`,
+	tags: ["E"],
+}, {
+	id: `350`,
+	name: `F^-1(x)`,
+	tags: ["F"],
+}, {
+	id: `351`,
+	name: `fancy wireframe cube`,
+	tags: ["F"],
+}, {
+	id: `352`,
+	name: `Fault Line`,
+	tags: ["F"],
+}, {
+	id: `353`,
+	name: `FCPSON`,
+	tags: ["F"],
+}, {
+	id: `354`,
+	name: `Federalism`,
+	tags: ["F"],
+}, {
+	id: `355`,
+	name: `FERACTAL`,
+	tags: ["F","multi-colored"],
+}, {
+	id: `356`,
+	name: `Fermata Rest`,
+	tags: ["F"],
+}, {
+	id: `357`,
+	name: `Filming vertically`,
+	tags: ["F","multi-colored"],
+}, {
+	id: `358`,
+	name: `Find all of the parts of the TI-84 to get 10000pts! (BR)`,
+	tags: ["F"],
+}, {
+	id: `359`,
+	name: `Find all of the parts of the TI-84 to get 10000pts! (TL)`,
+	tags: ["F"],
+}, {
+	id: `360`,
+	name: `Find all of the parts of the TI-84 to get 10000pts! (TR)`,
+	tags: ["F"],
+}, {
+	id: `361`,
+	name: `Find all the parts of the TI-84 to get 10000pts! (BL)`,
+	tags: ["F"],
+}, {
+	id: `362`,
+	name: `finite glove`,
+	tags: ["F"],
+}, {
+	id: `363`,
+	name: `Fire Emoji`,
+	tags: ["F","multi-colored"],
+}, {
+	id: `364`,
+	name: `Fire Flower`,
+	tags: ["F"],
+}, {
+	id: `365`,
+	name: `Fire Roasted Fire`,
+	tags: ["F","multi-colored"],
+}, {
+	id: `366`,
+	name: `Fireworks!!`,
+	tags: ["F","multi-colored"],
+}, {
+	id: `367`,
+	name: `Fish Bunjin's Down Special`,
+	tags: ["F"],
+}, {
+	id: `368`,
+	name: `FishBinjin's Neutral Special`,
+	tags: ["F"],
+}, {
+	id: `369`,
+	name: `Flash STopper`,
+	tags: ["F"],
+}, {
+	id: `370`,
+	name: `Flip Badge`,
+	tags: ["F"],
+}, {
+	authors: "Cynthia Clementine",
+	id: `371`,
+	name: `floating point precision error`,
+	tags: ["F","multi-colored"],
+}, {
+	id: `372`,
+	name: `Flow Chart`,
+	tags: ["F"],
+}, {
+	id: `373`,
+	name: `Flowey the Flower`,
+	tags: ["F"],
+}, {
+	id: `374`,
+	name: `Flux Capacitor`,
+	tags: ["F"],
+}, {
+	id: `375`,
+	name: `Fog`,
+	tags: ["F"],
+}, {
+	id: `376`,
+	name: `Fool's Gold`,
+	tags: ["F","multi-colored"],
+}, {
+	id: `377`,
+	name: `for (int i=1; i≤playerCount; i++) {cardEffect(i, effect)}`,
+	tags: ["F"],
+}, {
+	id: `378`,
+	name: `for loop`,
+	tags: ["F"],
+}, {
+	id: `379`,
+	name: `FOREST FIRE`,
+	tags: ["F","multi-colored"],
+}, {
+	id: `380`,
+	name: `FCPSON`,
+	tags: ["F"],
+}, {
+	id: `381`,
+	name: `Franklin D. Roosevelt`,
+	tags: ["F"],
+}, {
+	id: `382`,
+	name: `Free Or Reduced Price Lunch`,
+	tags: ["F","multi-colored"],
+}, {
+	authors: "Tushar Rangaswamy",
+	id: `383`,
+	name: `Freeze Sign`,
+	tags: ["F"],
+}, {
+	id: `384`,
+	name: `Freezing Rain`,
+	tags: ["F"],
+}, {
+	id: `385`,
+	name: `Freshman Robot`,
+	tags: ["F","multi-colored"],
+}, {
+	id: `386`,
+	name: `Frostbite`,
+	tags: ["F"],
+}, {
+	id: `387`,
+	name: `Frozen / creepy mario`,
+	tags: ["F","multi-colored"],
+}, {
+	id: `388`,
+	name: `Future Value`,
+	tags: ["F"],
+}, {
+	id: `389`,
+	name: `GADSBY`,
+	tags: ["G","multi-colored"],
+}, {
+	id: `390`,
+	name: `Game Over`,
+	tags: ["G"],
+}, {
+	id: `391`,
+	name: `Garbage Truck`,
+	tags: ["G"],
+}, {
+	id: `392`,
+	name: `Gecko Farmers State of the Union`,
+	tags: ["G","multi-colored"],
+}, {
+	id: `393`,
+	name: `Generational Divide`,
+	tags: ["G"],
+}, {
+	id: `394`,
+	name: `generic POINT CARD`,
+	tags: ["G"],
+}, {
+	id: `395`,
+	name: `George A. Custer`,
+	tags: ["G","multi-colored"],
+}, {
+	id: `396`,
+	name: `Gerald Beaver`,
+	tags: ["G"],
+}, {
+	id: `397`,
+	name: `German Immigrant`,
+	tags: ["G","multi-colored"],
+}, {
+	id: `398`,
+	name: `Germaphobe`,
+	tags: ["G","multi-colored"],
+}, {
+	id: `399`,
+	name: `Gerrymandering`,
+	tags: ["G"],
+}, {
+	id: `400`,
+	name: `Get slapped by guy to left`,
+	tags: ["G"],
+}, {
+	id: `401`,
+	name: `Ghost of Imaginary sidekick`,
+	tags: ["G"],
+}, {
+	id: `402`,
+	name: `Glass Swap`,
+	tags: ["G"],
+}, {
+	id: `403`,
+	name: `GLASSWARE`,
+	tags: ["G"],
+}, {
+	id: `404`,
+	name: `GLOO`,
+	tags: ["G","multi-colored"],
+}, {
+	id: `405`,
+	name: `Gold Bus`,
+	tags: ["G","multi-colored"],
+}, {
+	id: `406`,
+	name: `Good Card I`,
+	tags: ["G"],
+}, {
+	id: `407`,
+	name: `Good Card II`,
+	tags: ["G"],
+}, {
+	id: `408`,
+	name: `Good Card III`,
+	tags: ["G"],
+}, {
+	id: `409`,
+	name: `Good Card IV`,
+	tags: ["G"],
+}, {
+	id: `410`,
+	name: `Good Card V`,
+	tags: ["G"],
+}, {
+	id: `411`,
+	name: `Good Card VI`,
+	tags: ["G"],
+}, {
+	id: `412`,
+	name: `Good Card VII`,
+	tags: ["G"],
+}, {
+	id: `413`,
+	name: `Good Card`,
+	tags: ["G"],
+}, {
+	id: `414`,
+	name: `Good Citizen`,
+	tags: ["G"],
+}, {
+	id: `415`,
+	name: `Goomba`,
+	tags: ["G"],
+}, {
+	id: `416`,
+	name: `Gotem`,
+	tags: ["G"],
+}, {
+	id: `417`,
+	name: `Government cover-up`,
+	tags: ["G","multi-colored"],
+}, {
+	id: `418`,
+	name: `Greco-Russian Cyrillic Alphabet`,
+	tags: ["G"],
+}, {
+	id: `419`,
+	name: `Greed`,
+	tags: ["G","multi-colored"],
+}, {
+	id: `420`,
+	name: `Green Light`,
+	tags: ["G","multi-colored"],
+}, {
+	id: `421`,
+	name: `GREEN NEW DEAL`,
+	tags: ["G","multi-colored"],
+}, {
+	id: `422`,
+	name: `Grover Cleveland`,
+	tags: ["G","multi-colored"],
+}, {
+	id: `423`,
+	name: `Grumpy Cat`,
+	tags: ["G"],
+}, {
+	id: `424`,
+	name: `Ha, You were under the presumption that this card would be usefull`,
+	tags: ["H"],
+}, {
+	id: `425`,
+	name: `Half Finished Card`,
+	tags: ["H"],
+}, {
+	id: `426`,
+	name: `Hand-drawn Italics`,
+	tags: ["H"],
+}, {
+	id: `427`,
+	name: `Happy Birthday! (not really)`,
+	tags: ["H"],
+}, {
+	id: `428`,
+	name: `Hats`,
+	tags: ["H"],
+}, {
+	id: `429`,
+	name: `Haunted Hourglass`,
+	tags: ["H","multi-colored"],
+}, {
+	id: `430`,
+	name: `Heads or Guillotines`,
+	tags: ["H"],
+}, {
+	id: `431`,
+	name: `Heart Locket`,
+	tags: ["H"],
+}, {
+	id: `432`,
+	name: `help me makecards`,
+	tags: ["H"],
+}, {
+	id: `433`,
+	name: `Herm`,
+	tags: ["H"],
+}, {
+	id: `434`,
+	name: `Hermes Boots`,
+	tags: ["H","multi-colored"],
+}, {
+	id: `435`,
+	name: `Hg`,
+	tags: ["H"],
+}, {
+	id: `436`,
+	name: `Hidden Reinforcements`,
+	tags: ["H","multi-colored"],
+}, {
+	id: `437`,
+	name: `High Effort Card`,
+	tags: ["H"],
+}, {
+	id: `438`,
+	name: `Hindsight`,
+	tags: ["H"],
+}, {
+	id: `439`,
+	name: `Holiday Spirit(?)`,
+	tags: ["H", "multi-colored"],
+}, {
+	id: `440`,
+	name: `Hole Puncher Cut Card`,
+	tags: ["H"],
+}, {
+	id: `441`,
+	name: `holy purge`,
+	tags: ["H","multi-colored"],
+}, {
+	id: `442`,
+	name: `Hot Chocolate`,
+	tags: ["H","multi-colored"],
+}, {
+	id: `443`,
+	name: `Hot Dogs & Cats`,
+	tags: ["H","multi-colored"],
+}, {
+	id: `444`,
+	name: `Hot Glue`,
+	tags: ["H"],
+}, {
+	id: `445`,
+	name: `Huff and Puff`,
+	tags: ["H"],
+}, {
+	id: `446`,
+	name: `Hungry Node`,
+	tags: ["H","multi-colored"],
+}, {
+	id: `447`,
+	name: `Hunter`,
+	tags: ["H","multi-colored"],
+}, {
+	id: `448`,
+	name: `Hydration Nation`,
+	tags: ["H","multi-colored"],
+}, {
+	id: `449`,
+	name: `Hydraulic Engineering`,
+	tags: ["H","multi-colored"],
+}, {
+	id: `450`,
+	name: `I Saw Mommy Kissing Santa Claus`,
+	tags: ["I"],
+}, {
+	id: `451`,
+	name: `I want you, to join the PILE`,
+	tags: ["I"],
+}, {
+	id: `452`,
+	name: `I'M ALREADY TRACER`,
+	tags: ["I"],
+}, {
+	id: `453`,
+	name: `I've run out of creativity`,
+	tags: ["I"],
+}, {
+	id: `454`,
+	name: `IBET Teachers`,
+	tags: ["I"],
+}, {
+	id: `455`,
+	name: `ICEBERG`,
+	tags: ["I"],
+}, {
+	id: `456`,
+	name: `Idk, I just wanted to draw Garfield`,
+	tags: ["I"],
+}, {
+	id: `457`,
+	name: `IF YOU Take off TWO articles of clothing`,
+	tags: ["I"],
+}, {
+	id: `458`,
+	name: `Illuminati`,
+	tags: ["I"],
+}, {
+	id: `459`,
+	name: `Imaginary Contract`,
+	tags: ["I","multi-colored"],
+}, {
+	id: `460`,
+	name: `Imagine playing the game`,
+	tags: ["I"],
+}, {
+	id: `461`,
+	name: `Immediate Distribution`,
+	tags: ["I","multi-colored"],
+}, {
+	id: `462`,
+	name: `Impeachment and Indictment`,
+	tags: ["I","multi-colored"],
+}, {
+	id: `463`,
+	name: `IMPERIAL PRESIDENCY`,
+	tags: ["I"],
+}, {
+	id: `464`,
+	name: `Improper yet Humorous Punctuation`,
+	tags: ["I"],
+}, {
+	id: `465`,
+	name: `IN CASE OF EMERGENCY`,
+	tags: ["I","multi-colored"],
+}, {
+	id: `466`,
+	name: `Incredibly Inconsistent Amount of Points`,
+	tags: ["I"],
+}, {
+	id: `467`,
+	name: `INDEFINΛTE INTEGRΛL`,
+	tags: ["I"],
+}, {
+	id: `468`,
+	name: `Index Card`,
+	tags: ["I"],
+}, {
+	id: `469`,
+	name: `Indian 2`,
+	tags: ["I","multi-colored"],
+}, {
+	id: `470`,
+	name: `Indian Mother`,
+	tags: ["I"],
+}, {
+	id: `471`,
+	name: `Indian`,
+	tags: ["I","multi-colored"],
+}, {
+	id: `472`,
+	name: `Individual Donations`,
+	tags: ["I"],
+}, {
+	id: `473`,
+	name: `INFERIOR SIEGE WEAPON`,
+	tags: ["I"],
+}, {
+	id: `474`,
+	name: `Infinigon`,
+	tags: ["I"],
+}, {
+	id: `475`,
+	name: `Infinity^2 Gauntlet`,
+	tags: ["I","multi-colored"],
+}, {
+	id: `476`,
+	name: `Inflation`,
+	tags: ["I"],
+}, {
+	id: `477`,
+	name: `Infusion`,
+	tags: ["I"],
+}, {
+	id: `478`,
+	name: `iNite MC`,
+	tags: ["I"],
+}, {
+	id: `479`,
+	name: `Inktober`,
+	tags: ["I","multi-colored"],
+}, {
+	id: `480`,
+	name: `Inkwell`,
+	tags: ["I"],
+}, {
+	id: `481`,
+	name: `INSPECTION`,
+	tags: ["I","ELEMENT","multi-colored"],
+}, {
+	id: `482`,
+	name: `Inspirationally Deficient Card`,
+	tags: ["I"],
+}, {
+	id: `483`,
+	name: `INTERGNAT`,
+	tags: ["I"],
+}, {
+	id: `484`,
+	name: `INTERSTATE HIGHWAY SYSTEM`,
+	tags: ["I","multi-colored"],
+}, {
+	id: `485`,
+	name: `INTO THE GOOD KNIGHT`,
+	tags: ["I"],
+}, {
+	id: `486`,
+	name: `Intrusive Advertising`,
+	tags: ["I"],
+}, {
+	id: `487`,
+	name: `Iowa Caucuses`,
+	tags: ["I"],
+}, {
+	id: `488`,
+	name: `Irish Immigrant`,
+	tags: ["I","multi-colored"],
+}, {
+	id: `489`,
+	name: `Is that even sustainable?`,
+	tags: ["I"],
+}, {
+	id: `490`,
+	name: `IS`,
+	tags: ["I","ELEMENT"],
+}, {
+	id: `491`,
+	name: `It slices`,
+	tags: ["I"],
+}, {
+	id: `492`,
+	name: `It's ok dude`,
+	tags: ["I"],
+}, {
+	id: `493`,
+	name: `It's time to d-d-d-d-duel`,
+	tags: ["I"],
+}, {
+	id: `494`,
+	name: `James Handlon #1`,
+	tags: ["J"],
+}, {
+	id: `495`,
+	name: `James Handlon #2`,
+	tags: ["J"],
+}, {
+	id: `496`,
+	name: `James Handlon #3`,
+	tags: ["J"],
+}, {
+	id: `497`,
+	name: `James Playlist - Separate Ways`,
+	tags: ["J","multi-colored"],
+}, {
+	id: `498`,
+	name: `James`,
+	tags: ["J"],
+}, {
+	id: `499`,
+	name: `James's Artistic Talent`,
+	tags: ["J"],
+}, {
+	id: `500`,
+	name: `Jewish`,
+	tags: ["J"],
+}, {
+	id: `501`,
+	name: `Joe`,
+	tags: ["J"],
+}, {
+	id: `502`,
+	name: `Joeseph's literally trolling #2`,
+	tags: ["J"],
+}, {
+	id: `503`,
+	name: `Joeseph's literally trolling`,
+	tags: ["J"],
+}, {
+	id: `504`,
+	name: `John F. Kennedy`,
+	tags: ["J"],
+}, {
+	id: `505`,
+	name: `John Marshall`,
+	tags: ["J"],
+}, {
+	id: `506`,
+	name: `Jones Big @$$ BBQ + Foot Massage`,
+	tags: ["J"],
+}, {
+	id: `507`,
+	name: `Joseph Joestar`,
+	tags: ["J"],
+}, {
+	id: `508`,
+	name: `Joseph Stalin`,
+	tags: ["J"],
+}, {
+	id: `509`,
+	name: `Jotaro Kujo`,
+	tags: ["J"],
+}, {
+	id: `510`,
+	name: `jsFiddle`,
+	tags: ["J"],
+}, {
+	id: `511`,
+	name: `Judicial Review`,
+	tags: ["J"],
+}, {
+	id: `512`,
+	name: `Jumping Jacks`,
+	tags: ["J"],
+}, {
+	id: `513`,
+	name: `JUMPING, JUMPING`,
+	tags: ["J"],
+}, {
+	id: `514`,
+	name: `Just an average F`,
+	tags: ["J"],
+}, {
+	id: `515`,
+	name: `Just Breathe`,
+	tags: ["J"],
+}, {
+	id: `516`,
+	name: `Just like in real life!`,
+	tags: ["J"],
+}, {
+	id: `517`,
+	name: `Just normal Kirby`,
+	tags: ["J"],
+}, {
+	id: `518`,
+	name: `Just Your Imagination`,
+	tags: ["J"],
+}, {
+	id: `519`,
+	name: `karel.explode();`,
+	tags: ["K"],
+}, {
+	id: `520`,
+	name: `Karma (sorta)`,
+	tags: ["K","multi-colored"],
+}, {
+	id: `521`,
+	name: `KARMA`,
+	tags: ["K","multi-colored"],
+}, {
+	authors: "Alexander",
+	id: `522`,
+	name: `Keeling Curve`,
+	tags: ["K"],
+}, {
+	id: `523`,
+	name: `Keeling curve`,
+	tags: ["K"],
+}, {
+	id: `524`,
+	name: `KERCHOO`,
+	tags: ["K"],
+}, {
+	id: `525`,
+	name: `Ketchup`,
+	tags: ["K"],
+}, {
+	id: `526`,
+	name: `KGB Hit`,
+	tags: ["K"],
+}, {
+	id: `527`,
+	name: `Killer Queen`,
+	tags: ["K"],
+}, {
+	id: `528`,
+	name: `Kind Cat Lady`,
+	tags: ["K"],
+}, {
+	id: `529`,
+	name: `KING CRIMSON`,
+	tags: ["K"],
+}, {
+	id: `530`,
+	name: `KING LEAR`,
+	tags: ["K"],
+}, {
+	id: `531`,
+	name: `Kira Yoshikage`,
+	tags: ["K"],
+}, {
+	id: `532`,
+	name: `Kirby's special`,
+	tags: ["K"],
+}, {
+	id: `533`,
+	name: `Kirkland Signature`,
+	tags: ["K"],
+}, {
+	id: `534`,
+	name: `L'Hôpital's card`,
+	tags: ["L"],
+}, {
+	id: `535`,
+	name: `lämp`,
+	tags: ["L"],
+}, {
+	id: `536`,
+	name: `LASER GUIDED LASER`,
+	tags: ["L"],
+}, {
+	id: `537`,
+	name: `Last Christmas`,
+	tags: ["L"],
+}, {
+	id: `538`,
+	name: `Late Bus Pass`,
+	tags: ["L"],
+}, {
+	id: `539`,
+	name: `LaTex`,
+	tags: ["L"],
+}, {
+	id: `540`,
+	name: `QKLBQQMESIQBWIIHIHEQNOBEAILYEFDEASNQOB STUACLMATHRASPIQRACREIYONCLILLOLMOUB RFVMQAZLPRYFTNBNAMOMMBBALMQPCFRPDACLM`,
+	tags: ["Q","wide", "multi-colored"],
+}, {
+	id: `541`,
+	name: `LEATHERMAN`,
+	tags: ["L"],
+}, {
+	id: `542`,
+	name: `Legs`,
+	tags: ["L"],
+}, {
+	id: `543`,
+	name: `LEO`,
+	tags: ["L","multi-colored"],
+}, {
+	id: `544`,
+	name: `Lesser Healing Potion`,
+	tags: ["L","multi-colored"],
+}, {
+	id: `545`,
+	name: `Level II Loot Crate`,
+	tags: ["L"],
+}, {
+	id: `546`,
+	name: `Li'l Macho Legs Cat`,
+	tags: ["L"],
+}, {
+	id: `547`,
+	name: `Liam`,
+	tags: ["L"],
+}, {
+	id: `548`,
+	name: `Light-Emitting Capacitor`,
+	tags: ["L","multi-colored"],
+}, {
+	id: `549`,
+	name: `Lightning Strike!`,
+	tags: ["L","multi-colored"],
+}, {
+	id: `550`,
+	name: `Limited Time Offer!`,
+	tags: ["L"],
+}, {
+	id: `551`,
+	name: `Line-Item veto`,
+	tags: ["L","multi-colored"],
+}, {
+	id: `552`,
+	name: `Liquid DEATH`,
+	tags: ["L"],
+}, {
+	id: `553`,
+	name: `little toe`,
+	tags: ["L"],
+}, {
+	id: `554`,
+	name: `LIVING LIFE TO THE FULLEST`,
+	tags: ["L","multi-colored"],
+}, {
+	id: `555`,
+	name: `LOCK PICK SET`,
+	tags: ["L"],
+}, {
+	id: `556`,
+	name: `LOCKDOWN`,
+	tags: ["L","multi-colored"],
+}, {
+	id: `557`,
+	name: `Long Sock`,
+	tags: ["L"],
+}, {
+	id: `558`,
+	name: `Loophole finder`,
+	tags: ["L"],
+}, {
+	id: `559`,
+	name: `Loot Crate`,
+	tags: ["L","multi-colored"],
+}, {
+	id: `560`,
+	name: `Loss`,
+	tags: ["L"],
+}, {
+	id: `561`,
+	name: `Lucas`,
+	tags: ["L"],
+}, {
+	id: `562`,
+	name: `Lucky Charms`,
+	tags: ["L","multi-colored"],
+}, {
+	authors: "Joseph Rother",
+	id: `563`,
+	name: `Luigi in da Femur Breaker`,
+	tags: ["L"],
+}, {
+	id: `564`,
+	name: `Lvl. 35 Mafia Boss`,
+	tags: ["L"],
+}, {
+	id: `565`,
+	name: `MACCHIATO`,
+	tags: ["M"],
+}, {
+	id: `566`,
+	name: `Mairo's coinless challenge`,
+	tags: ["M"],
+}, {
+	id: `567`,
+	name: `MAJORITY RULE`,
+	tags: ["M"],
+}, {
+	id: `568`,
+	name: `Mako Mankanshoku`,
+	tags: ["M"],
+}, {
+	id: `569`,
+	name: `MANY CATS`,
+	tags: ["M"],
+}, {
+	id: `570`,
+	name: `Mario Maker stacking trick`,
+	tags: ["M"],
+}, {
+	id: `571`,
+	name: `Marketing`,
+	tags: ["M"],
+}, {
+	id: `572`,
+	name: `Mary Poppins`,
+	tags: ["M"],
+}, {
+	id: `573`,
+	name: `MATH BOMB`,
+	tags: ["M","multi-colored"],
+}, {
+	id: `574`,
+	name: `Math Team A`,
+	tags: ["M"],
+}, {
+	id: `575`,
+	name: `Matthew Cox??`,
+	tags: ["M"],
+}, {
+	id: `576`,
+	name: `Mayoi Hachikoji`,
+	tags: ["M"],
+}, {
+	id: `577`,
+	name: `Me Me Big Boy`,
+	tags: ["M"],
+}, {
+	id: `578`,
+	name: `MEDIC!!!`,
+	tags: ["M"],
+}, {
+	id: `579`,
+	name: `Mediocre Card 2`,
+	tags: ["M"],
+}, {
+	id: `580`,
+	name: `Mediocre Card 3`,
+	tags: ["M"],
+}, {
+	id: `581`,
+	name: `Mediocre Card 4`,
+	tags: ["M"],
+}, {
+	id: `582`,
+	name: `Mediocre Card 5`,
+	tags: ["M"],
+}, {
+	id: `583`,
+	name: `Mediocre Card 6`,
+	tags: ["M"],
+}, {
+	id: `584`,
+	name: `Meditation`,
+	tags: ["M"],
+}, {
+	id: `585`,
+	name: `Medusa`,
+	tags: ["M"],
+}, {
+	id: `586`,
+	name: `Memory Theft`,
+	tags: ["M"],
+}, {
+	id: `587`,
+	name: `MEMORY.`,
+	tags: ["M"],
+}, {
+	id: `588`,
+	name: `MENACE TO SOCIETY`,
+	tags: ["M"],
+}, {
+	id: `589`,
+	name: `Message in a Bottle`,
+	tags: ["M"],
+}, {
+	id: `590`,
+	name: `Mettaton Neo`,
+	tags: ["M"],
+}, {
+	id: `591`,
+	name: `Mia Mamma pet the goat again`,
+	tags: ["M"],
+}, {
+	id: `592`,
+	name: `Midas Touch`,
+	tags: ["M","multi-colored"],
+}, {
+	id: `593`,
+	name: `Middle Finger of Exodia`,
+	tags: ["M"],
+}, {
+	id: `594`,
+	name: `Midiocre Card 1`,
+	tags: ["M"],
+}, {
+	id: `595`,
+	name: `Midnight Baseball`,
+	tags: ["M","multi-colored"],
+}, {
+	id: `596`,
+	name: `Mikiri Counter`,
+	tags: ["M","multi-colored"],
+}, {
+	id: `597`,
+	name: `Minecraft Shovel (unpixelated)`,
+	tags: ["M"],
+}, {
+	id: `598`,
+	name: `MINISCULE GLYPH`,
+	tags: ["M"],
+}, {
+	id: `599`,
+	name: `Mirror Temple Crystal`,
+	tags: ["M"],
+}, {
+	id: `600`,
+	name: `Missile Silo`,
+	tags: ["M","multi-colored"],
+}, {
+	id: `601`,
+	name: `Missle Launcher Missle Launcher`,
+	tags: ["M"],
+}, {
+	id: `602`,
+	name: `Mitosis, when cells divide`,
+	tags: ["M"],
+}, {
+	id: `603`,
+	name: `MLM`,
+	tags: ["M"],
+}, {
+	id: `604`,
+	name: `Mobile Hotspot`,
+	tags: ["M"],
+}, {
+	id: `605`,
+	name: `Module Modular Modulest`,
+	tags: ["M"],
+}, {
+	id: `606`,
+	name: `Moment of Bruh`,
+	tags: ["M"],
+}, {
+	id: `607`,
+	name: `Mono`,
+	tags: ["M"],
+}, {
+	id: `608`,
+	name: `Monty Mole`,
+	tags: ["M"],
+}, {
+	id: `609`,
+	name: `MONUMENTAL OSBORNE`,
+	tags: ["M"],
+}, {
+	id: `610`,
+	name: `Mowing the lawn`,
+	tags: ["M","multi-colored"],
+}, {
+	id: `611`,
+	name: `Mozart's K231`,
+	tags: ["M"],
+}, {
+	id: `612`,
+	name: `Mr. Minecraft`,
+	tags: ["M"],
+}, {
+	id: `613`,
+	name: `Ms. Kucko`,
+	tags: ["M"],
+}, {
+	id: `614`,
+	name: `MTT Cooking Show`,
+	tags: ["M"],
+}, {
+	id: `615`,
+	name: `MTT Opera`,
+	tags: ["M"],
+}, {
+	id: `616`,
+	name: `MTT Quiz Show`,
+	tags: ["M"],
+}, {
+	id: `617`,
+	name: `Muckrakers`,
+	tags: ["M","multi-colored"],
+}, {
+	id: `618`,
+	name: `Multi-coin block`,
+	tags: ["M","multi-colored"],
+}, {
+	id: `619`,
+	name: `MUSE`,
+	tags: ["M"],
+}, {
+	authors: "Alexander",
+	id: `620`,
+	name: `Mutually Assured Destruction`,
+	tags: ["M","multi-colored"],
+}, {
+	id: `621`,
+	name: `Mutually Assured Destruction`,
+	tags: ["M"],
+}, {
+	id: `622`,
+	name: `Mutually Assured Thano-cycling`,
+	tags: ["M"],
+}, {
+	id: `623`,
+	name: `My art representation of Ash Ketchum`,
+	tags: ["M"],
+}, {
+	id: `624`,
+	name: `Mystery Goo`,
+	tags: ["M"],
+}, {
+	id: `625`,
+	name: `Mystery Slicer`,
+	tags: ["M","multi-colored"],
+}, {
+	id: `626`,
+	name: `Mystery Smoosher`,
+	tags: ["M","multi-colored"],
+}, {
+	id: `627`,
+	name: `Name That Tune`,
+	tags: ["N"],
+}, {
+	id: `628`,
+	name: `Name Thief`,
+	tags: ["N", "multi-colored"],
+}, {
+	authors: "Alex Boezer",
+	id: `629`,
+	imgType: `jpg`,
+	name: `Nanite Swarm`,
+	tags: ["N","multi-colored"],
+}, {
+	id: `630`,
+	name: `Nation Park Quarter Collection`,
+	tags: ["N"],
+}, {
+	id: `631`,
+	name: `NEGATIVE WORMHOLE`,
+	tags: ["N","multi-colored"],
+}, {
+	id: `632`,
+	name: `NEOSTEEL ENTHUSIASTS`,
+	tags: ["N"],
+}, {
+	id: `633`,
+	name: `Nerf Gun`,
+	tags: ["N"],
+}, {
+	id: `634`,
+	name: `New South`,
+	tags: ["N","multi-colored"],
+}, {
+	id: `635`,
+	name: `Nice Cream`,
+	tags: ["N"],
+}, {
+	id: `636`,
+	name: `Nikola Tesla`,
+	tags: ["N"],
+}, {
+	id: `637`,
+	name: `Nimbostratus`,
+	tags: ["N"],
+}, {
+	id: `638`,
+	name: `No more pies!`,
+	tags: ["N","multi-colored"],
+}, {
+	id: `639`,
+	name: `No one likes you`,
+	tags: ["N"],
+}, {
+	id: `640`,
+	name: `No point in it`,
+	tags: ["N"],
+}, {
+	id: `642`,
+	name: `No U`,
+	tags: ["N"],
+}, {
+	id: `643`,
+	name: `Noah's Balance`,
+	tags: ["N","multi-colored"],
+}, {
+	id: `644`,
+	name: `Noah's Hair`,
+	tags: ["N","multi-colored"],
+}, {
+	id: `645`,
+	name: `Noah's Left Eye`,
+	tags: ["N","multi-colored"],
+}, {
+	id: `646`,
+	name: `Noah's Left Leg`,
+	tags: ["N","multi-colored"],
+}, {
+	id: `647`,
+	name: `Noah's Right Leg`,
+	tags: ["N","multi-colored"],
+}, {
+	id: `648`,
+	name: `Noah's Super Synergy`,
+	tags: ["N","multi-colored"],
+}, {
+	id: `649`,
+	name: `Noah's Synergy`,
+	tags: ["N","multi-colored"],
+}, {
+	authors: "Tushar Rangaswamy",
+	id: `650`,
+	name: `Noisy Sign`,
+	tags: ["N","multi-colored"],
+}, {
+	id: `651`,
+	name: `NOODLE`,
+	tags: ["N"],
+}, {
+	id: `652`,
+	name: `Nope`,
+	tags: ["N","multi-colored"],
+}, {
+	id: `653`,
+	name: `NOT A NOAH CARD`,
+	tags: ["N","multi-colored"],
+}, {
+	id: `654`,
+	name: `Not on Eggplant`,
+	tags: ["N","multi-colored"],
+}, {
+	id: `655`,
+	name: `Not yours, anyway`,
+	tags: ["N"],
+}, {
+	id: `656`,
+	name: `NSA rootkit`,
+	tags: ["N"],
+}, {
+	id: `657`,
+	name: `Nugget`,
+	tags: ["N","multi-colored"],
+}, {
+	id: `658`,
+	name: `Nuke`,
+	tags: ["N"],
+}, {
+	id: `659`,
+	name: `O-qué, so now what?`,
+	tags: ["O", "multi-colored"],
+}, {
+	id: `660`,
+	name: `Obamacare`,
+	tags: ["O"],
+}, {
+	id: `661`,
+	name: `Observer`,
+	tags: ["O"],
+}, {
+	id: `662`,
+	name: `Obviously Not a Card`,
+	tags: ["O"],
+}, {
+	id: `663`,
+	name: `Oddball`,
+	tags: ["O","multi-colored"],
+}, {
+	id: `664`,
+	name: `Office Home and Student 2007`,
+	tags: ["O"],
+}, {
+	id: `665`,
+	name: `OILY MACARONI`,
+	tags: ["O"],
+}, {
+	authors: "Aaron Liu",
+	id: `666`,
+	name: `Old Potion`,
+	tags: ["O"],
+}, {
+	id: `667`,
+	name: `OMNI CARD`,
+	tags: ["O"],
+}, {
+	id: `668`,
+	name: `On any music player, listen to all of Moral Kombat theme by Misterious-theme`,
+	tags: ["O"],
+}, {
+	id: `669`,
+	name: `One Blank White Card`,
+	tags: ["O"],
+}, {
+	id: `670`,
+	name: `One Ring to Rule Them All`,
+	tags: ["O","multi-colored"],
+}, {
+	id: `671`,
+	name: `One Time Use`,
+	tags: ["O","wide"],
+}, {
+	id: `672`,
+	name: `Oops! Hah!`,
+	tags: ["O"],
+}, {
+	id: `673`,
+	name: `ORANGE LIZARD`,
+	tags: ["O"],
+}, {
+	id: `674`,
+	name: `Oregon Trail`,
+	tags: ["O","multi-colored"],
+}, {
+	id: `675`,
+	name: `ORONAMIN C`,
+	tags: ["O"],
+}, {
+	id: `676`,
+	name: `Out With A Bang`,
+	tags: ["O"],
+}, {
+	id: `677`,
+	name: `Overcompensation`,
+	tags: ["O"],
+}, {
+	id: `678`,
+	name: `Overstuffed Piñata`,
+	tags: ["O"],
+}, {
+	id: `679`,
+	name: `Package Manager`,
+	tags: ["P"],
+}, {
+	id: `680`,
+	name: `Paper Scissors Rock`,
+	tags: ["P"],
+}, {
+	id: `681`,
+	name: `Paper Tax!`,
+	tags: ["P"],
+}, {
+	id: `682`,
+	name: `Parched Desert`,
+	tags: ["P","multi-colored"],
+}, {
+	id: `683`,
+	name: `Pardis Sabeti`,
+	tags: ["P"],
+}, {
+	id: `684`,
+	name: `Parry`,
+	tags: ["P"],
+}, {
+	id: `685`,
+	name: `PAS UNE PIPE`,
+	tags: ["P"],
+}, {
+	id: `686`,
+	name: `Paspyr`,
+	tags: ["P"],
+}, {
+	id: `687`,
+	name: `Pass Go`,
+	tags: ["P","multi-colored"],
+}, {
+	id: `688`,
+	name: `Pass-Through Gate`,
+	tags: ["P","multi-colored"],
+}, {
+	id: `689`,
+	name: `Pass!`,
+	tags: ["P"],
+}, {
+	id: `690`,
+	name: `Passive Observation`,
+	tags: ["P","multi-colored"],
+}, {
+	id: `691`,
+	name: `PASSIVE TRANSPORT`,
+	tags: ["P"],
+}, {
+	id: `692`,
+	name: `Patent`,
+	tags: ["P"],
+}, {
+	id: `693`,
+	name: `pay2win`,
+	tags: ["P"],
+}, {
+	id: `694`,
+	name: `Pedestrian Mall Restaurant`,
+	tags: ["P","multi-colored"],
+}, {
+	id: `695`,
+	name: `Peer Pressure`,
+	tags: ["P"],
+}, {
+	id: `696`,
+	name: `Pelosi at the 2020 SOTU`,
+	tags: ["P"],
+}, {
+	id: `697`,
+	name: `PEN`,
+	tags: ["P","ELEMENT","multi-colored"],
+}, {
+	id: `698`,
+	name: `Pet Preferences`,
+	tags: ["P"],
+}, {
+	id: `699`,
+	name: `Philisphical Fence`,
+	tags: ["P"],
+}, {
+	id: `700`,
+	name: `Pi`,
+	tags: ["P"],
+}, {
+	id: `701`,
+	name: `Pickpocket`,
+	tags: ["P","multi-colored"],
+}, {
+	id: `702`,
+	name: `Pig Latin`,
+	tags: ["P","multi-colored"],
+}, {
+	id: `703`,
+	name: `Plausable deniability`,
+	tags: ["P"],
+}, {
+	id: `704`,
+	name: `Player's Trap`,
+	tags: ["P"],
+}, {
+	id: `705`,
+	name: `Playlist #1 - 911 : Mr. Lonely`,
+	tags: ["P", "multi-colored"],
+}, {
+	id: `706`,
+	name: `Playlist #1 - Deep Web`,
+	tags: ["P", "multi-colored"],
+}, {
+	id: `707`,
+	name: `Playlist #1 - don't play your card`,
+	tags: ["P", "multi-colored"],
+}, {
+	id: `708`,
+	name: `Playlist #1 - Flamingo`,
+	tags: ["P", "multi-colored"],
+}, {
+	id: `709`,
+	name: `Playlist #1 - Mr. Lonely`,
+	tags: ["P", "multi-colored"],
+}, {
+	id: `710`,
+	name: `Playlist #1 - narashite`,
+	tags: ["P", "multi-colored"],
+}, {
+	id: `711`,
+	name: `Playlist #1 - Playlist Pack #1`,
+	tags: ["P", "multi-colored"],
+}, {
+	id: `712`,
+	name: `Playlist #1 - Say It Ain't So`,
+	tags: ["P", "multi-colored"],
+}, {
+	id: `713`,
+	name: `Playlist #1 - Self Care`,
+	tags: ["P", "multi-colored"],
+}, {
+	id: `714`,
+	name: `Playlist #1 - Solo`,
+	tags: ["P", "multi-colored"],
+}, {
+	id: `715`,
+	name: `Playlist #1 - SWEET`,
+	tags: ["P", "multi-colored"],
+}, {
+	id: `716`,
+	name: `Playlist #1 - あふれる`,
+	tags: ["P", "multi-colored"],
+}, {
+	id: `717`,
+	name: `Playlist #2 - Battle Lines`,
+	tags: ["P", "multi-colored"],
+}, {
+	id: `718`,
+	name: `Playlist #2 - EARFQUAKE`,
+	tags: ["P", "multi-colored"],
+}, {
+	id: `719`,
+	name: `Playlist #2 - Hacker`,
+	tags: ["P"],
+}, {
+	id: `720`,
+	name: `Playlist #2 - Magic Ways`,
+	tags: ["P", "multi-colored"],
+}, {
+	id: `721`,
+	name: `Playlist #2 - Playlist Pack #2`,
+	tags: ["P", "multi-colored"],
+}, {
+	id: `722`,
+	name: `Playlist #2 - PONPONPON`,
+	tags: ["P", "multi-colored"],
+}, {
+	id: `723`,
+	name: `Playlist #2 - Run`,
+	tags: ["P", "multi-colored"],
+}, {
+	id: `724`,
+	name: `Playlist #2 - RUNAWAY`,
+	tags: ["P", "multi-colored"],
+}, {
+	id: `725`,
+	name: `Playlist #2 - Sunflower`,
+	tags: ["P", "multi-colored"],
+}, {
+	id: `726`,
+	name: `Playlist #2 - The Prawn Song`,
+	tags: ["P", "multi-colored"],
+}, {
+	id: `727`,
+	name: `Playlist #2 - 真っ黒`,
+	tags: ["P"],
+}, {
+	id: `728`,
+	name: `Playlist #3`,
+	tags: ["P"],
+}, {
+	id: `729`,
+	name: `please stop`,
+	tags: ["P","multi-colored"],
+}, {
+	id: `730`,
+	name: `Plot Armor`,
+	tags: ["P"],
+}, {
+	id: `731`,
+	name: `Pocket Veto`,
+	tags: ["P"],
+}, {
+	id: `732`,
+	name: `Poetic Gyre`,
+	tags: ["P"],
+}, {
+	id: `733`,
+	name: `Pointer`,
+	tags: ["P"],
+}, {
+	id: `734`,
+	name: `Pokeball 2`,
+	tags: ["P","multi-colored"],
+}, {
+	id: `735`,
+	name: `Pokeball`,
+	tags: ["P","multi-colored"],
+}, {
+	id: `736`,
+	name: `Pokémon GUN`,
+	tags: ["P", "multi-colored"],
+}, {
+	id: `737`,
+	name: `Political Action Committee`,
+	tags: ["P"],
+}, {
+	id: `738`,
+	name: `Politically Correct Period of Wintertime Festivities and Celebration`,
+	tags: ["P","multi-colored"],
+}, {
+	id: `739`,
+	name: `Politico`,
+	tags: ["P"],
+}, {
+	id: `740`,
+	name: `POPSTAR`,
+	tags: ["P","multi-colored"],
+}, {
+	id: `741`,
+	name: `Port-rait`,
+	tags: ["P"],
+}, {
+	id: `742`,
+	name: `POSITIVE WORMHOLE`,
+	tags: ["P"],
+}, {
+	id: `743`,
+	name: `Powered Minecart`,
+	tags: ["P"],
+}, {
+	authors: "Anish G.",
+	id: `744`,
+	name: `Prawn Begone`,
+	tags: ["P","multi-colored"],
+}, {
+	authors: "Anish G.",
+	id: `745`,
+	name: `Prawns Against Humanity`,
+	tags: ["P","multi-colored"],
+}, {
+	id: `746`,
+	name: `Presidential Democracy`,
+	tags: ["P"],
+}, {
+	id: `747`,
+	name: `Presidential Veto`,
+	tags: ["P"],
+}, {
+	id: `748`,
+	name: `PRETZELS IN A pringle can`,
+	tags: ["P","multi-colored"],
+}, {
+	id: `749`,
+	name: `Price is Right`,
+	tags: ["P"],
+}, {
+	id: `750`,
+	name: `Prime Line`,
+	tags: ["P"],
+}, {
+	id: `751`,
+	name: `Proactive Voting`,
+	tags: ["P"],
+}, {
+	id: `752`,
+	name: `PROBABILITY`,
+	tags: ["P"],
+}, {
+	id: `753`,
+	name: `PROCRASTINATION GIANT`,
+	tags: ["P"],
+}, {
+	id: `754`,
+	name: `Procrastination`,
+	tags: ["P","multi-colored"],
+}, {
+	id: `755`,
+	name: `PROXY PYLON`,
+	tags: ["P"],
+}, {
+	id: `756`,
+	name: `Pure Nail`,
+	tags: ["P"],
+}, {
+	id: `757`,
+	name: `Purple Man learns Fractions`,
+	tags: ["P"],
+}, {
+	id: `758`,
+	name: `Pzkpwf VI Tiger`,
+	tags: ["P"],
+}, {
+	id: `759`,
+	name: `Q`,
+	tags: ["Q"],
+}, {
+	id: `760`,
+	name: `Quarantine`,
+	tags: ["Q"],
+}, {
+	id: `761`,
+	name: `Quest`,
+	tags: ["Q"],
+}, {
+	id: `762`,
+	name: `Quintuple Helix`,
+	tags: ["Q", "multi-colored"],
+}, {
+	id: `763`,
+	name: `r/Iamverysmartcard`,
+	tags: ["R","wide","multi-colored"],
+}, {
+	id: `764`,
+	name: `r/whooooosh`,
+	tags: ["R"],
+}, {
+	id: `765`,
+	name: `Rabid Animal`,
+	tags: ["R"],
+}, {
+	id: `766`,
+	name: `Racoon`,
+	tags: ["R"],
+}, {
+	id: `767`,
+	name: `Rags to Riches`,
+	tags: ["R", "multi-colored"],
+}, {
+	id: `768`,
+	name: `Ratthew's Wrath`,
+	tags: ["R"],
+}, {
+	id: `769`,
+	name: `Real Knife`,
+	tags: ["R"],
+}, {
+	id: `770`,
+	name: `Recursion`,
+	tags: ["R"],
+}, {
+	id: `771`,
+	name: `Recycle Bin`,
+	tags: ["R","multi-colored"],
+}, {
+	id: `772`,
+	name: `Recycling Bin`,
+	tags: ["R","multi-colored"],
+}, {
+	id: `773`,
+	name: `RECYCLING INITIATIVE`,
+	tags: ["R"],
+}, {
+	id: `774`,
+	name: `Recycling`,
+	tags: ["R","multi-colored"],
+}, {
+	id: `775`,
+	name: `Red Berry`,
+	tags: ["R","multi-colored"],
+}, {
+	id: `776`,
+	name: `Red Mushroom`,
+	tags: ["R"],
+}, {
+	id: `777`,
+	name: `Redstone comparator`,
+	tags: ["R","multi-colored"],
+}, {
+	id: `778`,
+	name: `Redstone Repeater`,
+	tags: ["R"],
+}, {
+	id: `779`,
+	name: `REEEEEEEEEEEEMAN SUM`,
+	tags: ["R","multi-colored"],
+}, {
+	id: `780`,
+	name: `Reminder 2`,
+	tags: ["R","multi-colored"],
+}, {
+	id: `781`,
+	name: `Reminder`,
+	tags: ["R"],
+}, {
+	id: `782`,
+	name: `Representative Democracy 2`,
+	tags: ["R"],
+}, {
+	id: `783`,
+	name: `Representative Democracy`,
+	tags: ["R"],
+}, {
+	id: `784`,
+	name: `Republican Party`,
+	tags: ["R","multi-colored"],
+}, {
+	id: `785`,
+	name: `Research Statistics`,
+	tags: ["R"],
+}, {
+	id: `786`,
+	name: `Reservation`,
+	tags: ["R","multi-colored"],
+}, {
+	id: `787`,
+	name: `Reset the game`,
+	tags: ["R"],
+}, {
+	id: `788`,
+	name: `Reset the power supply`,
+	tags: ["R","multi-colored"],
+}, {
+	id: `789`,
+	name: `Retroactive Voting`,
+	tags: ["R"],
+}, {
+	id: `790`,
+	name: `Riffle Force`,
+	tags: ["R","multi-colored"],
+}, {
+	id: `791`,
+	name: `RIP`,
+	tags: ["R","multi-colored"],
+}, {
+	id: `792`,
+	name: `RNGesus`,
+	tags: ["R"],
+}, {
+	id: `793`,
+	name: `ROACH POP`,
+	tags: ["R"],
+}, {
+	id: `794`,
+	name: `Robbit Royale`,
+	tags: ["R"],
+}, {
+	id: `795`,
+	name: `Robin Hood`,
+	tags: ["R"],
+}, {
+	id: `796`,
+	name: `Roblox kid`,
+	tags: ["R"],
+}, {
+	id: `797`,
+	name: `Rod of Discord`,
+	tags: ["R","multi-colored"],
+}, {
+	id: `798`,
+	name: `ROLY POLY`,
+	tags: ["R"],
+}, {
+	id: `799`,
+	name: `Rotation card `,
+	tags: ["R","wide"],
+}, {
+	id: `800`,
+	name: `ROUGE MILL`,
+	tags: ["R"],
+}, {
+	id: `801`,
+	name: `Rube Goldberg Card`,
+	tags: ["R"],
+}, {
+	id: `802`,
+	name: `Rubik's cube`,
+	tags: ["R"],
+}, {
+	id: `803`,
+	name: `Rule Breaker`,
+	tags: ["R","multi-colored"],
+}, {
+	id: `804`,
+	name: `Rule of 3`,
+	tags: ["R"],
+}, {
+	id: `805`,
+	name: `Rules Lawyer`,
+	tags: ["R"],
+}, {
+	id: `806`,
+	name: `Runic Shielding XI`,
+	tags: ["R","multi-colored"],
+}, {
+	id: `807`,
+	name: `Rusthead`,
+	tags: ["R"],
+}, {
+	authors: "Charles Morse",
+	id: `808`,
+	imgType: `jpg`,
+	name: `Sadism`,
+	tags: ["S"],
+}, {
+	id: `809`,
+	name: `Sadness`,
+	tags: ["S"],
+}, {
+	id: `810`,
+	name: `Sams Undergtaggle`,
+	tags: ["S"],
+}, {
+	id: `811`,
+	name: `SAMURAI SWORD`,
+	tags: ["S"],
+}, {
+	id: `812`,
+	name: `Sands Undertale`,
+	tags: ["S"],
+}, {
+	id: `813`,
+	name: `Sanic`,
+	tags: ["S"],
+}, {
+	id: `814`,
+	name: `Sans Deltarune`,
+	tags: ["S"],
+}, {
+	id: `815`,
+	name: `SASQUATCH!`,
+	tags: ["S"],
+}, {
+	id: `816`,
+	name: `SATAN'S FLIP`,
+	tags: ["S","multi-colored"],
+}, {
+	authors: "Garrett Phlegar",
+	id: `817`,
+	name: `Scavenging Ooze`,
+	tags: ["S","multi-colored"],
+}, {
+	id: `818`,
+	name: `Scenic Vista`,
+	tags: ["S"],
+}, {
+	id: `819`,
+	name: `School Spirit`,
+	tags: ["S"],
+}, {
+	id: `820`,
+	name: `SCP-500`,
+	tags: ["S"],
+}, {
+	id: `821`,
+	name: `Scream`,
+	tags: ["S"],
+}, {
+	id: `822`,
+	name: `Sea Plane`,
+	tags: ["S"],
+}, {
+	id: `823`,
+	name: `Search Engine`,
+	tags: ["S","multi-colored"],
+}, {
+	id: `824`,
+	name: `Sehr Lecker`,
+	tags: ["S"],
+}, {
+	id: `825`,
+	name: `Self-Distruct`,
+	tags: ["S"],
+}, {
+	id: `826`,
+	name: `Self-important cat`,
+	tags: ["S"],
+}, {
+	id: `827`,
+	name: `SEM;COL;N`,
+	tags: ["S"],
+}, {
+	id: `828`,
+	name: `Senior Class T-Shirt`,
+	tags: ["S"],
+}, {
+	id: `829`,
+	name: `Senior Lab Pre-reqs`,
+	tags: ["S","multi-colored"],
+}, {
+	id: `830`,
+	name: `Senior Lab`,
+	tags: ["S"],
+}, {
+	authors: "Charles Morse",
+	id: `831`,
+	name: `Senioritis`,
+	tags: ["S"],
+}, {
+	id: `832`,
+	name: `seperate but equal`,
+	tags: ["S","multi-colored"],
+}, {
+	id: `833`,
+	name: `Sett, The Boss`,
+	tags: ["S"],
+}, {
+	id: `834`,
+	name: `Sexy Chicken`,
+	tags: ["S"],
+}, {
+	id: `835`,
+	name: `SGA is ASTUDY Hall`,
+	tags: ["S"],
+}, {
+	id: `836`,
+	name: `Shape s`,
+	tags: ["S"],
+}, {
+	id: `837`,
+	name: `Share the Wealth`,
+	tags: ["S"],
+}, {
+	id: `838`,
+	name: `Sharecropping`,
+	tags: ["S","multi-colored"],
+}, {
+	id: `839`,
+	name: `Shoot The Moon`,
+	tags: ["S"],
+}, {
+	id: `840`,
+	name: `SHOULDER`,
+	tags: ["S"],
+}, {
+	id: `841`,
+	name: `Sideways Illuminati`,
+	tags: ["S","wide"],
+}, {
+	id: `842`,
+	name: `Significant Figures`,
+	tags: ["S"],
+}, {
+	id: `843`,
+	name: `Silence the idiot or send them away`,
+	tags: ["S"],
+}, {
+	id: `844`,
+	name: `SILENT SPRING`,
+	tags: ["S"],
+}, {
+	id: `845`,
+	name: `Silver Spoon`,
+	tags: ["S","multi-colored"],
+}, {
+	id: `846`,
+	name: `Silver Telescope`,
+	tags: ["S","multi-colored"],
+}, {
+	id: `847`,
+	name: `SIM Card`,
+	tags: ["S","multi-colored"],
+}, {
+	id: `848`,
+	name: `Singing Contest`,
+	tags: ["S"],
+}, {
+	id: `849`,
+	name: `Singularity`,
+	tags: ["S","multi-colored"],
+}, {
+	id: `850`,
+	name: `Skin`,
+	tags: ["S"],
+}, {
+	id: `851`,
+	name: `Skip Day`,
+	tags: ["S"],
+}, {
+	id: `852`,
+	name: `Smart Card`,
+	tags: ["S"],
+}, {
+	id: `853`,
+	name: `Smash Ball`,
+	tags: ["S","multi-colored"],
+}, {
+	id: `854`,
+	name: `Smeared Ink`,
+	tags: ["S"],
+}, {
+	id: `855`,
+	name: `Smile Box`,
+	tags: ["S"],
+}, {
+	id: `856`,
+	name: `SMOKE SCREEN`,
+	tags: ["S"],
+}, {
+	id: `857`,
+	name: `Smug Penguin`,
+	tags: ["S"],
+}, {
+	id: `858`,
+	name: `Snake`,
+	tags: ["S","multi-colored"],
+}, {
+	id: `859`,
+	name: `Snow Day 2`,
+	tags: ["S"],
+}, {
+	id: `860`,
+	name: `SNOW DAY`,
+	tags: ["S"],
+}, {
+	id: `861`,
+	name: `Snowman`,
+	tags: ["S"],
+}, {
+	id: `862`,
+	name: `Social Anxiety Girl`,
+	tags: ["S"],
+}, {
+	id: `863`,
+	name: `Solar Energy`,
+	tags: ["S"],
+}, {
+	id: `864`,
+	name: `Sole stone`,
+	tags: ["S"],
+}, {
+	id: `865`,
+	name: `SOLID Of REVOLUTION`,
+	tags: ["S","multi-colored"],
+}, {
+	id: `866`,
+	name: `Solve`,
+	tags: ["S"],
+}, {
+	id: `867`,
+	name: `Sonia Sotomayor`,
+	tags: ["S"],
+}, {
+	id: `868`,
+	name: `Sooper Smesh Brus`,
+	tags: ["S"],
+}, {
+	id: `869`,
+	name: `Sooz`,
+	tags: ["S"],
+}, {
+	id: `870`,
+	name: `Spaceport Academy`,
+	tags: ["S","multi-colored"],
+}, {
+	id: `871`,
+	name: `spaghett`,
+	tags: ["S"],
+}, {
+	id: `872`,
+	name: `Sparknotes`,
+	tags: ["S"],
+}, {
+	authors: "Cynthia Clementine",
+	id: `873`,
+	name: `Speedrun`,
+	tags: ["S","multi-colored"],
+}, {
+	id: `874`,
+	name: `Spelling Bee`,
+	tags: ["S"],
+}, {
+	id: `875`,
+	name: `Spin-2-Win`,
+	tags: ["S"],
+}, {
+	authors: "Tushar Rangaswamy",
+	id: `876`,
+	name: `Spirit Sign`,
+	tags: ["S","multi-colored"],
+}, {
+	id: `877`,
+	name: `spooderman`,
+	tags: ["S","multi-colored"],
+}, {
+	id: `878`,
+	name: `Squigles`,
+	tags: ["S"],
+}, {
+	id: `879`,
+	name: `Squirrel`,
+	tags: ["S"],
+}, {
+	id: `880`,
+	name: `Stable Equilibrium`,
+	tags: ["S","multi-colored"],
+}, {
+	authors: "Derek C.",
+	id: `881`,
+	name: `Stage Fright`,
+	tags: ["S","multi-colored"],
+}, {
+	id: `882`,
+	name: `STALINGRAD CARD`,
+	tags: ["S","wide"],
+}, {
+	id: `883`,
+	name: `Stampede`,
+	tags: ["S","multi-colored"],
+}, {
+	id: `884`,
+	name: `STAPLES Blank Index Cards`,
+	tags: ["S","wide","multi-colored"],
+}, {
+	id: `885`,
+	name: `State Of The Union`,
+	tags: ["S"],
+}, {
+	id: `886`,
+	name: `Stealth Mode`,
+	tags: ["S"],
+}, {
+	id: `887`,
+	name: `Stick`,
+	tags: ["S"],
+}, {
+	id: `888`,
+	name: `Stongest card`,
+	tags: ["S"],
+}, {
+	id: `889`,
+	name: `Stonks`,
+	tags: ["S"],
+}, {
+	id: `890`,
+	name: `Stool on head`,
+	tags: ["S"],
+}, {
+	id: `891`,
+	name: `STOOL ON TABLE`,
+	tags: ["S"],
+}, {
+	id: `892`,
+	name: `STORK`,
+	tags: ["S"],
+}, {
+	id: `893`,
+	name: `Strange Purple Thing`,
+	tags: ["S"],
+}, {
+	id: `894`,
+	name: `Stratocumulus`,
+	tags: ["S"],
+}, {
+	id: `895`,
+	name: `Stratus`,
+	tags: ["S"],
+}, {
+	id: `896`,
+	name: `Strength in Numbers`,
+	tags: ["S"],
+}, {
+	id: `897`,
+	name: `Stretchy Arms`,
+	tags: ["S"],
+}, {
+	id: `898`,
+	name: `Strike!!!`,
+	tags: ["S","multi-colored"],
+}, {
+	id: `899`,
+	name: `Struck Oil`,
+	tags: ["S"],
+}, {
+	id: `900`,
+	name: `Student Loans`,
+	tags: ["S"],
+}, {
+	id: `901`,
+	name: `STUDY CARD`,
+	tags: ["S"],
+}, {
+	id: `902`,
+	name: `Study Hall`,
+	tags: ["S"],
+}, {
+	id: `903`,
+	name: `Stylish Scarf`,
+	tags: ["S"],
+}, {
+	id: `904`,
+	name: `Subito`,
+	tags: ["S"],
+}, {
+	id: `905`,
+	name: `Subpoena`,
+	tags: ["S"],
+}, {
+	id: `906`,
+	name: `Subscribe to PewDiePie`,
+	tags: ["S","multi-colored"],
+}, {
+	id: `907`,
+	name: `Subscription To A Corporate-Run, For-Profit Educational System Which Harms Lower-Income Students And Creates An Atmosphere Less Attuned To Individuals And Life Skills And Instead Focused On Rote Memorization And Extensive Standardized Testing`,
+	tags: ["S"],
+}, {
+	id: `908`,
+	name: `Suicide Burn`,
+	tags: ["S","multi-colored"],
+}, {
+	authors: "Anish G.",
+	id: `909`,
+	name: `Sumday`,
+	tags: ["S","multi-colored"],
+}, {
+	id: `910`,
+	name: `Summoning Runes`,
+	tags: ["S"],
+}, {
+	id: `911`,
+	name: `Super Dimentid`,
+	tags: ["S"],
+}, {
+	id: `912`,
+	name: `Super Hardcore`,
+	tags: ["S"],
+}, {
+	id: `913`,
+	name: `Super P.A.C`,
+	tags: ["S"],
+}, {
+	id: `914`,
+	name: `Super-heat snowball`,
+	tags: ["S"],
+}, {
+	id: `915`,
+	name: `Super`,
+	tags: ["S"],
+}, {
+	id: `916`,
+	name: `Supportive Friends`,
+	tags: ["S"],
+}, {
+	id: `917`,
+	name: `Supreme Bee Yeeter`,
+	tags: ["S"],
+}, {
+	id: `918`,
+	name: `Supreme Court Superiority`,
+	tags: ["S"],
+}, {
+	id: `919`,
+	name: `Supreme Court`,
+	tags: ["S"],
+}, {
+	id: `920`,
+	name: `Swapper : Pythonic swap.py`,
+	tags: ["S","multi-colored"],
+}, {
+	id: `921`,
+	name: `Switzerland`,
+	tags: ["S"],
+}, {
+	id: `922`,
+	name: `SWORD BEHIND INAPPROPRIATE PREPOSITIONS`,
+	tags: ["S"],
+}, {
+	id: `923`,
+	name: `T HERE C AN ONLY BE ONE`,
+	tags: ["T"],
+}, {
+	id: `924`,
+	name: `T`,
+	tags: ["T"],
+}, {
+	id: `925`,
+	name: `TAINT!`,
+	tags: ["T","multi-colored"],
+}, {
+	id: `926`,
+	name: `Tall-nut`,
+	tags: ["T"],
+}, {
+	id: `927`,
+	name: `TARDIS`,
+	tags: ["T"],
+}, {
+	id: `928`,
+	name: `Teaming in Solo Mode`,
+	tags: ["T"],
+}, {
+	id: `929`,
+	name: `Tear up speech paper`,
+	tags: ["T"],
+}, {
+	id: `930`,
+	name: `Technobabble`,
+	tags: ["T"],
+}, {
+	id: `931`,
+	name: `Technology is the future of learning`,
+	tags: ["T"],
+}, {
+	id: `932`,
+	name: `Teemo Mushroom`,
+	tags: ["T"],
+}, {
+	id: `933`,
+	name: `Teenage boy after doing literally anything`,
+	tags: ["T"],
+}, {
+	id: `934`,
+	name: `TELL ME WHY ~`,
+	tags: ["T","multi-colored"],
+}, {
+	id: `935`,
+	name: `Tem Shop`,
+	tags: ["T"],
+}, {
+	id: `936`,
+	name: `Temmie`,
+	tags: ["T"],
+}, {
+	id: `937`,
+	name: `TEMPORAL RESOLUTION`,
+	tags: ["T"],
+}, {
+	id: `938`,
+	name: `Tenement`,
+	tags: ["T","multi-colored"],
+}, {
+	id: `939`,
+	name: `TETRIS 99`,
+	tags: ["T","multi-colored"],
+}, {
+	id: `940`,
+	name: `Tetris`,
+	tags: ["T"],
+}, {
+	id: `941`,
+	name: `THANOS CARD`,
+	tags: ["T"],
+}, {
+	id: `942`,
+	name: `Thanos Snap`,
+	tags: ["T"],
+}, {
+	id: `943`,
+	name: `Thanos v4`,
+	tags: ["T","multi-colored"],
+}, {
+	id: `944`,
+	name: `That one card whose title is too long but whose description makes you read the entire title alou`,
+	tags: ["T"],
+}, {
+	id: `945`,
+	name: `The Anime Eye`,
+	tags: ["T"],
+}, {
+	id: `946`,
+	name: `The Bass-Boosted Eye, Back for Revenge`,
+	tags: ["T"],
+}, {
+	id: `947`,
+	name: `The Challenge`,
+	tags: ["T"],
+}, {
+	id: `948`,
+	name: `The Clock`,
+	tags: ["T"],
+}, {
+	id: `949`,
+	name: `The Count!!!`,
+	tags: ["T"],
+}, {
+	id: `950`,
+	name: `THE CREATOR`,
+	tags: ["T","multi-colored"],
+}, {
+	id: `951`,
+	name: `The Crude Eye`,
+	tags: ["T"],
+}, {
+	id: `952`,
+	name: `The DESTROYER`,
+	tags: ["T"],
+}, {
+	id: `953`,
+	name: `THE DOME`,
+	tags: ["T"],
+}, {
+	id: `954`,
+	name: `The end of the world as we k`,
+	tags: ["T","multi-colored"],
+}, {
+	id: `955`,
+	name: `The Eye, Unflawed`,
+	tags: ["T"],
+}, {
+	id: `956`,
+	name: `The Flaming Eye`,
+	tags: ["T"],
+}, {
+	id: `957`,
+	name: `The Frog of Evil Crosses your path`,
+	tags: ["T"],
+}, {
+	id: `958`,
+	name: `The Future is NOW`,
+	tags: ["T"],
+}, {
+	authors: "Joseph Rother",
+	id: `959`,
+	name: `The Gamble`,
+	tags: ["T"],
+}, {
+	id: `961`,
+	name: `The Geometric`,
+	tags: ["T"],
+}, {
+	id: `962`,
+	name: `The Good One`,
+	tags: ["T","multi-colored"],
+}, {
+	id: `963`,
+	name: `The Grinch`,
+	tags: ["T","multi-colored"],
+}, {
+	id: `964`,
+	name: `the happiest birthday`,
+	tags: ["T"],
+}, {
+	id: `965`,
+	name: `The Harcut That Changed Me™`,
+	tags: ["T"],
+}, {
+	id: `966`,
+	name: `The Hat`,
+	tags: ["T"],
+}, {
+	id: `967`,
+	name: `The House of Representatives`,
+	tags: ["T"],
+}, {
+	id: `968`,
+	name: `The Invisible Eye`,
+	tags: ["T"],
+}, {
+	id: `969`,
+	name: `THE INVISIBLE HAND OF`,
+	tags: ["T"],
+}, {
+	id: `970`,
+	name: `The Light, it burns`,
+	tags: ["T"],
+}, {
+	id: `971`,
+	name: `The Locket`,
+	tags: ["T"],
+}, {
+	id: `972`,
+	name: `The Monitor monitor is a monitor`,
+	tags: ["T","multi-colored"],
+}, {
+	id: `973`,
+	name: `The Night King`,
+	tags: ["T"],
+}, {
+	id: `974`,
+	name: `The Osborne`,
+	tags: ["T"],
+}, {
+	id: `975`,
+	name: `The PACIFIER`,
+	tags: ["T","multi-colored"],
+}, {
+	id: `976`,
+	name: `The Reverse Parrot`,
+	tags: ["T"],
+}, {
+	id: `977`,
+	name: `The Rich get Richer`,
+	tags: ["T"],
+}, {
+	id: `978`,
+	name: `The rocky thing, BUT BACKWARDS`,
+	tags: ["T"],
+}, {
+	id: `979`,
+	name: `The smudge`,
+	tags: ["T"],
+}, {
+	id: `980`,
+	name: `The WEEB!`,
+	tags: ["T"],
+}, {
+	id: `981`,
+	name: `The White Whale`,
+	tags: ["T"],
+}, {
+	id: `982`,
+	name: `Theodore Roosevelt 2`,
+	tags: ["T"],
+}, {
+	id: `983`,
+	name: `Theodore Roosevelt`,
+	tags: ["T"],
+}, {
+	authors: "Cynthia Clementine",
+	id: `984`,
+	name: `They're assimilated`,
+	tags: ["T","multi-colored"],
+}, {
+	authors: "Cynthia Clementine",
+	id: `985`,
+	name: `They're here`,
+	tags: ["T","multi-colored"],
+}, {
+	authors: "Cynthia Clementine",
+	id: `986`,
+	name: `They're malicious`,
+	tags: ["T","multi-colored"],
+}, {
+	id: `987`,
+	name: `This card intentionally left blank`,
+	tags: ["T"],
+}, {
+	id: `988`,
+	name: `This card is upside-down`,
+	tags: ["T"],
+}, {
+	id: `989`,
+	name: `This Card`,
+	tags: ["T"],
+}, {
+	id: `990`,
+	name: `This cool stick`,
+	tags: ["T"],
+}, {
+	id: `991`,
+	name: `This sad Man I drew`,
+	tags: ["T"],
+}, {
+	id: `992`,
+	name: `Thomas Jefferson`,
+	tags: ["T"],
+}, {
+	id: `993`,
+	name: `THUNDER TOWER`,
+	tags: ["T","multi-colored"],
+}, {
+	id: `994`,
+	name: `Ticking Time Bomb`,
+	tags: ["T"],
+}, {
+	id: `995`,
+	name: `TIME BOMB`,
+	tags: ["T","multi-colored"],
+}, {
+	id: `996`,
+	name: `Time Machine`,
+	tags: ["T"],
+}, {
+	authors: "Tushar Rangaswamy",
+	id: `997`,
+	name: `Time Sign`,
+	tags: ["T","multi-colored"],
+}, {
+	id: `998`,
+	name: `Tinsel Barbed Wire`,
+	tags: ["T"],
+}, {
+	id: `999`,
+	name: `Tippi`,
+	tags: ["T"],
+}, {
+	id: `1000`,
+	name: `Tipsy`,
+	tags: ["T"],
+}, {
+	id: `1001`,
+	name: `TITANIC`,
+	tags: ["T"],
+}, {
+	id: `1002`,
+	name: `TJ """"""""""Henry"""""""""" Yoshi`,
+	tags: ["T", "multi-colored"],
+}, {
+	id: `1003`,
+	name: `TJ Football`,
+	tags: ["T"],
+}, {
+	authors: "Sahishnu H.",
+	id: `1004`,
+	name: `TJ HIGH SCHOOL FOR SCIENCE AND TECHNOLOGY`,
+	tags: ["T","multi-colored"],
+}, {
+	id: `1005`,
+	name: `TJ Star`,
+	tags: ["T"],
+}, {
+	id: `1006`,
+	name: `TJ1KBWC Discord`,
+	tags: ["T"],
+}, {
+	id: `1007`,
+	name: `TNT Minecart`,
+	tags: ["T","multi-colored"],
+}, {
+	id: `1008`,
+	name: `Toll`,
+	tags: ["T","multi-colored"],
+}, {
+	id: `1009`,
+	name: `Tongue Twisted`,
+	tags: ["T"],
+}, {
+	id: `1010`,
+	name: `Too complicated!`,
+	tags: ["T"],
+}, {
+	id: `1011`,
+	name: `Tootsie Re-Roll®`,
+	tags: ["T","multi-colored"],
+}, {
+	id: `1012`,
+	name: `Totem of Undying`,
+	tags: ["T"],
+}, {
+	id: `1013`,
+	name: `Tough Gloves`,
+	tags: ["T"],
+}, {
+	id: `1014`,
+	name: `Tough Phoenix`,
+	tags: ["T"],
+}, {
+	id: `1015`,
+	name: `TOWER N`,
+	tags: ["T"],
+}, {
+	id: `1016`,
+	name: `Toxic Waste`,
+	tags: ["T","multi-colored"],
+}, {
+	id: `1017`,
+	name: `Tracking poll`,
+	tags: ["T"],
+}, {
+	id: `1018`,
+	name: `Trade Policy`,
+	tags: ["T"],
+}, {
+	id: `1019`,
+	name: `Train (blue)`,
+	tags: ["T","multi-colored"],
+}, {
+	id: `1020`,
+	name: `Train (red)`,
+	tags: ["T","multi-colored"],
+}, {
+	id: `1021`,
+	name: `Train (brown)`,
+	tags: ["T","multi-colored"],
+}, {
+	id: `1022`,
+	name: `Train (green)`,
+	tags: ["T","multi-colored"],
+}, {
+	id: `1023`,
+	name: `Tranquilizer Dart`,
+	tags: ["T"],
+}, {
+	id: `1024`,
+	name: `Transmute`,
+	tags: ["T","multi-colored"],
+}, {
+	id: `1025`,
+	name: `Trap card`,
+	tags: ["T"],
+}, {
+	id: `1026`,
+	name: `Trick up your (Sle)eve`,
+	tags: ["T"],
+}, {
+	id: `1027`,
+	name: `Trump 2020`,
+	tags: ["T"],
+}, {
+	id: `1028`,
+	name: `TRUMP CARD`,
+	tags: ["T","multi-colored"],
+}, {
+	id: `1029`,
+	name: `Trumpet`,
+	tags: ["T"],
+}, {
+	id: `1030`,
+	name: `Trust Bust`,
+	tags: ["T","multi-colored"],
+}, {
+	id: `1031`,
+	name: `Trustee`,
+	tags: ["T"],
+}, {
+	id: `1032`,
+	name: `Try Jumping`,
+	tags: ["T"],
+}, {
+	id: `1033`,
+	name: `TUNNEL AUS DEUTSCH`,
+	tags: ["T","wide"],
+}, {
+	id: `1034`,
+	name: `Turban Man`,
+	tags: ["T"],
+}, {
+	id: `1035`,
+	name: `Twelve`,
+	tags: ["T"],
+}, {
+	id: `1036`,
+	name: `Twins`,
+	tags: ["T"],
+}, {
+	id: `1037`,
+	name: `Twins`,
+	tags: ["T"],
+}, {
+	id: `1038`,
+	name: `twitch simp`,
+	tags: ["T"],
+}, {
+	id: `1039`,
+	name: `Two Drops per Quarter`,
+	tags: ["T"],
+}, {
+	id: `1040`,
+	name: `u tried`,
+	tags: ["U"],
+}, {
+	id: `1041`,
+	name: `uh oh you boosted banoko, you've just been BEANED`,
+	tags: ["U"],
+}, {
+	id: `1042`,
+	name: `ULA's Altas-V`,
+	tags: ["U"],
+}, {
+	id: `1043`,
+	name: `Ultra Olympics`,
+	tags: ["U"],
+}, {
+	id: `1044`,
+	name: `ULTRAWIDE DISPLAY`,
+	tags: ["U","wide"],
+}, {
+	id: `1045`,
+	name: `Un-BEAR-able Pun`,
+	tags: ["U"],
+}, {
+	id: `1046`,
+	name: `Unblank White card`,
+	tags: ["U"],
+}, {
+	id: `1047`,
+	name: `Undo`,
+	tags: ["U","multi-colored"],
+}, {
+	id: `1048`,
+	name: `Unexpected GNOME`,
+	tags: ["U","multi-colored"],
+}, {
+	id: `1049`,
+	name: `Unfair Trade Deal`,
+	tags: ["U"],
+}, {
+	id: `1050`,
+	name: `Unhandled Exception`,
+	tags: ["U","multi-colored"],
+}, {
+	id: `1051`,
+	name: `Unification Failed`,
+	tags: ["U"],
+}, {
+	id: `1052`,
+	name: `United Airlines`,
+	tags: ["U"],
+}, {
+	id: `1053`,
+	name: `Unknown Chaos`,
+	tags: ["U"],
+}, {
+	id: `1054`,
+	name: `Uno Reverse Card`,
+	tags: ["U"],
+}, {
+	id: `1055`,
+	name: `UNO®`,
+	tags: ["U","multi-colored"],
+}, {
+	id: `1056`,
+	name: `Unplanned card`,
+	tags: ["U"],
+}, {
+	id: `1057`,
+	name: `UNREALISTIC IDEALISM`,
+	tags: ["U","multi-colored"],
+}, {
+	id: `1058`,
+	name: `UNSCREWABLE POMMEL`,
+	tags: ["U"],
+}, {
+	id: `1059`,
+	name: `Unstable Time Loop`,
+	tags: ["U"],
+}, {
+	id: `1060`,
+	name: `Unwarmness`,
+	tags: ["U","multi-colored"],
+}, {
+	id: `1061`,
+	name: `Ur mom`,
+	tags: ["U"],
+}, {
+	id: `1062`,
+	name: `US of A`,
+	tags: ["U","multi-colored"],
+}, {
+	id: `1063`,
+	name: `USA PATRIOT Act`,
+	tags: ["U"],
+}, {
+	id: `1064`,
+	name: `Used Car Salesman`,
+	tags: ["U","multi-colored"],
+}, {
+	id: `1065`,
+	name: `Usopp Usoland Black`,
+	tags: ["U"],
+}, {
+	id: `1066`,
+	name: `UTILITARIANISM`,
+	tags: ["U"],
+}, {
+	id: `1067`,
+	name: `UwU, not made on enough cards`,
+	tags: ["U"],
+}, {
+	id: `1068`,
+	name: `Van Darkholme`,
+	tags: ["V"],
+}, {
+	id: `1069`,
+	name: `Violin`,
+	tags: ["V"],
+}, {
+	id: `1070`,
+	name: `Voice Augmentation`,
+	tags: ["V"],
+}, {
+	id: `1071`,
+	name: `Voodoo Card`,
+	tags: ["V","multi-colored"],
+}, {
+	id: `1072`,
+	name: `Voronoi`,
+	tags: ["V","multi-colored"],
+}, {
+	id: `1073`,
+	name: `Vowel Scowl`,
+	tags: ["V"],
+}, {
+	id: `1074`,
+	name: `W.E.B. Du Bois`,
+	tags: ["W","multi-colored"],
+}, {
+	id: `1075`,
+	name: `WAIT. That's illegal.`,
+	tags: ["W"],
+}, {
+	id: `1076`,
+	name: `walcc`,
+	tags: ["W"],
+}, {
+	id: `1077`,
+	name: `Walrus operator`,
+	tags: ["W"],
+}, {
+	id: `1078`,
+	name: `Water Sleighing`,
+	tags: ["W","multi-colored"],
+}, {
+	id: `1079`,
+	name: `Water to Wine`,
+	tags: ["W"],
+}, {
+	id: `1080`,
+	name: `water`,
+	tags: ["W"],
+}, {
+	id: `1081`,
+	name: `Waterflower`,
+	tags: ["W","multi-colored"],
+}, {
+	id: `1082`,
+	name: `Wave Dash (celeste)`,
+	tags: ["W"],
+}, {
+	id: `1083`,
+	name: `We Need To Go Deeper`,
+	tags: ["W"],
+}, {
+	id: `1084`,
+	name: `Weeb-inator 9000®™`,
+	tags: ["W"],
+}, {
+	id: `1085`,
+	name: `WEIRD FLEX`,
+	tags: ["W"],
+}, {
+	id: `1086`,
+	name: `Well-meaning Lobbyist`,
+	tags: ["W"],
+}, {
+	id: `1087`,
+	name: `What the heck?`,
+	tags: ["W"],
+}, {
+	id: `1088`,
+	name: `What's a webpage, something ducks walk on?`,
+	tags: ["W","multi-colored"],
+}, {
+	id: `1089`,
+	name: `Wheel of Fortune`,
+	tags: ["W"],
+}, {
+	id: `1090`,
+	name: `WHEN I'm GRANDMASTER`,
+	tags: ["W"],
+}, {
+	id: `1091`,
+	name: `White Elephant`,
+	tags: ["W"],
+}, {
+	id: `1092`,
+	name: `WHITE TO MOVE, MATE IN THREE`,
+	tags: ["W"],
+}, {
+	id: `1093`,
+	name: `Whoa! This is worthless!`,
+	tags: ["W"],
+}, {
+	id: `1094`,
+	name: `WHOEVER SMELT IT, DEALT IT`,
+	tags: ["W"],
+}, {
+	id: `1095`,
+	name: `Whose Line is it Anyway?`,
+	tags: ["W"],
+}, {
+	id: `1096`,
+	name: `Wiki Master`,
+	tags: ["W"],
+}, {
+	id: `1097`,
+	name: `WIN-ter`,
+	tags: ["W"],
+}, {
+	id: `1098`,
+	name: `Winter cap`,
+	tags: ["W"],
+}, {
+	id: `1099`,
+	name: `Winter Gloves`,
+	tags: ["W"],
+}, {
+	id: `1100`,
+	name: `WInter Jacket`,
+	tags: ["W","multi-colored"],
+}, {
+	authors: "Paul Appler",
+	id: `1101`,
+	name: `With`,
+	tags: ["W"],
+}, {
+	id: `1102`,
+	name: `Wolverine`,
+	tags: ["W"],
+}, {
+	id: `1103`,
+	name: `WONDER VICTORY`,
+	tags: ["W"],
+}, {
+	id: `1104`,
+	name: `WTF.....?`,
+	tags: ["W"],
+}, {
+	id: `1105`,
+	name: `WWII Italy`,
+	tags: ["W","multi-colored"],
+}, {
+	id: `1106`,
+	name: `YAH YEET (yuh... ayy...)`,
+	tags: ["Y"],
+}, {
+	id: `1107`,
+	name: `yearbook`,
+	tags: ["Y"],
+}, {
+	id: `1108`,
+	name: `Yearning`,
+	tags: ["Y","wide"],
+}, {
+	id: `1109`,
+	name: `Yeetus Yeetus Ctrl+Alt+Deletus`,
+	tags: ["Y"],
+}, {
+	id: `1110`,
+	name: `YELLOW LIZARD`,
+	tags: ["Y"],
+}, {
+	id: `1111`,
+	name: `YI PACKET`,
+	tags: ["Y"],
+}, {
+	id: `1112`,
+	name: `Yos`,
+	tags: ["Y"],
+}, {
+	id: `1113`,
+	name: `You Can Hold 1 Card In Your Pocket`,
+	tags: ["Y"],
+}, {
+	id: `1114`,
+	name: `You have 2 seconds to moan`,
+	tags: ["Y"],
+}, {
+	id: `1115`,
+	name: `You have 2 seconds to mow`,
+	tags: ["Y"],
+}, {
+	id: `1116`,
+	name: `You have died of dysentery`,
+	tags: ["Y"],
+}, {
+	id: `1117`,
+	name: `You have started Studying for your test`,
+	tags: ["Y","multi-colored"],
+}, {
+	authors: "Tushar Rangaswamy",
+	id: `1118`,
+	name: `You Know the Rules, Say Goodbye`,
+	tags: ["Y"],
+}, {
+	id: `1119`,
+	name: `You Lose`,
+	tags: ["Y","multi-colored"],
+}, {
+	id: `1120`,
+	name: `You Touch My Tralala`,
+	tags: ["Y"],
+}, {
+	id: `1121`,
+	name: `YOU WIN!!!`,
+	tags: ["Y"],
+}, {
+	id: `1122`,
+	name: `You've triggered your trap card`,
+	tags: ["Y"],
+}, {
+	id: `1123`,
+	name: `Your Lucky Card`,
+	tags: ["Y"],
+}, {
+	id: `1124`,
+	name: `YOUR MUSIC TASTE SUCKS™`,
+	tags: ["Y"],
+}, {
+	id: `1125`,
+	name: `Yus`,
+	tags: ["Y"],
+}, {
+	id: `1126`,
+	name: `Zombie Apocalypse`,
+	tags: ["Z"],
+}, {
+	id: `1127`,
+	name: `Zookeeper`,
+	tags: ["Z"],
+}, {
+	id: `1128`,
+	name: `イマクニ？のドードー`,
+	tags: ["non-letter start","multi-colored"],
+}, {
+	id: `1129`,
+	name: `ひらがな`,
+	tags: ["non-letter start"],
+}, {
+	id: `1130`,
+	imgType: `jpeg`,
+	name: `The Day of Prophecy`,
+	tags: ["T","multi-colored"],
+}, {
+	id: `1131`,
+	imgType: `jpeg`,
+	name: `Pi Day`,
+	tags: ["P","multi-colored"],
+}];
