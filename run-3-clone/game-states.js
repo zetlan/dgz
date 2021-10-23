@@ -1333,14 +1333,32 @@ class State_Infinite extends State_World {
 
 class State_Loading {
 	constructor() {
-		this.time = 10;
+		this.time = -10;
+		this.timeBuffer = [];
+
+		this.initialDraw();
+	}
+
+	initialDraw() {
+		//drawing background
+		ctx.fillStyle = color_bg;
+		ctx.fillRect(0, 0, canvas.width, canvas.height);
 	}
 
 	execute() {
+		if (this.time < 10) {
+			//collect time data
+			this.timeBuffer.push(performance.now());
+			this.time += 1;
+			return;
+		}
+
 		if (this.time == 10) {
-			//drawing background
-			ctx.fillStyle = color_bg;
-			ctx.fillRect(0, 0, canvas.width, canvas.height);
+			//turn time data into actual fps
+			var fps = Math.round((1000 * (this.timeBuffer.length-1)) / (this.timeBuffer[this.timeBuffer.length-1] - this.timeBuffer[0]));
+			var rounded = Math.round(fps / render_rateBase) * render_rateBase;
+			console.log(`guessing FPS is ${fps}, which rounds to ${rounded}`);
+			render_rate = rounded;
 		}
 		
 		for (var s=0; s<14; s++) {
