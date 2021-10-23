@@ -779,6 +779,10 @@ var render_maxDistance = 25000;
 var render_minTileSize = 8;
 var render_minPolySize = 4;
 var render_ringSize = 18;
+//rate + rateStep are how often the game ticks. This fixes the problem with 120Hz monitors being twice as fast. If you use a monitor that's not a multiple of 60, you're out of luck, soiry.
+var render_rate = 60;
+var render_rateBase = 60;
+var render_rateParity = 0;
 var render_starOpacity = 0.6;
 var render_voidSpinSpeed = 0.04;
 
@@ -859,22 +863,28 @@ function setup() {
 }
 
 function main() {
-	//main loop
-	loading_state.execute();
-	handleTextDisplay();
+	if (render_rateParity == 0) {
+		//main loop
+		loading_state.execute();
+		handleTextDisplay();
 
-	//handle audio
-	handleAudio();
-	audio_channel1.tick();
-	audio_channel2.tick();
+		//handle audio
+		handleAudio();
+		audio_channel1.tick();
+		audio_channel2.tick();
 
-	//save data every once in a while
-	if (world_time % 204 == 203) {
-		localStorage_write();
+		//save data every once in a while
+		if (world_time % 204 == 203) {
+			localStorage_write();
+		}
+
+		//time
+		world_time = (world_time + 1) % 9e15;
 	}
 
+
 	//call self
-	world_time = (world_time + 1) % 9e15;
+	render_rateParity = (render_rateParity + 1) % (render_rate / render_rateBase);
 	page_animation = window.requestAnimationFrame(main);
 }
 
