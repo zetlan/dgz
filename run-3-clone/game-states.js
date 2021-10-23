@@ -1335,8 +1335,6 @@ class State_Loading {
 	constructor() {
 		this.time = -10;
 		this.timeBuffer = [];
-
-		this.initialDraw();
 	}
 
 	initialDraw() {
@@ -1346,6 +1344,9 @@ class State_Loading {
 	}
 
 	execute() {
+		if (this.time == -10) {
+			this.initialDraw();
+		}
 		if (this.time < 10) {
 			//collect time data
 			this.timeBuffer.push(performance.now());
