@@ -1,0 +1,198 @@
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Solar eclipse visualizer</title>
+        <style>
+            body {
+                background-color: slateblue;
+            }
+
+            #cavo {
+                margin: auto;
+                text-align: center;
+                display: block;
+            }
+            #centerModule {
+                text-align: center;
+                margin: auto;
+                display: block;
+            }
+
+            #timeSlider {
+                width: 640px;
+            }
+
+        </style>
+        <script src="common/functions-math.js"></script>
+        <script src="common/functions-coordinate.js"></script>
+        <script>
+            window.onload = setup;
+
+            //page_animation is the animation handler
+            var page_animation;
+            var canvasIsLarge = false;
+            var canvas;
+            var ctx;
+
+            var color_moon = "#220000";
+            var color_sun = "#FFFFFF";
+
+            var color_skyBright = "#B5F1FF";
+            var color_skyDark = "#000022";
+            
+
+            var coordsOriginal = [[0, 0.9], [0, 0.95]];
+            var sunCoords = [0, 0.9];
+            var sunMovement = [1, -1];
+            var sunSize = 20;
+
+            var moonCoords = [0, 0.95];
+            var moonMovement = [1, -1.1];
+
+            var dt = 0.0001;
+            var t = 0;
+
+            var drawRepeats = 5;
+
+            //setup function
+            function setup() {
+                canvas = document.getElementById("cavo");
+                ctx = canvas.getContext("2d");
+                draw();
+            }
+
+            function cLinterp(color1FullHex, color2FullHex, percentage) {
+                if (color1FullHex == undefined) {
+                    color1FullHex = "#000000";
+                }
+                if (color2FullHex == undefined) {
+                    color2FullHex = "#000000";
+                }
+ 
+                //performing a linear interpolation on all 3 aspects
+                var finR = linterp(parseInt(color1FullHex[1] + color1FullHex[2], 16), parseInt(color2FullHex[1] + color2FullHex[2], 16), percentage);
+                var finG = linterp(parseInt(color1FullHex[3] + color1FullHex[4], 16), parseInt(color2FullHex[3] + color2FullHex[4], 16), percentage);
+                var finB = linterp(parseInt(color1FullHex[5] + color1FullHex[6], 16), parseInt(color2FullHex[5] + color2FullHex[6], 16), percentage);
+                //converting back to hex
+                var finalHex = "#" + ("0" + Math.floor(finR).toString(16)).substr(-2) + ("0" + Math.floor(finG).toString(16)).substr(-2) + ("0" + Math.floor(finB).toString(16)).substr(-2);
+                return finalHex;
+            }
+
+            //drawing function
+            function draw() {
+                //first tick objects
+                t += dt;
+                document.getElementById("timeSlider").value = t;
+                sunCoords[0] += sunMovement[0] * dt;
+                sunCoords[1] += sunMovement[1] * dt;
+
+                moonCoords[0] += moonMovement[0] * dt;
+                moonCoords[1] += moonMovement[1] * dt;
+
+                //then draw
+
+                //sky
+                //get estimate of percentage of moon covering sun
+                var distance = Math.sqrt((sunCoords[0] - moonCoords[0]) ** 2 + (sunCoords[1] - moonCoords[1]) ** 2) / (sunSize / canvas.height * 0.5);
+                var percentage = Math.min(Math.max(distance ** 4, 0), 1);
+                var skyColor = cLinterp(color_skyDark, color_skyBright, percentage ** 0.5);
+                ctx.fillStyle = skyColor;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                //sun
+                drawSun();
+
+                //moon
+                ctx.globalAlpha = 1 - (percentage ** 0.5);
+                
+                drawCircle(moonCoords[0] * canvas.width, moonCoords[1] * canvas.height, sunSize - 1, color_moon);
+                ctx.globalAlpha = 1;
+
+                page_animation = window.requestAnimationFrame(draw);
+            }
+
+            function drawCircle(x, y, size, color) {
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.ellipse(x, y, size, size, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            function drawSun() {
+                ctx.filter = `blur(${sunSize}px)`;
+                //figure out x, y, r of sun
+                var sunParams = [sunCoords[0] * canvas.width, sunCoords[1] * canvas.height, sunSize];
+                //take x, y, r of moon
+                var moonParams = [moonCoords[0] * canvas.width, moonCoords[1] * canvas.height, sunSize - 1];
+
+                //get intersection points
+                var intersects = intersectionOfTwoCircles(sunParams, moonParams);
+                if (intersects != undefined) {
+                    //draw cutoff sun circle
+                    var [i1, i2] = intersects;
+
+                    var relIs = [[sunParams[0] - i1[0], sunParams[1] - i1[1]], [sunParams[0] - i2[0], sunParams[1] - i2[1]]];
+                    var angles = [(Math.atan2(relIs[0][1], relIs[0][0]) + (Math.PI * 2)) % (Math.PI * 2), (Math.atan2(relIs[1][1], relIs[1][0]) + (Math.PI * 2)) % (Math.PI * 2)];
+                    var angularDistance = angles[1] - angles[0];
+                    var ccw = !(angularDistance < -Math.PI || (angularDistance > 0 && angularDistance < Math.PI))
+
+                    ctx.beginPath();
+                    ctx.fillStyle = color_sun;
+                    //outer sun arc
+                    ctx.arc(sunParams[0], sunParams[1], sunParams[2], -angles[0], -angles[1], ccw);
+                    //outer moon arc
+                    ctx.arc(moonParams[0], moonParams[1], moonParams[2], angles[1], angles[0], !ccw);
+                    for (var a=0; a<drawRepeats; a++) {
+                        ctx.fill();
+                    }
+                    
+                    drawCircle(i1[0], i1[1], 2, "#F0F");
+                    drawCircle(i2[0], i2[1], 2, "#F0F");
+                } else {
+                    //draw full sun circle
+                    for (var a=0; a<drawRepeats; a++) {
+                        drawCircle(sunParams[0], sunParams[1], sunParams[2], color_sun);
+                    }
+                }
+                ctx.filter = "none";
+            }
+
+            function updateCanvasSize() {
+                var multiplier = 2;
+                canvasIsLarge = !canvasIsLarge;
+                if (!canvasIsLarge) {
+                    //make canvas smaller
+                    multiplier = 0.5;
+                }
+
+                //make canvas larger
+                canvas.width *= multiplier;
+                canvas.height *= multiplier;
+                sunSize *= multiplier;
+                //ack why doesn't this do anything
+                //document.getElementById("timeSlider").width *= multiplier;
+            }
+
+            function updateTime() {
+                var amount = document.getElementById("timeSlider").value * 1;
+                t = amount;
+                sunCoords = JSON.parse(JSON.stringify(coordsOriginal[0]));
+                moonCoords = JSON.parse(JSON.stringify(coordsOriginal[1]));
+
+                sunCoords[0] += sunMovement[0] * t;
+                sunCoords[1] += sunMovement[1] * t;
+
+                moonCoords[0] += moonMovement[0] * t;
+                moonCoords[1] += moonMovement[1] * t;
+            }
+         </script>
+    </head>
+    <body>
+        <div id="centerModule">
+            <canvas id="cavo" width="640" height="480"></canvas><br>
+            <input type="range" id="timeSlider" min=0 max=1 step=0.001 oninput="updateTime()"><br>
+            <input type="checkbox" id="doHighResolution" onchange="updateCanvasSize()">
+            <label for="doHighResolution">High Resolution</label><br>
+        </div>
+    </body>
+</html>
