@@ -289,12 +289,6 @@ function updateSpace(p, q) {
 }
 
 
-//takes in xy coords and turns into polar coordinates, in [distance, angle format]
-function XYtoPol(x, y) {
-	return [Math.sqrt(x * x + y * y), (Math.atan2(y, x) + (Math.PI * 2)) % (Math.PI * 2)];
-}
-
-
 
 
 //takes in a series of polar hyper-coordinates and returns a WorldTreeNode with those hyper-coordinates.
