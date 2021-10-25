@@ -27,7 +27,10 @@
         <script src="common/functions-coordinate.js"></script>
         <script>
             window.onload = setup;
-
+            document.addEventListener("mousedown", handleMouseDown);
+            document.addEventListener("mousemove", handleMouseMove);
+            document.addEventListener("mouseup", handleMouseUp);
+            
             //page_animation is the animation handler
             var page_animation;
             var canvasIsLarge = false;
@@ -36,29 +39,33 @@
 
             var color_bg = "#326";
             var color_old = {
-                ln: "#888",
+                ln: "#668",
                 i: "#F88",
                 j: "#8F8",
                 k: "#88F"
             };
             var color_new = {
-                ln: "FFF",
+                ln: "#AAF",
                 i: "#F00",
                 j: "#0F0",
                 k: "#00F"
             };
 
-            var color_skyBright = "#B5F1FF";
-            var color_skyDark = "#000022";
+            var cursor_x = 0;
+            var cursor_y = 0;
+            var cursor_down = false;
+            var cursor_grabbed = undefined;
+            var cursor_reqDist = 0.5;
 
-            var moonCoords = [0, 0.95];
-            var moonMovement = [1, -1.1];
-
-            var scale = 20;
+            var scale = 30;
             var numLines = 20;
 
             //initialize with the default matrix
-            var matrices = [[]]
+            var matrices = [
+                [[1, 0], [0, 1]],
+                [[1, 0], [0, 1]]
+            ]
+            var matrixProgress = 0;
 
             //setup function
             function setup() {
@@ -68,6 +75,7 @@
                 if (document.getElementById("doHighResolution").checked) {
                     updateCanvasSize();
                 }
+                updateCanvasPreferences();
                 draw();
             }
 
@@ -75,17 +83,64 @@
             function draw() {
                 //bg
                 ctx.fillStyle = color_bg;
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillRect(-canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height);
 
                 //draw main grid
-                drawGrid(true, )
+                drawGrid(true, matrices[0][0], matrices[0][1]);
+
+                //draw offset grid
+                if (matrices.length > 1) {
+                    drawGrid(false, matrices[1][0], matrices[1][1]);
+                }
+
 
                 page_animation = window.requestAnimationFrame(draw);
             }
 
 
             function drawGrid(isOld, iHat, jHat) {
+                ctx.beginPath();
+                var cRef = isOld ? color_old : color_new;
+                ctx.strokeStyle = cRef.ln;
 
+                //get reverse offset to draw all lines from
+                var oppositeX = (iHat[0] * -numLines) + (jHat[0] * -numLines);
+                var oppositeY = (iHat[1] * -numLines) + (jHat[1] * -numLines);
+
+                //lines along iHat
+                for (var x=-numLines; x<numLines; x++) {
+                    ctx.moveTo((iHat[0] * -numLines) + (jHat[0] * x), (iHat[1] * -numLines) + (jHat[1] * x));
+                    ctx.lineTo((iHat[0] * numLines) + (jHat[0] * x), (iHat[1] * numLines) + (jHat[1] * x))
+                }
+
+                //lines along jHat
+                for (var x=-numLines; x<numLines; x++) {
+                    ctx.moveTo((iHat[0] * x) + (jHat[0] * -numLines), (iHat[1] * x) + (jHat[1] * -numLines));
+                    ctx.lineTo((iHat[0] * x) + (jHat[0] * numLines), (iHat[1] * x) + (jHat[1] * numLines))
+                }
+                ctx.stroke();
+
+                //drawing actual iHat and jHat
+                ctx.beginPath();
+                ctx.strokeStyle = cRef.i;
+                ctx.moveTo(0, 0);
+                ctx.lineTo(iHat[0], iHat[1]);
+                ctx.stroke();
+                drawCircle(iHat[0], iHat[1], 0.1, cRef.i);
+
+                ctx.strokeStyle = cRef.j;
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(jHat[0], jHat[1]);
+                ctx.stroke();
+                drawCircle(jHat[0], jHat[1], 0.1, cRef.j);
+
+                
+
+
+                //draw origin dot
+                
+                drawCircle(0, 0, 0.2, "#000");
             }
 
             function drawCircle(x, y, size, color) {
@@ -93,6 +148,49 @@
                 ctx.beginPath();
                 ctx.ellipse(x, y, size, size, 0, 0, Math.PI * 2);
                 ctx.fill();
+            }
+
+            //mouse handling
+            function handleMouseDown(e) {
+                cursor_down = true;
+
+                //get distance to iHat and jHat
+                var iHatDist = Math.sqrt((cursor_x - matrices[1][0][0]) ** 2 + (cursor_y - matrices[1][0][1]) ** 2);
+                var jHatDist = Math.sqrt((cursor_x - matrices[1][1][0]) ** 2 + (cursor_y - matrices[1][1][1]) ** 2);
+
+                cursor_grabbed = undefined;
+                if (iHatDist < cursor_reqDist) {
+                    cursor_grabbed = matrices[1][0];
+                    return;
+                }
+                if (jHatDist < cursor_reqDist) {
+                    cursor_grabbed = matrices[1][1];
+                }
+            }
+
+            function handleMouseMove(e) {
+                var canvasArea = canvas.getBoundingClientRect();
+                cursor_x = e.clientX - canvasArea.left;
+                cursor_y = e.clientY - canvasArea.top;
+
+                //run transformations
+                cursor_x -= canvas.width / 2;
+                cursor_y -= canvas.height / 2;
+
+                cursor_x /= scale;
+                cursor_y /= -scale;
+
+                //console.log(cursor_x, cursor_y);
+
+                if (cursor_grabbed != undefined) {
+                    cursor_grabbed[0] = cursor_x;
+                    cursor_grabbed[1] = cursor_y;
+                }
+            }
+
+            function handleMouseUp(e) {
+                cursor_down = false;
+                cursor_grabbed = undefined;
             }
 
             function updateCanvasSize() {
@@ -106,9 +204,13 @@
                 //make canvas larger
                 canvas.width *= multiplier;
                 canvas.height *= multiplier;
-                sunSize *= multiplier;
-                //ack why doesn't this do anything
-                //document.getElementById("timeSlider").width *= multiplier;
+                scale *= multiplier;
+                updateCanvasPreferences();
+            }
+
+            function updateCanvasPreferences() {
+                ctx.lineWidth = 2 / scale;
+                ctx.setTransform(scale, 0, 0, -scale, canvas.width / 2, canvas.height / 2);
             }
 
             function updateTime() {
@@ -128,7 +230,6 @@
     <body>
         <div id="centerModule">
             <canvas id="cavo" width="640" height="480"></canvas><br>
-            <input type="range" id="timeSlider" min=0 max=1 step=0.001 oninput="updateTime()"><br>
             <input type="checkbox" id="doHighResolution" onchange="updateCanvasSize()">
             <label for="doHighResolution">High Resolution</label><br>
         </div>
