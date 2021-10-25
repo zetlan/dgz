@@ -1,0 +1,136 @@
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Matrix visualizer</title>
+        <style>
+            body {
+                background-color: slateblue;
+            }
+
+            #cavo {
+                margin: auto;
+                text-align: center;
+                display: block;
+            }
+            #centerModule {
+                text-align: center;
+                margin: auto;
+                display: block;
+            }
+
+            #timeSlider {
+                width: 640px;
+            }
+
+        </style>
+        <script src="common/functions-math.js"></script>
+        <script src="common/functions-coordinate.js"></script>
+        <script>
+            window.onload = setup;
+
+            //page_animation is the animation handler
+            var page_animation;
+            var canvasIsLarge = false;
+            var canvas;
+            var ctx;
+
+            var color_bg = "#326";
+            var color_old = {
+                ln: "#888",
+                i: "#F88",
+                j: "#8F8",
+                k: "#88F"
+            };
+            var color_new = {
+                ln: "FFF",
+                i: "#F00",
+                j: "#0F0",
+                k: "#00F"
+            };
+
+            var color_skyBright = "#B5F1FF";
+            var color_skyDark = "#000022";
+
+            var moonCoords = [0, 0.95];
+            var moonMovement = [1, -1.1];
+
+            var scale = 20;
+            var numLines = 20;
+
+            //initialize with the default matrix
+            var matrices = [[]]
+
+            //setup function
+            function setup() {
+                canvas = document.getElementById("cavo");
+                ctx = canvas.getContext("2d");
+
+                if (document.getElementById("doHighResolution").checked) {
+                    updateCanvasSize();
+                }
+                draw();
+            }
+
+            //drawing function
+            function draw() {
+                //bg
+                ctx.fillStyle = color_bg;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                //draw main grid
+                drawGrid(true, )
+
+                page_animation = window.requestAnimationFrame(draw);
+            }
+
+
+            function drawGrid(isOld, iHat, jHat) {
+
+            }
+
+            function drawCircle(x, y, size, color) {
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.ellipse(x, y, size, size, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            function updateCanvasSize() {
+                var multiplier = 2;
+                canvasIsLarge = !canvasIsLarge;
+                if (!canvasIsLarge) {
+                    //make canvas smaller
+                    multiplier = 0.5;
+                }
+
+                //make canvas larger
+                canvas.width *= multiplier;
+                canvas.height *= multiplier;
+                sunSize *= multiplier;
+                //ack why doesn't this do anything
+                //document.getElementById("timeSlider").width *= multiplier;
+            }
+
+            function updateTime() {
+                var amount = document.getElementById("timeSlider").value * 1;
+                t = amount;
+                sunCoords = JSON.parse(JSON.stringify(coordsOriginal[0]));
+                moonCoords = JSON.parse(JSON.stringify(coordsOriginal[1]));
+
+                sunCoords[0] += sunMovement[0] * t;
+                sunCoords[1] += sunMovement[1] * t;
+
+                moonCoords[0] += moonMovement[0] * t;
+                moonCoords[1] += moonMovement[1] * t;
+            }
+         </script>
+    </head>
+    <body>
+        <div id="centerModule">
+            <canvas id="cavo" width="640" height="480"></canvas><br>
+            <input type="range" id="timeSlider" min=0 max=1 step=0.001 oninput="updateTime()"><br>
+            <input type="checkbox" id="doHighResolution" onchange="updateCanvasSize()">
+            <label for="doHighResolution">High Resolution</label><br>
+        </div>
+    </body>
+</html>
