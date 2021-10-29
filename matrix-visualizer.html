@@ -25,11 +25,14 @@
         </style>
         <script src="common/functions-math.js"></script>
         <script src="common/functions-coordinate.js"></script>
+        <script src="common/functions-color.js"></script>
+        <script src="common/functions-coordinate.js"></script>
         <script>
             window.onload = setup;
             document.addEventListener("mousedown", handleMouseDown);
             document.addEventListener("mousemove", handleMouseMove);
             document.addEventListener("mouseup", handleMouseUp);
+            document.addEventListener("keydown", handleKeyPress);
             
             //page_animation is the animation handler
             var page_animation;
@@ -50,6 +53,11 @@
                 j: "#0F0",
                 k: "#00F"
             };
+            var color_det = "#FF0";
+            var color_high = {
+                i: "#FF88FF",
+                j: "#FFFF00"
+            }
 
             var cursor_x = 0;
             var cursor_y = 0;
@@ -59,13 +67,18 @@
 
             var scale = 30;
             var numLines = 20;
+            var numLinesMax = 150;
+            var haveInterface = true;
+            var haveDet = false;
 
             //initialize with the default matrix
             var matrices = [
                 [[1, 0], [0, 1]],
                 [[1, 0], [0, 1]]
             ]
+            var highlights = [];
             var matrixProgress = 0;
+            var matrixProgressSpeed = 0.02;
 
             //setup function
             function setup() {
@@ -88,9 +101,80 @@
                 //draw main grid
                 drawGrid(true, matrices[0][0], matrices[0][1]);
 
+                if (matrices.length > 2) {
+                    matrixProgress += matrixProgressSpeed;
+                    //compute where the visualizing matrix should go.
+                    var sPercent = (matrixProgress * 12) - 6;
+                    matrices[1][0] = slinterp(matrices[2][0], matrices[3][0], sPercent);
+                    matrices[1][1] = slinterp(matrices[2][1], matrices[3][1], sPercent);
+                    // matrices[1][0][1] = sigmoid(sPercent, matrices[2][0][1], matrices[3][0][1]);
+                    // matrices[1][1][0] = sigmoid(sPercent, matrices[2][1][0], matrices[3][1][0]);
+                    // matrices[1][1][1] = sigmoid(sPercent, matrices[2][1][1], matrices[3][1][1]);
+
+                    //make sure transformation doesn't go over
+                    if (matrixProgress > 1) {
+                        matrices[1] = matrices[3];
+                        matrices.splice(2, 2);
+                        matrixProgress = 0;
+                    }
+                }
+
                 //draw offset grid
                 if (matrices.length > 1) {
                     drawGrid(false, matrices[1][0], matrices[1][1]);
+                }
+
+                
+
+                //draw determinant
+                if (haveDet) {
+                    var m = matrices[1];
+                    var coords = [[0, 0], [m[1][0], m[1][1]], [m[0][0] + m[1][0], m[0][1] + m[1][1]], [m[0][0], m[0][1]]];
+
+                    //figure out magnitude of determinant
+                    //yes I'm using the formula here but what else am I supposed to do? This is a computer, it computes.
+                    var magnitude = m[0][0] * m[1][1] - m[0][1] * m[1][0];
+                    ctx.strokeStyle = color_det;
+                    ctx.fillStyle = color_det;
+                    ctx.beginPath();
+                    ctx.moveTo(coords[0][0], coords[0][1]);
+                    ctx.lineTo(coords[1][0], coords[1][1]);
+                    ctx.lineTo(coords[2][0], coords[2][1]);
+                    ctx.lineTo(coords[3][0], coords[3][1]);
+                    ctx.lineTo(coords[0][0], coords[0][1]);
+                    ctx.stroke();
+                    ctx.globalAlpha = 0.4;
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+
+                    //draw text at center
+                    var centerCoords = coords.reduce((a, b) => {return [a[0] + b[0], a[1] + b[1]];});
+                    centerCoords = [centerCoords[0] / coords.length, centerCoords[1] / -coords.length];
+
+                    ctx.fillStyle = color_det;
+                    ctx.textAlign = `center`;
+                    ctx.font = `0.5px Century Gothic`;
+                    ctx.setTransform(scale, 0, 0, scale, canvas.width / 2, canvas.height / 2);
+                    ctx.fillText(magnitude.toFixed(1), centerCoords[0], centerCoords[1]);
+                    ctx.setTransform(scale, 0, 0, -scale, canvas.width / 2, canvas.height / 2);
+                }
+
+                if (highlights.length > 0) {
+                    var iHat = matrices[1][0];
+                    var jHat = matrices[1][1];
+                    var vHi;
+                    for (var h=0; h<highlights.length; h++) {
+                        vHi = highlights[h];
+                        var x = (iHat[0] * vHi[0]) + (jHat[0] * vHi[1]);
+                        var y = (iHat[1] * vHi[0]) + (jHat[1] * vHi[1]);
+                        //determine color
+                        ctx.beginPath();
+                        ctx.strokeStyle = cLinterp(color_high.i, color_high.j, h / (highlights.length - 1));
+                        ctx.moveTo(0, 0);
+                        ctx.lineTo(x, y);
+                        ctx.stroke();
+                        drawCircle(x, y, 0.1, ctx.strokeStyle);
+                    }
                 }
 
 
@@ -99,6 +183,15 @@
 
 
             function drawGrid(isOld, iHat, jHat) {
+                //set number of lines to draw
+                var polars = [XYtoPol(iHat[0], iHat[1]), XYtoPol(jHat[0], jHat[1])];
+                var angle = Math.abs(polars[0][1] - polars[1][1]);
+                var minDist = Math.min(polars[0][0], polars[1][0]);
+                var numLines = Math.floor((canvas.width * 2 / scale) / minDist);
+                if (numLines > numLinesMax) {
+                    numLines = numLinesMax;
+                }
+
                 ctx.beginPath();
                 var cRef = isOld ? color_old : color_new;
                 ctx.strokeStyle = cRef.ln;
@@ -110,7 +203,7 @@
                 //lines along iHat
                 for (var x=-numLines; x<numLines; x++) {
                     ctx.moveTo((iHat[0] * -numLines) + (jHat[0] * x), (iHat[1] * -numLines) + (jHat[1] * x));
-                    ctx.lineTo((iHat[0] * numLines) + (jHat[0] * x), (iHat[1] * numLines) + (jHat[1] * x))
+                    ctx.lineTo((iHat[0] * numLines) + (jHat[0] * x), (iHat[1] * numLines) + (jHat[1] * x));
                 }
 
                 //lines along jHat
@@ -120,6 +213,9 @@
                 }
                 ctx.stroke();
 
+                if (!haveInterface) {
+                    return;
+                }
                 //drawing actual iHat and jHat
                 ctx.beginPath();
                 ctx.strokeStyle = cRef.i;
@@ -180,7 +276,6 @@
                 cursor_x /= scale;
                 cursor_y /= -scale;
 
-                //console.log(cursor_x, cursor_y);
 
                 if (cursor_grabbed != undefined) {
                     cursor_grabbed[0] = cursor_x;
@@ -192,6 +287,140 @@
                 cursor_down = false;
                 cursor_grabbed = undefined;
             }
+
+            function handleKeyPress(a) {
+                console.log(a.keyCode);
+                //hotkeys!
+                switch (a.keyCode) {
+                    //d for Determinant
+                    case 68:
+                        haveDet = !haveDet;
+                        break;
+                    //F for interFace
+                    case 70:
+                        haveInterface = !haveInterface;
+                        break;
+                    //r for reset
+                    case 82:
+                        matrices[1] = [[1, 0], [0, 1]];
+                        matrices.splice(2, 2);
+                        matrixProgress = 0;
+                        highlights = [];
+                        break;
+                    //i for invert
+                    case 73:
+                        invert();
+                        break;
+
+                    //tilde to collapse all to a single point
+                    case 192:
+                        multiplyBy([0, 0]);
+                        break;
+
+
+                    //numbers for demo-specific stuff
+                    case 48:
+                        multiplyBy([1, -3]);
+                        break;
+                    case 56:
+                        multiplyBy([[3.5, 1], [0.875, 0.25]])
+                        break;
+                    case 57:
+                        multiplyBy([[2, 3],[-1, -1.5]]);
+                        break;
+
+                    case 49:
+                        multiplyBy([[0, 1],[-1, 0]]);
+                        break;
+                    case 50:
+                        multiplyBy([[1, 0], [1, 1]]);
+                        break;
+                    
+                    case 52:
+                        multiplyBy([[2, 1], [1, 3]]);
+                        break;
+                    case 53:
+                        multiplyBy([[1, -1], [2, 2]]);
+                        break;
+                    case 54:
+                        //shortening function names to make the multiplication easier to read
+                        //isn't javascript wonderful?
+                        let fl = Math.floor;
+                        let rn = randomBounded;
+                        var b = 3;
+                        multiplyBy([[fl(rn(-b, b)), fl(rn(-b, b))], [fl(rn(-b, b)), fl(rn(-b, b))]])
+                        break;
+                }
+            }
+
+            //introduces a new matrix to multiply the current one by
+            function multiplyBy(newMatrix) {
+                if (newMatrix.length != 2) {
+                    return `Invalid dimensions! ):`;
+                }
+
+                
+                
+                //set before and after matrices
+                matrices[2] = JSON.parse(JSON.stringify(matrices[1]));
+                //messy matrix multiplication. 
+                var mu = newMatrix;
+                var ol = matrices[2];
+
+                //lower-dimensional check. I know this is hacky but it'll work for the demonstration
+                if (Number.isFinite(newMatrix[0])) {
+                    matrices[3] = [[mu[0] * ol[0][0] + mu[1] * ol[0][1], 0], 
+                                    [mu[0] * ol[1][0] + mu[1] * ol[1][1], 0]];
+                    return;
+                }
+                matrices[3] = [[mu[0][0] * ol[0][0] + mu[1][0] * ol[0][1], mu[0][1] * ol[0][0] + mu[1][1] * ol[0][1]], 
+                               [mu[0][0] * ol[1][0] + mu[1][0] * ol[1][1], mu[0][1] * ol[1][0] + mu[1][1] * ol[1][1]]];
+            }
+
+            function invert() {
+                //first highlight the current basis vectors
+                highlight(matrices[1][0][0], matrices[1][0][1]);
+                highlight(matrices[1][1][0], matrices[1][1][1]);
+
+                //get inverse transformation
+                var div = (matrices[1][0][0] * matrices[1][1][1] - matrices[1][0][1] * matrices[1][1][0]);
+                var invMat = [[matrices[1][1][1] / div, -matrices[1][0][1] / div], 
+                                [-matrices[1][1][0] / div, matrices[1][0][0] / div]];
+
+                //do the animation
+                matrices[1] = [[1, 0], [0, 1]];
+                multiplyBy(invMat);
+            }
+
+            function highlight(x, y) {
+                //remove highlight if it's already there
+                for (var a=0; a<highlights.length; a++) {
+                    if (highlights[a][0] == x && highlights[a][1] == y) {
+                        highlights.splice(a, 1);
+                        return;
+                    }
+                }
+                highlights.push([x, y]);
+            }
+
+            function slinterp(aVec, bVec, percentage) {
+                //convert xy of vectors into direction + magnitude
+                var aPolar = XYtoPol(aVec[0], aVec[1]);
+                var bPolar = XYtoPol(bVec[0], bVec[1]);
+
+                //avoid weird polar gimbal
+
+                if (bPolar[1] - aPolar[1] > Math.PI) {
+                    bPolar[1] = bPolar[1] - (Math.PI * 2);
+                } else if (bPolar[1] - aPolar[1] < -Math.PI) {
+                    bPolar[1] = bPolar[1] + Math.PI * 2;
+                }
+                
+                var newVec = [sigmoid(percentage, aPolar[0], bPolar[0]), sigmoid(percentage, aPolar[1], bPolar[1])];
+                return polToXY(0, 0, newVec[1], newVec[0]);
+            }
+
+
 
             function updateCanvasSize() {
                 var multiplier = 2;
