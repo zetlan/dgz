@@ -13,15 +13,14 @@ class Camera {
 		this.scale = zoom;
 		this.targetScale = this.scale;
 		//all sprites are done at 4/5ths perspective
-		this.vSquish = 0.8;
 
 		this.calculateCorners();
 	}
 
 	calculateCorners() {
 		this.scale = ((this.scale * 7) + this.targetScale) / 8;
-		this.cornerCoords = [this.x - ((canvas.width / 2) / this.scale), this.y - ((canvas.height / 2) / this.scale) / this.vSquish,
-							this.x + ((canvas.width / 2) / this.scale), this.y + ((canvas.height / 2) / this.scale) / this.vSquish];
+		this.cornerCoords = [this.x - ((canvas.width / 2) / this.scale), this.y - ((canvas.height / 2) / this.scale) / render_vSquish,
+							this.x + ((canvas.width / 2) / this.scale), this.y + ((canvas.height / 2) / this.scale) / render_vSquish];
 	}
 
 	tick_free() {
@@ -49,7 +48,7 @@ class Player {
 	constructor(x, y, color) {
 		this.x = x;
 		this.y = y;
-		this.r = 1;
+		this.r = 0.3;
 
 		this.attackBoxNum = 10;
 		this.attackBoxLength = 2.8;
@@ -153,8 +152,10 @@ class Player {
 		var [drawX, drawY] = spaceToScreen(this.x + loading_map.x, this.y + loading_map.y);
 		var drawR = this.r * camera.scale;
 
-		this.texture.frame = this.animDir;
-		this.texture.drawTexture(drawX, drawY, drawR, drawR);
+		ctx.fillStyle = color_player;
+		ctx.beginPath();
+		ctx.ellipse(drawX, drawY - (drawR * render_vSquish * 0.9), drawR, drawR * 2 * render_vSquish, 0, 0, Math.PI * 2);
+		ctx.fill();
 	}
 
 	hitEntity(entity) {
@@ -240,7 +241,6 @@ class Player {
 			}
 
 			this.nextPos = [this.lastPos[0] + xForce, this.lastPos[1] + yForce];
-			console.log(`lastPos is ${JSON.stringify(this.lastPos)}, forces are ${xForce} and ${yForce}. Setting nextPos to ${JSON.stringify(this.nextPos)}`);
 			// x/y force switch
 			if (xForce != 0) {
 				this.dir = xForce + 1;
@@ -265,7 +265,6 @@ class Player {
 			this.dir = -1;
 			this.lastPos = [Math.round(this.x), Math.round(this.y)];
 			this.nextPos = [this.lastPos[0] + Math.sign(this.x - this.lastPos[0]), this.lastPos[1] + Math.sign(this.y - this.lastPos[1])];
-			console.log('bad dir, setting nextPos to ' + JSON.stringify(this.nextPos));
 			if (this.progress >= 0.5) {
 				this.progress = 1 - this.progress;
 			}
@@ -305,7 +304,6 @@ class Player {
 		//position updates
 		this.x = linterp(this.lastPos[0], this.nextPos[0], this.progress);
 		this.y = linterp(this.lastPos[1], this.nextPos[1], this.progress);
-		console.log(JSON.stringify(this.lastPos), JSON.stringify(this.nextPos), this.progress, this.speed);
 	}
 
 	updateSpeed() {
@@ -396,16 +394,16 @@ class Zone {
 		var pixelStartXY = spaceToScreen(this.x, this.y);
 
 		var xLen = Math.min(Math.ceil(canvas.width / camera.scale) + 3, this.data[0].length - startXY[0]);
-		var yLen = Math.min(Math.ceil(canvas.height / (camera.scale * camera.vSquish)) + 3, this.data.length - startXY[1]);
+		var yLen = Math.min(Math.ceil(canvas.height / (camera.scale * render_vSquish)) + 3, this.data.length - startXY[1]);
 
 		ctx.fillStyle = color_collision;
 		var drawXStart = pixelStartXY[0] + 1 + ((startXY[0] - 0.5) * camera.scale);
-		var drawYStart = pixelStartXY[1] + 1 + ((startXY[1] - 0.5) * camera.scale * camera.vSquish) - (camera.scale * (1 - camera.vSquish));
+		var drawYStart = pixelStartXY[1] + 1 + ((startXY[1] - 0.5) * camera.scale * render_vSquish) - (camera.scale * (1 - render_vSquish));
 		var entityArrPos = 0;
 		for (var y=startXY[1]; y<startXY[1]+yLen; y++) {
 			for (var x=startXY[0]; x<startXY[0]+xLen; x++) {
 				//draw square
-				this.palette.drawTexture(this.dArr[y][x], x, y, drawXStart + ((x - startXY[0]) * camera.scale), drawYStart + ((y - startXY[1]) * camera.scale * camera.vSquish), camera.scale);
+				this.palette.drawTexture(this.dArr[y][x], x, y, drawXStart + ((x - startXY[0]) * camera.scale), drawYStart + ((y - startXY[1]) * camera.scale * render_vSquish), camera.scale);
 			}
 			//draw the entities for that row, assuming all the entities are in order
 			while (entityArrPos < this.entities.length && this.entities[entityArrPos].y <= y) {
@@ -424,7 +422,7 @@ class Zone {
 		startXY[1] = Math.max(Math.floor(startXY[1]) - this.y, 0);
 		var pixelStartXY = spaceToScreen(this.x, this.y);
 		var xLen = Math.min(Math.ceil(canvas.width / camera.scale) + 1, this.data[0].length - startXY[0]);
-		var yLen = Math.min(Math.ceil(canvas.height / (camera.scale * camera.vSquish)) + 1, this.data.length - startXY[1]);
+		var yLen = Math.min(Math.ceil(canvas.height / (camera.scale * render_vSquish)) + 1, this.data.length - startXY[1]);
 
 		var dist;
 		var xDist;
@@ -442,7 +440,7 @@ class Zone {
 				ctx.globalAlpha = Math.max(0, 1 - (dist / world_outsideMapFade));
 				//draw square
 				drawX = pixelStartXY[0] + 1 + ((x - 0.5) * camera.scale);
-				drawY = pixelStartXY[1] + 1 + ((y - 0.5) * camera.scale * camera.vSquish) - (camera.scale * (1 - camera.vSquish));
+				drawY = pixelStartXY[1] + 1 + ((y - 0.5) * camera.scale * render_vSquish) - (camera.scale * (1 - render_vSquish));
 				this.palette.drawTexture(this.dArr[y][x], x, y, drawX, drawY, camera.scale);
 			}
 		}

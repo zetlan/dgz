@@ -97,11 +97,11 @@ class Palette_Empty {
 	drawTexture(dataNum, worldX, worldY, drawX, drawY, drawSize) {
 		drawSize -= 2;
 		if (dataNum !== " ") {
-			ctx.fillRect(drawX + 1, drawY + 1 + (drawSize * (1 - camera.vSquish)), drawSize, drawSize * camera.vSquish);
+			ctx.fillRect(drawX + 1, drawY + 1 + (drawSize * (1 - render_vSquish)), drawSize, drawSize * render_vSquish);
 
 			if (dataNum !== "0") {
 				ctx.fillStyle = color_text_light;
-				ctx.fillText(dataNum, drawX + (drawSize / 2), drawY + drawSize * camera.vSquish * 0.8);
+				ctx.fillText(dataNum, drawX + (drawSize / 2), drawY + drawSize * render_vSquish * 0.8);
 				ctx.fillStyle = color_collision;
 			}
 		}

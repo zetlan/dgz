@@ -77,9 +77,9 @@ function polToXY(startX, startY, angle, magnitude) {
 }
 
 function spaceToScreen(x, y) {
-	return [(x - camera.cornerCoords[0]) * camera.scale, (y - camera.cornerCoords[1]) * camera.scale * camera.vSquish];
+	return [(x - camera.cornerCoords[0]) * camera.scale, (y - camera.cornerCoords[1]) * camera.scale * render_vSquish];
 }
 
 function screenToSpace(x, y) {
-	return [(x / camera.scale) + camera.cornerCoords[0], (y / camera.scale / camera.vSquish) + camera.cornerCoords[1]];
+	return [(x / camera.scale) + camera.cornerCoords[0], (y / camera.scale / render_vSquish) + camera.cornerCoords[1]];
 }

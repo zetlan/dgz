@@ -287,7 +287,7 @@ class State_Edit_Collision extends State_Edit {
 			if (this.exitMoving) {
 				ctx.strokeStyle = color_editor_selection;
 			}
-			ctx.rect(endXY[0] - camera.scale / 2, endXY[1] - (camera.scale / 2) * camera.vSquish, camera.scale, camera.scale * camera.vSquish);
+			ctx.rect(endXY[0] - camera.scale / 2, endXY[1] - (camera.scale / 2) * render_vSquish, camera.scale, camera.scale * render_vSquish);
 			ctx.stroke();
 		}
 
@@ -477,7 +477,7 @@ class State_Edit_Entities extends State_Edit {
 		//draw boxes around entities
 		var xy = [];
 		var xOff = camera.scale / 2;
-		var yOff = (camera.scale / 2) * camera.vSquish;
+		var yOff = (camera.scale / 2) * render_vSquish;
 		loading_map.entities.forEach(e => {
 			//determine box color
 			ctx.strokeStyle = (e == this.entity) ? color_editor_selection : color_editor_border;

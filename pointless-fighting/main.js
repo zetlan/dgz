@@ -89,6 +89,7 @@ var menu_animSpeed = 7;
 var menu_curve = 100;
 let player;
 
+var render_vSquish = 0.8;
 var settings_resolutions = [
 	[480, 360],
 	[640, 480],

@@ -66,6 +66,10 @@ function drawSelectionBox(x, y, width, height) {
 	ctx.stroke();
 }
 
+function drawTextBox(x, y, text, color) {
+	
+}
+
 
 
 
@@ -92,7 +96,7 @@ function drawKeys() {
 	ctx.fillRect(unit * 4, canvas.height - unit * 3, unit * 2, unit * 2);
 }
 
-function setCanvasPreferences() {
+function setCanvasPreferences() {	
 	ctx.textBaseline = "middle";
 	ctx.imageSmoothingEnabled = false;
 }
