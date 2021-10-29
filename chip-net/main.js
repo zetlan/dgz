@@ -83,7 +83,7 @@ var dirRelate = [[1, 0], [0, -1], [-1, 0], [0, 1]];
 
 var game_mode = "main";
 
-var puzzle = importPuzzle(data_freeWires);
+var puzzle = importPuzzle(data_introFree);
 var puzzle_screenSize = 0.9;
 var puzzle_lineWidth = 0.25;
 var puzzle_lineMargin = 0.1;
