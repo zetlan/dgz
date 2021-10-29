@@ -50,7 +50,7 @@ function randomBounded(min, max) {
 
 function sigmoid(input, outputLowerBound, outputUpperBound) {
 	//haha good luck reading this ;)
-	return ((1 / (1 + Math.pow(Math.E, -input))) + outputLowerBound) * (outputUpperBound - outputLowerBound);
+	return (1 / (1 + Math.pow(Math.E, input))) * (outputLowerBound - outputUpperBound) + outputUpperBound;
 }
 
 //an interpolation, but with an ease in + out
