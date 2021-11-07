@@ -90,25 +90,22 @@ class CNode {
 		
 	}
 
-	giveEnglishConstructor(tabNumber) {
-		if (tabNumber == undefined) {
-			tabNumber = 0;
-		}
+	giveEnglishConstructor() {
 		var childDat = "";
 		var tabDat = "";
-		for (var a=0; a<tabNumber; a++) {
-			tabDat += "\t";
-		}
 		if (this.children.length > 0) {
-			childDat += "\n";
-			for (var a=0; a<this.children.length-1; a++) {
-				childDat += tabDat + this.children[a].giveEnglishConstructor(tabNumber+1) + ", \n";
+			var oneChildData;
+			for (var a=0; a<this.children.length; a++) {
+				oneChildData = this.children[a].giveEnglishConstructor();
+				//add tabs to show ownership
+				oneChildData = oneChildData.split("\n");
+				oneChildData = oneChildData.map(ln => "\t" + ln);
+				oneChildData = oneChildData.reduce((a, b) => a + "\n"+ b);
+				childDat += oneChildData + "\n";
 			}
-			childDat += this.children[this.children.length-1].giveEnglishConstructor(tabNumber+1) + "\n";
-			childDat += tabDat;
 		}
 		
-		return `${tabDat}new CNode(${this.trueX.toFixed(4)}, ${this.trueY.toFixed(4)}, '${this.cutscene}', [${childDat}])`;
+		return `${this.cutscene}~${this.trueX.toFixed(4)}~${this.trueY.toFixed(4)}\n${childDat}`;
 	}
 
 	tick() {
