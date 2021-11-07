@@ -1260,7 +1260,7 @@ class StaticCharacter {
 		this.z;
 		this.tile = tile;
 		this.strip = strip;
-		this.houseState = loading_state;
+		this.houseState = {};
 		this.immersive = immersiveBOOLEAN;
 
 		this.cutscene = cutsceneDataSTRING;
@@ -1272,6 +1272,7 @@ class StaticCharacter {
 		}
 		
 		this.textureRot = 0;
+		this.ch = character;
 
 		this.placeSelf();
 	}
@@ -1281,8 +1282,10 @@ class StaticCharacter {
 	}
 
 	activateCutscene() {
-		//make sure self is deleted
-		this.houseState = {};
+		if (this.cutscene == undefined) {
+			console.log(`${this.ch} is undefined, quitting`);
+			return;
+		}
 
 		this.parent.resetWithoutPlayer();
 
@@ -2088,8 +2091,8 @@ class Tunnel {
 		var output = ``;
 		//simple non-tile position features
 		output += `id~${this.id}`;
-		output += `|pos-x~${this.x.toFixed(4)}`;
-		output += `|pos-z~${this.z.toFixed(4)}`;
+		output += `|pos-x~${Math.round(this.x)}`;
+		output += `|pos-z~${Math.round(this.z)}`;
 		output += `|direction~${this.theta.toFixed(4)}`;
 		output += `|tube~${this.sides}~${this.tilesPerSide}`;
 		output += `|color~${HSVtoRGB(this.color)}`;
