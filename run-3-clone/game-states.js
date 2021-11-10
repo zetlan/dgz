@@ -1363,6 +1363,7 @@ class State_Loading {
 
 	execute() {
 		if (this.time == -10) {
+			data_cutsceneTree = createCutsceneTree(data_cutsceneTree);
 			this.initialDraw();
 		}
 		if (this.time < 10) {
