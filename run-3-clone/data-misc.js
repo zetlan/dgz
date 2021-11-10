@@ -365,8 +365,8 @@ var data_sprites = {
 	}
 };
 
-var data_cutsceneTree = `
-comingThrough~-0.3351~-0.2068
+var data_cutsceneTree = 
+`comingThrough~-0.3351~-0.2068
 	niceToMeetYou~-0.2893~-0.0848
 	goldMedal~-0.3608~0.0179
 	insanity~-0.2000~-0.1280
