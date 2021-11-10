@@ -26,7 +26,9 @@
 	changeTiles(tunnel, tileArray, newTileID);
 	clamp(num, min, max);
 	compressCutsceneData();
-	crumbleTileSets();
+
+	file_export();
+	file_import();
 
 	getClosestObject();
 	getImage();
@@ -39,6 +41,12 @@
 	localStorage_write();
 	logTime();
 	logTimeEnd();
+
+	makeCutscene();
+	makeCutsceneAbsolute();
+	makeCutsceneRelative();
+	makeCutsceneTag();
+
 	modularDifference();
 	outputWorld();
 	outputTunnel();
@@ -66,6 +74,7 @@
 	spliceIn();
 	spliceOut();
 	stealAudioConsent();
+	toggleForcedReset();
 
 	tunnel_applyProperty(setPrefix, codeToExecuteSTRING);
 	tunnelData_applyProperty();
@@ -74,8 +83,6 @@
 	tunnelData_parseDataReverse();
 	tunnelData_parseStars();
 */
-
-
 
 //generation functions
 function generateAngelLines() {
@@ -517,9 +524,9 @@ function compressCutsceneData(reference) {
 			//camera data
 			var camData = "CAM~";
 			for (var a=0; a<arr[0].length-1; a++) {
-				camData += arr[0][a].toFixed(4) + "~";
+				camData += arr[0][a].toFixed(data_precision) + "~";
 			}
-			camData += arr[0][arr[0].length-1].toFixed(4);
+			camData += arr[0][arr[0].length-1].toFixed(data_precision);
 
 			var objData = "";
 			arr[1].forEach(a => {
@@ -814,6 +821,9 @@ function handleTextDisplay() {
 
 
 function HSVtoRGB(hsvObject) {
+	if (hsvObject.h < 0) {
+		hsvObject.h += 360;
+	}
 	//I don't understand most of this but it appears to work
 	var compound = hsvObject.v * (hsvObject.s / 80);
 	var x = compound * (1 - Math.abs(((hsvObject.h / 60) % 2) - 1));
@@ -933,8 +943,130 @@ function logTimeEnd(logName, textToDisplay) {
 			avgTime += t;
 		});
 		avgTime /= times_past[logName].length;
-		console.log(`${textToDisplay}: ${avgTime.toFixed(3)} ms`);
+		console.log(`${textToDisplay}: ${avgTime.toFixed(data_precision)} ms`);
 		times_past[logName] = [];
+	}
+}
+
+//gives you the cutscene in easily managable JSON
+function makeCutscene(ref) {
+	//go through all frames
+	var frameData = ``;
+	ref.frames.forEach(d => {
+		frameData += `\`${d}\`, \n`;
+	});
+
+	//ack this is a bit of a mess
+	var outputString = `{\n`;
+	outputString += `\tid: \`${ref.id}\`,\n`;
+	outputString += `\teffects: \`${ref.effects}\`,\n`;
+	if (ref.relativeTo != undefined) {
+		outputString += `\trelativeTo: \`${ref.relativeTo}\`,\n`;
+	}
+	outputString += `\tframes: [\n\t\t${frameData}]\n\t}`;
+
+	return outputString;
+}
+
+function makeCutsceneAbsolute(cutsceneData) {
+	var tunnel = getObjectFromID(cutsceneData.relativeTo);
+	var relPos = [tunnel.x, tunnel.y, tunnel.z];
+	var relDirs = [tunnel.theta, 0, 0];
+	var buffer1;
+
+	//split into lines, each data tag is handled differently
+	for (var ln=0; ln<cutsceneData.frames.length; ln++) {
+		buffer1 = cutsceneData.frames[ln].split("|");
+		//make each tag relative
+		for (var f=0; f<buffer1.length; f++) {
+			buffer1[f] = makeCutsceneTag(buffer1[f], 1, relPos, relDirs);
+		}
+		cutsceneData.frames[ln] = buffer1.reduce((a, b) => a + "|" + b);
+	}
+	cutsceneData.relativeTo = undefined;
+	return cutsceneData;
+}
+
+function makeCutsceneRelative(relativeTunnel, cutsceneData) {
+	var relPos;
+	var relDirs;
+	var tunnel;
+	var newDat;
+	var buffer1;
+
+	//if the cutscene is already relative, first make it into absolute positioning
+	if (cutsceneData.relativeTo != undefined) {
+		cutsceneData = makeCutsceneAbsolute(cutsceneData);
+	}
+
+	tunnel = getObjectFromID(relativeTunnel);
+	if (tunnel.id == undefined) {
+		console.log(cutsceneData);
+		return;
+	}
+	relPos = [tunnel.x, tunnel.y, tunnel.z];
+	relDirs = [tunnel.theta, 0, 0];
+
+	//make relative to the new tunnel
+	for (var ln=0; ln<cutsceneData.frames.length; ln++) {
+		buffer1 = cutsceneData.frames[ln].split("|");
+		//make each tag relative
+		for (var f=0; f<buffer1.length; f++) {
+			buffer1[f] = makeCutsceneTag(buffer1[f], -1, relPos, relDirs);
+		}
+		cutsceneData.frames[ln] = buffer1.reduce((a, b) => a + "|" + b);
+	}
+
+	cutsceneData.relativeTo = relativeTunnel;
+	console.log(cutsceneData);
+}
+
+function makeCutsceneTag(tag, sign, positionData, directionData) {
+	var nt = tag.split("~");
+	//console.log(nt);
+	var dp = data_precision;
+	switch (nt[0]) {
+		case "CAM":
+		case "LGT":
+		case "POW":
+		case "3TL":
+		case "3BT":
+			nt[1] = +nt[1];
+			nt[2] = +nt[2];
+			nt[3] = +nt[3];
+			//if the sign's positive, do rotation first
+			if (sign == 1) {
+				[nt[1], nt[3]] = rotate(nt[1], nt[3], sign * directionData[0]);
+			}
+			//move all coordinates, that's always the first 3 numbers
+			nt[1] += (sign * positionData[0]);
+			nt[2] += (sign * positionData[1]);
+			nt[3] += (sign * positionData[2]);
+
+			console.log(nt[1], nt[2], nt[3]);
+
+			//rotate
+			if (sign == -1) {
+				[nt[1], nt[3]] = rotate(nt[1], nt[3], sign * directionData[0]);
+			}
+
+			//the light and powercell only have xyz, and are now done
+			if (nt[0] == "LGT" || nt[0] == "POW") {
+				return `${nt[0]}~${nt[1].toFixed(dp)}~${nt[2].toFixed(dp)}~${nt[3].toFixed(dp)}`;
+			}
+
+			//direction change completes camera
+			if (nt[0] == "CAM") {
+				nt[4] = ((+nt[4] - (sign * directionData[0])) + (Math.PI * 2)) % (Math.PI * 2);
+				return `CAM~${nt[1].toFixed(dp)}~${nt[2].toFixed(dp)}~${nt[3].toFixed(dp)}~${nt[4].toFixed(dp)}~${nt[5]}~${nt[6]}`;
+			}
+
+			//you know what, this isn't completed but it's completed enough for what I'm doing right now. 
+
+			break;
+		//ignore all 2d objects
+		default:
+			return tag;
 	}
 }
 
@@ -1250,6 +1382,35 @@ function stealAudioConsent(a) {
 			data_audio[audio].currentTime = 0;
 		}
 		audio_consentRequired = false;
+	}
+}
+
+function toggleForcedReset(value) {
+	//controls the state of the forced reset thing
+	if (value == 0) {
+		//turn it off
+		window.clearTimeout(page_escBuffer);
+		return;
+	}
+
+	if (value == 1) {
+		//turn it on
+		page_escBuffer = window.setTimeout(function() {
+			runCrash();
+			new Audio(`audio/reset.ogg`).play();
+			window.setTimeout(function() {
+				toggleForcedReset(2);
+			}, 100);
+		}, controls_escHoldTime);
+		return;
+	}
+
+	if (value == 2) {
+		//time to do the actual reset, not any of this timeout stuff
+		window.cancelAnimationFrame(page_animation);
+		loading_state = new State_Menu();
+		page_animation = window.requestAnimationFrame(main);
+		return;
 	}
 }
 
