@@ -1018,7 +1018,7 @@ function makeCutsceneRelative(relativeTunnel, cutsceneData) {
 	}
 
 	cutsceneData.relativeTo = relativeTunnel;
-	console.log(cutsceneData);
+	return makeCutscene(cutsceneData);
 }
 
 function makeCutsceneTag(tag, sign, positionData, directionData) {
@@ -1042,8 +1042,6 @@ function makeCutsceneTag(tag, sign, positionData, directionData) {
 			nt[1] += (sign * positionData[0]);
 			nt[2] += (sign * positionData[1]);
 			nt[3] += (sign * positionData[2]);
-
-			console.log(nt[1], nt[2], nt[3]);
 
 			//rotate
 			if (sign == -1) {
