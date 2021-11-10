@@ -392,7 +392,7 @@ class State_Edit_Tiles extends State_Edit {
 
 			//value
 			ctx.textAlign = "right";
-			ctx.fillText((objRef[2] != "cutsceneImmerse" && objRef[2] != "cutscene" && objRef[1].toFixed(4) * 1) || objRef[1], canvas.width * (editor_lTriggerW - 0.01), height + textOffset);
+			ctx.fillText((objRef[2] != "cutsceneImmerse" && objRef[2] != "cutscene" && objRef[1].toFixed(data_precision) * 1) || objRef[1], canvas.width * (editor_lTriggerW - 0.01), height + textOffset);
 		}
 
 		this.funcButtons.forEach(f => {
