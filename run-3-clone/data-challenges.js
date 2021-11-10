@@ -48,7 +48,7 @@ var challengeData_angelMissions = [{
 	}, {
 		level: "G-5",
 		backwards: true,
-		startCode: `challenge_addEncounter("G-5", 18, 4, "Child", "youThink"); challenge_addEncounter("G-5", 19, 4, "Duplicator", "youThink");`,
+		startCode: `challenge_addEncounter("G-5", 18, 4, "Child", undefined); challenge_addEncounter("G-5", 19, 4, "Duplicator", "youThink");`,
 		text: `No one there. Where is everyone?|I usually can't go five minutes without crashing into one of those pests.`
 	},
 
@@ -493,6 +493,7 @@ var challengeData_bridgeBuildingSkater = [
 		startCode: `challenge_resetBox("M-1", 16, 65, 100);`,
 		endCode: `challenge_rareReset();`,
 	}, {
+		char: 8,
 		level: "Level 33",
 		backwards: false,
 		endCode: `challenge_isCutscene(0, false, "somePointM1", false);`,
