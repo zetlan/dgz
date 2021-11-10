@@ -20,7 +20,7 @@ would also cut down on the distinction between "planetMissing" and "Planet Missi
 
 Fix tunnel rendering. Goish I feel terrible about that. Currently it seems like a binary space partition is the only way to go, but maybe there are some shortcuts that can be taken.
 	If going with a BSP, make sure it's fast. Find a way to group tiles into one plane
-	is it possible to not cut any tile planes? Boxes seem like a big no-go on that
+	is it possible to not cut any tile planes? Boxes + ramps seem like a big no-go on that but it may be possible
 
 challenge mode is a mess. Maybe something with that?
 
