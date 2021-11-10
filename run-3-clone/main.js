@@ -10,6 +10,21 @@ window.addEventListener("keyup", handleKeyNegate, false);
 	avoid else
 	avoid nesting too far
 	when using if else, put most likely condition first
+
+
+
+TODO list
+change the way cutscene data works. Perhaps all the cutscenes could be put into a giant dictionary?
+instead of cutsceneData_id it would be data_cutscene["id"]
+would also cut down on the distinction between "planetMissing" and "Planet Missing" for example, as keys can be any string
+
+Fix tunnel rendering. Goish I feel terrible about that. Currently it seems like a binary space partition is the only way to go, but maybe there are some shortcuts that can be taken.
+	If going with a BSP, make sure it's fast. Find a way to group tiles into one plane
+	is it possible to not cut any tile planes? Boxes seem like a big no-go on that
+
+challenge mode is a mess. Maybe something with that?
+
+
 */
 //global variables
 var audio_channel1 = new AudioChannel(0.5);
