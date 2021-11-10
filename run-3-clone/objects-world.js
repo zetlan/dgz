@@ -2086,14 +2086,12 @@ class Tunnel {
 	}
 	
 	giveStringData() {
-		//TODO: support function output
-		//TODO: support banned character output
 		var output = ``;
 		//simple non-tile position features
 		output += `id~${this.id}`;
 		output += `|pos-x~${Math.round(this.x)}`;
 		output += `|pos-z~${Math.round(this.z)}`;
-		output += `|direction~${this.theta.toFixed(4)}`;
+		output += `|direction~${this.theta.toFixed(data_precision)}`;
 		output += `|tube~${this.sides}~${this.tilesPerSide}`;
 		output += `|color~${HSVtoRGB(this.color)}`;
 		if (this.spawns.length > 0) {
@@ -2116,7 +2114,7 @@ class Tunnel {
 
 		//power + functions
 		if (this.powerBase != 1) {
-			output += `|power~${this.power.toFixed(4)}`;
+			output += `|power~${this.power.toFixed(data_precision)}`;
 		}
 		this.functions.forEach(f => {
 			output += `|trigger~${f[0]}~${f[1]}~${f[2]}`;

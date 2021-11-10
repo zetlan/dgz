@@ -50,12 +50,8 @@ class Tile extends FreePoly {
 		entity.dir_down = this.dir_down;
 		haltRotation = true;
 
-		//TODO: find a way to refactor the if/else out of this
-		if (player.backwards) {
-			cameraRotAttempt = ((Math.PI * 2.5) - this.dir_down[1]) % (Math.PI * 2);
-		} else {
-			cameraRotAttempt = (this.dir_down[1] + (Math.PI * 1.5)) % (Math.PI * 2);
-		}
+		//rotation is flipped a bit if player is going backwards
+		cameraRotAttempt = ((Math.PI * (1.5 + player.backwards)) + (boolToSigned(!player.backwards) * this.dir_down[1])) % (Math.PI * 2);
 
 		world_camera.targetPhi = 0;
 		world_camera.targetTheta = entity.dir_front[0] % (Math.PI * 2);

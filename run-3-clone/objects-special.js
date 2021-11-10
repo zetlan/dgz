@@ -105,7 +105,7 @@ class CNode {
 			}
 		}
 		
-		return `${this.cutscene}~${this.trueX.toFixed(4)}~${this.trueY.toFixed(4)}\n${childDat}`;
+		return `${this.cutscene}~${this.trueX.toFixed(data_precision)}~${this.trueY.toFixed(data_precision)}\n${childDat}`;
 	}
 
 	tick() {
@@ -595,7 +595,8 @@ class SceneBoat extends Scene3dObject {
 	}
 
 	giveStringData() {
-		return `3BT~${this.x.toFixed(4)}~${this.y.toFixed(4)}~${this.z.toFixed(4)}~${this.boat.theta.toFixed(4)}~${this.boat.phi.toFixed(4)}`;
+		var dp = data_precision;
+		return `3BT~${this.x.toFixed(dp)}~${this.y.toFixed(dp)}~${this.z.toFixed(dp)}~${this.boat.theta.toFixed(dp)}~${this.boat.phi.toFixed(dp)}`;
 	}
 }
 
@@ -755,7 +756,8 @@ class SceneTile extends Scene3dObject {
 	}
 
 	giveStringData() {
-		return `3TL~${this.x.toFixed(4)}~${this.y.toFixed(4)}~${this.z.toFixed(4)}~${this.type}~${this.tile.size}~${this.tile.normal[1].toFixed(4)}`;
+		var dp = data_precision;
+		return `3TL~${this.x.toFixed(dp)}~${this.y.toFixed(dp)}~${this.z.toFixed(dp)}~${this.type}~${this.tile.size}~${this.tile.normal[1].toFixed(dp)}`;
 	}
 
 	updateHandles() {
@@ -892,7 +894,8 @@ class SceneLine {
 	}
 
 	giveStringData() {
-		return `LIN~${this.x.toFixed(4)}~${this.y.toFixed(4)}~${this.endX.toFixed(4)}~${this.endY.toFixed(4)}`;
+		var dp = data_precision;
+		return `LIN~${this.x.toFixed(dp)}~${this.y.toFixed(dp)}~${this.endX.toFixed(dp)}~${this.endY.toFixed(dp)}`;
 	}
 }
 
@@ -913,7 +916,7 @@ class SceneLight extends Scene3dObject {
 	}
 
 	giveStringData() {
-		return `LGT~${this.x.toFixed(4)}~${this.y.toFixed(4)}~${this.z.toFixed(4)}`;
+		return `LGT~${this.x.toFixed(data_precision)}~${this.y.toFixed(data_precision)}~${this.z.toFixed(data_precision)}`;
 	}
 }
 
@@ -940,7 +943,7 @@ class ScenePowercell extends Scene3dObject {
 	}
 
 	giveStringData() {
-		return `POW~${this.x.toFixed(4)}~${this.y.toFixed(4)}~${this.z.toFixed(4)}`;
+		return `POW~${this.x.toFixed(data_precision)}~${this.y.toFixed(data_precision)}~${this.z.toFixed(data_precision)}`;
 	}
 }
 
@@ -1095,7 +1098,8 @@ class SceneText {
 	}
 
 	giveStringData() {
-		return `TXT~${this.x.toFixed(4)}~${this.y.toFixed(4)}~${this.width.toFixed(4)}~${this.fontSize.toFixed(4)}~${this.rawContent.replaceAll("~", "")}~${this.isLight}`;
+		var dp = data_precision;
+		return `TXT~${this.x.toFixed(dp)}~${this.y.toFixed(dp)}~${this.width.toFixed(dp)}~${this.fontSize.toFixed(dp)}~${this.rawContent.replaceAll("~", "")}~${this.isLight}`;
 	}
 }
 
@@ -1181,7 +1185,8 @@ class SceneBox {
 	}
 
 	giveStringData() {
-		return `BOX~${this.x.toFixed(4)}~${this.y.toFixed(4)}~${this.width.toFixed(4)}~${this.height.toFixed(4)}`;
+		var dp = data_precision;
+		return `BOX~${this.x.toFixed(dp)}~${this.y.toFixed(dp)}~${this.width.toFixed(dp)}~${this.height.toFixed(dp)}`;
 	}
 }
 
@@ -1215,7 +1220,8 @@ class SceneBubble extends SceneBox {
 	}
 
 	giveStringData() {
-		return `BUB~${this.x.toFixed(4)}~${this.y.toFixed(4)}~${this.width.toFixed(4)}~${this.height.toFixed(4)}`;
+		var dp = data_precision;
+		return `BUB~${this.x.toFixed(dp)}~${this.y.toFixed(dp)}~${this.width.toFixed(dp)}~${this.height.toFixed(dp)}`;
 	}
 }
 
@@ -1356,7 +1362,8 @@ class SceneSprite extends SceneBox {
 	}
 
 	giveStringData() {
-		return `SPR~${this.x.toFixed(4)}~${this.y.toFixed(4)}~${this.width.toFixed(4)}~${this.sheet}~${this.rot.toFixed(4)}~${this.texture.backwards}~${this.textureX}~${this.textureY}`;
+		var dp = data_precision;
+		return `SPR~${this.x.toFixed(dp)}~${this.y.toFixed(dp)}~${this.width.toFixed(dp)}~${this.sheet}~${this.rot.toFixed(dp)}~${this.texture.backwards}~${this.textureX}~${this.textureY}`;
 	}
 }
 
@@ -1444,7 +1451,8 @@ class SceneTri {
 	}
 
 	giveStringData() {
-		return `TRI~${this.x.toFixed(4)}~${this.y.toFixed(4)}~${this.endX.toFixed(4)}~${this.endY.toFixed(4)}~${this.width.toFixed(4)}`;
+		var dp = data_precision;
+		return `TRI~${this.x.toFixed(dp)}~${this.y.toFixed(dp)}~${this.endX.toFixed(dp)}~${this.endY.toFixed(dp)}~${this.width.toFixed(dp)}`;
 	}
 }
 

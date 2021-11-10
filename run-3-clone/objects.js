@@ -153,22 +153,15 @@ class Camera {
 			this.x += moveCoords[0];
 			this.y += moveCoords[1];
 			this.z += moveCoords[2];
-			this.theta += this.dt;
+			this.theta += this.dt / (1 + (controls_altPressed * 5));
 			this.targetRot += this.dr;
+
+			//restrict phi values to avoid camera weirdness
+			this.phi = clamp(this.phi + (this.dp / (1 + (controls_altPressed * 5))), Math.PI * -0.5, Math.PI * 0.5);
 		}
 
 		//weighted average towards target rotation
 		this.rot = (this.targetRot + (this.rot * (render_animSteps - 1))) / render_animSteps;
-
-		//camera velocity
-		this.phi += this.dp;
-		
-
-		//special case for vertical camera orientation
-		if (Math.abs(this.phi) >= Math.PI * 0.5) {
-			//if the camera angle is less than 0, set it to -1/2 pi. Otherwise, set it to 1/2 pi
-			this.phi = Math.PI * (-0.5 + (this.phi > 0));
-		}
 	}
 
 	reconcileTargets() {
