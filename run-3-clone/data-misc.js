@@ -1,4 +1,9 @@
-//because I didn't want to store all the data in the main.js file. It just got too cluttered.
+/*
+because I didn't want to store all the data in the main.js file. It just got too cluttered.
+There is still some data creep in main.js, but this significantly reduces it.
+*/
+
+
 var data_alphaNumerics = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 //[title text, superscript text, line to jump to when clicked, cutscene complete requirement, character is going home?]
 var data_angelChecklist = [
@@ -192,12 +197,15 @@ var data_persistent = {
 		altRender: true,
 		antiAlias: true,
 		enableOutlines: true,
+		halfRender: false,
 		highResolution: false,
 		maskCursor: false,
 		pastaView: false,
 		volume: 0.5,
 	}
 };
+
+var data_precision = 4;
 
 /*
 I made the executive decision to use PNGs rather than SVGs because of performance. 
