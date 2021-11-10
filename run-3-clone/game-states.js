@@ -491,8 +491,6 @@ class State_Challenge extends State_World {
 		player.parent.reset();
 		player.tick();
 
-		
-
 		world_camera.x = world_camera.targetX;
 		world_camera.y = world_camera.targetY;
 		world_camera.z = world_camera.targetZ;
@@ -544,6 +542,11 @@ class State_Cutscene extends State_World {
 				]
 			}
 		}
+
+		//make sure that data is in absolute positioning
+		if (data.relativeTo != undefined) {
+			data = makeCutsceneAbsolute(data);
+		} 
 		this.ref = data;
 		//make a copy without linking to the reference
 		this.selectionTextures = [];
@@ -583,6 +586,17 @@ class State_Cutscene extends State_World {
 		}
 		this.doSidebar = true;
 		this.destinationState = optionalExitState || new State_Map();
+		this.savedCameraVals;
+		//if the player's not just going to the map, make sure to restore the previous camera context
+		if (optionalExitState != undefined) {
+			var c = world_camera;
+			this.savedCameraVals = [c.x, c.y, c.z, c.theta, c.phi, c.rot, c.targetTheta, c.targetPhi, c.targetRot];
+		} else {
+			//if the player is just exiting normally, make sure their character gets changed as needed
+			if (data_persistent.unlocked.indexOf(this.playerStore) == -1) {
+				this.playerStore = player;
+			}
+		}
 		this.allowDebug = false;
 		this.debugButton = new PropertyButton(0.74, 0.95, 0.25, 0.05, "toggle editor", "editor_active = !editor_active;");
 		this.skipping = false;
@@ -798,6 +812,10 @@ class State_Cutscene extends State_World {
 	exit() {
 		player = this.playerStore;
 		loading_state = this.destinationState;
+		if (this.savedCameraVals != undefined) {
+			var c = world_camera;
+			[c.x, c.y, c.z, c.theta, c.phi, c.rot, c.targetTheta, c.targetPhi, c.targetRot] = this.savedCameraVals;
+		}
 		try {
 			loading_state.doWorldEffects();
 		} catch (error) {
@@ -812,13 +830,14 @@ class State_Cutscene extends State_World {
 			frameData += this.giveStringDataForLine(d);
 		});
 
-		//apologies for the indenting here, it's so that when the string is outputted it won't have extra tabs at the start
-var outputString = `{
-	id: \`${this.ref.id}\`,
-	effects: \`${this.ref.effects}\`,
-	frames: [
-		${frameData}]
-}`;
+		//ack this is a bit of a mess
+		var outputString = `{\n`;
+		outputString += `\tid: \`${this.ref.id}\`,\n`;
+		outputString += `\teffects: \`${this.ref.effects}\`,\n`;
+		if (this.ref.relativeTo != undefined) {
+			outputString += `\trelativeTo: \`${this.ref.relativeTo}\`,\n`;
+		}
+		outputString += `\tframes: [\n\t\t${frameData}]\n\t}`;
 
 		return outputString;
 	}
@@ -827,9 +846,9 @@ var outputString = `{
 		//camera data
 		var camData = "CAM~";
 		for (var a=0; a<arr[0].length-1; a++) {
-			camData += arr[0][a].toFixed(4) + "~";
+			camData += arr[0][a].toFixed(data_precision) + "~";
 		}
-		camData += arr[0][arr[0].length-1].toFixed(4);
+		camData += arr[0][arr[0].length-1].toFixed(data_precision);
 
 		var objData = ``;
 		for (var a=0; a<arr[1].length; a++) {
@@ -1078,7 +1097,7 @@ class State_Game extends State_World {
 	execute() {
 		super.execute();
 		if (this.substate == 1) {
-			//backwards toggle
+			//draw backwards toggle
 			if (player.parentPrev.allowBackwards) {
 				drawArrow((canvas.width * 0.5) - (canvas.width * 0.04) + (canvas.width * 0.08 * player.backwards), canvas.height * 0.94, color_grey_light, Math.PI * player.backwards, canvas.width * 0.045, canvas.width * 0.025, canvas.height * 0.03, canvas.height * 0.06);
 				ctx.lineWidth = 2;
@@ -1087,19 +1106,18 @@ class State_Game extends State_World {
 	}
 
 	changePlayerParent(newParent) {
+		//make sure player isn't being backwards when they shouldn't be (if entering from a map or something)
 		if (player.backwards) {
-			//make sure player isn't being backwards when they shouldn't be
 			newParent.calculateBackwardsAllow();
 			if (!newParent.allowBackwards) {
 				player.backwards = false;
 			}
-			
-
-			//also for convience's sake, if entering a new tunnel, always be forwards
-			if (newParent.id.replaceAll(/[A-z]/g, '').replaceAll(',', '').replaceAll('-', '') * 1 == 1 && player.parentPrev.id.replaceAll(/[0-9]/g, '') != newParent.id.replaceAll(/[0-9]/g, '')) {
-				player.backwards = false;
-			}
 		}
+
+		//when entering a new tunnel, go the direction that's most "away" from an end
+		var frontDistance = getDistance(player, newParent);
+		var backDistance = getDistance(player, {x: newParent.endPos[0], y: newParent.endPos[1], z: newParent.endPos[2]});
+		player.backwards = (frontDistance > backDistance);
 		
 		super.changePlayerParent(newParent);
 	}
