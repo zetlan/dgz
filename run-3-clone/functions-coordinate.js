@@ -110,6 +110,27 @@ function getDistance_Tunnel(tunnel, obj2) {
 	return Math.sqrt((relPos[0] * relPos[0]) + (relPos[1] * relPos[1]) + (relPos[2] * relPos[2]));
 }
 
+//doesn't work for 3 dimensions but whatever, the game isn't built with that in mind anyways
+function getDistance_TunnelTunnel(tunnel1, tunnel2) {
+	//convert 3d structs into 2 2d line segments
+	var a1 = [tunnel1.x, tunnel1.z];
+	var a2 = [tunnel1.endPos[0], tunnel1.endPos[2]];
+	var b1 = [tunnel2.x, tunnel2.z];
+	var b2 = [tunnel2.endPos[0], tunnel2.endPos[2]];
+
+	//if the tunnels just intersect it's good
+	if (lineIntersect(a1, a2, b1, b2)) {
+		return 0;
+	}
+
+	//wacky, trying each of the vertices together will give the result needed
+	return Math.min(
+		pointSegmentDistance(a1, b1, b2), 
+		pointSegmentDistance(a2, b1, b2),
+		pointSegmentDistance(b1, a1, a2),
+		pointSegmentDistance(b2, a1, a2));
+}
+
 //sets the object's player distance to the closest distance to a light source
 function getDistance_LightSource(obj) {
 	var dist = render_maxColorDistance * 2;
