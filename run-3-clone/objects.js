@@ -496,13 +496,9 @@ class Texture {
 
 	beDrawn(x, y, rotation, size) {
 		//change current frame
-		if (this.looping) {
-			this.frame = (this.frame + this.amount) % this.frames.length;
-		} else {
-			this.frame += this.amount;
-			if (this.frame > this.frames.length - 1) {
-				this.frame = this.frames.length - 1;
-			}
+		this.frame += (this.amount * (1 + data_persistent.settings.halfRender));
+		if (this.frame > this.frames.length - 1) {
+			this.frame = this.looping ? (this.frame % this.frames.length) : (this.frames.length - 1);
 		}
 
 
