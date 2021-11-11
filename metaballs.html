@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width">
+		<title>Energy field noises</title>
+		<style>
+
+		body {
+			background-color: slateblue;
+		}
+		#canvas {
+			border-style: double;
+			border-color: slateblue;
+		}
+		#mid {
+			text-align: center;
+		}
+		</style>
+	</head>
+	<body>
+		<script type="text/javascript">
+			window.onload = setup;
+			window.addEventListener("keydown", handleKeyPress, false);
+			
+			var timer;
+
+			var color_bg = "#000";
+            var color_circles = "#F80";
+
+			var edgeMargin = 20;
+            var rMax = 50;
+            var rMin = 10;
+
+            var dt = 0.01;
+            var metas = [];
+
+			function setup() {
+				canvas = document.getElementById("canvas");
+				ctx = canvas.getContext("2d");
+
+				centerX = canvas.width / 2;
+				centerY = canvas.height / 2;
+
+				//setting values of text boxes
+				document.getElementById("input_totalMoves").value = moves_total;
+				document.getElementById("input_movesPerGame").value = moves_beforeReset;
+
+				timer = window.requestAnimationFrame(draw);
+			}
+
+            function createMeta() {
+                //random radius, direction, and magnitude
+                var r = (Math.random() * (rMax - rMin)) + rMin;
+                var magnitude = (Math.random() * 0.8) + 0.1;
+            }
+
+            function draw() {
+
+
+                timer = window.requestAnimationFrame(draw);
+            }
+
+            function evaluateField(x, y) {
+                var totalDistance;
+                metas.forEach(m => {
+                    //metas in x, y, r form
+                    
+                });
+                return 0.5;
+            }
+
+			function tick() {
+				
+			}
+
+			function drawCircle(color, x, y, radius) {
+				ctx.beginPath();
+				ctx.fillStyle = color;
+				ctx.strokeStyle = color;
+				ctx.ellipse(x, y, radius, radius, 0, 0, Math.PI * 2);
+				ctx.stroke();
+				ctx.fill();
+			}
+
+			function randomCustom(min, max) {
+				return (Math.random() * (max - min)) + min;
+			}
+		</script>
+		<div id="mid">
+			<canvas id="canvas" width="640" height="480"></canvas>
+			<p>
+			This simulation tracks a piece's journey through the monopoly board and probability of landing on a particular square. <br>
+			(Higher bar = more likely to land on the square.) <br>
+			Game parameters can be changed through the text boxes below, and the arrow keys can be used to view the different properties. <br>
+			<br>
+			Total Number of Moves: <input id="input_totalMoves" value=1000000 type="number"><br>
+			Moves Per Game: <input id="input_movesPerGame" value=100 type="number">
+			</p>
+    		<button id="simRun" onClick="reset()">Run New Simulation</button>
+		</div>
+		
+	</body>
+</html>
