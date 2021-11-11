@@ -3,6 +3,19 @@ function linterp(a, b, percent) {
 	return a + (b - a * percent);
 }
 
+//returns a 0-1 apparent brightness of a hex color
+function cBrightness(hex) { 
+	if (hex == undefined) {
+		return 0;
+	}
+
+	var r = parseInt(hex.slice(1, 3), 16) / 255;
+	var g = parseInt(hex.slice(3, 5), 16) / 255;
+	var b = parseInt(hex.slice(5, 7), 16) / 255;
+	//weight different colors differently to adjust for eye perception
+	return Math.sqrt(0.299 * (r * r) + 0.587 * (g * g) + 0.114 * (b * b));
+}
+
 
 //a set of functions dealing with manipulating color. Generally in hex form because that's what's most esoteric, but may also do other things
 function cLinterp(hex1, hex2, percentage) {
