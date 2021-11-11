@@ -1,104 +1,143 @@
 <!DOCTYPE html>
 <html>
-	<head>
-		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width">
-		<title>Energy field noises</title>
-		<style>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width">
+        <title>Energy field noises</title>
+        <style>
 
-		body {
-			background-color: slateblue;
-		}
-		#canvas {
-			border-style: double;
-			border-color: slateblue;
-		}
-		#mid {
-			text-align: center;
-		}
-		</style>
-	</head>
-	<body>
-		<script type="text/javascript">
-			window.onload = setup;
-			window.addEventListener("keydown", handleKeyPress, false);
-			
-			var timer;
+        body {
+            background-color: slateblue;
+        }
+        #canvas {
+            border-style: double;
+            border-color: slateblue;
+        }
+        #mid {
+            text-align: center;
+        }
+        </style>
+    </head>
+    <body>
+        <script type="text/javascript">
+            window.onload = setup;
+            
+            var timer;
 
-			var color_bg = "#000";
-            var color_circles = "#F80";
+            var color_bg = "#000";
+            var color_circles = "#8F0";
 
-			var edgeMargin = 20;
-            var rMax = 50;
-            var rMin = 10;
+            var edgeMargin = 0;
+            var rMax = 30;
+            var rMin = 15;
 
-            var dt = 0.01;
+            var dt = 1;
             var metas = [];
 
-			function setup() {
-				canvas = document.getElementById("canvas");
-				ctx = canvas.getContext("2d");
+            var squareSize = 6;
+            var numMetas = 5;
 
-				centerX = canvas.width / 2;
-				centerY = canvas.height / 2;
+            function setup() {
+                canvas = document.getElementById("canvas");
+                ctx = canvas.getContext("2d");
 
-				//setting values of text boxes
-				document.getElementById("input_totalMoves").value = moves_total;
-				document.getElementById("input_movesPerGame").value = moves_beforeReset;
+                centerX = canvas.width / 2;
+                centerY = canvas.height / 2;
 
-				timer = window.requestAnimationFrame(draw);
-			}
-
-            function createMeta() {
-                //random radius, direction, and magnitude
-                var r = (Math.random() * (rMax - rMin)) + rMin;
-                var magnitude = (Math.random() * 0.8) + 0.1;
-            }
-
-            function draw() {
-
+                for (var h=0; h<numMetas; h++) {
+                    createMeta();
+                }
 
                 timer = window.requestAnimationFrame(draw);
             }
 
-            function evaluateField(x, y) {
-                var totalDistance;
-                metas.forEach(m => {
-                    //metas in x, y, r form
-                    
-                });
-                return 0.5;
+            function createMeta() {
+                //random radius, direction, and magnitude
+                var r = randomCustom(rMin, rMax);
+                var magnitude = randomCustom(0.1, 1);
+                var dir = randomCustom(0, Math.PI * 2);
+
+                metas.push({
+                    x: randomCustom(edgeMargin, canvas.width - edgeMargin),
+                    y: randomCustom(edgeMargin, canvas.height - edgeMargin),
+                    r: Math.floor(randomCustom(rMin, rMax)),
+
+                    dx: magnitude * Math.cos(dir),
+                    dy: magnitude * Math.sin(dir),
+                })
             }
 
-			function tick() {
-				
-			}
+            function draw() {
+                ctx.globalAlpha = 1;
+                ctx.fillStyle = color_bg;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-			function drawCircle(color, x, y, radius) {
-				ctx.beginPath();
-				ctx.fillStyle = color;
-				ctx.strokeStyle = color;
-				ctx.ellipse(x, y, radius, radius, 0, 0, Math.PI * 2);
-				ctx.stroke();
-				ctx.fill();
-			}
+                ctx.fillStyle = color_circles;
 
-			function randomCustom(min, max) {
-				return (Math.random() * (max - min)) + min;
-			}
-		</script>
-		<div id="mid">
-			<canvas id="canvas" width="640" height="480"></canvas>
-			<p>
-			This simulation tracks a piece's journey through the monopoly board and probability of landing on a particular square. <br>
-			(Higher bar = more likely to land on the square.) <br>
-			Game parameters can be changed through the text boxes below, and the arrow keys can be used to view the different properties. <br>
-			<br>
-			Total Number of Moves: <input id="input_totalMoves" value=1000000 type="number"><br>
-			Moves Per Game: <input id="input_movesPerGame" value=100 type="number">
-			</p>
-    		<button id="simRun" onClick="reset()">Run New Simulation</button>
-		</div>
-		
-	</body>
+                var w = (canvas.width - edgeMargin) / squareSize;
+                var h = (canvas.height - edgeMargin) / squareSize;
+                for (var x=Math.floor(edgeMargin/squareSize); x<w; x++) {
+                    for (var y=Math.floor(edgeMargin/squareSize); y<h; y++) {
+                        ctx.globalAlpha = Math.min(evaluateField(x * squareSize, y * squareSize), 1);
+                        ctx.fillRect(x * squareSize, y * squareSize, squareSize, squareSize);
+                    }
+                }
+
+                tick();
+                timer = window.requestAnimationFrame(draw);
+            }
+
+            function evaluateField(x, y) {
+                var totalDistance = 0;
+                metas.forEach(m => {
+                    //metas in x, y, r form
+                    var dist = 1 / (Math.sqrt((x - m.x) ** 2 + (y - m.y) ** 2) / m.r);
+                    totalDistance = totalDistance + dist;
+                });
+                return totalDistance;
+            }
+
+            function tick() {
+                metas.forEach(m => {
+                    m.x += m.dx * dt;
+                    m.y += m.dy * dt;
+
+                    //bounce off walls
+                    if (m.y < edgeMargin + m.r) {
+                        m.y = edgeMargin + m.r;
+                        m.dy *= -1;
+                    } else if (m.y > canvas.height - edgeMargin - m.r) {
+                        m.y = canvas.height - edgeMargin - m.r;
+                        m.dy *= -1;
+                    }
+
+                    if (m.x < edgeMargin + m.r) {
+                        m.x = edgeMargin + m.r;
+                        m.dx *= -1;
+                    } else if (m.x > canvas.width - edgeMargin - m.r) {
+                        m.x = canvas.width - edgeMargin - m.r;
+                        m.dx *= -1;
+                    }
+                });
+            }
+
+            function drawCircle(color, x, y, radius) {
+                ctx.beginPath();
+                ctx.fillStyle = color;
+                ctx.strokeStyle = color;
+                ctx.ellipse(x, y, radius, radius, 0, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.fill();
+            }
+
+            function randomCustom(min, max) {
+                return (Math.random() * (max - min)) + min;
+            }
+        </script>
+        <div id="mid">
+            <canvas id="canvas" width="640" height="480"></canvas>
+            <p>
+            </p>
+        </div>
+    </body>
 </html>
