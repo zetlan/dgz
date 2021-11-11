@@ -3,7 +3,6 @@
 
 
 V1.14 - November-6-2021
-    Added sections to the A tunnel so that it lines up with the L-tunnel (canonically it does that anyways, but player_03 does his dumb distance-stretching thing so I had to change things)
     bug fixes:
         entering backwards levels is now more consistient
         exiting out of a cutscene into challenge mode no longer makes the camera wacky
@@ -16,7 +15,7 @@ V1.14 - November-6-2021
         improved audio of Unsafe Speeds and Wormhole to Somewhere
         you now have the option to halve the framerate of gameplay
         tunnels you have walked by but not entered now show up on the map
-        A-tunnel now connects to L tunnel, as it should have in the first place
+        Added levels so that A-tunnel now connects to L tunnel, as it should have in the first place
 
     misc development:
         cutscene coordinates can now be relative to a tunnel. This makes it easier to move tunnels around (no longer have to re-do the entire cutscene)
