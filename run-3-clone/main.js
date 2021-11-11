@@ -109,13 +109,16 @@ var credits = [
 	`Jesse Valentine - music`,
 	``,
 	`ADDITIONAL LEVELS BY:`,
-	`Karsh777, mathwiz100, portugal2000,`,
-	`Huggaso, StarsOfTheSky, Fivebee2, and Gecco.`,
+	`Karsh777, mathwiz100, portugal2000, Huggaso,`,
+	`StarsOfTheSky, Fivebee2, and Gecco.`,
 	``,
 	`SPECIAL THANKS:`,
 	`A*16 - "I barely did anything but I still wanted`,
 	`to be in the credits."`,
-	`Chair - "Chair or LongNeckedChair."`
+	`Chair - "Chair or LongNeckedChair."`,
+	``,
+	`Thanks to NintendoPanda101 for providing some`,
+	`improved music loops.`
 ]
 var cursor_x = 0;
 var cursor_y = 0;
