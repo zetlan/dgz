@@ -37,7 +37,7 @@ function createCutsceneTree_recursive(strArr) {
 	if (strArr.length < 2) {
 		return mainNode;
 	}
-	
+
 	//figure out all children
 	var stopIndex = 1;
 	//get all individual child data
@@ -140,6 +140,11 @@ function updatePlotProgression() {
 		for (var j=0; j<world_stars.length; j++) {
 			world_stars[j] = new Star_Lizard(world_stars[j].x, world_stars[j].y, world_stars[j].z);
 		}
+	}
+
+	//I have to check for this tag because it's not worth resetting people's data over
+	if (data_persistent.settings.halfRender == undefined) {
+		data_persistent.settings.halfRender = false;
 	}
 
 
