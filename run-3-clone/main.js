@@ -24,6 +24,8 @@ Fix tunnel rendering. Goish I feel terrible about that. Currently it seems like 
 
 challenge mode is a mess. Maybe something with that?
 
+all cutscenes should be relative to some tunnel. I don't know how many things I'm going to accidentally break when I move a tunnel and the cutscenes don't come with. It's annoying.
+
 
 */
 //global variables
@@ -349,7 +351,7 @@ var text_time = text_timeMax;
 
 var textures_common = [];
 data_characters.indexes.forEach(c => {
-	textures_common.push(new Texture(eval(`data_sprites.${c}.sheet`), data_sprites.spriteSize, 2, false, false, eval(`[data_sprites.${c}.back[0], data_sprites.${c}.front[0]]`)));
+	textures_common.push(new Texture(eval(`data_sprites.${c}.sheet`), data_sprites.spriteSize, 1e1001, false, false, eval(`[data_sprites.${c}.back[0], data_sprites.${c}.front[0]]`)));
 });
 
 var times_holiday = undefined;
