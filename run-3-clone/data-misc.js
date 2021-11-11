@@ -25,6 +25,7 @@ var data_audio = {
 	"TravelTheGalaxy": new Audio('audio/TravelTheGalaxy.ogg'),
 	"UnsafeSpeeds": new Audio('audio/UnsafeSpeeds.ogg'),
 	"WormholeToSomewhere": new Audio('audio/WormholeToSomewhere.ogg'),
+	"WormholeToSomewhereFar": new Audio('audio/WormholeToSomewhereFar.ogg'),
 
 	//sfx files
 	"Tone": new Audio('audio/Tone.ogg')
@@ -178,7 +179,7 @@ var data_characters = {
 var data_levelSets = [`main`, `boxRoad`, `boxStorage`, `planA`, `planC`, `wayBack`, `wayBackNot`, `winterGames`, `lowPower`, `new`,
 						`A`, `B`, `C`, `D`, `F`, `G`, `H`, `I`, `L`, `M`, `N`, `T`, `U`, `W`];
 //data_levelSets = [`main`, `lowPower`, `new`, `F`, `U`, `wayBack`, `wayBack2`, `planA`, `planC`];
-var data_musics = ['CrumblingWalls', 'LeaveTheSolarSystem', 'MapOfTheStars', 'TheVoid', 'TravelTheGalaxy', 'WormholeToSomewhere', 'None'];
+var data_musics = ['CrumblingWalls', 'LeaveTheSolarSystem', 'MapOfTheStars', 'TheVoid', 'TravelTheGalaxy', 'WormholeToSomewhere', 'WormholeToSomewhereFar', 'None'];
 
 var data_persistent = {
 	discovered: "Level 1",
