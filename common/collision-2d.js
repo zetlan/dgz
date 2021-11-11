@@ -46,3 +46,54 @@ function inPoly(xyPoint, polyPoints) {
 	//return final value
 	return (intersectNum % 2 == 1);
 }
+
+function pointSegmentDistance(point, lineP1, lineP2) {
+	var changeX = lineP2[0] - lineP1[0];
+	var changeY = lineP2[1] - lineP1[1];
+
+	//segment is a point and distance is easy
+	if (changeX == 0 && changeY == 0) {
+		return Math.sqrt((point[0] - lineP1[0]) ** 2 + (point[1] - lineP1[1]) ** 2);
+	}
+
+	//T is progress along the line to get minimum distance
+	var t = ((point[0] - lineP1[0]) * changeX + (point[1] - lineP1[1]) * changeY) / (changeX * changeX + changeY * changeY);
+
+	//T is off of the line
+	if (t <= 0) {
+		return Math.sqrt((point[0] - lineP1[0]) ** 2 + (point[1] - lineP1[1]) ** 2);
+	}
+
+	if (t >= 1) {
+		return Math.sqrt((point[0] - lineP2[0]) ** 2 + (point[1] - lineP2[1]) ** 2);
+	}
+
+	//t is between the points
+	return Math.sqrt((point[0] - (lineP1[0] + t * changeX)) ** 2 + (point[1] - (lineP1[1] + t * changeY)) ** 2);
+}
+
+/*
+def point_segment_distance(px, py, x1, y1, x2, y2):
+  dx = x2 - x1
+  dy = y2 - y1
+  if dx == dy == 0:  # the segment's just a point
+    return math.hypot(px - x1, py - y1)
+
+  # Calculate the t that minimizes the distance.
+  t = ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy)
+
+  # See if this represents one of the segment's
+  # end points or a point in the middle.
+  if t < 0:
+    dx = px - x1
+    dy = py - y1
+  elif t > 1:
+    dx = px - x2
+    dy = py - y2
+  else:
+    near_x = x1 + t * dx
+    near_y = y1 + t * dy
+    dx = px - near_x
+    dy = py - near_y
+
+  return math.hypot(dx, dy)*/
