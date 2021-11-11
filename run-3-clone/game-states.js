@@ -62,35 +62,38 @@ class State_World {
 				});
 
 				//drawing!
-				//'background' objects
-				drawSky(color_bg);
-				this.farObjs.forEach(f => {
-					f.beDrawn_LowDetail();
-				});
+				//gets cut in half with the halfRender setting
+				if (world_time % (1 + data_persistent.settings.halfRender) == 0) {
+					//'background' objects
+					drawSky(color_bg);
+					this.farObjs.forEach(f => {
+						f.beDrawn_LowDetail();
+					});
 
-				//'foreground' objects
-				this.nearObjs.forEach(f => {
-					f.beDrawn();
-				});
+					//'foreground' objects
+					this.nearObjs.forEach(f => {
+						f.beDrawn();
+					});
 
-				//GUI
-				if (editor_active) {
-					var center = polToCart(world_camera.theta, world_camera.phi, 80);
-					drawCrosshair([center[0] + world_camera.x, center[1] + world_camera.y, center[2] + world_camera.z], [Math.PI / 2, 0], [0, Math.PI / 2], [0, 0]);
+					//GUI
+					if (editor_active) {
+						var center = polToCart(world_camera.theta, world_camera.phi, 80);
+						drawCrosshair([center[0] + world_camera.x, center[1] + world_camera.y, center[2] + world_camera.z], [Math.PI / 2, 0], [0, Math.PI / 2], [0, 0]);
+					}
+					drawKeys();
+
+					//drawing new tunnel text
+					if (this.textTime > 0) {
+						ctx.fillStyle = color_text_bright;
+						ctx.font = `${canvas.height / 22}px Comfortaa`;
+						ctx.fillText(this.text, canvas.width * 0.5, canvas.height * 0.5);
+						this.textTime -= 1;
+					}
+
+					ctx.fillStyle = color_grey_light;
+					ctx.strokeStyle = color_grey_dark;
+					ctx.lineWidth = canvas.height / 120;
 				}
-				drawKeys();
-
-				//drawing new tunnel text
-				if (this.textTime > 0) {
-					ctx.fillStyle = color_text_bright;
-					ctx.font = `${canvas.height / 22}px Comfortaa`;
-					ctx.fillText(this.text, canvas.width * 0.5, canvas.height * 0.5);
-					this.textTime -= 1;
-				}
-
-				ctx.fillStyle = color_grey_light;
-				ctx.strokeStyle = color_grey_dark;
-				ctx.lineWidth = canvas.height / 120;
 
 				if (this.toPause) {
 					this.toPause = false;
@@ -1441,7 +1444,7 @@ class State_Map {
 			new MapTexture(-6075, -224119, data_sprites.Map.planet, 'planetMissing', `true`),
 			new MapTexture(28349, -89119, data_sprites.Map.crazy, 'insanity', `data_persistent.effectiveCutscenes.includes('insanity')`),
 			new MapTexture(18900, -22720, [[2,0]], 'studentTeacher', `getObjectFromID("U-2").discovered`),
-			new MapTexture(-30037, 2005, data_sprites.Map.teapot, 'teapot', `getObjectFromID("A-3").discovered`),
+			new MapTexture(-25200, 13030, data_sprites.Map.teapot, 'teapot', `getObjectFromID("A-3").discovered`),
 			new MapTexture(8775, -137381, data_sprites.Map.batteryName, 'batteries', `getObjectFromID("Winter Games, Part 2").discovered`),
 			new MapTexture(-38812, 65118, [data_sprites.Map.onwards[0]], 'theGap', `(data_persistent.effectiveCutscenes.includes('wormholeInSight') && data_persistent.effectiveCutscenes.includes('boring'));`),
 			new MapTexture(-38812, 84029, [data_sprites.Map.onwards[1]], 'theGap', `(data_persistent.effectiveCutscenes.includes('wormholeInSight') && data_persistent.effectiveCutscenes.includes('boring'));`),
@@ -1461,6 +1464,10 @@ class State_Map {
 		this.mouseDownZ;
 		this.mouseChangeZ = 0;
 
+		this.discoveredObjs = [];
+		this.undiscoveredObjs = [];
+		this.halfDiscoveredObjs = [];
+		this.setDiscoveries();
 	}
 
 	doWorldEffects() {
@@ -1504,9 +1511,23 @@ class State_Map {
 		//draw world objects
 		ctx.lineWidth = canvas.height / 480;
 		ctx.strokeStyle = color_map_writing;
-		this.readFrom.forEach(w => {
-			w.beDrawnOnMap();
-		});
+		if (editor_active) {
+			//just draw everything
+			this.readFrom.forEach(w => {
+				w.beDrawnOnMap(true);
+			});
+		} else {
+			this.discoveredObjs.forEach(w => {
+				w.beDrawnOnMap(true);
+			});
+	
+			ctx.globalAlpha = 0.5;
+			this.halfDiscoveredObjs.forEach(w => {
+				w.beDrawnOnMap(false);
+			});
+			ctx.globalAlpha = 1;
+		}
+		
 
 		//draw cutscene objects
 		this.cutsceneIcons.forEach(c => {
@@ -1828,6 +1849,37 @@ class State_Map {
 			}
 		});
 	}
+
+	setDiscoveries() {
+		this.discoveredObjs = [];
+		this.undiscoveredObjs = [];
+		this.halfDiscoveredObjs = [];
+
+		//make all discovered levels discovered
+		this.readFrom.forEach(t => {
+			if (t.discovered) {
+				this.discoveredObjs.push(t);
+			} else {
+				this.undiscoveredObjs.push(t);
+			}
+		});
+
+		//for all undiscovered levels, if they're close enough put them in 'half discovered' (to be drawn as partial lines
+		var distance;
+		for (var a=0; a<this.undiscoveredObjs.length; a++) {
+			for (var b=0; b<this.discoveredObjs.length; b++) {
+				if (getDistance_TunnelTunnel(this.undiscoveredObjs[a], this.discoveredObjs[b]) < render_maxColorDistance) {
+					if (this.undiscoveredObjs[a].id == "boxRoad") {
+						console.log(this.discoveredObjs[b].id);
+					}
+					this.halfDiscoveredObjs.push(this.undiscoveredObjs[a]);
+					this.undiscoveredObjs.splice(a, 1);
+					a -= 1;
+					b = this.discoveredObjs.length + 1;
+				}
+			}
+		}
+	}
 }
 
 class State_Menu {
@@ -1854,7 +1906,8 @@ class State_Menu {
 			new PropertyToggle(0.05, 0.15 + (3 * menu_propertyHeight), 0.4, `high resolution`, `data_persistent.settings.highResolution`),
 			new PropertyToggle(0.05, 0.15 + (4 * menu_propertyHeight), 0.4, `anti-aliasing for sprites`, `data_persistent.settings.antiAlias`),
 			new PropertyToggle(0.05, 0.15 + (5 * menu_propertyHeight), 0.4, `precise tunnel rendering`, `data_persistent.settings.altRender`),
-			new PropertyToggle(0.05, 0.15 + (6 * menu_propertyHeight), 0.4, `alternate camera rotation`, `data_persistent.settings.altCamera`),
+			new PropertyToggle(0.05, 0.15 + (6 * menu_propertyHeight), 0.4, `render every other frame`, `data_persistent.settings.halfRender`),
+			new PropertyToggle(0.05, 0.15 + (7 * menu_propertyHeight), 0.4, `alternate camera rotation`, `data_persistent.settings.altCamera`),
 
 			new PropertyToggle(0.525, 0.15 + (3 * menu_propertyHeight), 0.4, `editor - show polygon outlines`, `data_persistent.settings.enableOutlines`),
 			new PropertyToggle(0.525, 0.15 + (4 * menu_propertyHeight), 0.4, `editor - show light bridge tiles`, `data_persistent.settings.pastaView`),
