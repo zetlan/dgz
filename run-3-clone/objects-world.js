@@ -1677,29 +1677,27 @@ class Tunnel {
 		ctx.lineWidth = 2;
 	}
 
-	beDrawnOnMap() {
-		//draw self if discovered
-		if (this.discovered || editor_active) {
-			this.map_startCoords = spaceToScreen([this.x, this.y, this.z]);
+	beDrawnOnMap(drawPoint) {
+		this.map_startCoords = spaceToScreen([this.x, this.y, this.z]);
+		this.map_endCoords = spaceToScreen([this.endPos[0] - (tunnel_transitionLength * Math.sin(this.theta)), this.endPos[1], this.endPos[2] + (tunnel_transitionLength * Math.cos(this.theta))]);
+
+		if (drawPoint) {
 			this.map_circleCoords = spaceToScreen([this.centerPos[0], this.centerPos[1], this.centerPos[2]]);
-			this.map_endCoords = spaceToScreen([this.endPos[0] - (tunnel_transitionLength * Math.sin(this.theta)), this.endPos[1], this.endPos[2] + (tunnel_transitionLength * Math.cos(this.theta))]);
-
-			//circle + line
 			drawCircle(color_map_writing, this.map_circleCoords[0], this.map_circleCoords[1], canvas.height / 320);
-
-			ctx.beginPath();
-			//adjust line thickness if in edit mode
-			if (editor_active) {
-				//different function for map, since the target position will always be at the top
-				this.cameraDist = Math.min(getDistance(this, world_camera,
-								getDistance({x:this.centerPos[0], y:this.centerPos[1], z:this.centerPos[2]}, world_camera),
-								getDistance({x:this.endPos[0], y:this.endPos[1], z:this.endPos[2]}, world_camera)));
-				ctx.lineWidth = ((this.r * 2) / this.cameraDist) * world_camera.scale;
-			}
-			ctx.moveTo(this.map_startCoords[0], this.map_startCoords[1]);
-			ctx.lineTo(this.map_endCoords[0], this.map_endCoords[1]);
-			ctx.stroke();
 		}
+
+		ctx.beginPath();
+		//adjust line thickness if in edit mode
+		if (editor_active) {
+			//different function for map, since the target position will always be at the top
+			this.cameraDist = Math.min(getDistance(this, world_camera,
+							getDistance({x:this.centerPos[0], y:this.centerPos[1], z:this.centerPos[2]}, world_camera),
+							getDistance({x:this.endPos[0], y:this.endPos[1], z:this.endPos[2]}, world_camera)));
+			ctx.lineWidth = ((this.r * 2) / this.cameraDist) * world_camera.scale;
+		}
+		ctx.moveTo(this.map_startCoords[0], this.map_startCoords[1]);
+		ctx.lineTo(this.map_endCoords[0], this.map_endCoords[1]);
+		ctx.stroke();
 	}
 
 	beDrawn_selected() {
@@ -2106,7 +2104,10 @@ class Tunnel {
 				output += `~${s}`;
 			});
 		}
-		output += `|tileWidth~${this.tileSize}`;
+		//70 is default
+		if (this.tileSize != 70) {
+			output += `|tileWidth~${this.tileSize}`;
+		}
 
 		//tile data
 		this.repairData();
