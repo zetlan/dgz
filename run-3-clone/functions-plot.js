@@ -59,6 +59,7 @@ function createCutsceneTree_recursive(strArr) {
 function placeOneTimeCutsceneTriggers() {
 	//triggers
 	placeOneTimeCutscene("Level 1", 0.5, true, "planetMissing");
+	placeOneTimeCutscene("A-4", 86, false, "joinUs", true);
 	placeOneTimeCutscene("F-4", 1.1, false, "river", true);
 	placeOneTimeCutscene("U-1", 0.2, false, "planetStolen", true);
 	placeOneTimeCutscene("New Tunnel, Part 1", 0.1, false, "selfAssembly", true);
