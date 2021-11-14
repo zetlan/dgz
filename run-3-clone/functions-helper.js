@@ -1423,6 +1423,89 @@ function tunnel_applyProperty(setPrefix, codeToExecuteSTRING) {
 	}
 }
 
+//takes in old tunnel data with single quotes surrounding it and NO BACKSLASHES, and converts it to my format of data
+//INCOMPLETE
+function tunnel_convertOldData(oldData) {
+	//fix backslashes, that's the real problem here
+	var dataObj = JSON.parse(oldData);
+	var newDataStr = ``;
+	//new data object
+	var ndo = {
+		sides: 0,
+		tilesPerSide: 0,
+		tileSize: 70,
+		color: "",
+		spawns: [],
+		endSpawns: [],
+		power: 1,
+		terrains: []
+	};
+
+	//get data out of the old data
+	var dataTags = dataObj.content.split("|");
+	dataTags.forEach(t => {
+		//reminds me how much I hate player_'s level data system
+		if (t.indexOf("terrain-pos-") == 0) {
+			ndo.terrains.push(t.replace("terrain-pos-", "terrain~").replaceAll('`', '!'));
+			return;
+		}
+
+		if (t.indexOf("layout-tunnel") == 0) {
+			var smallStr = t.replace("layout-tunnel", "").split(",");
+			ndo.sides = +smallStr[0];
+			ndo.tilesPerSide = +smallStr[1];
+			return;
+		}
+
+		if (t.indexOf("color0-0x") == 0) {
+			ndo.color = t.replace("color0-0x", "");
+		}
+
+		if (t.indexOf("spawn-") == 0) {
+			ndo.spawns.push(+t.split("-")[1]);
+			return;
+		}
+
+
+	});
+
+	//re-make string data
+	var output = ``;
+	//simple non-tile position features
+	newDataStr += `id~${dataObj.name}`;
+	//position data isn't shown in this tag
+	output += `|pos-x~0`;
+	output += `|pos-z~0`;
+	output += `|direction~0`;
+	output += `|tube~${ndo.sides}~${ndo.tilesPerSide}`;
+	output += `|color~${ndo.color}`;
+	if (ndo.spawns.length > 0) {
+		output += `|spawn`;
+		ndo.spawns.forEach(s => {
+			output += `~${s}`;
+		});
+	}
+	if (ndo.endSpawns.length > 0) {
+		output += `|endSpawn`;
+		ndo.endSpawns.forEach(s => {
+			output += `~${s}`;
+		});
+	}
+	//70 is default
+	if (ndo.tileSize != 70) {
+		output += `|tileWidth~${ndo.tileSize}`;
+	}
+
+	//tile data
+
+	//I am not anticipating functions in old custom level data
+	//power
+	if (ndo.power != 1) {
+		output += `|power~${ndo.power.toFixed(data_precision)}`;
+	}
+	return newData;
+}
+
 
 function tunnelData_applyProperty(data, dataTagToApply, startLineIfAny, endLineIfAny) {
 	var lines = data.split("\n");
