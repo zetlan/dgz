@@ -596,7 +596,7 @@ class State_Cutscene extends State_World {
 			this.savedCameraVals = [c.x, c.y, c.z, c.theta, c.phi, c.rot, c.targetTheta, c.targetPhi, c.targetRot];
 		} else {
 			//if the player is just exiting normally, make sure their character gets changed as needed
-			if (data_persistent.unlocked.indexOf(this.playerStore) == -1) {
+			if (data_persistent.unlocked.indexOf(this.playerStore.constructor.name) == -1) {
 				this.playerStore = player;
 			}
 		}
