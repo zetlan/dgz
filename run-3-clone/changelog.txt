@@ -6,8 +6,8 @@ V1.15 - November-13-2021
         player is no longer reset to runner after every cutscene
         I accidentally removed the cutscene "Join Us" in the last update! I apologize for the inconvience. It's now back, at the end of A-4.
 
-    misc development:
-        you can now convert old data (either in object form or tunnel data form) into new tunnel data through the tunnelData_convertOldData() and tunnelData_convertOldObject() functions respectively.
+    quality-of-life:
+        the level editor will now detect if you have old run 3 level data and convert it.
 
 V1.14 - November-11-2021
     bug fixes:
