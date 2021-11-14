@@ -78,11 +78,16 @@
 
 	tunnel_applyProperty(setPrefix, codeToExecuteSTRING);
 	tunnelData_applyProperty();
+	tunnelData_convertObjToString(dataObj);
+	tunnelData_convertOldData(dataStr);
+	tunnelData_convertOldObject(dataObj);
 	tunnelData_handle();
 	tunnelData_parseData();
 	tunnelData_parseDataReverse();
 	tunnelData_parseStars();
 */
+
+
 
 //generation functions
 function generateAngelLines() {
@@ -1423,90 +1428,6 @@ function tunnel_applyProperty(setPrefix, codeToExecuteSTRING) {
 	}
 }
 
-//takes in old tunnel data with single quotes surrounding it and NO BACKSLASHES, and converts it to my format of data
-//INCOMPLETE
-function tunnel_convertOldData(oldData) {
-	//fix backslashes, that's the real problem here
-	var dataObj = JSON.parse(oldData);
-	var newDataStr = ``;
-	//new data object
-	var ndo = {
-		sides: 0,
-		tilesPerSide: 0,
-		tileSize: 70,
-		color: "",
-		spawns: [],
-		endSpawns: [],
-		power: 1,
-		terrains: []
-	};
-
-	//get data out of the old data
-	var dataTags = dataObj.content.split("|");
-	dataTags.forEach(t => {
-		//reminds me how much I hate player_'s level data system
-		if (t.indexOf("terrain-pos-") == 0) {
-			ndo.terrains.push(t.replace("terrain-pos-", "terrain~").replaceAll('`', '!'));
-			return;
-		}
-
-		if (t.indexOf("layout-tunnel") == 0) {
-			var smallStr = t.replace("layout-tunnel", "").split(",");
-			ndo.sides = +smallStr[0];
-			ndo.tilesPerSide = +smallStr[1];
-			return;
-		}
-
-		if (t.indexOf("color0-0x") == 0) {
-			ndo.color = t.replace("color0-0x", "");
-		}
-
-		if (t.indexOf("spawn-") == 0) {
-			ndo.spawns.push(+t.split("-")[1]);
-			return;
-		}
-
-
-	});
-
-	//re-make string data
-	var output = ``;
-	//simple non-tile position features
-	newDataStr += `id~${dataObj.name}`;
-	//position data isn't shown in this tag
-	output += `|pos-x~0`;
-	output += `|pos-z~0`;
-	output += `|direction~0`;
-	output += `|tube~${ndo.sides}~${ndo.tilesPerSide}`;
-	output += `|color~${ndo.color}`;
-	if (ndo.spawns.length > 0) {
-		output += `|spawn`;
-		ndo.spawns.forEach(s => {
-			output += `~${s}`;
-		});
-	}
-	if (ndo.endSpawns.length > 0) {
-		output += `|endSpawn`;
-		ndo.endSpawns.forEach(s => {
-			output += `~${s}`;
-		});
-	}
-	//70 is default
-	if (ndo.tileSize != 70) {
-		output += `|tileWidth~${ndo.tileSize}`;
-	}
-
-	//tile data
-
-	//I am not anticipating functions in old custom level data
-	//power
-	if (ndo.power != 1) {
-		output += `|power~${ndo.power.toFixed(data_precision)}`;
-	}
-	return newData;
-}
-
-
 function tunnelData_applyProperty(data, dataTagToApply, startLineIfAny, endLineIfAny) {
 	var lines = data.split("\n");
 	var newData = ``;
@@ -1531,6 +1452,119 @@ function tunnelData_applyProperty(data, dataTagToApply, startLineIfAny, endLineI
 	}
 
 	return newData;
+}
+
+function tunnelData_convertObjToString(dataObj) {
+	var ndo = dataObj;
+	//re-make string data
+	var output = ``;
+	//simple non-tile position features
+	output += `id~${ndo.name}`;
+	//position data isn't shown in this tag
+	output += `|pos-x~0`;
+	output += `|pos-z~0`;
+	output += `|direction~0`;
+	output += `|tube~${ndo.sides}~${ndo.tilesPerSide}`;
+	output += `|color~${ndo.color}`;
+	if (ndo.spawns.length > 0) {
+		output += `|spawn`;
+		ndo.spawns.forEach(s => {
+			output += `~${s}`;
+		});
+	}
+	if (ndo.endSpawns.length > 0) {
+		output += `|endSpawn`;
+		ndo.endSpawns.forEach(s => {
+			output += `~${s}`;
+		});
+	}
+	if (ndo.tileSize != 70) {
+		output += `|tileWidth~${ndo.tileSize}`;
+	}
+	if (ndo.power != 1) {
+		output += `|power~${ndo.power.toFixed(data_precision)}`;
+	}
+
+	//tile data
+	ndo.terrains.forEach(t => {
+		output += `|${t}`;
+	});
+
+	//I am not anticipating tunnel functions in old custom level data
+	return output;
+}
+
+
+//takes in old tunnel data with single quotes surrounding it and NO BACKSLASHES, and converts it to my format of data
+function tunnelData_convertOldData(dataStr) {
+	//first convert data to new object form
+	var ndo = {
+		name: "UNHAPPY: UNDEFINED NAME",
+		sides: 0,
+		tilesPerSide: 0,
+		tileSize: 70,
+		color: "",
+		spawns: [],
+		endSpawns: [],
+		power: 1,
+		terrains: []
+	};
+
+	//get data out of the old data
+	var dataTags = dataStr.split("|");
+	dataTags.forEach(t => {
+		//reminds me how much I hate player_'s level data system
+		if (t.indexOf("id-") == 0) {
+			ndo.name = t.replace("id-", "");
+			return;
+		}
+
+		if (t.indexOf("terrain-pos-") == 0) {
+			ndo.terrains.push(t.replace("terrain-pos-", "terrain~").replaceAll('`', '!').replace("~color-0", "").replace("~color-1", ""));
+			return;
+		}
+
+		if (t.indexOf("layout-tunnel") == 0) {
+			var smallStr = t.replace("layout-tunnel", "").split(",");
+			ndo.sides = +smallStr[0];
+			ndo.tilesPerSide = +smallStr[1];
+			return;
+		}
+
+		if (t.indexOf("color0-0x") == 0) {
+			ndo.color = t.replace("color0-0x", "");
+		}
+
+		if (t.indexOf("spawn-") == 0) {
+			ndo.spawns.push(+t.split("-")[1]);
+			return;
+		}
+
+		if (t.indexOf("endSpawn-") == 0) {
+			ndo.endSpawns.push(+t.split("-")[1]);
+			return;
+		}
+
+		if (t.indexOf("tileWidth-") == 0) {
+			ndo.tileSize = +t.split("-")[1];
+			return;
+		}
+
+		if (t.indexOf("power-") == 0) {
+			ndo.power = +t.split("-")[1];
+			return;
+		}
+	});
+
+	return tunnelData_convertObjToString(ndo);
+}
+
+
+
+//takes an old tunnel data object with NO BACKSLASHES and converts it to my format
+function tunnelData_convertOldObject(dataObj) {
+	//really the only problem is that the name's seperated out
+	return tunnelData_convertOldData(dataObj.content + `|id~${dataObj.name}`);
 }
 
 function tunnelData_fixTag(data) {
