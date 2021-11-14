@@ -828,6 +828,12 @@ class State_Edit_Properties extends State_Edit {
 	}
 
 	createTunnel() {
+		//check for if it's old data
+		if (this.newTunnelData.includes("layout-tunnel") && this.newTunnelData.includes("terrain-pos-")) {
+			if (confirm("Hey! This data seems to be from a different version of run 3. Do you want to convert it? \n(Press OK to convert, Cancel to not)")) {
+				this.newTunnelData = tunnelData_convertOldData(this.newTunnelData);
+			}
+		}
 		player = new Runner(player.x, player.y, player.z);
 		var oldObj = this.tunnel;
 		//create object and update properties
