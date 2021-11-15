@@ -1466,6 +1466,8 @@ function tunnelData_convertObjToString(dataObj) {
 	output += `|direction~0`;
 	output += `|tube~${ndo.sides}~${ndo.tilesPerSide}`;
 	output += `|color~${ndo.color}`;
+	output += `|music~${ndo.music}`;
+
 	if (ndo.spawns.length > 0) {
 		output += `|spawn`;
 		ndo.spawns.forEach(s => {
@@ -1507,7 +1509,8 @@ function tunnelData_convertOldData(dataStr) {
 		spawns: [],
 		endSpawns: [],
 		power: 1,
-		terrains: []
+		terrains: [],
+		music: "None"
 	};
 
 	//get data out of the old data
@@ -1553,6 +1556,10 @@ function tunnelData_convertOldData(dataStr) {
 		if (t.indexOf("power-") == 0) {
 			ndo.power = +t.split("-")[1];
 			return;
+		}
+
+		if (t.indexOf("music-") == 0) {
+			ndo.music = t.split("-")[1];
 		}
 	});
 
