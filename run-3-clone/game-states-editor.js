@@ -989,6 +989,9 @@ class State_Edit_Properties extends State_Edit {
 			ctx.fillRect(0, (canvas.height * editor_topBarHeight) - 1, canvas.width * editor_lPropertyW, (canvas.height * (1 - editor_topBarHeight)) + 1);
 
 			if (this.newTunnelData != undefined) {
+				//I'd like to have a chat with player_03 about using special characters in his otherwise web-friendly level data. 
+				//Thank goodness the user's passing this bit in and I'm not trying to read from a normal string.
+				this.newTunnelData = this.newTunnelData.replaceAll(`\\u003e`, `>`).replaceAll(`\\u003c`, `<`).replaceAll(`\\`, `/`);
 				try {
 					this.createTunnel();
 				} catch (er) {
