@@ -828,28 +828,76 @@ class State_Edit_Properties extends State_Edit {
 	}
 
 	createTunnel() {
+		//check if it's old data; I'd like to have a chat with player_03 about using special characters in his otherwise web-friendly level data. 
+		//Thank goodness the user's passing this bit in and I'm not trying to read from a normal string.
+		/*
+		for old test: , 
+		for kongregate object data:	.includes("{")
+		*/
+		
 		//check for if it's old data
 		if (this.newTunnelData.includes("layout-tunnel") && this.newTunnelData.includes("terrain-pos-")) {
 			if (confirm("Hey! This data seems to be from a different version of run 3. Do you want to convert it? \n(Press OK to convert, Cancel to not)")) {
-				this.newTunnelData = tunnelData_convertOldData(this.newTunnelData);
+				//figure out whether it's an object or just data
+				if (this.newTunnelData.includes("{") && this.newTunnelData.includes("}")) {
+					//fix backslashes
+					/*kongregate object data doesn't allow certain special characters. \u003e and \u003c correspond to > and <, the \n is the newline character, 
+					and \\ corresponds to \. 
+					The reason I have the extra bit with the newline character is because I'm worried that \n may appear in the level data.
+					To prevent this, I only take the \n that are before a new tunnel declaration.
+					*/
+					this.newTunnelData = this.newTunnelData.replaceAll(`\\u003e`, `>`).replaceAll(`\\u003c`, `<`).replaceAll("\\nlayout-tunnel", "#NEWLINE#layout-tunnel").replaceAll(`\\\\`, `/`);
+					//JSON doesn't like built-in newlines so I have to do this thing
+					this.newTunnelData = JSON.parse(this.newTunnelData.replaceAll(`#NEWLINE#`, `\\n`));
+					this.newTunnelData = tunnelData_convertOldObject(this.newTunnelData);
+				} else {
+					//data from player_03's website is more tame, if not still including backslashes
+					this.newTunnelData = tunnelData_convertOldData(this.newTunnelData.replaceAll("\\", "/"));
+				}
 			}
 		}
-		player = new Runner(player.x, player.y, player.z);
-		var oldObj = this.tunnel;
-		//create object and update properties
-		var newObj = new Tunnel_FromData(this.newTunnelData);
-		newObj.theta = oldObj.theta;
-		newObj.updatePosition(oldObj.x, oldObj.y, oldObj.z);
+		//first tunnel
+		//make sure the data is always an array - makes reading it out easier
+		if (this.newTunnelData.constructor.name == "String") {
+			this.newTunnelData = [this.newTunnelData];
+		}
+
+		var lastTunnel = new Tunnel_FromData(this.newTunnelData[0]);
+		var pos;
 
 		//switch new and old objects
-		this.banStorage = undefined;
-		this.tunnel = newObj;
-		editor_objects[editor_objects.indexOf(oldObj)] = newObj;
-		this.readFrom[this.readFrom.indexOf(oldObj)] = newObj;
-		player = new Pastafarian(player.x, player.y, player.z);
-		player.parent = newObj;
-		player.parentPrev = newObj;
+		this.swapTunnels(this.tunnel, lastTunnel);
+		this.newTunnelData.splice(0, 1);
+		
+		//do the rest of the tunnels as well
+		while (this.newTunnelData.length > 0) {
+			pos = [lastTunnel.endPos[0] - (tunnel_transitionLength * Math.sin(lastTunnel.theta)), lastTunnel.endPos[2] + (tunnel_transitionLength * Math.cos(lastTunnel.theta))];
+			//update coordinates and direction, then create tunnel
+			lastTunnel = new Tunnel_FromData(this.newTunnelData[0].replace(`pos-x~0`, `pos-x~${pos[0]}`).replace(`pos-z~0`, `pos-z~${pos[1]}`).replace(`direction~0`, `direction~${lastTunnel.theta}`));
+			editor_objects.push(lastTunnel);
+			this.readFrom = orderObjects(editor_objects, 6);
+			this.newTunnelData.splice(0, 1);
+		}
 		this.newTunnelData = undefined;
+	}
+
+	swapTunnels(oldTunnel, newTunnel) {
+		player = new Runner(player.x, player.y, player.z);
+		//update properties of new object
+		newTunnel.theta = oldTunnel.theta;
+		newTunnel.updatePosition(oldTunnel.x, oldTunnel.y, oldTunnel.z);
+		//make sure world spawn isn't out of world
+		if (editor_spawn == oldTunnel) {
+			editor_spawn = newTunnel;
+		}
+
+		this.banStorage = undefined;
+		this.tunnel = newTunnel;
+		editor_objects[editor_objects.indexOf(oldTunnel)] = newTunnel;
+		this.readFrom[this.readFrom.indexOf(oldTunnel)] = newTunnel;
+		player = new Pastafarian(player.x, player.y, player.z);
+		player.parent = newTunnel;
+		player.parentPrev = newTunnel;
 		this.calculateTunnelPoints();
 	}
 
@@ -989,11 +1037,9 @@ class State_Edit_Properties extends State_Edit {
 			ctx.fillRect(0, (canvas.height * editor_topBarHeight) - 1, canvas.width * editor_lPropertyW, (canvas.height * (1 - editor_topBarHeight)) + 1);
 
 			if (this.newTunnelData != undefined) {
-				//I'd like to have a chat with player_03 about using special characters in his otherwise web-friendly level data. 
-				//Thank goodness the user's passing this bit in and I'm not trying to read from a normal string.
-				this.newTunnelData = this.newTunnelData.replaceAll(`\\u003e`, `>`).replaceAll(`\\u003c`, `<`).replaceAll(`\\`, `/`);
+				this.createTunnel();
 				try {
-					this.createTunnel();
+					
 				} catch (er) {
 					alert("This tunnel data cannot be loaded.");
 					this.newTunnelData = undefined;
