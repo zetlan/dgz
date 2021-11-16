@@ -33,6 +33,10 @@
 				background-color: slateblue;
 			}
 
+			label {
+				white-space: nowrap;
+			}
+
 			#topBar {
 				text-align: center;
 				margin: auto;
@@ -50,24 +54,31 @@
 				grid-auto-rows: auto;
 			}
 
-			#selectionModule_p {
-				margin-top: -80px;
-				background-color: slategray;
+			.SMButton {
+				border: none;
+			}
+
+			.selection {
+				position: relative;
 				display: inline-block;
+			}
+
+
+			.selectionContent {
+				display: none;
 				position: absolute;
-				padding: 0 24px;
+				background-color: #eeeeee;
+				min-width: 160px;
 				z-index: 1;
 			}
 
-			#selectionModule_n {
-				margin-top: -80px;
-				background-color: slategray;
-				display: inline-block;
-				position: absolute;
-				padding: 0 24px;
-				z-index: 1;
-				margin-left: 85%;
+			.selectionContent input {
+				color: black;
+				padding: 12px 16px;
+				display: block;
 			}
+
+			.selection:hover .selectionContent {display: block;}
 
 			#download {
 				display: none;
@@ -88,7 +99,7 @@
 				height: 25px;
 				background: white;
 				cursor: pointer;
-				}
+			}
 		</style>
 		<script src="data.js"></script>
 		<script type="text/javascript">
@@ -100,6 +111,10 @@
 				posStrings: [`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`, `V`, `W`, `X`, `Y`, `Z`, `non-letter start`, `number start`],
 				negStrings: []
 			};
+			var applyingTags = [];
+
+			const color_withTags = `rgb(0, 255, 0)`;
+			const color_withoutTags = `rgb(255, 0, 255)`;
 
 
 			function setup() {
@@ -141,8 +156,8 @@
 			function createSearchButtons() {
 				var checkElem;
 				var labelElem;
-				var bufferLocationPositive = document.getElementById("selectionModule_p");
-				var bufferLocationNegative = document.getElementById("selectionModule_n");
+				var bufferLocationPositive = document.getElementById("SMPspot");
+				var bufferLocationNegative = document.getElementById("SMNspot");
 				cardPossibleTags.forEach(s => {
 					//positive tags
 					checkElem = document.createElement("input");
@@ -240,7 +255,54 @@
 
 			//changes the function of clicking on images. Normal users won't access this, but it makes adding tags to the database handy for me.
 			function toggleTagApplication(tag) {
+				var startTagNum = applyingTags.length;
+				var index = applyingTags.indexOf(tag);
 
+				if (index != -1) {
+					//if the tag is already being applied, disable it
+					applyingTags.splice(index, 1);
+				} else {
+					applyingTags.push(tag);
+				}
+
+				var targetArr = document.getElementById("centerModule").children;
+
+				//if this is the first tag, change link behavior
+				if (startTagNum == 0) {
+					for (var g=0; g<targetArr.length; g++) {
+						var cardNum;
+						try {
+							cardNum = targetArr[g].id.split("_")[0];
+						} catch (er) {
+							console.error(er, g, `couldn't find ${targetArr[g]}`);
+						}
+						targetArr[g].href = `javascript: toggleTags(${cardNum}, "${targetArr[g].id}");`;
+						//color text based on whether they have the tags or not
+						targetArr[g].style.color = (getCardFromID(cardNum).tags.includes(applyingTags[0])) ? color_withTags : color_withoutTags;
+					}
+					return;
+				}
+
+				//if there are no tags left, revert to normal behavior
+				if (applyingTags.length == 0) {
+					for (var g=0; g<targetArr.length; g++) {
+						targetArr[g].href = `card.html#${targetArr[g].id.split("_")[0]}`;
+						targetArr[g].style.color = '';
+					}
+					return;
+				}
+			}
+
+			function toggleTags(forCard, forHTMLObj) {
+				var cardObj = getCardFromID(forCard);
+
+				applyingTags.forEach(t => {
+					tagForObject(cardObj, t);
+				});
+
+				//toggle the color of the HTML object
+				var ref = document.getElementById(forHTMLObj);
+				ref.style.color = (ref.style.color == color_withTags) ? color_withoutTags : color_withTags;
 			}
 
 			function updateCardsVisibility() {
@@ -288,14 +350,19 @@
 			<h1>There are <span id="cardNumDisplay">[[NUMBER UNAVAILABLE]]</span> cards<span id="cardNumDisplayExtra"></span></h1>
 			<h7><a href="about.html">About</a> ~~~ <a href="contact.html">Contact</a></h7>
 			<br>
+			<div class="selection" id="selectionModule_p">
+				<button class="SMButton">Include Tags</button>
+				<div class="selectionContent" id="SMPspot">
+				</div>
+			</div>
+			<div class="selection" id="selectionModule_n">
+				<button class="SMButton">Exclude Tags</button>
+				<div class="selectionContent" id="SMNspot">
+				</div>
+			</div>
+			<br>
 			<button onclick="toggleImages()">Toggle All Image Previews</button>
 			<input type="range" id="imgSizeSlider" onchange="updateImageSize();" min=50 max=500 style="display: none;"></input>
-		</div>
-		<div id="selectionModule_p">
-			<p>~~include tags~~</p>
-		</div>
-		<div id="selectionModule_n">
-			<p>~~exclude tags~~</p>
 		</div>
 		<br>
 		<br>
