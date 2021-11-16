@@ -1,13 +1,14 @@
 
 
 
-V1.15 - November-13-2021
+V1.15 - November-16-2021
     bug fixes:
         player is no longer reset to runner after every cutscene
         I accidentally removed the cutscene "Join Us" in the last update! I apologize for the inconvience. It's now back, at the end of A-4.
+        In the editor, loading a level will no longer cause the player to temporarily dissapear during playtesting.
 
     quality-of-life:
-        the level editor will now detect if you have old run 3 level data and convert it.
+        the level editor will now detect if you have old run 3 level data and convert it. This can be in the form of kongregate object data or individual level data from player_03's website.
 
 V1.14 - November-11-2021
     bug fixes:
