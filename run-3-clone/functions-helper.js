@@ -1523,7 +1523,14 @@ function tunnelData_convertOldData(dataStr) {
 		}
 
 		if (t.indexOf("terrain-pos-") == 0) {
-			ndo.terrains.push(t.replace("terrain-pos-", "terrain~").replaceAll('`', '!').replace("~color-0", "").replace("~color-1", ""));
+			//changing tags and removing color for comptability
+			var fixed = t.replace("terrain-pos-", "terrain~").replaceAll('`', '!').replace("~color-0", "").replaceAll("~bouncy", "~steepRamp");
+			//I don't want color1 terrain to just vanish, so it'll become glowing tiles if there's no other tag to specify afterwords
+			if (fixed.indexOf("~color-1") != -1 && fixed.indexOf("~color-1~") == -1) {
+				fixed = fixed.replace("~color-1", "~glow");
+			}
+
+			ndo.terrains.push(fixed);
 			return;
 		}
 
@@ -1562,6 +1569,7 @@ function tunnelData_convertOldData(dataStr) {
 			ndo.music = t.split("-")[1];
 		}
 	});
+	console.log(ndo);
 
 	return tunnelData_convertObjToString(ndo);
 }
@@ -1570,8 +1578,22 @@ function tunnelData_convertOldData(dataStr) {
 
 //takes an old tunnel data object with NO BACKSLASHES and converts it to my format
 function tunnelData_convertOldObject(dataObj) {
-	//really the only problem is that the name's seperated out
-	return tunnelData_convertOldData(dataObj.content + `|id~${dataObj.name}`);
+	console.log(dataObj.contentType);
+	//are there multiple tunnels in the set?
+	if (dataObj.contentType == "Level set") {
+		var preProcessArr = dataObj.content.split("\n");
+		var tunnelArr = [];
+		
+		//loop through all old tunnel datum
+		for (var w=0; w<preProcessArr.length; w++) {
+			tunnelArr.push(tunnelData_convertOldData(preProcessArr[w] + `|id-${dataObj.name}${w}`))
+		}
+		
+		//return an array of all the values
+		return tunnelArr;
+	}
+	//individual level: really the only problem is that the name's seperated out
+	return tunnelData_convertOldData(dataObj.content + `|id-${dataObj.name}`);
 }
 
 function tunnelData_fixTag(data) {
