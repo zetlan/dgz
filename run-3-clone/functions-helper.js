@@ -1569,7 +1569,6 @@ function tunnelData_convertOldData(dataStr) {
 			ndo.music = t.split("-")[1];
 		}
 	});
-	console.log(ndo);
 
 	return tunnelData_convertObjToString(ndo);
 }
@@ -1578,7 +1577,6 @@ function tunnelData_convertOldData(dataStr) {
 
 //takes an old tunnel data object with NO BACKSLASHES and converts it to my format
 function tunnelData_convertOldObject(dataObj) {
-	console.log(dataObj.contentType);
 	//are there multiple tunnels in the set?
 	if (dataObj.contentType == "Level set") {
 		var preProcessArr = dataObj.content.split("\n");
@@ -1588,7 +1586,7 @@ function tunnelData_convertOldObject(dataObj) {
 		for (var w=0; w<preProcessArr.length; w++) {
 			tunnelArr.push(tunnelData_convertOldData(preProcessArr[w] + `|id-${dataObj.name}${w}`))
 		}
-		
+
 		//return an array of all the values
 		return tunnelArr;
 	}
