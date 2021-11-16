@@ -502,13 +502,14 @@ function projectPredictions(input) {
     var ePos = [-1, -1];
     for (var x=0; x<boardSize; x++) {
         for (var y=0; y<boardSize; y++) {
-            if (board[y][x] == "E") {
+            if (input[y][x] == "E") {
                 ePos = [x, y];
             }
         }
     }
 
-    eggIsSafe = squareIsSafe(input, )
+    eggIsSafe = squareIsSafe(input, ePos[0], ePos[1]);
 
     console.log(eggIsSafe ? "SAFE" : "NOT SAFE");
 }
+// :(
