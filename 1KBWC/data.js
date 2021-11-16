@@ -45,6 +45,17 @@ function tagForAll() {
 	});
 }
 
+//toggles whether or not an object has a certain tag
+function tagForObject(object, tag) {
+	var index = object.tags.indexOf(tag);
+	if (index != -1) {
+		//if it includes the tag
+		object.tags.splice(index, 1);
+	} else {
+		object.tags.push(tag);
+	}
+}
+
 //for downloading
 function downloadData() {
 	//create data
@@ -93,19 +104,38 @@ function downloadData() {
 	link.click();
 }
 
+function getCardFromID(id) {
+	//search local area before seaching entire deck
+	for (var j=Math.max(0, id-10); j<Math.min(cardData.length, id+10); j++) {
+		if (cardData[j].id == id) {
+			return cardData[j];
+		}
+	}
+
+	//search entire deck
+	for (var j=0; j<cardData.length; j++) {
+		if (cardData[j].id == id) {
+			return cardData[j];
+		}
+	}
+	console.error(`could not find card~${id} ):`);
+	return undefined;
+}
+
 
 var cardPossibleTags = [
 	`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`, `V`, `W`, `X`, `Y`, `Z`,
 	`non-letter start`, `number start`,
-	`ELEMENT`, 
+	//`ELEMENT`, 
 	`wide`,
-	`that one style`,
-	`multi-colored`
+	`multi-colored`,
+	`point card`,
+	//`rule card`
 ];
 var cardData = [{
 	id: `0`,
 	name: `______ in another world`,
-	tags: ["non-letter start"],
+	tags: ["non-letter start","point card"],
 }, {
 	id: `1`,
 	name: `_______`,
@@ -113,7 +143,7 @@ var cardData = [{
 }, {
 	id: `2`,
 	name: `[math]`,
-	tags: ["non-letter start"],
+	tags: ["non-letter start","point card"],
 }, {
 	id: `3`,
 	name: `[unnamed]`,
@@ -121,15 +151,15 @@ var cardData = [{
 }, {
 	id: `4`,
 	name: `[untranslatable] 2`,
-	tags: ["non-letter start"],
+	tags: ["non-letter start","point card"],
 }, {
 	id: `5`,
 	name: `[untranslatable]`,
-	tags: ["non-letter start"],
+	tags: ["non-letter start","point card"],
 }, {
 	id: `6`,
 	name: `}finally}finally{system.out.print("Done! Ok!");})`,
-	tags: ["non-letter start"],
+	tags: ["non-letter start","point card"],
 }, {
 	id: `7`,
 	name: `@everyone`,
@@ -137,7 +167,7 @@ var cardData = [{
 }, {
 	id: `8`,
 	name: `/b/`,
-	tags: ["non-letter start"],
+	tags: ["non-letter start","point card"],
 }, {
 	id: `9`,
 	name: `/gamerule randomtickspeed`,
@@ -145,19 +175,19 @@ var cardData = [{
 }, {
 	id: `10`,
 	name: `/r/2dank4u`,
-	tags: ["non-letter start","multi-colored"],
+	tags: ["non-letter start","multi-colored","point card"],
 }, {
 	id: `11`,
 	name: `#closefcps`,
-	tags: ["non-letter start"],
+	tags: ["non-letter start","point card"],
 }, {
 	id: `12`,
 	name: `+500 points 2`,
-	tags: ["non-letter start","number start"],
+	tags: ["non-letter start","number start","point card"],
 }, {
 	id: `13`,
 	name: `+500 points`,
-	tags: ["non-letter start","number start"],
+	tags: ["non-letter start","number start","point card"],
 }, {
 	id: `14`,
 	name: `1-KILOGRAM FEATHER`,
@@ -181,12 +211,12 @@ var cardData = [{
 }, {
 	id: `19`,
 	name: `1KBWC-ISNOTABOUTWINNING`,
-	tags: ["number start"],
+	tags: ["number start","point card"],
 }, {
 	authors: ["Anish G.","Pizza Squirrel"],
 	id: `20`,
 	name: `2's Day`,
-	tags: ["number start","multi-colored"],
+	tags: ["number start","multi-colored","point card"],
 }, {
 	id: `21`,
 	name: `3:05 Friday`,
@@ -198,19 +228,19 @@ var cardData = [{
 }, {
 	id: `23`,
 	name: `3-Star Review`,
-	tags: ["number start","multi-colored"],
+	tags: ["number start","multi-colored","point card"],
 }, {
 	id: `24`,
 	name: `3D Printer 20mm Calibration Cube`,
-	tags: ["number start","multi-colored"],
+	tags: ["number start","multi-colored","point card"],
 }, {
 	id: `25`,
 	name: `3D Tetris`,
-	tags: ["number start","multi-colored"],
+	tags: ["number start","multi-colored","point card"],
 }, {
 	id: `26`,
 	name: `4 Million Points`,
-	tags: ["number start"],
+	tags: ["number start","point card"],
 }, {
 	id: `27`,
 	name: `4-dimensional cube`,
@@ -218,7 +248,7 @@ var cardData = [{
 }, {
 	id: `28`,
 	name: `4th Dimension`,
-	tags: ["number start"],
+	tags: ["number start","point card"],
 }, {
 	id: `29`,
 	name: `05 Access Keycard`,
@@ -226,7 +256,7 @@ var cardData = [{
 }, {
 	id: `30`,
 	name: `5 DARK`,
-	tags: ["number start"],
+	tags: ["number start","point card"],
 }, {
 	id: `31`,
 	name: `5-card hand`,
@@ -234,7 +264,7 @@ var cardData = [{
 }, {
 	id: `32`,
 	name: `23.5°`,
-	tags: ["number start"],
+	tags: ["number start","point card"],
 }, {
 	id: `33`,
 	name: `64-bit address`,
@@ -242,68 +272,68 @@ var cardData = [{
 }, {
 	id: `34`,
 	name: `84 IQ`,
-	tags: ["number start"],
+	tags: ["number start","point card"],
 }, {
 	id: `35`,
 	name: `420 IS DIVISIBLE BY 7`,
-	tags: ["number start","multi-colored"],
+	tags: ["number start","multi-colored","point card"],
 }, {
 	id: `36`,
 	name: `a`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `37`,
 	name: `A bag of catnip`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `38`,
 	name: `A bud Grade`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `39`,
 	name: `A fast cat`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `40`,
 	name: `A FREAKING BAZOOKA`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `41`,
 	name: `A Mob of Cats`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `42`,
 	name: `A PRICKLY SITUATION`,
-	tags: ["A","multi-colored"],
+	tags: ["A","multi-colored","point card"],
 }, {
 	authors: "Cynthia Clementine",
 	id: `43`,
 	name: `a strange face tendriu`,
-	tags: ["A","multi-colored"],
+	tags: ["A","multi-colored","point card"],
 }, {
 	id: `44`,
 	name: `A Tiny Sphere which annihilates every card touching whichever card that adds a bomb to your left toenail (aka freshmen cards are best cards)`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `45`,
 	name: `A`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `46`,
 	name: `AAAAaaaaarrghhh`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `47`,
 	name: `AAHRT`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `48`,
 	name: `Abandoned Shop`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `49`,
 	name: `Abraham Lincoln`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `50`,
 	name: `Abstract Art 2`,
@@ -311,11 +341,11 @@ var cardData = [{
 }, {
 	id: `51`,
 	name: `Abstract Art`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `52`,
 	name: `Acoin`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `53`,
 	name: `ACTIVE TRANSPORT`,
@@ -327,7 +357,7 @@ var cardData = [{
 }, {
 	id: `55`,
 	name: `Advent`,
-	tags: ["A","multi-colored"],
+	tags: ["A","multi-colored","point card"],
 }, {
 	id: `56`,
 	name: `Airless Vacuum of Space`,
@@ -343,15 +373,15 @@ var cardData = [{
 }, {
 	id: `59`,
 	name: `Alexander Graham Bell`,
-	tags: ["A","multi-colored"],
+	tags: ["A","multi-colored","point card"],
 }, {
 	id: `60`,
 	name: `ALTERNATIVE FACTS`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `61`,
 	name: `Altocumulus`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `62`,
 	name: `AMERICAN Government`,
@@ -363,7 +393,7 @@ var cardData = [{
 }, {
 	id: `64`,
 	name: `An Extremely Fluffy Dog`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `65`,
 	name: `An Honest Email`,
@@ -371,27 +401,27 @@ var cardData = [{
 }, {
 	id: `66`,
 	name: `and Hobbes`,
-	tags: ["A","multi-colored"],
+	tags: ["A","multi-colored","point card"],
 }, {
 	id: `67`,
 	name: `Andrew Carnage-e`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `68`,
 	name: `Andrew Carnegie`,
-	tags: ["A","multi-colored"],
+	tags: ["A","multi-colored","point card"],
 }, {
 	id: `69`,
 	name: `Angry cat`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `70`,
 	name: `Another non-Noah Card`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `71`,
 	name: `ANTI DERIVATIVE`,
-	tags: ["A","multi-colored"],
+	tags: ["A","multi-colored","point card"],
 }, {
 	id: `72`,
 	name: `Anti-Bias Training`,
@@ -411,20 +441,20 @@ var cardData = [{
 }, {
 	id: `76`,
 	name: `Anvil`,
-	tags: ["A","multi-colored"],
+	tags: ["A","multi-colored","point card"],
 }, {
 	id: `77`,
 	name: `AP° Calculus`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `78`,
 	name: `Aquaculture`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	authors: "Garrett Phlegar",
 	id: `79`,
 	name: `Arachnophobia`,
-	tags: ["A","multi-colored"],
+	tags: ["A","multi-colored","point card"],
 }, {
 	id: `80`,
 	name: `Arc Welding`,
@@ -432,39 +462,39 @@ var cardData = [{
 }, {
 	id: `81`,
 	name: `Array->Pointer Degradation`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `82`,
 	name: `Art #1`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `83`,
 	name: `Art #2`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `84`,
 	name: `Art #3`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `85`,
 	name: `Art #4`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `86`,
 	name: `Art #5`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `87`,
 	name: `Art #6`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `88`,
 	name: `Art #7`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `89`,
 	name: `Art #8`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	authors: "Joseph Rother",
 	id: `90`,
@@ -478,11 +508,11 @@ var cardData = [{
 }, {
 	id: `92`,
 	name: `At least 5 cats`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `93`,
 	name: `Attempt and get Fatally Wounded`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `94`,
 	name: `Australlian Card`,
@@ -494,19 +524,19 @@ var cardData = [{
 }, {
 	id: `96`,
 	name: `Automation: 64`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `97`,
 	name: `Average treasure hunt`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `98`,
 	name: `Azinoazide Azide`,
-	tags: ["A"],
+	tags: ["A","point card"],
 }, {
 	id: `99`,
 	name: `Babelicious`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `100`,
 	name: `Backpack of Knapsacks`,
@@ -514,29 +544,29 @@ var cardData = [{
 }, {
 	id: `101`,
 	name: `Bad Card I`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `102`,
 	name: `Bad Card II`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `103`,
 	name: `Bad Card III`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `104`,
 	name: `Bad Card IV`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	authors: "Aadarsh Natarajan",
 	id: `105`,
 	imgType: `jpg`,
 	name: `Bad Grade`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `106`,
 	name: `Bad Idea`,
-	tags: ["B","multi-colored"],
+	tags: ["B","multi-colored","point card"],
 }, {
 	id: `107`,
 	name: `BAG OF TRICKS`,
@@ -544,15 +574,15 @@ var cardData = [{
 }, {
 	id: `108`,
 	name: `Bail-Out`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `109`,
 	name: `Bakugo`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `110`,
 	name: `Balled Fist`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `111`,
 	name: `BAN`,
@@ -566,29 +596,29 @@ var cardData = [{
 	id: `113`,
 	imgType: `jpg`,
 	name: `Basic Math`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `114`,
 	name: `Battle Potion`,
-	tags: ["B","multi-colored"],
+	tags: ["B","multi-colored","point card"],
 }, {
 	id: `115`,
 	name: `Beginners Pitfall`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	authors: "Alex Boezer",
 	id: `116`,
 	imgType: `jpg`,
 	name: `Beherit`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `117`,
 	name: `Ben Shapiro`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `118`,
 	name: `Better worded dis-card`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `119`,
 	name: `Between 2 and 2 or more`,
@@ -596,11 +626,11 @@ var cardData = [{
 }, {
 	id: `120`,
 	name: `beyond the firmament`,
-	tags: ["B", "multi-colored"],
+	tags: ["B","multi-colored","point card"],
 }, {
 	id: `121`,
 	name: `Big Boy Jay`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `122`,
 	name: `Big Tabasco`,
@@ -608,15 +638,15 @@ var cardData = [{
 }, {
 	id: `123`,
 	name: `Big Toe`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `124`,
 	name: `bill wurtz`,
-	tags: ["B","multi-colored"],
+	tags: ["B","multi-colored","point card"],
 }, {
 	id: `125`,
 	name: `Billy la Bufanda`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `126`,
 	name: `BLACK HOLE`,
@@ -624,15 +654,15 @@ var cardData = [{
 }, {
 	id: `127`,
 	name: `BLAST FURNACE`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `128`,
 	name: `Blessed By The Physics Gods`,
-	tags: ["B","multi-colored"],
+	tags: ["B","multi-colored","point card"],
 }, {
 	id: `129`,
 	name: `BLOOD MANOS`,
-	tags: ["B","multi-colored"],
+	tags: ["B","multi-colored","point card"],
 }, {
 	id: `130`,
 	name: `Bloody Hands`,
@@ -640,55 +670,55 @@ var cardData = [{
 }, {
 	id: `131`,
 	name: `BLUE LIZARD`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `132`,
 	name: `Blue Shell`,
-	tags: ["B","multi-colored"],
+	tags: ["B","multi-colored","point card"],
 }, {
 	id: `133`,
 	name: `Blue Slime`,
-	tags: ["B","multi-colored"],
+	tags: ["B","multi-colored","point card"],
 }, {
 	id: `134`,
 	name: `Bode's Rule`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `135`,
 	name: `Bold Face`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `136`,
 	name: `Bomb Man`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `137`,
 	name: `Bomb Transmutation`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `138`,
 	name: `Bombed the test`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `139`,
 	name: `Bomkar's attendance`,
-	tags: ["B","multi-colored"],
+	tags: ["B","multi-colored","point card"],
 }, {
 	id: `140`,
 	name: `Bomkar's wisdom`,
-	tags: ["B","multi-colored"],
+	tags: ["B","multi-colored","point card"],
 }, {
 	id: `141`,
 	name: `Boneful Pizza`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `142`,
 	name: `Boneless Fossil`,
-	tags: ["B","multi-colored"],
+	tags: ["B","multi-colored","point card"],
 }, {
 	id: `143`,
 	name: `Boneless Pizza`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	authors: "Alex Boezer",
 	id: `144`,
@@ -698,19 +728,19 @@ var cardData = [{
 }, {
 	id: `145`,
 	name: `Bonjourno`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `146`,
 	name: `Borat [I'm not translating this one either, sorry]`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `147`,
 	name: `BOSS OF THIS GYM`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `148`,
 	name: `Bozo 1`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `149`,
 	name: `BRAIN ON DRUGS`,
@@ -718,13 +748,13 @@ var cardData = [{
 }, {
 	id: `150`,
 	name: `Brass Section`,
-	tags: ["B","multi-colored"],
+	tags: ["B","multi-colored","point card"],
 }, {
 	authors: "Tushar Rangaswamy",
 	id: `151`,
 	imgType: `jpg`,
 	name: `Break-Out Rooms`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `152`,
 	name: `Buckets`,
@@ -736,31 +766,31 @@ var cardData = [{
 }, {
 	id: `154`,
 	name: `Bulgarian Slap Dance`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `155`,
 	name: `Bully Pulpit`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `156`,
 	name: `Burn at Both Ends`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `157`,
 	name: `Burn the Books`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `158`,
 	name: `Burnt Resistor`,
-	tags: ["B","multi-colored"],
+	tags: ["B","multi-colored","point card"],
 }, {
 	id: `159`,
 	name: `Burnt Pan`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `160`,
 	name: `burp`,
-	tags: ["B"],
+	tags: ["B","point card"],
 }, {
 	id: `161`,
 	name: `C O V E R`,
@@ -768,19 +798,19 @@ var cardData = [{
 }, {
 	id: `162`,
 	name: `Cactus Emoji`,
-	tags: ["C","multi-colored"],
+	tags: ["C","multi-colored","point card"],
 }, {
 	id: `163`,
 	name: `CAKE`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `164`,
 	name: `CalculuS`,
-	tags: ["C","multi-colored"],
+	tags: ["C","multi-colored","point card"],
 }, {
 	id: `165`,
 	name: `Calvin`,
-	tags: ["C","multi-colored"],
+	tags: ["C","multi-colored","point card"],
 }, {
 	id: `166`,
 	name: `CaLViNbaLL`,
@@ -788,23 +818,23 @@ var cardData = [{
 }, {
 	id: `167`,
 	name: `Campaign Donations`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `168`,
 	name: `Candidate Centered Campaigns`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `169`,
 	name: `Capitalism`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `170`,
 	name: `Capture The Flag`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `171`,
 	name: `CARAMEL`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `172`,
 	name: `CARD 2`,
@@ -812,19 +842,19 @@ var cardData = [{
 }, {
 	id: `173`,
 	name: `card castle`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `174`,
 	name: `Card Shortage`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `175`,
 	name: `CARD`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `176`,
 	name: `Cardboard Tube`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `177`,
 	name: `CARDS AGAINST governmentality`,
@@ -832,11 +862,11 @@ var cardData = [{
 }, {
 	id: `178`,
 	name: `Cat`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `179`,
 	name: `CAT 2`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `180`,
 	name: `CAT BELL`,
@@ -844,11 +874,11 @@ var cardData = [{
 }, {
 	id: `181`,
 	name: `CAT`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `182`,
 	name: `CATACLYSM`,
-	tags: ["C","multi-colored"],
+	tags: ["C","multi-colored","point card"],
 }, {
 	id: `183`,
 	name: `CATHARTIC REONION`,
@@ -864,15 +894,15 @@ var cardData = [{
 }, {
 	id: `186`,
 	name: `CENSORED`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `187`,
 	name: `Centrol Balance`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `188`,
 	name: `Ceph OSD failure`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `189`,
 	name: `Chaos Emeralds`,
@@ -880,11 +910,11 @@ var cardData = [{
 }, {
 	id: `190`,
 	name: `Chester Arthur`,
-	tags: ["C","multi-colored"],
+	tags: ["C","multi-colored","point card"],
 }, {
 	id: `191`,
 	name: `Chibi`,
-	tags: ["C","multi-colored"],
+	tags: ["C","multi-colored","point card"],
 }, {
 	id: `192`,
 	name: `Choose one`,
@@ -892,11 +922,11 @@ var cardData = [{
 }, {
 	id: `193`,
 	name: `Chose uOwen AdvEnturE`,
-	tags: ["C","multi-colored"],
+	tags: ["C","multi-colored","point card"],
 }, {
 	id: `194`,
 	name: `Chris Christoph Christopher Christopherson`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `195`,
 	name: `CHRISTIAN MINECRAFT`,
@@ -916,11 +946,11 @@ var cardData = [{
 }, {
 	id: `199`,
 	name: `Civil Rights Act of 1964`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `200`,
 	name: `ClF3`,
-	tags: ["C","multi-colored"],
+	tags: ["C","multi-colored","point card"],
 }, {
 	id: `201`,
 	name: `Cloud in a Bottle`,
@@ -928,19 +958,19 @@ var cardData = [{
 }, {
 	id: `202`,
 	name: `CMD ACCESS Granted`,
-	tags: ["C","multi-colored"],
+	tags: ["C","multi-colored","point card"],
 }, {
 	id: `203`,
 	name: `COASTER`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `204`,
 	name: `Combo-Wombo`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `205`,
 	name: `Comedian`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `206`,
 	name: `Communism strikes`,
@@ -948,7 +978,7 @@ var cardData = [{
 }, {
 	id: `207`,
 	name: `Communism v2`,
-	tags: ["C","multi-colored"],
+	tags: ["C","multi-colored","point card"],
 }, {
 	id: `208`,
 	name: `Communism`,
@@ -960,7 +990,7 @@ var cardData = [{
 }, {
 	id: `210`,
 	name: `Companion Cube`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `211`,
 	name: `Composite Gang`,
@@ -968,16 +998,16 @@ var cardData = [{
 }, {
 	id: `212`,
 	name: `Computer table`,
-	tags: ["C","wide"],
+	tags: ["C","wide","point card"],
 }, {
 	id: `213`,
 	name: `Computer Vision`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	authors: "Cynthia Clementine",
 	id: `214`,
 	name: `Concern`,
-	tags: ["C","multi-colored"],
+	tags: ["C","multi-colored","point card"],
 }, {
 	id: `215`,
 	name: `congratulations, you broke time`,
@@ -985,23 +1015,23 @@ var cardData = [{
 }, {
 	id: `216`,
 	name: `Congressional Hearing`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `217`,
 	name: `Conical Pendulum`,
-	tags: ["C","multi-colored"],
+	tags: ["C","multi-colored","point card"],
 }, {
 	id: `218`,
 	name: `CONSOLATION PRIZE`,
-	tags: ["C","multi-colored"],
+	tags: ["C","multi-colored","point card"],
 }, {
 	id: `219`,
 	name: `Consoltation Prize`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `220`,
 	name: `Constitutional Democracy`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `221`,
 	name: `CONSTRUCTION ZONE`,
@@ -1009,7 +1039,7 @@ var cardData = [{
 }, {
 	id: `222`,
 	name: `Cool math James`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	authors: "Cynthia Clementine",
 	id: `223`,
@@ -1018,43 +1048,43 @@ var cardData = [{
 }, {
 	id: `224`,
 	name: `Copper Pickaxe`,
-	tags: ["C","multi-colored"],
+	tags: ["C","multi-colored","point card"],
 }, {
 	id: `225`,
 	name: `Copywrited`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `226`,
 	name: `Cornelius Vanderbilt`,
-	tags: ["C","multi-colored"],
+	tags: ["C","multi-colored","point card"],
 }, {
 	id: `227`,
 	name: `Corrin's Side Special`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `228`,
 	name: `Counter spell`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `229`,
 	name: `Counter-counter spell`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `230`,
 	name: `Counter-Counterspell Counter`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `231`,
 	name: `Counterfeit points`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `232`,
 	name: `Cozy Mine craft home`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `233`,
 	name: `CRAB RAVE (BASS BOOSTED)`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `234`,
 	name: `Cram time`,
@@ -1062,32 +1092,32 @@ var cardData = [{
 }, {
 	id: `235`,
 	name: `CRAYON CARD`,
-	tags: ["C","multi-colored"],
+	tags: ["C","multi-colored","point card"],
 }, {
 	id: `236`,
 	name: `Crazy Hand`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	authors: "Cynthia Clementine",
 	id: `237`,
 	name: `crd o edm`,
-	tags: ["C","multi-colored"],
+	tags: ["C","multi-colored","point card"],
 }, {
 	id: `238`,
 	name: `CREEPER! Aw man`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `239`,
 	name: `Creeper`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `240`,
 	name: `CREEPY JEFFERSON MASCOT`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `241`,
 	name: `Crowdsourcing`,
-	tags: ["C","multi-colored"],
+	tags: ["C","multi-colored","point card"],
 }, {
 	id: `242`,
 	name: `Crusty sean, destroyer of worlds`,
@@ -1095,11 +1125,11 @@ var cardData = [{
 }, {
 	id: `243`,
 	name: `Cryptocurrency`,
-	tags: ["C","multi-colored"],
+	tags: ["C","multi-colored","point card"],
 }, {
 	id: `244`,
 	name: `Crystal Heart`,
-	tags: ["C","multi-colored"],
+	tags: ["C","multi-colored","point card"],
 }, {
 	id: `245`,
 	name: `Ctrl + S`,
@@ -1111,7 +1141,7 @@ var cardData = [{
 }, {
 	id: `247`,
 	name: `Cumulus`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `248`,
 	name: `Cursive Whoo`,
@@ -1123,7 +1153,7 @@ var cardData = [{
 }, {
 	id: `250`,
 	name: `CYKA блять`,
-	tags: ["C"],
+	tags: ["C","point card"],
 }, {
 	id: `251`,
 	name: `ↃT`,
@@ -1131,7 +1161,7 @@ var cardData = [{
 }, {
 	id: `252`,
 	name: `DANCE PARTY`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `253`,
 	name: `DANGER`,
@@ -1139,32 +1169,32 @@ var cardData = [{
 }, {
 	id: `254`,
 	name: `Dante's Matchstick™`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `255`,
 	name: `DARK KERMIT`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `256`,
 	name: `Dark Money`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `257`,
 	name: `Dark Sacrifice`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `258`,
 	name: `Dash Crystal`,
-	tags: ["D","multi-colored"],
+	tags: ["D","multi-colored","point card"],
 }, {
 	authors: "Cynthia Clementine",
 	id: `259`,
 	name: `Dated Reference`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `260`,
 	name: `DAWN of the IRON AGE`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `261`,
 	name: `DAY`,
@@ -1180,7 +1210,7 @@ var cardData = [{
 }, {
 	id: `264`,
 	name: `DEATH NOTE 2`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `265`,
 	name: `DEATH NOTE`,
@@ -1188,11 +1218,11 @@ var cardData = [{
 }, {
 	id: `266`,
 	name: `Deathspacito`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `267`,
 	name: `DEBT`,
-	tags: ["D","multi-colored"],
+	tags: ["D","multi-colored","point card"],
 }, {
 	id: `268`,
 	name: `DEGENERATE`,
@@ -1204,11 +1234,11 @@ var cardData = [{
 }, {
 	id: `270`,
 	name: `Delegate`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `271`,
 	name: `DelSaurus`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `272`,
 	name: `Development Card`,
@@ -1216,7 +1246,7 @@ var cardData = [{
 }, {
 	id: `273`,
 	name: `Diamond Shovel`,
-	tags: ["D","multi-colored"],
+	tags: ["D","multi-colored","point card"],
 }, {
 	id: `274`,
 	name: `Dictionary`,
@@ -1224,7 +1254,7 @@ var cardData = [{
 }, {
 	id: `275`,
 	name: `Did Not Strike Oil`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `276`,
 	name: `DIE BUTTER IST ALLE`,
@@ -1232,7 +1262,7 @@ var cardData = [{
 }, {
 	id: `277`,
 	name: `DIE, DYE, DIE!`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `278`,
 	name: `Die`,
@@ -1240,31 +1270,31 @@ var cardData = [{
 }, {
 	id: `279`,
 	name: `Differential Equations 2`,
-	tags: ["D","multi-colored"],
+	tags: ["D","multi-colored","point card"],
 }, {
 	id: `280`,
 	name: `DIFFERENTIAL equations`,
-	tags: ["D","multi-colored"],
+	tags: ["D","multi-colored","point card"],
 }, {
 	id: `281`,
 	name: `Difficult Search`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `282`,
 	name: `Diglet`,
-	tags: ["D","multi-colored"],
+	tags: ["D","multi-colored","point card"],
 }, {
 	id: `283`,
 	name: `Dimple`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `284`,
 	name: `Direct Democracy`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `285`,
 	name: `Dis-cord`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `286`,
 	name: `Disintegration`,
@@ -1276,19 +1306,19 @@ var cardData = [{
 }, {
 	id: `288`,
 	name: `Disproportionate Features`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `289`,
 	name: `dissapointment`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `290`,
 	name: `Dissenting Opinion`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `291`,
 	name: `DISTUWBINGWY DETAWED UWU`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `292`,
 	name: `DL;Discord or TS;Discard`,
@@ -1296,11 +1326,11 @@ var cardData = [{
 }, {
 	id: `293`,
 	name: `DN?`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `294`,
 	name: `Doesn't Make it onto the Docket`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `295`,
 	name: `Dog Ate your Homework`,
@@ -1308,27 +1338,27 @@ var cardData = [{
 }, {
 	id: `296`,
 	name: `DOG`,
-	tags: ["D","multi-colored"],
+	tags: ["D","multi-colored","point card"],
 }, {
 	id: `297`,
 	name: `Dominator`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `298`,
 	name: `Domo`,
-	tags: ["D","multi-colored"],
+	tags: ["D","multi-colored","point card"],
 }, {
 	id: `299`,
 	name: `Don't know where your 8th period is`,
-	tags: ["D","multi-colored"],
+	tags: ["D","multi-colored","point card"],
 }, {
 	id: `300`,
 	name: `Donke mee-mee`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `301`,
 	name: `Dot`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `302`,
 	name: `Double Jeopardy`,
@@ -1336,11 +1366,11 @@ var cardData = [{
 }, {
 	id: `303`,
 	name: `Double Trouble`,
-	tags: ["D","multi-colored"],
+	tags: ["D","multi-colored","point card"],
 }, {
 	id: `304`,
 	name: `DOUBLE VAMPIRE CARD`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `305`,
 	name: `Double-Jointed`,
@@ -1348,11 +1378,11 @@ var cardData = [{
 }, {
 	id: `306`,
 	name: `Doubt card`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `307`,
 	name: `Dragons!!`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `308`,
 	name: `Draw Card Curse`,
@@ -1360,19 +1390,19 @@ var cardData = [{
 }, {
 	id: `309`,
 	name: `DRONE STRIKE`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `310`,
 	name: `DRUNKEN TIGER`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `311`,
 	name: `Dscore:dt`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `312`,
 	name: `Duck Rabbit`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `313`,
 	name: `Dungeons and...`,
@@ -1380,31 +1410,31 @@ var cardData = [{
 }, {
 	id: `314`,
 	name: `Dungeons, Dungeons, and more Dungeons`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `315`,
 	name: `Dut dut dut`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `316`,
 	name: `Dwayne the "Block" Johnson`,
-	tags: ["D"],
+	tags: ["D","point card"],
 }, {
 	id: `317`,
 	name: `Earl Warren`,
-	tags: ["E"],
+	tags: ["E","point card"],
 }, {
 	id: `318`,
 	name: `Ecchi`,
-	tags: ["E"],
+	tags: ["E","point card"],
 }, {
 	id: `319`,
 	name: `Egad`,
-	tags: ["E"],
+	tags: ["E","point card"],
 }, {
 	id: `320`,
 	name: `Eggfacts dot fun`,
-	tags: ["E"],
+	tags: ["E","point card"],
 }, {
 	id: `321`,
 	name: `Eidos manipulation`,
@@ -1412,41 +1442,41 @@ var cardData = [{
 }, {
 	id: `322`,
 	name: `el niño 2`,
-	tags: ["E", "multi-colored"],
+	tags: ["E","multi-colored"],
 }, {
 	id: `323`,
 	name: `El niño`,
-	tags: ["E", "multi-colored"],
+	tags: ["E","multi-colored","point card"],
 }, {
 	authors: "Alex Boezer",
 	id: `324`,
 	imgType: `jpg`,
 	name: `Eldritch Horror`,
-	tags: ["E"],
+	tags: ["E","point card"],
 }, {
 	id: `325`,
 	name: `Electric Arc Furnace`,
-	tags: ["E"],
+	tags: ["E","point card"],
 }, {
 	id: `326`,
 	name: `ELON DUSK`,
-	tags: ["E"],
+	tags: ["E","point card"],
 }, {
 	id: `327`,
 	name: `Empty Check`,
-	tags: ["E"],
+	tags: ["E","point card"],
 }, {
 	id: `328`,
 	name: `Enchilada of Magic and Justice`,
-	tags: ["E","multi-colored"],
+	tags: ["E","multi-colored","point card"],
 }, {
 	id: `329`,
 	name: `Ene`,
-	tags: ["E"],
+	tags: ["E","point card"],
 }, {
 	id: `330`,
 	name: `Engage in unliving`,
-	tags: ["E"],
+	tags: ["E","point card"],
 }, {
 	id: `331`,
 	name: `enots emit`,
@@ -1454,15 +1484,15 @@ var cardData = [{
 }, {
 	id: `332`,
 	name: `EPIPLECTIC BIKE`,
-	tags: ["E"],
+	tags: ["E","point card"],
 }, {
 	id: `333`,
 	name: `ERERRORREORRRERRORRORERROR`,
-	tags: ["E"],
+	tags: ["E","point card"],
 }, {
 	id: `334`,
 	name: `Everybody Hates Noah`,
-	tags: ["E"],
+	tags: ["E","point card"],
 }, {
 	id: `335`,
 	name: `Everyone is here!`,
@@ -1470,7 +1500,7 @@ var cardData = [{
 }, {
 	id: `336`,
 	name: `Evil Platypus`,
-	tags: ["E","multi-colored"],
+	tags: ["E","multi-colored","point card"],
 }, {
 	id: `337`,
 	name: `EXE`,
@@ -1478,15 +1508,15 @@ var cardData = [{
 }, {
 	id: `338`,
 	name: `EXEcutive Order`,
-	tags: ["E"],
+	tags: ["E","point card"],
 }, {
 	id: `339`,
 	name: `Existence Trophy`,
-	tags: ["E"],
+	tags: ["E","point card"],
 }, {
 	id: `340`,
 	name: `Exit Poll`,
-	tags: ["E"],
+	tags: ["E","point card"],
 }, {
 	id: `341`,
 	name: `Expand Protector A`,
@@ -1507,15 +1537,15 @@ var cardData = [{
 }, {
 	id: `345`,
 	name: `Expo Marker`,
-	tags: ["E"],
+	tags: ["E","point card"],
 }, {
 	id: `346`,
 	name: `Extreme Range High Capacity Self-charging swapper`,
-	tags: ["E"],
+	tags: ["E","point card"],
 }, {
 	id: `347`,
 	name: `Extremophile`,
-	tags: ["E"],
+	tags: ["E","point card"],
 }, {
 	id: `348`,
 	name: `Eye of Corruption`,
@@ -1523,15 +1553,15 @@ var cardData = [{
 }, {
 	id: `349`,
 	name: `Eyjafjallajokull`,
-	tags: ["E"],
+	tags: ["E","point card"],
 }, {
 	id: `350`,
 	name: `F^-1(x)`,
-	tags: ["F"],
+	tags: ["F","point card"],
 }, {
 	id: `351`,
 	name: `fancy wireframe cube`,
-	tags: ["F"],
+	tags: ["F","point card"],
 }, {
 	id: `352`,
 	name: `Fault Line`,
@@ -1539,15 +1569,15 @@ var cardData = [{
 }, {
 	id: `353`,
 	name: `FCPSON`,
-	tags: ["F"],
+	tags: ["F","point card"],
 }, {
 	id: `354`,
 	name: `Federalism`,
-	tags: ["F"],
+	tags: ["F","point card"],
 }, {
 	id: `355`,
 	name: `FERACTAL`,
-	tags: ["F","multi-colored"],
+	tags: ["F","multi-colored","point card"],
 }, {
 	id: `356`,
 	name: `Fermata Rest`,
@@ -1555,7 +1585,7 @@ var cardData = [{
 }, {
 	id: `357`,
 	name: `Filming vertically`,
-	tags: ["F","multi-colored"],
+	tags: ["F","multi-colored","point card"],
 }, {
 	id: `358`,
 	name: `Find all of the parts of the TI-84 to get 10000pts! (BR)`,
@@ -1575,15 +1605,15 @@ var cardData = [{
 }, {
 	id: `362`,
 	name: `finite glove`,
-	tags: ["F"],
+	tags: ["F","point card"],
 }, {
 	id: `363`,
 	name: `Fire Emoji`,
-	tags: ["F","multi-colored"],
+	tags: ["F","multi-colored","point card"],
 }, {
 	id: `364`,
 	name: `Fire Flower`,
-	tags: ["F"],
+	tags: ["F","point card"],
 }, {
 	id: `365`,
 	name: `Fire Roasted Fire`,
@@ -1591,15 +1621,15 @@ var cardData = [{
 }, {
 	id: `366`,
 	name: `Fireworks!!`,
-	tags: ["F","multi-colored"],
+	tags: ["F","multi-colored","point card"],
 }, {
 	id: `367`,
 	name: `Fish Bunjin's Down Special`,
-	tags: ["F"],
+	tags: ["F","point card"],
 }, {
 	id: `368`,
 	name: `FishBinjin's Neutral Special`,
-	tags: ["F"],
+	tags: ["F","point card"],
 }, {
 	id: `369`,
 	name: `Flash STopper`,
@@ -1612,15 +1642,15 @@ var cardData = [{
 	authors: "Cynthia Clementine",
 	id: `371`,
 	name: `floating point precision error`,
-	tags: ["F","multi-colored"],
+	tags: ["F","multi-colored","point card"],
 }, {
 	id: `372`,
 	name: `Flow Chart`,
-	tags: ["F"],
+	tags: ["F","point card"],
 }, {
 	id: `373`,
 	name: `Flowey the Flower`,
-	tags: ["F"],
+	tags: ["F","point card"],
 }, {
 	id: `374`,
 	name: `Flux Capacitor`,
@@ -1628,31 +1658,31 @@ var cardData = [{
 }, {
 	id: `375`,
 	name: `Fog`,
-	tags: ["F"],
+	tags: ["F","point card"],
 }, {
 	id: `376`,
 	name: `Fool's Gold`,
-	tags: ["F","multi-colored"],
+	tags: ["F","multi-colored","point card"],
 }, {
 	id: `377`,
 	name: `for (int i=1; i≤playerCount; i++) {cardEffect(i, effect)}`,
-	tags: ["F"],
+	tags: ["F","point card"],
 }, {
 	id: `378`,
 	name: `for loop`,
-	tags: ["F"],
+	tags: ["F","point card"],
 }, {
 	id: `379`,
 	name: `FOREST FIRE`,
-	tags: ["F","multi-colored"],
+	tags: ["F","multi-colored","point card"],
 }, {
 	id: `380`,
 	name: `FCPSON`,
-	tags: ["F"],
+	tags: ["F","point card"],
 }, {
 	id: `381`,
 	name: `Franklin D. Roosevelt`,
-	tags: ["F"],
+	tags: ["F","point card"],
 }, {
 	id: `382`,
 	name: `Free Or Reduced Price Lunch`,
@@ -1661,15 +1691,15 @@ var cardData = [{
 	authors: "Tushar Rangaswamy",
 	id: `383`,
 	name: `Freeze Sign`,
-	tags: ["F"],
+	tags: ["F","point card"],
 }, {
 	id: `384`,
 	name: `Freezing Rain`,
-	tags: ["F"],
+	tags: ["F","point card"],
 }, {
 	id: `385`,
 	name: `Freshman Robot`,
-	tags: ["F","multi-colored"],
+	tags: ["F","multi-colored","point card"],
 }, {
 	id: `386`,
 	name: `Frostbite`,
@@ -1681,23 +1711,23 @@ var cardData = [{
 }, {
 	id: `388`,
 	name: `Future Value`,
-	tags: ["F"],
+	tags: ["F","point card"],
 }, {
 	id: `389`,
 	name: `GADSBY`,
-	tags: ["G","multi-colored"],
+	tags: ["G","multi-colored","point card"],
 }, {
 	id: `390`,
 	name: `Game Over`,
-	tags: ["G"],
+	tags: ["G","point card"],
 }, {
 	id: `391`,
 	name: `Garbage Truck`,
-	tags: ["G"],
+	tags: ["G","point card"],
 }, {
 	id: `392`,
 	name: `Gecko Farmers State of the Union`,
-	tags: ["G","multi-colored"],
+	tags: ["G","multi-colored","point card"],
 }, {
 	id: `393`,
 	name: `Generational Divide`,
@@ -1705,27 +1735,27 @@ var cardData = [{
 }, {
 	id: `394`,
 	name: `generic POINT CARD`,
-	tags: ["G"],
+	tags: ["G","point card"],
 }, {
 	id: `395`,
 	name: `George A. Custer`,
-	tags: ["G","multi-colored"],
+	tags: ["G","multi-colored","point card"],
 }, {
 	id: `396`,
 	name: `Gerald Beaver`,
-	tags: ["G"],
+	tags: ["G","point card"],
 }, {
 	id: `397`,
 	name: `German Immigrant`,
-	tags: ["G","multi-colored"],
+	tags: ["G","multi-colored","point card"],
 }, {
 	id: `398`,
 	name: `Germaphobe`,
-	tags: ["G","multi-colored"],
+	tags: ["G","multi-colored","point card"],
 }, {
 	id: `399`,
 	name: `Gerrymandering`,
-	tags: ["G"],
+	tags: ["G","point card"],
 }, {
 	id: `400`,
 	name: `Get slapped by guy to left`,
@@ -1741,7 +1771,7 @@ var cardData = [{
 }, {
 	id: `403`,
 	name: `GLASSWARE`,
-	tags: ["G"],
+	tags: ["G","point card"],
 }, {
 	id: `404`,
 	name: `GLOO`,
@@ -1749,7 +1779,7 @@ var cardData = [{
 }, {
 	id: `405`,
 	name: `Gold Bus`,
-	tags: ["G","multi-colored"],
+	tags: ["G","multi-colored","point card"],
 }, {
 	id: `406`,
 	name: `Good Card I`,
@@ -1757,19 +1787,19 @@ var cardData = [{
 }, {
 	id: `407`,
 	name: `Good Card II`,
-	tags: ["G"],
+	tags: ["G","point card"],
 }, {
 	id: `408`,
 	name: `Good Card III`,
-	tags: ["G"],
+	tags: ["G","point card"],
 }, {
 	id: `409`,
 	name: `Good Card IV`,
-	tags: ["G"],
+	tags: ["G","point card"],
 }, {
 	id: `410`,
 	name: `Good Card V`,
-	tags: ["G"],
+	tags: ["G","point card"],
 }, {
 	id: `411`,
 	name: `Good Card VI`,
@@ -1785,15 +1815,15 @@ var cardData = [{
 }, {
 	id: `414`,
 	name: `Good Citizen`,
-	tags: ["G"],
+	tags: ["G","point card"],
 }, {
 	id: `415`,
 	name: `Goomba`,
-	tags: ["G"],
+	tags: ["G","point card"],
 }, {
 	id: `416`,
 	name: `Gotem`,
-	tags: ["G"],
+	tags: ["G","point card"],
 }, {
 	id: `417`,
 	name: `Government cover-up`,
@@ -1801,19 +1831,19 @@ var cardData = [{
 }, {
 	id: `418`,
 	name: `Greco-Russian Cyrillic Alphabet`,
-	tags: ["G"],
+	tags: ["G","point card"],
 }, {
 	id: `419`,
 	name: `Greed`,
-	tags: ["G","multi-colored"],
+	tags: ["G","multi-colored","point card"],
 }, {
 	id: `420`,
 	name: `Green Light`,
-	tags: ["G","multi-colored"],
+	tags: ["G","multi-colored","point card"],
 }, {
 	id: `421`,
 	name: `GREEN NEW DEAL`,
-	tags: ["G","multi-colored"],
+	tags: ["G","multi-colored","point card"],
 }, {
 	id: `422`,
 	name: `Grover Cleveland`,
@@ -1821,7 +1851,7 @@ var cardData = [{
 }, {
 	id: `423`,
 	name: `Grumpy Cat`,
-	tags: ["G"],
+	tags: ["G","point card"],
 }, {
 	id: `424`,
 	name: `Ha, You were under the presumption that this card would be usefull`,
@@ -1833,35 +1863,35 @@ var cardData = [{
 }, {
 	id: `426`,
 	name: `Hand-drawn Italics`,
-	tags: ["H"],
+	tags: ["H","point card"],
 }, {
 	id: `427`,
 	name: `Happy Birthday! (not really)`,
-	tags: ["H"],
+	tags: ["H","point card"],
 }, {
 	id: `428`,
 	name: `Hats`,
-	tags: ["H"],
+	tags: ["H","point card"],
 }, {
 	id: `429`,
 	name: `Haunted Hourglass`,
-	tags: ["H","multi-colored"],
+	tags: ["H","multi-colored","point card"],
 }, {
 	id: `430`,
 	name: `Heads or Guillotines`,
-	tags: ["H"],
+	tags: ["H","point card"],
 }, {
 	id: `431`,
 	name: `Heart Locket`,
-	tags: ["H"],
+	tags: ["H","point card"],
 }, {
 	id: `432`,
 	name: `help me makecards`,
-	tags: ["H"],
+	tags: ["H","point card"],
 }, {
 	id: `433`,
 	name: `Herm`,
-	tags: ["H"],
+	tags: ["H","point card"],
 }, {
 	id: `434`,
 	name: `Hermes Boots`,
@@ -1869,15 +1899,15 @@ var cardData = [{
 }, {
 	id: `435`,
 	name: `Hg`,
-	tags: ["H"],
+	tags: ["H","point card"],
 }, {
 	id: `436`,
 	name: `Hidden Reinforcements`,
-	tags: ["H","multi-colored"],
+	tags: ["H","multi-colored","point card"],
 }, {
 	id: `437`,
 	name: `High Effort Card`,
-	tags: ["H"],
+	tags: ["H","point card"],
 }, {
 	id: `438`,
 	name: `Hindsight`,
@@ -1885,11 +1915,11 @@ var cardData = [{
 }, {
 	id: `439`,
 	name: `Holiday Spirit(?)`,
-	tags: ["H", "multi-colored"],
+	tags: ["H","multi-colored","point card"],
 }, {
 	id: `440`,
 	name: `Hole Puncher Cut Card`,
-	tags: ["H"],
+	tags: ["H","point card"],
 }, {
 	id: `441`,
 	name: `holy purge`,
@@ -1897,11 +1927,11 @@ var cardData = [{
 }, {
 	id: `442`,
 	name: `Hot Chocolate`,
-	tags: ["H","multi-colored"],
+	tags: ["H","multi-colored","point card"],
 }, {
 	id: `443`,
 	name: `Hot Dogs & Cats`,
-	tags: ["H","multi-colored"],
+	tags: ["H","multi-colored","point card"],
 }, {
 	id: `444`,
 	name: `Hot Glue`,
@@ -1913,15 +1943,15 @@ var cardData = [{
 }, {
 	id: `446`,
 	name: `Hungry Node`,
-	tags: ["H","multi-colored"],
+	tags: ["H","multi-colored","point card"],
 }, {
 	id: `447`,
 	name: `Hunter`,
-	tags: ["H","multi-colored"],
+	tags: ["H","multi-colored","point card"],
 }, {
 	id: `448`,
 	name: `Hydration Nation`,
-	tags: ["H","multi-colored"],
+	tags: ["H","multi-colored","point card"],
 }, {
 	id: `449`,
 	name: `Hydraulic Engineering`,
@@ -1929,23 +1959,23 @@ var cardData = [{
 }, {
 	id: `450`,
 	name: `I Saw Mommy Kissing Santa Claus`,
-	tags: ["I"],
+	tags: ["I","point card"],
 }, {
 	id: `451`,
 	name: `I want you, to join the PILE`,
-	tags: ["I"],
+	tags: ["I","point card"],
 }, {
 	id: `452`,
 	name: `I'M ALREADY TRACER`,
-	tags: ["I"],
+	tags: ["I","point card"],
 }, {
 	id: `453`,
 	name: `I've run out of creativity`,
-	tags: ["I"],
+	tags: ["I","point card"],
 }, {
 	id: `454`,
 	name: `IBET Teachers`,
-	tags: ["I"],
+	tags: ["I","point card"],
 }, {
 	id: `455`,
 	name: `ICEBERG`,
@@ -1953,11 +1983,11 @@ var cardData = [{
 }, {
 	id: `456`,
 	name: `Idk, I just wanted to draw Garfield`,
-	tags: ["I"],
+	tags: ["I","point card"],
 }, {
 	id: `457`,
 	name: `IF YOU Take off TWO articles of clothing`,
-	tags: ["I"],
+	tags: ["I","point card"],
 }, {
 	id: `458`,
 	name: `Illuminati`,
@@ -1965,11 +1995,11 @@ var cardData = [{
 }, {
 	id: `459`,
 	name: `Imaginary Contract`,
-	tags: ["I","multi-colored"],
+	tags: ["I","multi-colored","point card"],
 }, {
 	id: `460`,
 	name: `Imagine playing the game`,
-	tags: ["I"],
+	tags: ["I","point card"],
 }, {
 	id: `461`,
 	name: `Immediate Distribution`,
@@ -1977,15 +2007,15 @@ var cardData = [{
 }, {
 	id: `462`,
 	name: `Impeachment and Indictment`,
-	tags: ["I","multi-colored"],
+	tags: ["I","multi-colored","point card"],
 }, {
 	id: `463`,
 	name: `IMPERIAL PRESIDENCY`,
-	tags: ["I"],
+	tags: ["I","point card"],
 }, {
 	id: `464`,
 	name: `Improper yet Humorous Punctuation`,
-	tags: ["I"],
+	tags: ["I","point card"],
 }, {
 	id: `465`,
 	name: `IN CASE OF EMERGENCY`,
@@ -1993,11 +2023,11 @@ var cardData = [{
 }, {
 	id: `466`,
 	name: `Incredibly Inconsistent Amount of Points`,
-	tags: ["I"],
+	tags: ["I","point card"],
 }, {
 	id: `467`,
 	name: `INDEFINΛTE INTEGRΛL`,
-	tags: ["I"],
+	tags: ["I","point card"],
 }, {
 	id: `468`,
 	name: `Index Card`,
@@ -2005,43 +2035,43 @@ var cardData = [{
 }, {
 	id: `469`,
 	name: `Indian 2`,
-	tags: ["I","multi-colored"],
+	tags: ["I","multi-colored","point card"],
 }, {
 	id: `470`,
 	name: `Indian Mother`,
-	tags: ["I"],
+	tags: ["I","point card"],
 }, {
 	id: `471`,
 	name: `Indian`,
-	tags: ["I","multi-colored"],
+	tags: ["I","multi-colored","point card"],
 }, {
 	id: `472`,
 	name: `Individual Donations`,
-	tags: ["I"],
+	tags: ["I","point card"],
 }, {
 	id: `473`,
 	name: `INFERIOR SIEGE WEAPON`,
-	tags: ["I"],
+	tags: ["I","point card"],
 }, {
 	id: `474`,
 	name: `Infinigon`,
-	tags: ["I"],
+	tags: ["I","point card"],
 }, {
 	id: `475`,
 	name: `Infinity^2 Gauntlet`,
-	tags: ["I","multi-colored"],
+	tags: ["I","multi-colored","point card"],
 }, {
 	id: `476`,
 	name: `Inflation`,
-	tags: ["I"],
+	tags: ["I","point card"],
 }, {
 	id: `477`,
 	name: `Infusion`,
-	tags: ["I"],
+	tags: ["I","point card"],
 }, {
 	id: `478`,
 	name: `iNite MC`,
-	tags: ["I"],
+	tags: ["I","point card"],
 }, {
 	id: `479`,
 	name: `Inktober`,
@@ -2049,7 +2079,7 @@ var cardData = [{
 }, {
 	id: `480`,
 	name: `Inkwell`,
-	tags: ["I"],
+	tags: ["I","point card"],
 }, {
 	id: `481`,
 	name: `INSPECTION`,
@@ -2057,11 +2087,11 @@ var cardData = [{
 }, {
 	id: `482`,
 	name: `Inspirationally Deficient Card`,
-	tags: ["I"],
+	tags: ["I","point card"],
 }, {
 	id: `483`,
 	name: `INTERGNAT`,
-	tags: ["I"],
+	tags: ["I","point card"],
 }, {
 	id: `484`,
 	name: `INTERSTATE HIGHWAY SYSTEM`,
@@ -2073,19 +2103,19 @@ var cardData = [{
 }, {
 	id: `486`,
 	name: `Intrusive Advertising`,
-	tags: ["I"],
+	tags: ["I","point card"],
 }, {
 	id: `487`,
 	name: `Iowa Caucuses`,
-	tags: ["I"],
+	tags: ["I","point card"],
 }, {
 	id: `488`,
 	name: `Irish Immigrant`,
-	tags: ["I","multi-colored"],
+	tags: ["I","multi-colored","point card"],
 }, {
 	id: `489`,
 	name: `Is that even sustainable?`,
-	tags: ["I"],
+	tags: ["I","point card"],
 }, {
 	id: `490`,
 	name: `IS`,
@@ -2093,19 +2123,19 @@ var cardData = [{
 }, {
 	id: `491`,
 	name: `It slices`,
-	tags: ["I"],
+	tags: ["I","point card"],
 }, {
 	id: `492`,
 	name: `It's ok dude`,
-	tags: ["I"],
+	tags: ["I","point card"],
 }, {
 	id: `493`,
 	name: `It's time to d-d-d-d-duel`,
-	tags: ["I"],
+	tags: ["I","point card"],
 }, {
 	id: `494`,
 	name: `James Handlon #1`,
-	tags: ["J"],
+	tags: ["J","point card"],
 }, {
 	id: `495`,
 	name: `James Handlon #2`,
@@ -2113,51 +2143,51 @@ var cardData = [{
 }, {
 	id: `496`,
 	name: `James Handlon #3`,
-	tags: ["J"],
+	tags: ["J","point card"],
 }, {
 	id: `497`,
 	name: `James Playlist - Separate Ways`,
-	tags: ["J","multi-colored"],
+	tags: ["J","multi-colored","point card"],
 }, {
 	id: `498`,
 	name: `James`,
-	tags: ["J"],
+	tags: ["J","point card"],
 }, {
 	id: `499`,
 	name: `James's Artistic Talent`,
-	tags: ["J"],
+	tags: ["J","point card"],
 }, {
 	id: `500`,
 	name: `Jewish`,
-	tags: ["J"],
+	tags: ["J","point card"],
 }, {
 	id: `501`,
 	name: `Joe`,
-	tags: ["J"],
+	tags: ["J","point card"],
 }, {
 	id: `502`,
 	name: `Joeseph's literally trolling #2`,
-	tags: ["J"],
+	tags: ["J","point card"],
 }, {
 	id: `503`,
 	name: `Joeseph's literally trolling`,
-	tags: ["J"],
+	tags: ["J","point card"],
 }, {
 	id: `504`,
 	name: `John F. Kennedy`,
-	tags: ["J"],
+	tags: ["J","point card"],
 }, {
 	id: `505`,
 	name: `John Marshall`,
-	tags: ["J"],
+	tags: ["J","point card"],
 }, {
 	id: `506`,
 	name: `Jones Big @$$ BBQ + Foot Massage`,
-	tags: ["J"],
+	tags: ["J","point card"],
 }, {
 	id: `507`,
 	name: `Joseph Joestar`,
-	tags: ["J"],
+	tags: ["J","point card"],
 }, {
 	id: `508`,
 	name: `Joseph Stalin`,
@@ -2165,7 +2195,7 @@ var cardData = [{
 }, {
 	id: `509`,
 	name: `Jotaro Kujo`,
-	tags: ["J"],
+	tags: ["J","point card"],
 }, {
 	id: `510`,
 	name: `jsFiddle`,
@@ -2173,23 +2203,23 @@ var cardData = [{
 }, {
 	id: `511`,
 	name: `Judicial Review`,
-	tags: ["J"],
+	tags: ["J","point card"],
 }, {
 	id: `512`,
 	name: `Jumping Jacks`,
-	tags: ["J"],
+	tags: ["J","point card"],
 }, {
 	id: `513`,
 	name: `JUMPING, JUMPING`,
-	tags: ["J"],
+	tags: ["J","point card"],
 }, {
 	id: `514`,
 	name: `Just an average F`,
-	tags: ["J"],
+	tags: ["J","point card"],
 }, {
 	id: `515`,
 	name: `Just Breathe`,
-	tags: ["J"],
+	tags: ["J","point card"],
 }, {
 	id: `516`,
 	name: `Just like in real life!`,
@@ -2197,15 +2227,15 @@ var cardData = [{
 }, {
 	id: `517`,
 	name: `Just normal Kirby`,
-	tags: ["J"],
+	tags: ["J","point card"],
 }, {
 	id: `518`,
 	name: `Just Your Imagination`,
-	tags: ["J"],
+	tags: ["J","point card"],
 }, {
 	id: `519`,
 	name: `karel.explode();`,
-	tags: ["K"],
+	tags: ["K","point card"],
 }, {
 	id: `520`,
 	name: `Karma (sorta)`,
@@ -2218,11 +2248,11 @@ var cardData = [{
 	authors: "Alexander",
 	id: `522`,
 	name: `Keeling Curve`,
-	tags: ["K"],
+	tags: ["K","point card"],
 }, {
 	id: `523`,
 	name: `Keeling curve`,
-	tags: ["K"],
+	tags: ["K","point card"],
 }, {
 	id: `524`,
 	name: `KERCHOO`,
@@ -2230,11 +2260,11 @@ var cardData = [{
 }, {
 	id: `525`,
 	name: `Ketchup`,
-	tags: ["K"],
+	tags: ["K","point card"],
 }, {
 	id: `526`,
 	name: `KGB Hit`,
-	tags: ["K"],
+	tags: ["K","point card"],
 }, {
 	id: `527`,
 	name: `Killer Queen`,
@@ -2242,19 +2272,19 @@ var cardData = [{
 }, {
 	id: `528`,
 	name: `Kind Cat Lady`,
-	tags: ["K"],
+	tags: ["K","point card"],
 }, {
 	id: `529`,
 	name: `KING CRIMSON`,
-	tags: ["K"],
+	tags: ["K","point card"],
 }, {
 	id: `530`,
 	name: `KING LEAR`,
-	tags: ["K"],
+	tags: ["K","point card"],
 }, {
 	id: `531`,
 	name: `Kira Yoshikage`,
-	tags: ["K"],
+	tags: ["K","point card"],
 }, {
 	id: `532`,
 	name: `Kirby's special`,
@@ -2262,11 +2292,11 @@ var cardData = [{
 }, {
 	id: `533`,
 	name: `Kirkland Signature`,
-	tags: ["K"],
+	tags: ["K","point card"],
 }, {
 	id: `534`,
 	name: `L'Hôpital's card`,
-	tags: ["L"],
+	tags: ["L","point card"],
 }, {
 	id: `535`,
 	name: `lämp`,
@@ -2282,27 +2312,27 @@ var cardData = [{
 }, {
 	id: `538`,
 	name: `Late Bus Pass`,
-	tags: ["L"],
+	tags: ["L","point card"],
 }, {
 	id: `539`,
 	name: `LaTex`,
-	tags: ["L"],
+	tags: ["L","point card"],
 }, {
 	id: `540`,
 	name: `QKLBQQMESIQBWIIHIHEQNOBEAILYEFDEASNQOB STUACLMATHRASPIQRACREIYONCLILLOLMOUB RFVMQAZLPRYFTNBNAMOMMBBALMQPCFRPDACLM`,
-	tags: ["Q","wide", "multi-colored"],
+	tags: ["Q","wide","multi-colored","point card"],
 }, {
 	id: `541`,
 	name: `LEATHERMAN`,
-	tags: ["L"],
+	tags: ["L","point card"],
 }, {
 	id: `542`,
 	name: `Legs`,
-	tags: ["L"],
+	tags: ["L","point card"],
 }, {
 	id: `543`,
 	name: `LEO`,
-	tags: ["L","multi-colored"],
+	tags: ["L","multi-colored","point card"],
 }, {
 	id: `544`,
 	name: `Lesser Healing Potion`,
@@ -2310,19 +2340,19 @@ var cardData = [{
 }, {
 	id: `545`,
 	name: `Level II Loot Crate`,
-	tags: ["L"],
+	tags: ["L","point card"],
 }, {
 	id: `546`,
 	name: `Li'l Macho Legs Cat`,
-	tags: ["L"],
+	tags: ["L","point card"],
 }, {
 	id: `547`,
 	name: `Liam`,
-	tags: ["L"],
+	tags: ["L","point card"],
 }, {
 	id: `548`,
 	name: `Light-Emitting Capacitor`,
-	tags: ["L","multi-colored"],
+	tags: ["L","multi-colored","point card"],
 }, {
 	id: `549`,
 	name: `Lightning Strike!`,
@@ -2334,7 +2364,7 @@ var cardData = [{
 }, {
 	id: `551`,
 	name: `Line-Item veto`,
-	tags: ["L","multi-colored"],
+	tags: ["L","multi-colored","point card"],
 }, {
 	id: `552`,
 	name: `Liquid DEATH`,
@@ -2358,7 +2388,7 @@ var cardData = [{
 }, {
 	id: `557`,
 	name: `Long Sock`,
-	tags: ["L"],
+	tags: ["L","point card"],
 }, {
 	id: `558`,
 	name: `Loophole finder`,
@@ -2366,7 +2396,7 @@ var cardData = [{
 }, {
 	id: `559`,
 	name: `Loot Crate`,
-	tags: ["L","multi-colored"],
+	tags: ["L","multi-colored","point card"],
 }, {
 	id: `560`,
 	name: `Loss`,
@@ -2374,20 +2404,20 @@ var cardData = [{
 }, {
 	id: `561`,
 	name: `Lucas`,
-	tags: ["L"],
+	tags: ["L","point card"],
 }, {
 	id: `562`,
 	name: `Lucky Charms`,
-	tags: ["L","multi-colored"],
+	tags: ["L","multi-colored","point card"],
 }, {
 	authors: "Joseph Rother",
 	id: `563`,
 	name: `Luigi in da Femur Breaker`,
-	tags: ["L"],
+	tags: ["L","point card"],
 }, {
 	id: `564`,
 	name: `Lvl. 35 Mafia Boss`,
-	tags: ["L"],
+	tags: ["L","point card"],
 }, {
 	id: `565`,
 	name: `MACCHIATO`,
@@ -2395,7 +2425,7 @@ var cardData = [{
 }, {
 	id: `566`,
 	name: `Mairo's coinless challenge`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `567`,
 	name: `MAJORITY RULE`,
@@ -2403,11 +2433,11 @@ var cardData = [{
 }, {
 	id: `568`,
 	name: `Mako Mankanshoku`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `569`,
 	name: `MANY CATS`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `570`,
 	name: `Mario Maker stacking trick`,
@@ -2415,55 +2445,55 @@ var cardData = [{
 }, {
 	id: `571`,
 	name: `Marketing`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `572`,
 	name: `Mary Poppins`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `573`,
 	name: `MATH BOMB`,
-	tags: ["M","multi-colored"],
+	tags: ["M","multi-colored","point card"],
 }, {
 	id: `574`,
 	name: `Math Team A`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `575`,
 	name: `Matthew Cox??`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `576`,
 	name: `Mayoi Hachikoji`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `577`,
 	name: `Me Me Big Boy`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `578`,
 	name: `MEDIC!!!`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `579`,
 	name: `Mediocre Card 2`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `580`,
 	name: `Mediocre Card 3`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `581`,
 	name: `Mediocre Card 4`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `582`,
 	name: `Mediocre Card 5`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `583`,
 	name: `Mediocre Card 6`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `584`,
 	name: `Meditation`,
@@ -2471,11 +2501,11 @@ var cardData = [{
 }, {
 	id: `585`,
 	name: `Medusa`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `586`,
 	name: `Memory Theft`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `587`,
 	name: `MEMORY.`,
@@ -2483,7 +2513,7 @@ var cardData = [{
 }, {
 	id: `588`,
 	name: `MENACE TO SOCIETY`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `589`,
 	name: `Message in a Bottle`,
@@ -2491,7 +2521,7 @@ var cardData = [{
 }, {
 	id: `590`,
 	name: `Mettaton Neo`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `591`,
 	name: `Mia Mamma pet the goat again`,
@@ -2499,7 +2529,7 @@ var cardData = [{
 }, {
 	id: `592`,
 	name: `Midas Touch`,
-	tags: ["M","multi-colored"],
+	tags: ["M","multi-colored","point card"],
 }, {
 	id: `593`,
 	name: `Middle Finger of Exodia`,
@@ -2507,11 +2537,11 @@ var cardData = [{
 }, {
 	id: `594`,
 	name: `Midiocre Card 1`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `595`,
 	name: `Midnight Baseball`,
-	tags: ["M","multi-colored"],
+	tags: ["M","multi-colored","point card"],
 }, {
 	id: `596`,
 	name: `Mikiri Counter`,
@@ -2519,19 +2549,19 @@ var cardData = [{
 }, {
 	id: `597`,
 	name: `Minecraft Shovel (unpixelated)`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `598`,
 	name: `MINISCULE GLYPH`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `599`,
 	name: `Mirror Temple Crystal`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `600`,
 	name: `Missile Silo`,
-	tags: ["M","multi-colored"],
+	tags: ["M","multi-colored","point card"],
 }, {
 	id: `601`,
 	name: `Missle Launcher Missle Launcher`,
@@ -2543,7 +2573,7 @@ var cardData = [{
 }, {
 	id: `603`,
 	name: `MLM`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `604`,
 	name: `Mobile Hotspot`,
@@ -2551,7 +2581,7 @@ var cardData = [{
 }, {
 	id: `605`,
 	name: `Module Modular Modulest`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `606`,
 	name: `Moment of Bruh`,
@@ -2559,15 +2589,15 @@ var cardData = [{
 }, {
 	id: `607`,
 	name: `Mono`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `608`,
 	name: `Monty Mole`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `609`,
 	name: `MONUMENTAL OSBORNE`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `610`,
 	name: `Mowing the lawn`,
@@ -2575,35 +2605,35 @@ var cardData = [{
 }, {
 	id: `611`,
 	name: `Mozart's K231`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `612`,
 	name: `Mr. Minecraft`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `613`,
 	name: `Ms. Kucko`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `614`,
 	name: `MTT Cooking Show`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `615`,
 	name: `MTT Opera`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `616`,
 	name: `MTT Quiz Show`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `617`,
 	name: `Muckrakers`,
-	tags: ["M","multi-colored"],
+	tags: ["M","multi-colored","point card"],
 }, {
 	id: `618`,
 	name: `Multi-coin block`,
-	tags: ["M","multi-colored"],
+	tags: ["M","multi-colored","point card"],
 }, {
 	id: `619`,
 	name: `MUSE`,
@@ -2612,7 +2642,7 @@ var cardData = [{
 	authors: "Alexander",
 	id: `620`,
 	name: `Mutually Assured Destruction`,
-	tags: ["M","multi-colored"],
+	tags: ["M","multi-colored","point card"],
 }, {
 	id: `621`,
 	name: `Mutually Assured Destruction`,
@@ -2624,7 +2654,7 @@ var cardData = [{
 }, {
 	id: `623`,
 	name: `My art representation of Ash Ketchum`,
-	tags: ["M"],
+	tags: ["M","point card"],
 }, {
 	id: `624`,
 	name: `Mystery Goo`,
@@ -2636,15 +2666,15 @@ var cardData = [{
 }, {
 	id: `626`,
 	name: `Mystery Smoosher`,
-	tags: ["M","multi-colored"],
+	tags: ["M","multi-colored","point card"],
 }, {
 	id: `627`,
 	name: `Name That Tune`,
-	tags: ["N"],
+	tags: ["N","point card"],
 }, {
 	id: `628`,
 	name: `Name Thief`,
-	tags: ["N", "multi-colored"],
+	tags: ["N","multi-colored","point card"],
 }, {
 	authors: "Alex Boezer",
 	id: `629`,
@@ -2654,15 +2684,15 @@ var cardData = [{
 }, {
 	id: `630`,
 	name: `Nation Park Quarter Collection`,
-	tags: ["N"],
+	tags: ["N","point card"],
 }, {
 	id: `631`,
 	name: `NEGATIVE WORMHOLE`,
-	tags: ["N","multi-colored"],
+	tags: ["N","multi-colored","point card"],
 }, {
 	id: `632`,
 	name: `NEOSTEEL ENTHUSIASTS`,
-	tags: ["N"],
+	tags: ["N","point card"],
 }, {
 	id: `633`,
 	name: `Nerf Gun`,
@@ -2670,15 +2700,15 @@ var cardData = [{
 }, {
 	id: `634`,
 	name: `New South`,
-	tags: ["N","multi-colored"],
+	tags: ["N","multi-colored","point card"],
 }, {
 	id: `635`,
 	name: `Nice Cream`,
-	tags: ["N"],
+	tags: ["N","point card"],
 }, {
 	id: `636`,
 	name: `Nikola Tesla`,
-	tags: ["N"],
+	tags: ["N","point card"],
 }, {
 	id: `637`,
 	name: `Nimbostratus`,
@@ -2686,7 +2716,7 @@ var cardData = [{
 }, {
 	id: `638`,
 	name: `No more pies!`,
-	tags: ["N","multi-colored"],
+	tags: ["N","multi-colored","point card"],
 }, {
 	id: `639`,
 	name: `No one likes you`,
@@ -2694,7 +2724,7 @@ var cardData = [{
 }, {
 	id: `640`,
 	name: `No point in it`,
-	tags: ["N"],
+	tags: ["N","point card"],
 }, {
 	id: `642`,
 	name: `No U`,
@@ -2702,23 +2732,23 @@ var cardData = [{
 }, {
 	id: `643`,
 	name: `Noah's Balance`,
-	tags: ["N","multi-colored"],
+	tags: ["N","multi-colored","point card"],
 }, {
 	id: `644`,
 	name: `Noah's Hair`,
-	tags: ["N","multi-colored"],
+	tags: ["N","multi-colored","point card"],
 }, {
 	id: `645`,
 	name: `Noah's Left Eye`,
-	tags: ["N","multi-colored"],
+	tags: ["N","multi-colored","point card"],
 }, {
 	id: `646`,
 	name: `Noah's Left Leg`,
-	tags: ["N","multi-colored"],
+	tags: ["N","multi-colored","point card"],
 }, {
 	id: `647`,
 	name: `Noah's Right Leg`,
-	tags: ["N","multi-colored"],
+	tags: ["N","multi-colored","point card"],
 }, {
 	id: `648`,
 	name: `Noah's Super Synergy`,
@@ -2726,16 +2756,16 @@ var cardData = [{
 }, {
 	id: `649`,
 	name: `Noah's Synergy`,
-	tags: ["N","multi-colored"],
+	tags: ["N","multi-colored","point card"],
 }, {
 	authors: "Tushar Rangaswamy",
 	id: `650`,
 	name: `Noisy Sign`,
-	tags: ["N","multi-colored"],
+	tags: ["N","multi-colored","point card"],
 }, {
 	id: `651`,
 	name: `NOODLE`,
-	tags: ["N"],
+	tags: ["N","point card"],
 }, {
 	id: `652`,
 	name: `Nope`,
@@ -2743,15 +2773,15 @@ var cardData = [{
 }, {
 	id: `653`,
 	name: `NOT A NOAH CARD`,
-	tags: ["N","multi-colored"],
+	tags: ["N","multi-colored","point card"],
 }, {
 	id: `654`,
 	name: `Not on Eggplant`,
-	tags: ["N","multi-colored"],
+	tags: ["N","multi-colored","point card"],
 }, {
 	id: `655`,
 	name: `Not yours, anyway`,
-	tags: ["N"],
+	tags: ["N","point card"],
 }, {
 	id: `656`,
 	name: `NSA rootkit`,
@@ -2759,7 +2789,7 @@ var cardData = [{
 }, {
 	id: `657`,
 	name: `Nugget`,
-	tags: ["N","multi-colored"],
+	tags: ["N","multi-colored","point card"],
 }, {
 	id: `658`,
 	name: `Nuke`,
@@ -2767,11 +2797,11 @@ var cardData = [{
 }, {
 	id: `659`,
 	name: `O-qué, so now what?`,
-	tags: ["O", "multi-colored"],
+	tags: ["O","multi-colored"],
 }, {
 	id: `660`,
 	name: `Obamacare`,
-	tags: ["O"],
+	tags: ["O","point card"],
 }, {
 	id: `661`,
 	name: `Observer`,
@@ -2779,24 +2809,24 @@ var cardData = [{
 }, {
 	id: `662`,
 	name: `Obviously Not a Card`,
-	tags: ["O"],
+	tags: ["O","point card"],
 }, {
 	id: `663`,
 	name: `Oddball`,
-	tags: ["O","multi-colored"],
+	tags: ["O","multi-colored","point card"],
 }, {
 	id: `664`,
 	name: `Office Home and Student 2007`,
-	tags: ["O"],
+	tags: ["O","point card"],
 }, {
 	id: `665`,
 	name: `OILY MACARONI`,
-	tags: ["O"],
+	tags: ["O","point card"],
 }, {
 	authors: "Aaron Liu",
 	id: `666`,
 	name: `Old Potion`,
-	tags: ["O"],
+	tags: ["O","point card"],
 }, {
 	id: `667`,
 	name: `OMNI CARD`,
@@ -2804,7 +2834,7 @@ var cardData = [{
 }, {
 	id: `668`,
 	name: `On any music player, listen to all of Moral Kombat theme by Misterious-theme`,
-	tags: ["O"],
+	tags: ["O","point card"],
 }, {
 	id: `669`,
 	name: `One Blank White Card`,
@@ -2812,27 +2842,27 @@ var cardData = [{
 }, {
 	id: `670`,
 	name: `One Ring to Rule Them All`,
-	tags: ["O","multi-colored"],
+	tags: ["O","multi-colored","point card"],
 }, {
 	id: `671`,
 	name: `One Time Use`,
-	tags: ["O","wide"],
+	tags: ["O","wide","point card"],
 }, {
 	id: `672`,
 	name: `Oops! Hah!`,
-	tags: ["O"],
+	tags: ["O","point card"],
 }, {
 	id: `673`,
 	name: `ORANGE LIZARD`,
-	tags: ["O"],
+	tags: ["O","point card"],
 }, {
 	id: `674`,
 	name: `Oregon Trail`,
-	tags: ["O","multi-colored"],
+	tags: ["O","multi-colored","point card"],
 }, {
 	id: `675`,
 	name: `ORONAMIN C`,
-	tags: ["O"],
+	tags: ["O","point card"],
 }, {
 	id: `676`,
 	name: `Out With A Bang`,
@@ -2844,15 +2874,15 @@ var cardData = [{
 }, {
 	id: `678`,
 	name: `Overstuffed Piñata`,
-	tags: ["O"],
+	tags: ["O","point card"],
 }, {
 	id: `679`,
 	name: `Package Manager`,
-	tags: ["P"],
+	tags: ["P","point card"],
 }, {
 	id: `680`,
 	name: `Paper Scissors Rock`,
-	tags: ["P"],
+	tags: ["P","point card"],
 }, {
 	id: `681`,
 	name: `Paper Tax!`,
@@ -2864,7 +2894,7 @@ var cardData = [{
 }, {
 	id: `683`,
 	name: `Pardis Sabeti`,
-	tags: ["P"],
+	tags: ["P","point card"],
 }, {
 	id: `684`,
 	name: `Parry`,
@@ -2876,23 +2906,23 @@ var cardData = [{
 }, {
 	id: `686`,
 	name: `Paspyr`,
-	tags: ["P"],
+	tags: ["P","point card"],
 }, {
 	id: `687`,
 	name: `Pass Go`,
-	tags: ["P","multi-colored"],
+	tags: ["P","multi-colored","point card"],
 }, {
 	id: `688`,
 	name: `Pass-Through Gate`,
-	tags: ["P","multi-colored"],
+	tags: ["P","multi-colored","point card"],
 }, {
 	id: `689`,
 	name: `Pass!`,
-	tags: ["P"],
+	tags: ["P","point card"],
 }, {
 	id: `690`,
 	name: `Passive Observation`,
-	tags: ["P","multi-colored"],
+	tags: ["P","multi-colored","point card"],
 }, {
 	id: `691`,
 	name: `PASSIVE TRANSPORT`,
@@ -2900,7 +2930,7 @@ var cardData = [{
 }, {
 	id: `692`,
 	name: `Patent`,
-	tags: ["P"],
+	tags: ["P","point card"],
 }, {
 	id: `693`,
 	name: `pay2win`,
@@ -2908,11 +2938,11 @@ var cardData = [{
 }, {
 	id: `694`,
 	name: `Pedestrian Mall Restaurant`,
-	tags: ["P","multi-colored"],
+	tags: ["P","multi-colored","point card"],
 }, {
 	id: `695`,
 	name: `Peer Pressure`,
-	tags: ["P"],
+	tags: ["P","point card"],
 }, {
 	id: `696`,
 	name: `Pelosi at the 2020 SOTU`,
@@ -2928,23 +2958,23 @@ var cardData = [{
 }, {
 	id: `699`,
 	name: `Philisphical Fence`,
-	tags: ["P"],
+	tags: ["P","point card"],
 }, {
 	id: `700`,
 	name: `Pi`,
-	tags: ["P"],
+	tags: ["P","point card"],
 }, {
 	id: `701`,
 	name: `Pickpocket`,
-	tags: ["P","multi-colored"],
+	tags: ["P","multi-colored","point card"],
 }, {
 	id: `702`,
 	name: `Pig Latin`,
-	tags: ["P","multi-colored"],
+	tags: ["P","multi-colored","point card"],
 }, {
 	id: `703`,
 	name: `Plausable deniability`,
-	tags: ["P"],
+	tags: ["P","point card"],
 }, {
 	id: `704`,
 	name: `Player's Trap`,
@@ -2952,59 +2982,59 @@ var cardData = [{
 }, {
 	id: `705`,
 	name: `Playlist #1 - 911 : Mr. Lonely`,
-	tags: ["P", "multi-colored"],
+	tags: ["P","multi-colored","point card"],
 }, {
 	id: `706`,
 	name: `Playlist #1 - Deep Web`,
-	tags: ["P", "multi-colored"],
+	tags: ["P","multi-colored"],
 }, {
 	id: `707`,
 	name: `Playlist #1 - don't play your card`,
-	tags: ["P", "multi-colored"],
+	tags: ["P","multi-colored","point card"],
 }, {
 	id: `708`,
 	name: `Playlist #1 - Flamingo`,
-	tags: ["P", "multi-colored"],
+	tags: ["P","multi-colored","point card"],
 }, {
 	id: `709`,
 	name: `Playlist #1 - Mr. Lonely`,
-	tags: ["P", "multi-colored"],
+	tags: ["P","multi-colored","point card"],
 }, {
 	id: `710`,
 	name: `Playlist #1 - narashite`,
-	tags: ["P", "multi-colored"],
+	tags: ["P","multi-colored","point card"],
 }, {
 	id: `711`,
 	name: `Playlist #1 - Playlist Pack #1`,
-	tags: ["P", "multi-colored"],
+	tags: ["P","multi-colored","point card"],
 }, {
 	id: `712`,
 	name: `Playlist #1 - Say It Ain't So`,
-	tags: ["P", "multi-colored"],
+	tags: ["P","multi-colored"],
 }, {
 	id: `713`,
 	name: `Playlist #1 - Self Care`,
-	tags: ["P", "multi-colored"],
+	tags: ["P","multi-colored","point card"],
 }, {
 	id: `714`,
 	name: `Playlist #1 - Solo`,
-	tags: ["P", "multi-colored"],
+	tags: ["P","multi-colored"],
 }, {
 	id: `715`,
 	name: `Playlist #1 - SWEET`,
-	tags: ["P", "multi-colored"],
+	tags: ["P","multi-colored","point card"],
 }, {
 	id: `716`,
 	name: `Playlist #1 - あふれる`,
-	tags: ["P", "multi-colored"],
+	tags: ["P","multi-colored"],
 }, {
 	id: `717`,
 	name: `Playlist #2 - Battle Lines`,
-	tags: ["P", "multi-colored"],
+	tags: ["P","multi-colored"],
 }, {
 	id: `718`,
 	name: `Playlist #2 - EARFQUAKE`,
-	tags: ["P", "multi-colored"],
+	tags: ["P","multi-colored"],
 }, {
 	id: `719`,
 	name: `Playlist #2 - Hacker`,
@@ -3012,31 +3042,31 @@ var cardData = [{
 }, {
 	id: `720`,
 	name: `Playlist #2 - Magic Ways`,
-	tags: ["P", "multi-colored"],
+	tags: ["P","multi-colored"],
 }, {
 	id: `721`,
 	name: `Playlist #2 - Playlist Pack #2`,
-	tags: ["P", "multi-colored"],
+	tags: ["P","multi-colored","point card"],
 }, {
 	id: `722`,
 	name: `Playlist #2 - PONPONPON`,
-	tags: ["P", "multi-colored"],
+	tags: ["P","multi-colored","point card"],
 }, {
 	id: `723`,
 	name: `Playlist #2 - Run`,
-	tags: ["P", "multi-colored"],
+	tags: ["P","multi-colored","point card"],
 }, {
 	id: `724`,
 	name: `Playlist #2 - RUNAWAY`,
-	tags: ["P", "multi-colored"],
+	tags: ["P","multi-colored"],
 }, {
 	id: `725`,
 	name: `Playlist #2 - Sunflower`,
-	tags: ["P", "multi-colored"],
+	tags: ["P","multi-colored"],
 }, {
 	id: `726`,
 	name: `Playlist #2 - The Prawn Song`,
-	tags: ["P", "multi-colored"],
+	tags: ["P","multi-colored"],
 }, {
 	id: `727`,
 	name: `Playlist #2 - 真っ黒`,
@@ -3044,7 +3074,7 @@ var cardData = [{
 }, {
 	id: `728`,
 	name: `Playlist #3`,
-	tags: ["P"],
+	tags: ["P","point card"],
 }, {
 	id: `729`,
 	name: `please stop`,
@@ -3052,11 +3082,11 @@ var cardData = [{
 }, {
 	id: `730`,
 	name: `Plot Armor`,
-	tags: ["P"],
+	tags: ["P","point card"],
 }, {
 	id: `731`,
 	name: `Pocket Veto`,
-	tags: ["P"],
+	tags: ["P","point card"],
 }, {
 	id: `732`,
 	name: `Poetic Gyre`,
@@ -3068,7 +3098,7 @@ var cardData = [{
 }, {
 	id: `734`,
 	name: `Pokeball 2`,
-	tags: ["P","multi-colored"],
+	tags: ["P","multi-colored","point card"],
 }, {
 	id: `735`,
 	name: `Pokeball`,
@@ -3076,53 +3106,53 @@ var cardData = [{
 }, {
 	id: `736`,
 	name: `Pokémon GUN`,
-	tags: ["P", "multi-colored"],
+	tags: ["P","multi-colored","point card"],
 }, {
 	id: `737`,
 	name: `Political Action Committee`,
-	tags: ["P"],
+	tags: ["P","point card"],
 }, {
 	id: `738`,
 	name: `Politically Correct Period of Wintertime Festivities and Celebration`,
-	tags: ["P","multi-colored"],
+	tags: ["P","multi-colored","point card"],
 }, {
 	id: `739`,
 	name: `Politico`,
-	tags: ["P"],
+	tags: ["P","point card"],
 }, {
 	id: `740`,
 	name: `POPSTAR`,
-	tags: ["P","multi-colored"],
+	tags: ["P","multi-colored","point card"],
 }, {
 	id: `741`,
 	name: `Port-rait`,
-	tags: ["P"],
+	tags: ["P","point card"],
 }, {
 	id: `742`,
 	name: `POSITIVE WORMHOLE`,
-	tags: ["P"],
+	tags: ["P","point card"],
 }, {
 	id: `743`,
 	name: `Powered Minecart`,
-	tags: ["P"],
+	tags: ["P","point card"],
 }, {
 	authors: "Anish G.",
 	id: `744`,
 	name: `Prawn Begone`,
-	tags: ["P","multi-colored"],
+	tags: ["P","multi-colored","point card"],
 }, {
 	authors: "Anish G.",
 	id: `745`,
 	name: `Prawns Against Humanity`,
-	tags: ["P","multi-colored"],
+	tags: ["P","multi-colored","point card"],
 }, {
 	id: `746`,
 	name: `Presidential Democracy`,
-	tags: ["P"],
+	tags: ["P","point card"],
 }, {
 	id: `747`,
 	name: `Presidential Veto`,
-	tags: ["P"],
+	tags: ["P","point card"],
 }, {
 	id: `748`,
 	name: `PRETZELS IN A pringle can`,
@@ -3134,7 +3164,7 @@ var cardData = [{
 }, {
 	id: `750`,
 	name: `Prime Line`,
-	tags: ["P"],
+	tags: ["P","point card"],
 }, {
 	id: `751`,
 	name: `Proactive Voting`,
@@ -3142,11 +3172,11 @@ var cardData = [{
 }, {
 	id: `752`,
 	name: `PROBABILITY`,
-	tags: ["P"],
+	tags: ["P","point card"],
 }, {
 	id: `753`,
 	name: `PROCRASTINATION GIANT`,
-	tags: ["P"],
+	tags: ["P","point card"],
 }, {
 	id: `754`,
 	name: `Procrastination`,
@@ -3158,7 +3188,7 @@ var cardData = [{
 }, {
 	id: `756`,
 	name: `Pure Nail`,
-	tags: ["P"],
+	tags: ["P","point card"],
 }, {
 	id: `757`,
 	name: `Purple Man learns Fractions`,
@@ -3166,7 +3196,7 @@ var cardData = [{
 }, {
 	id: `758`,
 	name: `Pzkpwf VI Tiger`,
-	tags: ["P"],
+	tags: ["P","point card"],
 }, {
 	id: `759`,
 	name: `Q`,
@@ -3178,11 +3208,11 @@ var cardData = [{
 }, {
 	id: `761`,
 	name: `Quest`,
-	tags: ["Q"],
+	tags: ["Q","point card"],
 }, {
 	id: `762`,
 	name: `Quintuple Helix`,
-	tags: ["Q", "multi-colored"],
+	tags: ["Q","multi-colored","point card"],
 }, {
 	id: `763`,
 	name: `r/Iamverysmartcard`,
@@ -3190,7 +3220,7 @@ var cardData = [{
 }, {
 	id: `764`,
 	name: `r/whooooosh`,
-	tags: ["R"],
+	tags: ["R","point card"],
 }, {
 	id: `765`,
 	name: `Rabid Animal`,
@@ -3198,15 +3228,15 @@ var cardData = [{
 }, {
 	id: `766`,
 	name: `Racoon`,
-	tags: ["R"],
+	tags: ["R","point card"],
 }, {
 	id: `767`,
 	name: `Rags to Riches`,
-	tags: ["R", "multi-colored"],
+	tags: ["R","multi-colored","point card"],
 }, {
 	id: `768`,
 	name: `Ratthew's Wrath`,
-	tags: ["R"],
+	tags: ["R","point card"],
 }, {
 	id: `769`,
 	name: `Real Knife`,
@@ -3214,7 +3244,7 @@ var cardData = [{
 }, {
 	id: `770`,
 	name: `Recursion`,
-	tags: ["R"],
+	tags: ["R","point card"],
 }, {
 	id: `771`,
 	name: `Recycle Bin`,
@@ -3222,7 +3252,7 @@ var cardData = [{
 }, {
 	id: `772`,
 	name: `Recycling Bin`,
-	tags: ["R","multi-colored"],
+	tags: ["R","multi-colored","point card"],
 }, {
 	id: `773`,
 	name: `RECYCLING INITIATIVE`,
@@ -3230,19 +3260,19 @@ var cardData = [{
 }, {
 	id: `774`,
 	name: `Recycling`,
-	tags: ["R","multi-colored"],
+	tags: ["R","multi-colored","point card"],
 }, {
 	id: `775`,
 	name: `Red Berry`,
-	tags: ["R","multi-colored"],
+	tags: ["R","multi-colored","point card"],
 }, {
 	id: `776`,
 	name: `Red Mushroom`,
-	tags: ["R"],
+	tags: ["R","point card"],
 }, {
 	id: `777`,
 	name: `Redstone comparator`,
-	tags: ["R","multi-colored"],
+	tags: ["R","multi-colored","point card"],
 }, {
 	id: `778`,
 	name: `Redstone Repeater`,
@@ -3254,7 +3284,7 @@ var cardData = [{
 }, {
 	id: `780`,
 	name: `Reminder 2`,
-	tags: ["R","multi-colored"],
+	tags: ["R","multi-colored","point card"],
 }, {
 	id: `781`,
 	name: `Reminder`,
@@ -3266,23 +3296,23 @@ var cardData = [{
 }, {
 	id: `783`,
 	name: `Representative Democracy`,
-	tags: ["R"],
+	tags: ["R","point card"],
 }, {
 	id: `784`,
 	name: `Republican Party`,
-	tags: ["R","multi-colored"],
+	tags: ["R","multi-colored","point card"],
 }, {
 	id: `785`,
 	name: `Research Statistics`,
-	tags: ["R"],
+	tags: ["R","point card"],
 }, {
 	id: `786`,
 	name: `Reservation`,
-	tags: ["R","multi-colored"],
+	tags: ["R","multi-colored","point card"],
 }, {
 	id: `787`,
 	name: `Reset the game`,
-	tags: ["R"],
+	tags: ["R","point card"],
 }, {
 	id: `788`,
 	name: `Reset the power supply`,
@@ -3306,7 +3336,7 @@ var cardData = [{
 }, {
 	id: `793`,
 	name: `ROACH POP`,
-	tags: ["R"],
+	tags: ["R","point card"],
 }, {
 	id: `794`,
 	name: `Robbit Royale`,
@@ -3322,19 +3352,19 @@ var cardData = [{
 }, {
 	id: `797`,
 	name: `Rod of Discord`,
-	tags: ["R","multi-colored"],
+	tags: ["R","multi-colored","point card"],
 }, {
 	id: `798`,
 	name: `ROLY POLY`,
-	tags: ["R"],
+	tags: ["R","point card"],
 }, {
 	id: `799`,
 	name: `Rotation card `,
-	tags: ["R","wide"],
+	tags: ["R","wide","point card"],
 }, {
 	id: `800`,
 	name: `ROUGE MILL`,
-	tags: ["R"],
+	tags: ["R","point card"],
 }, {
 	id: `801`,
 	name: `Rube Goldberg Card`,
@@ -3342,7 +3372,7 @@ var cardData = [{
 }, {
 	id: `802`,
 	name: `Rubik's cube`,
-	tags: ["R"],
+	tags: ["R","point card"],
 }, {
 	id: `803`,
 	name: `Rule Breaker`,
@@ -3350,53 +3380,53 @@ var cardData = [{
 }, {
 	id: `804`,
 	name: `Rule of 3`,
-	tags: ["R"],
+	tags: ["R","point card"],
 }, {
 	id: `805`,
 	name: `Rules Lawyer`,
-	tags: ["R"],
+	tags: ["R","point card"],
 }, {
 	id: `806`,
 	name: `Runic Shielding XI`,
-	tags: ["R","multi-colored"],
+	tags: ["R","multi-colored","point card"],
 }, {
 	id: `807`,
 	name: `Rusthead`,
-	tags: ["R"],
+	tags: ["R","point card"],
 }, {
 	authors: "Charles Morse",
 	id: `808`,
 	imgType: `jpg`,
 	name: `Sadism`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `809`,
 	name: `Sadness`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `810`,
 	name: `Sams Undergtaggle`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `811`,
 	name: `SAMURAI SWORD`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `812`,
 	name: `Sands Undertale`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `813`,
 	name: `Sanic`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `814`,
 	name: `Sans Deltarune`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `815`,
 	name: `SASQUATCH!`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `816`,
 	name: `SATAN'S FLIP`,
@@ -3405,7 +3435,7 @@ var cardData = [{
 	authors: "Garrett Phlegar",
 	id: `817`,
 	name: `Scavenging Ooze`,
-	tags: ["S","multi-colored"],
+	tags: ["S","multi-colored","point card"],
 }, {
 	id: `818`,
 	name: `Scenic Vista`,
@@ -3413,7 +3443,7 @@ var cardData = [{
 }, {
 	id: `819`,
 	name: `School Spirit`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `820`,
 	name: `SCP-500`,
@@ -3425,31 +3455,31 @@ var cardData = [{
 }, {
 	id: `822`,
 	name: `Sea Plane`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `823`,
 	name: `Search Engine`,
-	tags: ["S","multi-colored"],
+	tags: ["S","multi-colored","point card"],
 }, {
 	id: `824`,
 	name: `Sehr Lecker`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `825`,
 	name: `Self-Distruct`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `826`,
 	name: `Self-important cat`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `827`,
 	name: `SEM;COL;N`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `828`,
 	name: `Senior Class T-Shirt`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `829`,
 	name: `Senior Lab Pre-reqs`,
@@ -3457,32 +3487,32 @@ var cardData = [{
 }, {
 	id: `830`,
 	name: `Senior Lab`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	authors: "Charles Morse",
 	id: `831`,
 	name: `Senioritis`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `832`,
 	name: `seperate but equal`,
-	tags: ["S","multi-colored"],
+	tags: ["S","multi-colored","point card"],
 }, {
 	id: `833`,
 	name: `Sett, The Boss`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `834`,
 	name: `Sexy Chicken`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `835`,
 	name: `SGA is ASTUDY Hall`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `836`,
 	name: `Shape s`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `837`,
 	name: `Share the Wealth`,
@@ -3490,7 +3520,7 @@ var cardData = [{
 }, {
 	id: `838`,
 	name: `Sharecropping`,
-	tags: ["S","multi-colored"],
+	tags: ["S","multi-colored","point card"],
 }, {
 	id: `839`,
 	name: `Shoot The Moon`,
@@ -3498,19 +3528,19 @@ var cardData = [{
 }, {
 	id: `840`,
 	name: `SHOULDER`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `841`,
 	name: `Sideways Illuminati`,
-	tags: ["S","wide"],
+	tags: ["S","wide","point card"],
 }, {
 	id: `842`,
 	name: `Significant Figures`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `843`,
 	name: `Silence the idiot or send them away`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `844`,
 	name: `SILENT SPRING`,
@@ -3518,15 +3548,15 @@ var cardData = [{
 }, {
 	id: `845`,
 	name: `Silver Spoon`,
-	tags: ["S","multi-colored"],
+	tags: ["S","multi-colored","point card"],
 }, {
 	id: `846`,
 	name: `Silver Telescope`,
-	tags: ["S","multi-colored"],
+	tags: ["S","multi-colored","point card"],
 }, {
 	id: `847`,
 	name: `SIM Card`,
-	tags: ["S","multi-colored"],
+	tags: ["S","multi-colored","point card"],
 }, {
 	id: `848`,
 	name: `Singing Contest`,
@@ -3534,19 +3564,19 @@ var cardData = [{
 }, {
 	id: `849`,
 	name: `Singularity`,
-	tags: ["S","multi-colored"],
+	tags: ["S","multi-colored","point card"],
 }, {
 	id: `850`,
 	name: `Skin`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `851`,
 	name: `Skip Day`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `852`,
 	name: `Smart Card`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `853`,
 	name: `Smash Ball`,
@@ -3554,11 +3584,11 @@ var cardData = [{
 }, {
 	id: `854`,
 	name: `Smeared Ink`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `855`,
 	name: `Smile Box`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `856`,
 	name: `SMOKE SCREEN`,
@@ -3566,31 +3596,31 @@ var cardData = [{
 }, {
 	id: `857`,
 	name: `Smug Penguin`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `858`,
 	name: `Snake`,
-	tags: ["S","multi-colored"],
+	tags: ["S","multi-colored","point card"],
 }, {
 	id: `859`,
 	name: `Snow Day 2`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `860`,
 	name: `SNOW DAY`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `861`,
 	name: `Snowman`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `862`,
 	name: `Social Anxiety Girl`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `863`,
 	name: `Solar Energy`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `864`,
 	name: `Sole stone`,
@@ -3598,7 +3628,7 @@ var cardData = [{
 }, {
 	id: `865`,
 	name: `SOLID Of REVOLUTION`,
-	tags: ["S","multi-colored"],
+	tags: ["S","multi-colored","point card"],
 }, {
 	id: `866`,
 	name: `Solve`,
@@ -3606,7 +3636,7 @@ var cardData = [{
 }, {
 	id: `867`,
 	name: `Sonia Sotomayor`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `868`,
 	name: `Sooper Smesh Brus`,
@@ -3614,11 +3644,11 @@ var cardData = [{
 }, {
 	id: `869`,
 	name: `Sooz`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `870`,
 	name: `Spaceport Academy`,
-	tags: ["S","multi-colored"],
+	tags: ["S","multi-colored","point card"],
 }, {
 	id: `871`,
 	name: `spaghett`,
@@ -3626,7 +3656,7 @@ var cardData = [{
 }, {
 	id: `872`,
 	name: `Sparknotes`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	authors: "Cynthia Clementine",
 	id: `873`,
@@ -3635,7 +3665,7 @@ var cardData = [{
 }, {
 	id: `874`,
 	name: `Spelling Bee`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `875`,
 	name: `Spin-2-Win`,
@@ -3648,24 +3678,24 @@ var cardData = [{
 }, {
 	id: `877`,
 	name: `spooderman`,
-	tags: ["S","multi-colored"],
+	tags: ["S","multi-colored","point card"],
 }, {
 	id: `878`,
 	name: `Squigles`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `879`,
 	name: `Squirrel`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `880`,
 	name: `Stable Equilibrium`,
-	tags: ["S","multi-colored"],
+	tags: ["S","multi-colored","point card"],
 }, {
 	authors: "Derek C.",
 	id: `881`,
 	name: `Stage Fright`,
-	tags: ["S","multi-colored"],
+	tags: ["S","multi-colored","point card"],
 }, {
 	id: `882`,
 	name: `STALINGRAD CARD`,
@@ -3677,43 +3707,43 @@ var cardData = [{
 }, {
 	id: `884`,
 	name: `STAPLES Blank Index Cards`,
-	tags: ["S","wide","multi-colored"],
+	tags: ["S","wide","multi-colored","point card"],
 }, {
 	id: `885`,
 	name: `State Of The Union`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `886`,
 	name: `Stealth Mode`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `887`,
 	name: `Stick`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `888`,
 	name: `Stongest card`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `889`,
 	name: `Stonks`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `890`,
 	name: `Stool on head`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `891`,
 	name: `STOOL ON TABLE`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `892`,
 	name: `STORK`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `893`,
 	name: `Strange Purple Thing`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `894`,
 	name: `Stratocumulus`,
@@ -3733,15 +3763,15 @@ var cardData = [{
 }, {
 	id: `898`,
 	name: `Strike!!!`,
-	tags: ["S","multi-colored"],
+	tags: ["S","multi-colored","point card"],
 }, {
 	id: `899`,
 	name: `Struck Oil`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `900`,
 	name: `Student Loans`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `901`,
 	name: `STUDY CARD`,
@@ -3749,11 +3779,11 @@ var cardData = [{
 }, {
 	id: `902`,
 	name: `Study Hall`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `903`,
 	name: `Stylish Scarf`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `904`,
 	name: `Subito`,
@@ -3761,28 +3791,28 @@ var cardData = [{
 }, {
 	id: `905`,
 	name: `Subpoena`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `906`,
 	name: `Subscribe to PewDiePie`,
-	tags: ["S","multi-colored"],
+	tags: ["S","multi-colored","point card"],
 }, {
 	id: `907`,
 	name: `Subscription To A Corporate-Run, For-Profit Educational System Which Harms Lower-Income Students And Creates An Atmosphere Less Attuned To Individuals And Life Skills And Instead Focused On Rote Memorization And Extensive Standardized Testing`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `908`,
 	name: `Suicide Burn`,
-	tags: ["S","multi-colored"],
+	tags: ["S","multi-colored","point card"],
 }, {
 	authors: "Anish G.",
 	id: `909`,
 	name: `Sumday`,
-	tags: ["S","multi-colored"],
+	tags: ["S","multi-colored","point card"],
 }, {
 	id: `910`,
 	name: `Summoning Runes`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `911`,
 	name: `Super Dimentid`,
@@ -3790,15 +3820,15 @@ var cardData = [{
 }, {
 	id: `912`,
 	name: `Super Hardcore`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `913`,
 	name: `Super P.A.C`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `914`,
 	name: `Super-heat snowball`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `915`,
 	name: `Super`,
@@ -3806,31 +3836,31 @@ var cardData = [{
 }, {
 	id: `916`,
 	name: `Supportive Friends`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `917`,
 	name: `Supreme Bee Yeeter`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `918`,
 	name: `Supreme Court Superiority`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `919`,
 	name: `Supreme Court`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `920`,
 	name: `Swapper : Pythonic swap.py`,
-	tags: ["S","multi-colored"],
+	tags: ["S","multi-colored","point card"],
 }, {
 	id: `921`,
 	name: `Switzerland`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `922`,
 	name: `SWORD BEHIND INAPPROPRIATE PREPOSITIONS`,
-	tags: ["S"],
+	tags: ["S","point card"],
 }, {
 	id: `923`,
 	name: `T HERE C AN ONLY BE ONE`,
@@ -3838,11 +3868,11 @@ var cardData = [{
 }, {
 	id: `924`,
 	name: `T`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `925`,
 	name: `TAINT!`,
-	tags: ["T","multi-colored"],
+	tags: ["T","multi-colored","point card"],
 }, {
 	id: `926`,
 	name: `Tall-nut`,
@@ -3858,7 +3888,7 @@ var cardData = [{
 }, {
 	id: `929`,
 	name: `Tear up speech paper`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `930`,
 	name: `Technobabble`,
@@ -3866,31 +3896,31 @@ var cardData = [{
 }, {
 	id: `931`,
 	name: `Technology is the future of learning`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `932`,
 	name: `Teemo Mushroom`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `933`,
 	name: `Teenage boy after doing literally anything`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `934`,
 	name: `TELL ME WHY ~`,
-	tags: ["T","multi-colored"],
+	tags: ["T","multi-colored","point card"],
 }, {
 	id: `935`,
 	name: `Tem Shop`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `936`,
 	name: `Temmie`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `937`,
 	name: `TEMPORAL RESOLUTION`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `938`,
 	name: `Tenement`,
@@ -3898,7 +3928,7 @@ var cardData = [{
 }, {
 	id: `939`,
 	name: `TETRIS 99`,
-	tags: ["T","multi-colored"],
+	tags: ["T","multi-colored","point card"],
 }, {
 	id: `940`,
 	name: `Tetris`,
@@ -3914,23 +3944,23 @@ var cardData = [{
 }, {
 	id: `943`,
 	name: `Thanos v4`,
-	tags: ["T","multi-colored"],
+	tags: ["T","multi-colored","point card"],
 }, {
 	id: `944`,
 	name: `That one card whose title is too long but whose description makes you read the entire title alou`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `945`,
 	name: `The Anime Eye`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `946`,
 	name: `The Bass-Boosted Eye, Back for Revenge`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `947`,
 	name: `The Challenge`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `948`,
 	name: `The Clock`,
@@ -3938,11 +3968,11 @@ var cardData = [{
 }, {
 	id: `949`,
 	name: `The Count!!!`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `950`,
 	name: `THE CREATOR`,
-	tags: ["T","multi-colored"],
+	tags: ["T","multi-colored","point card"],
 }, {
 	id: `951`,
 	name: `The Crude Eye`,
@@ -3958,11 +3988,11 @@ var cardData = [{
 }, {
 	id: `954`,
 	name: `The end of the world as we k`,
-	tags: ["T","multi-colored"],
+	tags: ["T","multi-colored","point card"],
 }, {
 	id: `955`,
 	name: `The Eye, Unflawed`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `956`,
 	name: `The Flaming Eye`,
@@ -3979,19 +4009,19 @@ var cardData = [{
 	authors: "Joseph Rother",
 	id: `959`,
 	name: `The Gamble`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `961`,
 	name: `The Geometric`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `962`,
 	name: `The Good One`,
-	tags: ["T","multi-colored"],
+	tags: ["T","multi-colored","point card"],
 }, {
 	id: `963`,
 	name: `The Grinch`,
-	tags: ["T","multi-colored"],
+	tags: ["T","multi-colored","point card"],
 }, {
 	id: `964`,
 	name: `the happiest birthday`,
@@ -4003,11 +4033,11 @@ var cardData = [{
 }, {
 	id: `966`,
 	name: `The Hat`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `967`,
 	name: `The House of Representatives`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `968`,
 	name: `The Invisible Eye`,
@@ -4015,7 +4045,7 @@ var cardData = [{
 }, {
 	id: `969`,
 	name: `THE INVISIBLE HAND OF`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `970`,
 	name: `The Light, it burns`,
@@ -4023,11 +4053,11 @@ var cardData = [{
 }, {
 	id: `971`,
 	name: `The Locket`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `972`,
 	name: `The Monitor monitor is a monitor`,
-	tags: ["T","multi-colored"],
+	tags: ["T","multi-colored","point card"],
 }, {
 	id: `973`,
 	name: `The Night King`,
@@ -4035,15 +4065,15 @@ var cardData = [{
 }, {
 	id: `974`,
 	name: `The Osborne`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `975`,
 	name: `The PACIFIER`,
-	tags: ["T","multi-colored"],
+	tags: ["T","multi-colored","point card"],
 }, {
 	id: `976`,
 	name: `The Reverse Parrot`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `977`,
 	name: `The Rich get Richer`,
@@ -4051,7 +4081,7 @@ var cardData = [{
 }, {
 	id: `978`,
 	name: `The rocky thing, BUT BACKWARDS`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `979`,
 	name: `The smudge`,
@@ -4063,15 +4093,15 @@ var cardData = [{
 }, {
 	id: `981`,
 	name: `The White Whale`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `982`,
 	name: `Theodore Roosevelt 2`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `983`,
 	name: `Theodore Roosevelt`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	authors: "Cynthia Clementine",
 	id: `984`,
@@ -4094,35 +4124,35 @@ var cardData = [{
 }, {
 	id: `988`,
 	name: `This card is upside-down`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `989`,
 	name: `This Card`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `990`,
 	name: `This cool stick`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `991`,
 	name: `This sad Man I drew`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `992`,
 	name: `Thomas Jefferson`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `993`,
 	name: `THUNDER TOWER`,
-	tags: ["T","multi-colored"],
+	tags: ["T","multi-colored","point card"],
 }, {
 	id: `994`,
 	name: `Ticking Time Bomb`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `995`,
 	name: `TIME BOMB`,
-	tags: ["T","multi-colored"],
+	tags: ["T","multi-colored","point card"],
 }, {
 	id: `996`,
 	name: `Time Machine`,
@@ -4131,11 +4161,11 @@ var cardData = [{
 	authors: "Tushar Rangaswamy",
 	id: `997`,
 	name: `Time Sign`,
-	tags: ["T","multi-colored"],
+	tags: ["T","multi-colored","point card"],
 }, {
 	id: `998`,
 	name: `Tinsel Barbed Wire`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `999`,
 	name: `Tippi`,
@@ -4143,15 +4173,15 @@ var cardData = [{
 }, {
 	id: `1000`,
 	name: `Tipsy`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `1001`,
 	name: `TITANIC`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `1002`,
 	name: `TJ """"""""""Henry"""""""""" Yoshi`,
-	tags: ["T", "multi-colored"],
+	tags: ["T","multi-colored","point card"],
 }, {
 	id: `1003`,
 	name: `TJ Football`,
@@ -4160,79 +4190,79 @@ var cardData = [{
 	authors: "Sahishnu H.",
 	id: `1004`,
 	name: `TJ HIGH SCHOOL FOR SCIENCE AND TECHNOLOGY`,
-	tags: ["T","multi-colored"],
+	tags: ["T","multi-colored","point card"],
 }, {
 	id: `1005`,
 	name: `TJ Star`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `1006`,
 	name: `TJ1KBWC Discord`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `1007`,
 	name: `TNT Minecart`,
-	tags: ["T","multi-colored"],
+	tags: ["T","multi-colored","point card"],
 }, {
 	id: `1008`,
 	name: `Toll`,
-	tags: ["T","multi-colored"],
+	tags: ["T","multi-colored","point card"],
 }, {
 	id: `1009`,
 	name: `Tongue Twisted`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `1010`,
 	name: `Too complicated!`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `1011`,
 	name: `Tootsie Re-Roll®`,
-	tags: ["T","multi-colored"],
+	tags: ["T","multi-colored","point card"],
 }, {
 	id: `1012`,
 	name: `Totem of Undying`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `1013`,
 	name: `Tough Gloves`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `1014`,
 	name: `Tough Phoenix`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `1015`,
 	name: `TOWER N`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `1016`,
 	name: `Toxic Waste`,
-	tags: ["T","multi-colored"],
+	tags: ["T","multi-colored","point card"],
 }, {
 	id: `1017`,
 	name: `Tracking poll`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `1018`,
 	name: `Trade Policy`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `1019`,
 	name: `Train (blue)`,
-	tags: ["T","multi-colored"],
+	tags: ["T","multi-colored","point card"],
 }, {
 	id: `1020`,
 	name: `Train (red)`,
-	tags: ["T","multi-colored"],
+	tags: ["T","multi-colored","point card"],
 }, {
 	id: `1021`,
 	name: `Train (brown)`,
-	tags: ["T","multi-colored"],
+	tags: ["T","multi-colored","point card"],
 }, {
 	id: `1022`,
 	name: `Train (green)`,
-	tags: ["T","multi-colored"],
+	tags: ["T","multi-colored","point card"],
 }, {
 	id: `1023`,
 	name: `Tranquilizer Dart`,
@@ -4240,7 +4270,7 @@ var cardData = [{
 }, {
 	id: `1024`,
 	name: `Transmute`,
-	tags: ["T","multi-colored"],
+	tags: ["T","multi-colored","point card"],
 }, {
 	id: `1025`,
 	name: `Trap card`,
@@ -4248,35 +4278,35 @@ var cardData = [{
 }, {
 	id: `1026`,
 	name: `Trick up your (Sle)eve`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `1027`,
 	name: `Trump 2020`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `1028`,
 	name: `TRUMP CARD`,
-	tags: ["T","multi-colored"],
+	tags: ["T","multi-colored","point card"],
 }, {
 	id: `1029`,
 	name: `Trumpet`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `1030`,
 	name: `Trust Bust`,
-	tags: ["T","multi-colored"],
+	tags: ["T","multi-colored","point card"],
 }, {
 	id: `1031`,
 	name: `Trustee`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `1032`,
 	name: `Try Jumping`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `1033`,
 	name: `TUNNEL AUS DEUTSCH`,
-	tags: ["T","wide"],
+	tags: ["T","wide","point card"],
 }, {
 	id: `1034`,
 	name: `Turban Man`,
@@ -4288,15 +4318,15 @@ var cardData = [{
 }, {
 	id: `1036`,
 	name: `Twins`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `1037`,
 	name: `Twins`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `1038`,
 	name: `twitch simp`,
-	tags: ["T"],
+	tags: ["T","point card"],
 }, {
 	id: `1039`,
 	name: `Two Drops per Quarter`,
@@ -4304,11 +4334,11 @@ var cardData = [{
 }, {
 	id: `1040`,
 	name: `u tried`,
-	tags: ["U"],
+	tags: ["U","point card"],
 }, {
 	id: `1041`,
 	name: `uh oh you boosted banoko, you've just been BEANED`,
-	tags: ["U"],
+	tags: ["U","point card"],
 }, {
 	id: `1042`,
 	name: `ULA's Altas-V`,
@@ -4320,7 +4350,7 @@ var cardData = [{
 }, {
 	id: `1044`,
 	name: `ULTRAWIDE DISPLAY`,
-	tags: ["U","wide"],
+	tags: ["U","wide","point card"],
 }, {
 	id: `1045`,
 	name: `Un-BEAR-able Pun`,
@@ -4328,7 +4358,7 @@ var cardData = [{
 }, {
 	id: `1046`,
 	name: `Unblank White card`,
-	tags: ["U"],
+	tags: ["U","point card"],
 }, {
 	id: `1047`,
 	name: `Undo`,
@@ -4336,7 +4366,7 @@ var cardData = [{
 }, {
 	id: `1048`,
 	name: `Unexpected GNOME`,
-	tags: ["U","multi-colored"],
+	tags: ["U","multi-colored","point card"],
 }, {
 	id: `1049`,
 	name: `Unfair Trade Deal`,
@@ -4348,11 +4378,11 @@ var cardData = [{
 }, {
 	id: `1051`,
 	name: `Unification Failed`,
-	tags: ["U"],
+	tags: ["U","point card"],
 }, {
 	id: `1052`,
 	name: `United Airlines`,
-	tags: ["U"],
+	tags: ["U","point card"],
 }, {
 	id: `1053`,
 	name: `Unknown Chaos`,
@@ -4368,7 +4398,7 @@ var cardData = [{
 }, {
 	id: `1056`,
 	name: `Unplanned card`,
-	tags: ["U"],
+	tags: ["U","point card"],
 }, {
 	id: `1057`,
 	name: `UNREALISTIC IDEALISM`,
@@ -4376,19 +4406,19 @@ var cardData = [{
 }, {
 	id: `1058`,
 	name: `UNSCREWABLE POMMEL`,
-	tags: ["U"],
+	tags: ["U","point card"],
 }, {
 	id: `1059`,
 	name: `Unstable Time Loop`,
-	tags: ["U"],
+	tags: ["U","point card"],
 }, {
 	id: `1060`,
 	name: `Unwarmness`,
-	tags: ["U","multi-colored"],
+	tags: ["U","multi-colored","point card"],
 }, {
 	id: `1061`,
 	name: `Ur mom`,
-	tags: ["U"],
+	tags: ["U","point card"],
 }, {
 	id: `1062`,
 	name: `US of A`,
@@ -4396,15 +4426,15 @@ var cardData = [{
 }, {
 	id: `1063`,
 	name: `USA PATRIOT Act`,
-	tags: ["U"],
+	tags: ["U","point card"],
 }, {
 	id: `1064`,
 	name: `Used Car Salesman`,
-	tags: ["U","multi-colored"],
+	tags: ["U","multi-colored","point card"],
 }, {
 	id: `1065`,
 	name: `Usopp Usoland Black`,
-	tags: ["U"],
+	tags: ["U","point card"],
 }, {
 	id: `1066`,
 	name: `UTILITARIANISM`,
@@ -4412,35 +4442,35 @@ var cardData = [{
 }, {
 	id: `1067`,
 	name: `UwU, not made on enough cards`,
-	tags: ["U"],
+	tags: ["U","point card"],
 }, {
 	id: `1068`,
 	name: `Van Darkholme`,
-	tags: ["V"],
+	tags: ["V","point card"],
 }, {
 	id: `1069`,
 	name: `Violin`,
-	tags: ["V"],
+	tags: ["V","point card"],
 }, {
 	id: `1070`,
 	name: `Voice Augmentation`,
-	tags: ["V"],
+	tags: ["V","point card"],
 }, {
 	id: `1071`,
 	name: `Voodoo Card`,
-	tags: ["V","multi-colored"],
+	tags: ["V","multi-colored","point card"],
 }, {
 	id: `1072`,
 	name: `Voronoi`,
-	tags: ["V","multi-colored"],
+	tags: ["V","multi-colored","point card"],
 }, {
 	id: `1073`,
 	name: `Vowel Scowl`,
-	tags: ["V"],
+	tags: ["V","point card"],
 }, {
 	id: `1074`,
 	name: `W.E.B. Du Bois`,
-	tags: ["W","multi-colored"],
+	tags: ["W","multi-colored","point card"],
 }, {
 	id: `1075`,
 	name: `WAIT. That's illegal.`,
@@ -4448,15 +4478,15 @@ var cardData = [{
 }, {
 	id: `1076`,
 	name: `walcc`,
-	tags: ["W"],
+	tags: ["W","point card"],
 }, {
 	id: `1077`,
 	name: `Walrus operator`,
-	tags: ["W"],
+	tags: ["W","point card"],
 }, {
 	id: `1078`,
 	name: `Water Sleighing`,
-	tags: ["W","multi-colored"],
+	tags: ["W","multi-colored","point card"],
 }, {
 	id: `1079`,
 	name: `Water to Wine`,
@@ -4464,23 +4494,23 @@ var cardData = [{
 }, {
 	id: `1080`,
 	name: `water`,
-	tags: ["W"],
+	tags: ["W","point card"],
 }, {
 	id: `1081`,
 	name: `Waterflower`,
-	tags: ["W","multi-colored"],
+	tags: ["W","multi-colored","point card"],
 }, {
 	id: `1082`,
 	name: `Wave Dash (celeste)`,
-	tags: ["W"],
+	tags: ["W","point card"],
 }, {
 	id: `1083`,
 	name: `We Need To Go Deeper`,
-	tags: ["W"],
+	tags: ["W","point card"],
 }, {
 	id: `1084`,
 	name: `Weeb-inator 9000®™`,
-	tags: ["W"],
+	tags: ["W","point card"],
 }, {
 	id: `1085`,
 	name: `WEIRD FLEX`,
@@ -4488,15 +4518,15 @@ var cardData = [{
 }, {
 	id: `1086`,
 	name: `Well-meaning Lobbyist`,
-	tags: ["W"],
+	tags: ["W","point card"],
 }, {
 	id: `1087`,
 	name: `What the heck?`,
-	tags: ["W"],
+	tags: ["W","point card"],
 }, {
 	id: `1088`,
 	name: `What's a webpage, something ducks walk on?`,
-	tags: ["W","multi-colored"],
+	tags: ["W","multi-colored","point card"],
 }, {
 	id: `1089`,
 	name: `Wheel of Fortune`,
@@ -4520,15 +4550,15 @@ var cardData = [{
 }, {
 	id: `1094`,
 	name: `WHOEVER SMELT IT, DEALT IT`,
-	tags: ["W"],
+	tags: ["W","point card"],
 }, {
 	id: `1095`,
 	name: `Whose Line is it Anyway?`,
-	tags: ["W"],
+	tags: ["W","point card"],
 }, {
 	id: `1096`,
 	name: `Wiki Master`,
-	tags: ["W"],
+	tags: ["W","point card"],
 }, {
 	id: `1097`,
 	name: `WIN-ter`,
@@ -4536,24 +4566,24 @@ var cardData = [{
 }, {
 	id: `1098`,
 	name: `Winter cap`,
-	tags: ["W"],
+	tags: ["W","point card"],
 }, {
 	id: `1099`,
 	name: `Winter Gloves`,
-	tags: ["W"],
+	tags: ["W","point card"],
 }, {
 	id: `1100`,
 	name: `WInter Jacket`,
-	tags: ["W","multi-colored"],
+	tags: ["W","multi-colored","point card"],
 }, {
 	authors: "Paul Appler",
 	id: `1101`,
 	name: `With`,
-	tags: ["W"],
+	tags: ["W","point card"],
 }, {
 	id: `1102`,
 	name: `Wolverine`,
-	tags: ["W"],
+	tags: ["W","point card"],
 }, {
 	id: `1103`,
 	name: `WONDER VICTORY`,
@@ -4561,39 +4591,39 @@ var cardData = [{
 }, {
 	id: `1104`,
 	name: `WTF.....?`,
-	tags: ["W"],
+	tags: ["W","point card"],
 }, {
 	id: `1105`,
 	name: `WWII Italy`,
-	tags: ["W","multi-colored"],
+	tags: ["W","multi-colored","point card"],
 }, {
 	id: `1106`,
 	name: `YAH YEET (yuh... ayy...)`,
-	tags: ["Y"],
+	tags: ["Y","point card"],
 }, {
 	id: `1107`,
 	name: `yearbook`,
-	tags: ["Y"],
+	tags: ["Y","point card"],
 }, {
 	id: `1108`,
 	name: `Yearning`,
-	tags: ["Y","wide"],
+	tags: ["Y","wide","point card"],
 }, {
 	id: `1109`,
 	name: `Yeetus Yeetus Ctrl+Alt+Deletus`,
-	tags: ["Y"],
+	tags: ["Y","point card"],
 }, {
 	id: `1110`,
 	name: `YELLOW LIZARD`,
-	tags: ["Y"],
+	tags: ["Y","point card"],
 }, {
 	id: `1111`,
 	name: `YI PACKET`,
-	tags: ["Y"],
+	tags: ["Y","point card"],
 }, {
 	id: `1112`,
 	name: `Yos`,
-	tags: ["Y"],
+	tags: ["Y","point card"],
 }, {
 	id: `1113`,
 	name: `You Can Hold 1 Card In Your Pocket`,
@@ -4601,11 +4631,11 @@ var cardData = [{
 }, {
 	id: `1114`,
 	name: `You have 2 seconds to moan`,
-	tags: ["Y"],
+	tags: ["Y","point card"],
 }, {
 	id: `1115`,
 	name: `You have 2 seconds to mow`,
-	tags: ["Y"],
+	tags: ["Y","point card"],
 }, {
 	id: `1116`,
 	name: `You have died of dysentery`,
@@ -4613,7 +4643,7 @@ var cardData = [{
 }, {
 	id: `1117`,
 	name: `You have started Studying for your test`,
-	tags: ["Y","multi-colored"],
+	tags: ["Y","multi-colored","point card"],
 }, {
 	authors: "Tushar Rangaswamy",
 	id: `1118`,
@@ -4630,15 +4660,15 @@ var cardData = [{
 }, {
 	id: `1121`,
 	name: `YOU WIN!!!`,
-	tags: ["Y"],
+	tags: ["Y","point card"],
 }, {
 	id: `1122`,
 	name: `You've triggered your trap card`,
-	tags: ["Y"],
+	tags: ["Y","point card"],
 }, {
 	id: `1123`,
 	name: `Your Lucky Card`,
-	tags: ["Y"],
+	tags: ["Y","point card"],
 }, {
 	id: `1124`,
 	name: `YOUR MUSIC TASTE SUCKS™`,
@@ -4654,25 +4684,25 @@ var cardData = [{
 }, {
 	id: `1127`,
 	name: `Zookeeper`,
-	tags: ["Z"],
+	tags: ["Z","point card"],
 }, {
 	id: `1128`,
 	name: `イマクニ？のドードー`,
-	tags: ["non-letter start","multi-colored"],
+	tags: ["non-letter start","multi-colored","point card"],
 }, {
 	id: `1129`,
 	name: `ひらがな`,
-	tags: ["non-letter start"],
+	tags: ["non-letter start","point card"],
 }, {
 	id: `1130`,
 	imgType: `jpeg`,
 	name: `The Day of Prophecy`,
-	tags: ["T","multi-colored"],
+	tags: ["T","multi-colored","point card"],
 }, {
 	id: `1131`,
 	imgType: `jpeg`,
 	name: `Pi Day`,
-	tags: ["P","multi-colored"],
+	tags: ["P","multi-colored","point card"],
 }, {
 	authors: "Joseph Rother",
 	id: `1132`,
