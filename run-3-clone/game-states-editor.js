@@ -455,7 +455,7 @@ class State_Edit_Tiles extends State_Edit {
 			this.tunnel.functions.forEach(f => {
 				this.renderFunction(f);
 			});
-		}
+		} 
 		this.selectedTileExtra.beDrawn();
 		if (this.substate < 2) {
 			this.lowButton.tick();

@@ -34,4 +34,4 @@ V1.13 - October-22-2021
 fixed issue where framerate would double on 120Hz monitors
 
 V1.1 - June-1-2021
-FINAL MAIN RELEASE!
+FINAL MAIN RELEASE! 

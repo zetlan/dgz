@@ -1592,7 +1592,7 @@ function tunnelData_convertOldObject(dataObj) {
 	}
 	//individual level: really the only problem is that the name's seperated out
 	return tunnelData_convertOldData(dataObj.content + `|id-${dataObj.name}`);
-}
+} 
 
 function tunnelData_fixTag(data) {
 	//break up data
