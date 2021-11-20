@@ -36,12 +36,10 @@
 						thisCard = cardData[j];
 						//don't show hidden cards. Offset j by a few if its a hidden card so it won't trip the "card is good" flag
 						j = cardData.length + 4 + (6 * (thisCard.hide == true));
-						console.log(j);
 					}
 				}
 
 				//make sure self has actually found a card
-				console.log(j, thisCard);
 				if (j != cardData.length + 5 || thisCard == undefined) {
 					document.getElementById("errorSpot").innerHTML = `angery`;
 					return;
@@ -75,6 +73,9 @@
 
 				cardText += `author${authorExtraChar}: ${authors}<br>`;
 				cardText += `tags: ${tags}`;
+				if (thisCard.notes != undefined) {
+					cardText += `<br>notes: ${thisCard.notes}`;
+				}
 
 				
 				document.getElementById("cardDat").innerHTML = cardText;
