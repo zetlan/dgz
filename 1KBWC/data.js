@@ -12,8 +12,14 @@ question mark before tag name means it's optional
 
 	?tags: [an array of groups that the card belongs to]
 
+	?notes: a string, for extra notes about a card
 }
+
+
+SEASON 2 CARDS are any card with an ID greater than 1131. They're the cards made after october 2021
 */
+
+
 var cardDataFile;
 
 function tagForAll() {
@@ -519,7 +525,7 @@ var cardData = [{
 	tags: ["A"],
 }, {
 	id: `95`,
-	name: `AutoCorrectInsurance`,
+	name: `Auto<span style="text-decoration: line-through;">Correct</span>Insurance`,
 	tags: ["A"],
 }, {
 	id: `96`,
@@ -1589,19 +1595,19 @@ var cardData = [{
 }, {
 	id: `358`,
 	name: `Find all of the parts of the TI-84 to get 10000pts! (BR)`,
-	tags: ["F"],
+	tags: ["F","point card"],
 }, {
 	id: `359`,
 	name: `Find all of the parts of the TI-84 to get 10000pts! (TL)`,
-	tags: ["F"],
+	tags: ["F","point card"],
 }, {
 	id: `360`,
 	name: `Find all of the parts of the TI-84 to get 10000pts! (TR)`,
-	tags: ["F"],
+	tags: ["F","point card"],
 }, {
 	id: `361`,
 	name: `Find all the parts of the TI-84 to get 10000pts! (BL)`,
-	tags: ["F"],
+	tags: ["F","point card"],
 }, {
 	id: `362`,
 	name: `finite glove`,
@@ -4708,4 +4714,63 @@ var cardData = [{
 	id: `1132`,
 	name: `Pitt Greensburg`,
 	tags: ["P"],
+}, {
+	id: `1133`,
+	name: `PLANTERN`,
+	tags: ["P","point card"],
+}, {
+	id: `1134`,
+	name: `GUARDIAN`,
+	tags: ["G","point card"],
+}, {
+	id: `1135`,
+	name: `gay`,
+	tags: ["G", "wide","point card"],
+}, {
+	authors: `Cynthia Clementine`,
+	id: `1136`,
+	name: `Dated Reference`,
+	tags: ["D","point card"],
+	notes: `This one most likely toes the line of hate speech. My justification for this is that you lose points, but I'm not the person who decides the validity of cards.`
+}, {
+	id: `1137`,
+	name: `Power Play I`,
+	tags: ["P","point card"],
+}, {
+	authors: `Cynthia Clementine`,
+	hide: true,
+	id: `1138`,
+	name: `Ferris the catgirl`,
+	tags: ["F","point card"],
+	notes: `Banned due to percieved malicious intent.`
+}, {
+	authors: `Cynthia Clementine`,
+	id: `1139`,
+	name: `Ferris the catgirl`,
+	tags: ["F","point card"],
+	notes: `I put a lot of work into this drawing, I'm not letting it just get thrown away. <a href="/card.html#1139">Unredacted version</a>`
+}, {
+	id: `1140`,
+	name: `Headless <span style="text-decoration: line-through;">Horseman</span> TJ kid`,
+	tags: ["H"],
+}, {
+	id: `1141`,
+	name: `Cursive whoof`,
+	tags: ["C","point card"],
+}, {
+	id: `1142`,
+	name: `Mummy W(rap)`,
+	tags: ["M"],
+}, {
+	id: `1143`,
+	name: `GourdChat 1.0`,
+	tags: ["G","point card"],
+}, {
+	id: `1144`,
+	name: `Self-loathing peanut`,
+	tags: ["S"],
+}, {
+	id: `1145`,
+	name: `Gourdcop`,
+	tags: ["G","point card"],
 }];
