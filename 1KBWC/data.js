@@ -4748,7 +4748,7 @@ var cardData = [{
 	id: `1139`,
 	name: `Ferris the catgirl`,
 	tags: ["F","point card"],
-	notes: `I put a lot of work into this drawing, I'm not letting it just get thrown away. <a href="/card.html#1139">Unredacted version</a>`
+	notes: `I put a lot of work into this drawing, I'm not letting it just get thrown away. <a href="./all-card-images/card~1138.png">Unredacted version</a>`
 }, {
 	id: `1140`,
 	name: `Headless <span style="text-decoration: line-through;">Horseman</span> TJ kid`,
