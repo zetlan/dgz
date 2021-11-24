@@ -11,3 +11,13 @@ function drawRoundedRectangle(x, y, width, height, arcRadius) {
 	ctx.quadraticCurveTo(x, y, x + arcRadius, y);
 	ctx.fill();
 }
+
+//returns a non-mutable 4x4 array to represent a piece
+function representPieceWithArr(pieceID, rotation) {
+	var ref = piece_pos[pieceID][rotation][0];
+	var placeArr = [];
+	for (var char of ref) {
+		placeArr.push(parseInt(char, 16).toString(2).padStart(4, "0"));
+	}
+	return placeArr;
+}
