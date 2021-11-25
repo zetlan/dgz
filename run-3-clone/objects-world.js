@@ -2120,7 +2120,7 @@ class Tunnel {
 		this.functions.forEach(f => {
 			output += `|trigger~${f[0]}~${f[1]}~${f[2]}`;
 		});
-
+		output += `|music~${this.music}`;
 		//banned characters
 		var reverseBanned = flipObject(this.bannedCharacters);
 		Object.keys(reverseBanned).forEach(r => {
