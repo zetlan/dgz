@@ -232,8 +232,8 @@ class Character {
 
 		var source = data_sprites[spriteDataName];
 		this.texture_walkF = new Texture(source.sheet, data_sprites.spriteSize, source.frameTime, true, false, source.walkForwards);
-		this.texture_walkL = new Texture(source.sheet, data_sprites.spriteSize, source.frameTime, true, false, source.walkSideways);
-		this.texture_walkR = new Texture(source.sheet, data_sprites.spriteSize, source.frameTime, true, true, source.walkSideways);
+		this.texture_walkL = new Texture(source.sheet, data_sprites.spriteSize, source.frameTime, true, false, source.walkLeft);
+		this.texture_walkR = new Texture(source.sheet, data_sprites.spriteSize, source.frameTime, true, true, source.walkRight);
 		this.texture_jumpF = new Texture(source.sheet, data_sprites.spriteSize, source.frameTime, false, false, source.jumpForwards);
 		this.texture_jumpL = new Texture(source.sheet, data_sprites.spriteSize, source.frameTime, false, false, source.jumpSideways);
 		this.texture_jumpR = new Texture(source.sheet, data_sprites.spriteSize, source.frameTime, false, true, source.jumpSideways);
