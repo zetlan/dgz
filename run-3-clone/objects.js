@@ -617,10 +617,10 @@ class Bunny extends Character {
 		this.jumpBoostStrength = 0.14;
 		this.jumpCooldown = 5;
 		this.jumpCooldownMax = 7;
-		this.boostFriction = 0.996;
+		this.boostFriction = 0.99;
 
 		this.speed = 0.13;
-		this.strafeSpeed = 0.5;
+		this.strafeSpeed = 0.4;
 		this.trueSpeed = 0.9;
 		this.dMax = 11.5;
 		this.fallMax = 11.5;
