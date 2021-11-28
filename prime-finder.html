@@ -21,7 +21,7 @@
   </head>
   <body>
     <h1>Prime Number Finder</h1>
-    <p>This was made by Kaushik and Davis.<br>
+    <p>Made quite a while ago, everything about this page is not particularly great.</p><br>
       Enter your number in this text box<br>
       Whole numbers only, negatives are buggy.
     </p>
@@ -36,6 +36,8 @@
     	var totalNumbersTested = 0;
       var foundPrime = false;
       var lastPrime = 0;
+      var sqrtAmount;
+
     	//this took a while to figure out but was pretty simple in the end
       function primeTest(takeThisOne) {
       	//testing how long the computation takes
@@ -43,10 +45,20 @@
         
       	//counter starts at 2 because 1 and self are factors already
      		var counter = 2;
-        var value = takeThisOne;
-        //subtract 0 to convert to float without changing value
-        value -= 0;
-        var sqrtAmount = Math.sqrt(Math.abs(value));
+        var value = +takeThisOne;
+
+        //easy out, if digits add to specific numbers then it's not prime
+        //only do this for large numbers because it's not worth it otherwise
+        var digAdd = 0;
+        for (var char of ("" + value)) {
+          digAdd += +char;
+        }
+        digAdd = digAdd % 9;
+        if (digAdd == 0 || digAdd == 3 || digAdd == 6) {
+          counter = 3;
+        } else {
+          sqrtAmount = Math.sqrt(Math.abs(value));
+        }
         
         //division section
         
