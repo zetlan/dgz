@@ -34,7 +34,7 @@
 		<script type="text/javascript">
             var num_max = 400;
             var num_current = 0;
-            var numsPerFrame = 200000;
+            var numsPerFrame = 1e1001;//2000000;
             var scale = 0.03;
             
             var timer;
@@ -48,6 +48,8 @@
             var centerY;
 
             window.onload = setup;
+
+            let primeStorage = [false, false, true];
 
 			function setup() {
 				canvas = document.getElementById("canvas");
@@ -81,7 +83,7 @@
             
             function draw() {
                 //testing x numbers
-                for (var a=num_current;a<num_current+numsPerFrame;a+=2) {
+                for (var a=num_current;a<num_max;a+=2) {
                     //if it's prime, put it in its place
                     if (isPrime(a)) {
                         var xOff = (a / scale) * Math.cos(a);
@@ -90,12 +92,6 @@
                     }
                 }
                 num_current += numsPerFrame;
-                //if outside the screen, just break the loop
-                if (a / scale > Math.sqrt((centerX * centerX) + (centerY * centerY))) {
-                    num_current = num_max + 1;
-                }
-
-                
 
                 //call next frame
                 if (num_current < num_max) {
@@ -129,20 +125,29 @@
             }
 
             function isPrime(number) {
-                //special cases!
-                if (number == 1) {
-                    return false;
+                if (primeStorage[number] != undefined) {
+                    return primeStorage[number];
                 }
-                if (number == 2) {
-                    return true;
+
+                //add up digits of number, if the digits mod 9 add up to 0, 3, or 6 it'll be divisible by something
+                //only saves time and works for larger numbers
+                if (number > 100) {
+                    var digAdd = 0;
+                    for (var char of ("" + number)) {
+                        digAdd += +char;
+                    }
+                    if (digAdd % 3 == 0) {
+                        primeStorage[number] = false;
+                        return false;
+                    }
                 }
                 
-                //counter starts at 2 because 1 and self are factors already
-                var counter = 2;
+
                 var sqrtAmount = Math.sqrt(number);
                 
                 //check for factor of 2
                 if (number % 2 == 0) {
+                    primeStorage[number] = false;
                     return false;
                 }
                 
@@ -151,17 +156,19 @@
                 for (var divider=3; divider<=sqrtAmount; divider+=2) {
                     //if there are any factors, not prime 
                     if (number % divider == 0) {
+                        primeStorage[number] = false;
                         return false;
                     }
                 }
 
                 //if still in the function, the number must be prime
+                primeStorage[number] = true;
                 return true;
             } 
 
         </script>
         <div id="mid">
-            <p>Change Scale: <input type="range" min="5" max="2000" value="5" class="slider" id="scaleRange"> (<span id="thickVal">1</span> number(s) / pixel)</p>
+            <p>Change Scale: <input type="range" min="5" max="2000" value="5" class="slider" id="scaleRange"> (<span id="thickVal">1</span> numbers / pixel)</p>
             <canvas id="canvas" width="640" height="480"></canvas>
         </div>
     	
