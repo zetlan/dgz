@@ -9,84 +9,36 @@ var audio_channel1;
 var audio_channel2;
 var audio_fadeTime = 30;
 var audio_tolerance = 1 / 45;
-var audio_table = {
-
-};
 
 
 var board_clearTime = 15;
-var board_screenPercentage = 0.925;
+var board_screenPercentage = 0.9;
 var board_width = 10;
 var board_height = 20;
+var board_verticalAdjust = 0.7;
 var board_linesRequired = 10;
 var boards = [];
 
 var framesPerSecond = 60;
 var frameTime = 1 / framesPerSecond;
+var frameIncrement = 60;
+var frameBuffer = [];
 
 
 
 
 
 var color_bg_menu = "#A57548";
-
-var color_palettes = [
-	//modern
-	{
-		clearColor: "#FFFFFF",
-		bg: "#01295F",
-		mg: "#5D5E83",
-		lines: "#FFFFFF",
-		pColors: {
-			"I": "#00FFFF",
-			"J": "#0000FF",
-			"L": "#FF8800",
-			"O": "#FFFF00",
-			"S": "#00FF00",
-			"T": "#FF00FF",
-			"Z": "#FF0000",
-		},
-		draw: (color, x, y, size) => {
-			ctx.fillStyle = color;
-			ctx.globalAlpha = 0.7;
-			drawRoundedRectangle(x, y, size, size, size * 0.35);
-			ctx.globalAlpha = 1;
-			var cs = size * 0.15;
-			drawRoundedRectangle(x + cs, y + cs, size - (cs * 2), size - (cs * 2), (size - (cs * 2)) * 0.35);
-		}
-	}, {
-		//classic
-		clearColor: "#9bbc0f",
-		bg: "#9bbc0f",
-		mg: "#8bac0f",
-		lines: "#8bac0f",
-		pColors: {
-			"I": "#306230",
-			"J": "#306230",
-			"L": "#306230",
-			"O": "#306230",
-			"S": "#0f380f",
-			"T": "#0f380f",
-			"Z": "#0f380f",
-		},
-		draw: (color, x, y, size) => {
-			ctx.fillStyle = color;
-			ctx.fillRect(x, y, size+1, size+1);
-		}
-	}]
-var controls_single = [
-
-]
-
-var controls_double = {
-	p1: [],
-	p2: []
-}
+var color_text = "#BDFFF9";
+var color_gameEndBg = "#B5FFE0";
 
 
 
 
 var game_levels = [];
+var game_endOpacity = 0;
+var game_endOpacitySpeed = 0.025;
+var game_endMargin = 0.1;
 
 /*
 0 - menu
@@ -95,107 +47,16 @@ var game_levels = [];
 3 - local competition??
 */
 var game_state = 0;
-var game_substate = 0;
+var game_substate = -1;
 
 
-var menu_buttons = [
-	[`Endless (modern)`, `game_state = 1; boards[0] = new System_New();`],
-	[`Endless (classic)`, `game_state = 1; boards[0] = new System_Old();`]
-	[`Sprint`, `game_state = 2; boards[0] = new System_New();`],
-	[`2 Player Competition`, `game_state = 3; boards[0] = new System_New(); boards[1] = new System_New();`],
-	[`Settings`, ``],
-	[`About`, ``],
-]
-var menu_buttonSelected = [];
+var menu_selectSet = [];
+var menu_selected = 0;
+var menu_buttonHeightMin = 0.4;
+var menu_buttonHeightMax = 0.9;
+var menu_settingMarginH = 0.2;
+var menu_settingMarginW = 0.1;
 
-
-
-//T, L, R, Z, S, O, I
-//each piece is stored in the format [data, centerCoords]
-//data stores the positions of the blocks, and centerCoords says where the reference point of those blocks are.
-//Data is 4 hex characters, because the array is 4x4 and each hex character can be 4 bits (0000 - 1111)
-var piece_pos = {
-	//the I piece is weird
-	"I": [
-		["0F00", [0, 1]],
-		["2222", [0, 1]],
-		["00F0", [0, 1]],
-		["4444", [0, 1]]
-	],
-	"J": [
-		["8E00", [1, 2]],
-		["6440", [1, 2]],
-		["0E20", [1, 2]],
-		["44C0", [1, 2]]
-	],
-	"L": [
-		["2E00", [1, 2]],
-		["4460", [1, 2]],
-		["0E80", [1, 2]],
-		["C440", [1, 2]],
-	],
-	"O": [
-		["CC00", [0, 2]],
-		["CC00", [0, 2]],
-		["CC00", [0, 2]],
-		["CC00", [0, 2]]
-	],
-	"S": [
-		["6C00", [1, 2]],
-		["4620", [1, 2]],
-		["06C0", [1, 2]],
-		["8C40", [1, 2]]
-	],
-	"T": [
-		["4E00", [0, 2]],
-		["4640", [0, 2]],
-		["0E40", [0, 2]],
-		["4C40", [0, 2]]
-	],
-	"Z": [
-		["C600", [1, 2]],
-		["2640", [1, 2]],
-		["0C60", [1, 2]],
-		["4C80", [1, 2]]
-	],
-};
-
-//kicks say which alternative positions a piece can move to when being rotated. This helps with awkwardness at the side walls, 
-//for example, where a pure rotation would put the piece into the wall.
-var piece_kicks_standard = {
-	"0>>1": [[-1,0], [-1,1], [0,-2], [-1,-2]],
-	"1>>2": [[1, 0], [1, -1], [0, 2], [1, 2]],
-	"2>>3": [[1, 0], [1, 1], [0, -2], [1, -2]],
-	"3>>0": [[-1, 0], [-1, -1], [0, 2], [-1, 2]],
-
-	"1>>0": [[1, 0],[1,-1],[0, 2],[1, 2]],
-	"2>>1": [[-1, 0], [-1, 1], [0, -2], [-1, -2]],
-	"3>>2": [[-1, 0], [-1, -1], [0, 2], [-1, 2]],
-	"0>>3": [[1, 0], [1, 1], [0, -2], [1, -2]],
-}
-var piece_kicks_i = {
-	"0>>1": [[-2, 0], [1, 0], [-2, -1], [1, 2]],
-	"1>>2": [[-1, 0], [2, 0], [-1, 2], [2, -1]],
-	"2>>3": [[2, 0], [-1, 0], [2, 1], [-1, -2]],
-	"3>>0": [[1, 0], [-2, 0], [1, -2], [-2, 1]],
-
-	"1>>0": [[2, 0], [-1, 0], [2, 1], [-1, -2]],
-	"2>>1": [[1, 0], [-2, 0], [1, -2], [-2, 1]],
-	"3>>2": [[-2, 0], [1, 0], [-2, -1], [1, 2]],
-	"0>>3": [[-1, 0], [2, 0], [-1, 2], [2, -1]],
-}
-var piece_kicks = {
-	"I": piece_kicks_i,
-	"J": piece_kicks_standard,
-	"L": piece_kicks_standard,
-	"O": {
-		"0>>1": [], "1>>2": [], "2>>3": [], "3>>0": [],
-		"1>>0": [], "2>>1": [], "3>>2": [], "0>>3": [],
-	},
-	"S": piece_kicks_standard,
-	"T": piece_kicks_standard,
-	"Z": piece_kicks_standard,
-}
 
 let state_functions_main = [
 	menu_execute,
@@ -218,6 +79,10 @@ function setup() {
 	canvas = document.getElementById("cromer");
 	ctx = canvas.getContext("2d");
 
+	audio_channel1 = new AudioChannel(0.5);
+
+	setCanvasPreferences();
+
 	animation = window.requestAnimationFrame(main);
 }
 
@@ -231,71 +96,208 @@ function main() {
 
 function menu_execute() {
 	//background
+	audio_channel1.target = undefined;
+	audio_channel1.tick();
 	ctx.fillStyle = color_palettes[0].bg;
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+	if (game_substate > 0) {
+		ctx.font = `${canvas.height / 40}px Ubuntu`;
+		ctx.fillStyle = color_text;
+		ctx.fillText(`Press X to return.`, canvas.width / 2, canvas.height * 0.95);
+	}
+
 	switch (game_substate) {
+		case -1:
+			menu_executePre();
+			break;
 		case 0:
+			menu_executeNormal();
 			break;
 		case 1:
-			//display controls
+			menu_executeSettings();
 			break;
 		case 2:
-			//display results of last game
+			//highscores
+			break;
+		case 3:
+			menu_executeControls();
+			//controls
 			break;
 	}
 }
 
-//switches to a different state, depending on which button is selected
-function menu_switchState() {
+function menu_executeControls() {
 
+}
+
+function menu_executePre() {
+	//create frame time calculation
+	if (frameBuffer.length == 0) {
+		frameBuffer.push(performance.now());
+	}
+	if (animation > 20) {
+		frameBuffer.push(performance.now());
+		//calculate actual frame time
+		var fps = Math.round((1000 * (animation-1)) / (frameBuffer[1] - frameBuffer[0]));
+		var rounded = Math.round(fps / frameIncrement) * frameIncrement;
+		framesPerSecond = rounded;
+		frameTime = 1 / framesPerSecond;
+
+		game_substate = 0;
+		menu_selectSet = menu_buttons;
+		menu_selected = 0;
+	}
+}
+
+function menu_executeNormal() {
+	//title text
+	ctx.font = `${canvas.height / 10}px Ubuntu`;
+	ctx.textAlign = "center";
+	ctx.fillStyle = color_text;
+
+	ctx.fillText(`Tetris`, canvas.width / 2, canvas.height * 0.08);
+
+	ctx.font = `${canvas.height / 20}px Ubuntu`;
+	//buttons
+	var spacePerButton = (menu_buttonHeightMax - menu_buttonHeightMin) / menu_buttons.length;
+	for (var b=0; b<menu_buttons.length; b++) {
+		ctx.fillText(menu_buttons[b][0], canvas.width / 2, canvas.height * (menu_buttonHeightMin + spacePerButton * b));
+	}
+
+	//instruction text
+	ctx.font = `${canvas.height / 40}px Ubuntu`;
+	ctx.fillText(`Use the arrow keys and Z to interact.`, canvas.width / 2, canvas.height * 0.95);
+
+	//selection box
+	var textWidth = ctx.measureText(menu_buttons[menu_selected][0]).width * 2;
+	var margin = canvas.height / 100;
+	ctx.strokeStyle = color_text;
+	drawRoundedRectangle((canvas.width / 2) - (textWidth / 2) - margin, canvas.height * (menu_buttonHeightMin + spacePerButton * (menu_selected - 0.45)), textWidth + margin * 2, canvas.height * spacePerButton * 0.9, canvas.height / 40);
+	ctx.stroke();
+}
+
+function menu_executeSettings() {
+	//text
+	ctx.font = `${canvas.height / 40}px Ubuntu`;
+	ctx.fillStyle = color_text;
+	ctx.fillText(`Press Z to interact.`, canvas.width / 2, canvas.height * 0.92);
+	//settings
+	var minHeight = canvas.height * menu_settingMarginH;
+	var heightPerSetting = canvas.height * ((1 - (menu_settingMarginH * 2)) / menu_settings.length);
+
+	var minWidth = canvas.width * menu_settingMarginW;
+
+	ctx.font = `${canvas.height / 20}px Ubuntu`;
+	ctx.fillStyle = color_text;
+	ctx.textAlign = "left";
+
+	for (var e=0; e<menu_settings.length; e++) {
+		ctx.fillText(menu_settings[e][0], minWidth, minHeight + (heightPerSetting * e));
+	}
+
+	ctx.textAlign = "center";
+	//values
+	var val;
+	for (var e=0; e<menu_settings.length; e++) {
+		val = "";
+		if (menu_settings[e][1] != "") {
+			try {
+				val = eval(menu_settings[e][1]);
+			} catch (er) {}
+		}
+		ctx.fillText(val, canvas.width * (menu_settingMarginW + 0.5), minHeight + (heightPerSetting * e));
+	}
+	//box
+	ctx.strokeStyle = color_text;
+	drawRoundedRectangle(minWidth - (canvas.width * 0.02), minHeight + (heightPerSetting * menu_selected) - (canvas.height / 30) - (canvas.height * 0.01), canvas.width * (1 - menu_settingMarginW * 2), canvas.height * 0.08666, canvas.height / 40);
+	ctx.stroke();
 }
 
 function menu_handleKeyPress(a) {
+	switch (a.keyCode) {
+		case 38:
+		case 40:
+			menu_selected = Math.min(Math.max(0, menu_selected + (a.keyCode - 39)), menu_selectSet.length-1);
+			while (menu_selectSet[menu_selected][0] == "") {
+				menu_selected = Math.min(Math.max(0, menu_selected + (a.keyCode - 39)), menu_selectSet.length-1);
+			}
+			break;
 
+		//Z for select
+		case 90:
+			if (menu_selectSet[menu_selected][1] != "") {
+				eval(menu_selectSet[menu_selected][1 + (game_substate > 0)]);
+			}
+			break;
+		case 88:
+			if (game_substate > 0) {
+				game_substate = 0;
+				menu_selectSet = menu_buttons;
+				menu_selected = 0;
+			}
+			break;
+	}
 }
 
 function endless_execute() {
+	//audio
+	audio_channel1.tick();
 	//background
 	ctx.fillStyle = boards[0].palette.bg;
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 	boards[0].tick();
 	boards[0].beDrawn(canvas.width / 2, canvas.height / 2);
+
+	//draw game over info if over
+	if (game_substate == 1) {
+		game_endOpacity = Math.min(1, game_endOpacity + game_endOpacitySpeed);
+		ctx.globalAlpha = game_endOpacity ** 8;
+		drawGameOverScreen();
+		ctx.globalAlpha = 1;
+	}
 }
 
 function game_handleKeyPress(a) {
-	switch (a.keyCode) {
-		//shifts by one block
-		case 37:
+	if (game_substate == 1) {
+		if (game_endOpacity == 1) {
+			game_endOpacity = 0;
+			game_substate = 0;
+			game_state = 0;
+		}
+		return;
+	}
+
+	switch (a.key) {
+		//left, right, and soft drop
+		case controls_s.l:
 			boards[0].movePiece(-1, 0);
 			break;
-		case 39:
+		case controls_s.r:
 			boards[0].movePiece(1, 0);
 			break;
-		case 40:
+		case controls_s.d:
 			boards[0].score += +boards[0].movePiece(0, 1);
 			break;
 
-		//z + x to rotate
-		case 90:
+		//rotation
+		case controls_s.rl:
+		case controls_s.rl2:
 			boards[0].twistPiece(1);
 			break;
-		case 88:
+		case controls_s.rr:
 			boards[0].twistPiece(-1);
 			break;
 
-		//c for storage
-		case 67:
+		//storage
+		case controls_s.st:
 			boards[0].storePiece();
 			break;
 
-		//space for hard drop
-		case 32:
+		//hard drop
+		case controls_s.hd:
 			boards[0].hardDrop();
 			break;
-
-
-		//hold box
 	}
 }
 
@@ -304,7 +306,22 @@ function sprint_execute() {
 }
 
 function competition_execute() {
+	//background
+	ctx.fillStyle = color_palettes[0].bg;
+	ctx.fillRect(0, 0, canvas.width, canvas.height);
+	boards[0].tick();
+	boards[0].beDrawn(canvas.width / 2, canvas.height / 2);
 
+	boards[1].tick();
+	boards[1].beDrawn(canvas.width / 2, canvas.height / 2);
+
+	//draw game over info if over
+	if (boards[0].stopped || boards[1].stopped) {
+		game_endOpacity = Math.min(1, game_endOpacity + game_endOpacitySpeed);
+		ctx.globalAlpha = game_endOpacity;
+		drawGameOverText();
+		ctx.globalAlpha = 1;
+	}
 }
 
 function competition_handleKeyPress(a) {
