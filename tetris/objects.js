@@ -11,8 +11,12 @@ class AudioChannel {
 	tick() {
 		//if the current sound isn't played, then play it. Also does looping.
 		if (this.audio != undefined) {
-			if (this.audio.paused || this.audio.currentTime + audio_tolerance >= this.audio.duration) {
-				this.time = 0;
+			//if the file's time is past the loop duration, set it back by the amount of the loop
+			var bps = (this.audio.bpm / 60);
+			var audioBeatNum = (this.audio.file.currentTime + audio_tolerance) * bps;
+			var loopBeatNum = (this.audio.loopEnd - this.audio.loopStart);
+			if (this.audio.file.paused || audioBeatNum >= this.audio.loopEnd) {
+				this.time = Math.max(0, this.time - (loopBeatNum / bps));
 				this.reset();
 			}
 		}
@@ -22,7 +26,7 @@ class AudioChannel {
 
 		//set volume
 		if (this.audio != undefined) {
-			this.audio.volume = this.volume * (1 - (this.time / audio_fadeTime));
+			this.audio.file.volume = this.volume * (1 - (this.time / audio_fadeTime));
 		}
 	}
 
@@ -51,9 +55,9 @@ class AudioChannel {
 
 	//starts playing the current audio file, from the beginning
 	reset() {
-		this.audio.currentTime = 0;
-		this.audio.volume = this.volume;
-		this.audio.play();
+		this.audio.file.currentTime = 0;
+		this.audio.file.volume = this.volume;
+		this.audio.file.play();
 	}
 }
 
@@ -63,6 +67,7 @@ class AudioChannel {
 
 class System_Old {
 	constructor() {
+		this.font = `VT323`;
 		//create board
 		this.board = [];
 		for (var f=0; f<board_height+2; f++) {
@@ -76,6 +81,7 @@ class System_Old {
 		this.timeModular = 0;
 		this.linesCleared = 0;
 		this.linesRequired = 10;
+		this.stopped = false;
 
 		//which piece is dropping?
 		//[x, y, type, orientation]
@@ -92,15 +98,25 @@ class System_Old {
 	beDrawn(centerX, centerY) {
 		//figure out square size
 		var sqSize = board_screenPercentage * (canvas.height / (this.board.length - 2));
-		var sqCenterY = (this.board.length - 2) / 2;
+		var sqCenterY = ((this.board.length - 2) / 2) - board_verticalAdjust;
 		var sqCenterX = (this.board[0].length / 2);
-		var pal = this.palette;
+
 		//do not draw the top two lines, those are just for computation.
 		for (var y=2; y<this.board.length; y++) {
 			for (var x=0; x<this.board[y].length; x++) {
-				pal.draw(this.board[y][x] || this.palette.mg, centerX + ((x - sqCenterX) * sqSize), centerY + ((y - sqCenterY - 2) * sqSize), sqSize);
+				this.palette.draw(this.board[y][x] || this.palette.mg, centerX + ((x - sqCenterX) * sqSize), centerY + ((y - sqCenterY - 2) * sqSize), sqSize);
 			}
 		}
+
+		//score at the top
+		this.beDrawn_score(centerX - (this.board[0].length / 2) * sqSize, centerX + (this.board[0].length / 2) * sqSize, (centerY - (sqSize * (sqCenterY))) / 2);
+	}
+
+	beDrawn_score(xMin, xMax, yPos) {
+		ctx.fillStyle = this.palette.text;
+		ctx.textAlign = "center";
+		ctx.font = `${Math.round(canvas.height / 22)}px ${this.font}`;
+		ctx.fillText(this.score.toString().padStart(6, "0"), xMin + (xMax - xMin) / 2, yPos);
 	}
 
 	checkClearLines() {
@@ -134,7 +150,6 @@ class System_Old {
 		//if amount of clearing lines has increased, update score based on how many the player got at a time
 		clearedLines = this.clearables.reduce((a, b) => {return a + (b == true)}) - clearedLines;
 		if (clearedLines > 0) {
-			console.log(clearedLines)
 			this.score += (100 + ((clearedLines - 1) * 200) + ((clearedLines == 4) * 100)) * this.level;
 		}
 	}
@@ -176,7 +191,16 @@ class System_Old {
 		}
 		//x, y corresponds to center
 		this.dropData = [Math.floor(this.board[0].length / 2), 0, this.dropBag.pop(), 0];
-		this.placePieceInArr(this.dropData);
+		if (!this.placePieceInArr(this.dropData)) {
+			//if there's a problem placing the piece, it's game over
+			this.stopped = true;
+			game_substate = 1;
+		}
+	}
+
+	endPiece() {
+		this.lockTime = 0;
+		this.createPiece();
 	}
 
 	hardDrop() {
@@ -209,8 +233,6 @@ class System_Old {
 
 		var oldRot = this.dropData[3];
 		this.dropData[3] = (this.dropData[3] + 4 + rotChange) % piece_pos[this.dropData[2]].length;
-		//figure out which kicks to apply
-		var kickRef = `${oldRot}>>${this.dropData[3]}`;
 
 		//attempt to place new piece
 		if (!this.placePieceInArr(this.dropData)) {
@@ -279,6 +301,9 @@ class System_Old {
 	}
 
 	tick() {
+		if (this.stopped) {
+			return;
+		}
 		//grab new piece if necessary
 		if (this.dropData.length < 1) {
 			//yoink piece from bag
@@ -286,11 +311,16 @@ class System_Old {
 		}
 
 		//lower piece if that's necessary
-		if (this.timeModular % this.framesPerTile == this.framesPerTile - 1) {
+		if (this.timeModular % this.framesPerTile == this.framesPerTile - 1 || this.lockTime > 0) {
 			this.timeModular = 0;
 			if (!this.movePiece(0, 1)) {
 				//if it's struck, lock it
-				this.createPiece();
+				if (this.lockTime == 0) {
+					this.lockTime = this.lockTimeMax;
+				}
+				this.endPiece();
+			} else {
+				this.lockTime = 0;
 			}
 		}
 
@@ -305,14 +335,57 @@ class System_Old {
 class System_New extends System_Old {
 	constructor() {
 		super();
+		this.font = `Ubuntu`;
 		this.palette = color_palettes[0];
+
+		this.ghostLocales = [];
 
 		//holding panel
 		this.canHold = true;
 		this.hold = undefined;
 		this.holdBoard = [new Array(4), new Array(4), new Array(4), new Array(4)];
 
-		this.lockTime = 0.5;
+		this.lockTime = 0;
+		this.lockTimeMax = 0.5;
+	}
+
+	beDrawn(centerX, centerY) {
+		super.beDrawn(centerX, centerY);
+
+		var sqSize = board_screenPercentage * (canvas.height / (this.board.length - 2));
+		var boardMinX = centerX - (sqSize * ((this.board[0].length / 2)));
+		var boardMinY = centerY - (sqSize * ((((this.board.length - 2) / 2)) - board_verticalAdjust));
+
+		//draw hold piece
+		if (this.hold != undefined) {
+			//determine edge of the board: 2 squares to the left and at the same height as the top
+			var holdMinX = boardMinX - (sqSize * 2);
+			var holdMinY = boardMinY + (sqSize * 0.7);
+			var holdSqSize = sqSize / 3;
+
+			//hold board
+			for (var y=0; y<this.holdBoard.length; y++) {
+				for (var x=0; x<this.holdBoard[y].length; x++) {
+					if (this.holdBoard[y][x] == "1") {
+						this.palette.draw(this.palette.pColors[this.hold], holdMinX + (holdSqSize * x), holdMinY + (holdSqSize * y), holdSqSize);
+					}
+				}
+			}
+		}
+
+		ctx.strokeStyle = this.palette.pColors[this.dropData[2]];
+		for (var bl of this.ghostLocales) {
+			ctx.beginPath();
+			ctx.rect(boardMinX + (bl[0] * sqSize), boardMinY + (bl[1] * sqSize), sqSize, sqSize);
+			ctx.stroke();
+		}
+
+
+		//next pieces
+	}
+
+	clearLine(line) {
+		super.clearLine(line);
 	}
 
 	colorLine(line) {
@@ -321,9 +394,46 @@ class System_New extends System_Old {
 		}
 	}
 
+	createGhosts() {
+		this.ghostLocales = [];
+		//remove piece from array
+		this.removePieceFromArr(this.dropData);
+
+		var finalDat = [this.dropData[0], this.dropData[1], this.dropData[2], this.dropData[3]];
+		//drop piece until it doesn't fit
+		while (this.placePieceInArr(finalDat)) {
+			this.removePieceFromArr(finalDat);
+			finalDat[1] += 1;
+		}
+
+		//figure out locations of ominos at final location
+		var polyShape = representPieceWithArr(finalDat[2], finalDat[3]);
+		var finalOffset = [finalDat[0] - piece_pos[finalDat[2]][finalDat[3]][1][0], finalDat[1] - (3 - piece_pos[finalDat[2]][finalDat[3]][1][1])];
+
+		for (var y=0; y<polyShape.length; y++) {
+			for (var x=0; x<polyShape[y].length; x++) {
+				if (polyShape[y][x] == "1") {
+					this.ghostLocales.push([finalOffset[0] + x, finalOffset[1] + y]);
+				}
+			}
+		}
+		this.placePieceInArr(this.dropData);
+	}
+
 	createPiece() {
 		this.canHold = true;
 		super.createPiece();
+		this.createGhosts();
+	}
+
+	endPiece() {
+		if (this.lockTime > 0) {
+			this.lockTime = Math.max(0, this.lockTime - frameTime);
+		}
+
+		if (this.lockTime == 0) {
+			this.createPiece();
+		}
 	}
 
 	hardDrop() {
@@ -333,6 +443,14 @@ class System_New extends System_Old {
 		}
 		//also create a new piece instantly
 		this.createPiece();
+	}
+
+	movePiece(xChange, yChange) {
+		var val = super.movePiece(xChange, yChange);
+		if (xChange != 0) {
+			this.createGhosts();
+		}
+		return val;
 	}
 
 	storePiece() {
@@ -347,15 +465,62 @@ class System_New extends System_Old {
 		//swap the hold data with the current data
 		if (this.hold == undefined) {
 			this.hold = this.dropData[2];
-			this.holdBoard = representPieceWithArr(this.hold);
+			this.holdBoard = representPieceWithArr(this.hold, 0);
 			this.createPiece();
 		} else {
 			var buffer1 = this.dropData[2];
 			this.dropData = [Math.floor(this.board[0].length / 2), 0, this.hold, 0];
 			this.placePieceInArr(this.dropData);
 			this.hold = buffer1;
+			this.holdBoard = representPieceWithArr(this.hold, 0);
+			this.createGhosts();
 		}
 
 		this.canHold = false;
+	}
+
+	//I'm just rewriting the entire function to deal with wall kicks
+	twistPiece(rotChange) {
+		this.removePieceFromArr(this.dropData);
+
+		var oldRot = this.dropData[3];
+		this.dropData[3] = (this.dropData[3] + 4 + rotChange) % piece_pos[this.dropData[2]].length;
+
+		//attempt to place new piece
+		if (this.placePieceInArr(this.dropData)) {
+			//if it's worked, escape!
+			this.createGhosts();
+			return true;
+		}
+
+		//it hasn't worked, move on
+		this.removePieceFromArr(this.dropData);
+
+
+		//figure out which kicks to apply
+		var kickRef = `${oldRot}>>${this.dropData[3]}`;
+		kickRef = piece_kicks[this.dropData[2]][kickRef];
+		var kickIndex = 0;
+		while (kickIndex < kickRef.length) {
+			this.dropData[0] += kickRef[kickIndex][0];
+			this.dropData[1] -= kickRef[kickIndex][1];
+
+			if (!this.placePieceInArr(this.dropData)) {
+				this.dropData[0] -= kickRef[kickIndex][0];
+				this.dropData[1] += kickRef[kickIndex][1];
+				kickIndex += 1;
+			} else {
+				this.createGhosts();
+				return true;
+			}
+		}
+
+		//if all the kicks have been exhausted
+		if (kickIndex >= kickRef.length) {
+			//the piece hasn't worked, prevent the rotation from happening
+			this.dropData[3] = oldRot;
+			this.placePieceInArr(this.dropData);
+			return false;
+		}
 	}
 }
