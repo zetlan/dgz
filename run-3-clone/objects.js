@@ -337,7 +337,7 @@ class Character {
 
 			//TODO: this code is ugly and also probably slow. Refactor when / if possible
 			if (this.parent != undefined) {
-				if (!this.parent.coordinateIsInTunnel_Bounded(this.x, this.y, this.z)) {
+				if (!this.parent.coordinateIsInTunnel(this.x, this.y, this.z, true)) {
 					//if in the void, change physics
 					var voidStrength = spaceToRelativeRotless(this.parent.centerPos, [this.x, this.y, this.z], this.dir_down)[2] / this.parent.r;
 					if (this.parent.playerTilePos > this.parent.len - 0.5) {
