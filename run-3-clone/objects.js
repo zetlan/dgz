@@ -129,7 +129,7 @@ class Camera {
 			//handling position
 			//xDir, yDir, zDir. These will be transformed to be relative to the camera
 			var mvMag = this.speedSettings[this.speedSettingSelected] * this.speed;
-			var drMag = this.speedSettings[this.speedSettingSelected] * this.aSpeed;
+			var drMag = Math.min(this.speedSettings[1] * this.aSpeed, this.speedSettings[this.speedSettingSelected] * this.aSpeed);
 			//first 3 are for positional offsets, second two are for keeping rotation stable
 			var moveDirs = [[1, 0, 0], 
 							[0, 1, 0], 
@@ -256,21 +256,21 @@ class Character {
 		var trueSideStrip = Math.floor((((Math.atan2(relPos[1], relPos[0]) + (Math.PI * (2 + (1 / ref.sides)))) / (Math.PI * 2)) % 1) * ref.sides);
 		trueSideStrip = modulate(trueSideStrip * ref.tilesPerSide, ref.sides * ref.tilesPerSide);
 		//center strip offset is the number of the strip that the camera is on top of
-		var centerStripOffset = Math.floor((spaceToRelativeRotless([this.x, this.y, this.z], [ref.strips[trueSideStrip].x, ref.strips[trueSideStrip].y, ref.strips[trueSideStrip].z], ref.strips[trueSideStrip].normal)[1] / ref.tileSize) + 0.5);
+		var centerStripOffset = Math.floor((spaceToRelativeRotless([this.x, this.y, this.z], ref.strips[trueSideStrip].pos, ref.strips[trueSideStrip].normal)[1] / ref.tileSize) + 0.5);
 		centerStripOffset = clamp(centerStripOffset + trueSideStrip, trueSideStrip, trueSideStrip + ref.tilesPerSide - 1);
 		//add in side by side strips and collide with them
 		//get the closest tile
 		var selfTile = Math.floor(relPos[2] / ref.tileSize);
 
 		for (var n=-1; n<2; n++) {
-			if (ref.strips[centerStripOffset].tiles[selfTile+n] != undefined) {
-				ref.strips[centerStripOffset].tiles[selfTile+n].collideWithEntity(this);
+			if (ref.tiles[centerStripOffset][selfTile+n] != undefined) {
+				ref.tiles[centerStripOffset][selfTile+n].collideWithEntity(this);
 			}
-			if (ref.strips[(centerStripOffset - 1 + ref.strips.length) % ref.strips.length].tiles[selfTile+n] != undefined) {
-				ref.strips[(centerStripOffset - 1 + ref.strips.length) % ref.strips.length].tiles[selfTile+n].collideWithEntity(this);
+			if (ref.tiles[(centerStripOffset - 1 + ref.tiles.length) % ref.tiles.length][selfTile+n] != undefined) {
+				ref.tiles[(centerStripOffset - 1 + ref.tiles.length) % ref.tiles.length][selfTile+n].collideWithEntity(this);
 			}
-			if (ref.strips[(centerStripOffset + 1) % ref.strips.length].tiles[selfTile+n] != undefined) {
-				ref.strips[(centerStripOffset + 1) % ref.strips.length].tiles[selfTile+n].collideWithEntity(this);
+			if (ref.tiles[(centerStripOffset + 1) % ref.tiles.length][selfTile+n] != undefined) {
+				ref.tiles[(centerStripOffset + 1) % ref.tiles.length][selfTile+n].collideWithEntity(this);
 			}
 		}
 		haltRotation = false;
@@ -1182,11 +1182,11 @@ class Pastafarian extends Character {
 			var relPos = spaceToRelativeRotless([this.x, this.y, this.z], [ref.x, ref.y, ref.z], [-1 * ref.theta, 0]);
 			var trueSideStrip = Math.floor((((Math.atan2(relPos[1], relPos[0]) + (Math.PI * (2 + (1 / ref.sides)))) / (Math.PI * 2)) % 1) * ref.sides);
 			trueSideStrip = modulate(trueSideStrip * ref.tilesPerSide, ref.sides * ref.tilesPerSide);
-			var centerStripOffset = Math.floor((spaceToRelativeRotless([this.x, this.y, this.z], [ref.strips[trueSideStrip].x, ref.strips[trueSideStrip].y, ref.strips[trueSideStrip].z], ref.strips[trueSideStrip].normal)[1] / ref.tileSize) + 0.5);
+			var centerStripOffset = Math.floor((spaceToRelativeRotless([this.x, this.y, this.z], ref.strips[trueSideStrip].pos, ref.strips[trueSideStrip].normal)[1] / ref.tileSize) + 0.5);
 			centerStripOffset = clamp(centerStripOffset + trueSideStrip, trueSideStrip, trueSideStrip + ref.tilesPerSide - 1);
 			var selfTile = Math.floor((relPos[2] / ref.tileSize) - 0.2);
-			if (ref.strips[centerStripOffset].tiles[selfTile] != undefined) {
-				if (ref.strips[centerStripOffset].tiles[selfTile].constructor.name == "Tile_Plexiglass" || ref.strips[centerStripOffset].tiles[selfTile].constructor.name == "Tile_Crumbling") {
+			if (ref.tiles[centerStripOffset][selfTile] != undefined) {
+				if (ref.tiles[centerStripOffset][selfTile].constructor.name == "Tile_Plexiglass" || ref.tiles[centerStripOffset][selfTile].constructor.name == "Tile_Crumbling") {
 					//if on a bridge tile, boost the bridge strength
 					this.personalBridgeStrength += this.bridgeBoost;
 					if (this.personalBridgeStrength > 1) {

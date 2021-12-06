@@ -182,19 +182,22 @@ var data_levelSets = [`main`, `boxRoad`, `boxStorage`, `planA`, `planC`, `wayBac
 var data_musics = ['CrumblingWalls', 'LeaveTheSolarSystem', 'MapOfTheStars', 'TheVoid', 'TravelTheGalaxy', 'WormholeToSomewhere', 'WormholeToSomewhereFar', 'None'];
 
 var data_persistent = {
+	//game progress
 	discovered: "Level 1",
 	effectiveCutscenes: [],
-	highscores: [],
 	name: "Guest User",
-	powercells: 0,
 	goingHomeProgress: undefined,
 	bridgeBuildingProgress: undefined,
 	unlocked: [`Runner`],
-	version: 1.1,
+
+	//stats
+	deaths: 0,
+	highscores: [],
+	powercells: 0,
+	infVisited: "",
+	
 	settings: {
 		altCamera: false,
-		/*I was debating for a while whether I wanted this to be true as a default. I decided on yes, because I want people to see the highest quality version 
-		of the rendering. If their computers can't handle it, they can always turn it off. */
 		altRender: true,
 		antiAlias: true,
 		enableOutlines: true,
@@ -203,7 +206,9 @@ var data_persistent = {
 		maskCursor: false,
 		pastaView: false,
 		volume: 0.5,
-	}
+	},
+
+	version: 1.2,
 };
 
 var data_precision = 4;
@@ -295,10 +300,10 @@ var data_sprites = {
 		jumpSideways: [[0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [5, 1], [6, 1]],
 		walkForwards: [[0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [5, 2], [6, 2], [7, 2],
 					   [0, 3], [1, 3], [2, 3], [3, 3], [4, 3], [5, 3], [6, 3], [7, 3]],
-		walkLeft: [[0, 5], [1, 5], [2, 5], [3, 5], [4, 5], [5, 5], [6, 5], [7, 5],
-					[0, 6], [1, 6], [2, 6], [3, 6], [4, 6], [5, 6], [6, 6], [7, 6]],
-		walkRight: [[0, 7], [1, 7], [2, 7], [3, 7], [4, 7], [5, 7], [6, 7], [7, 7],
-					[0, 8], [1, 8], [2, 8], [3, 8], [4, 8], [5, 8], [6, 8], [7, 8]],
+		walkLeft: [[0, 4], [1, 4], [2, 4], [3, 4], [4, 4], [5, 4], [6, 4], [7, 4],
+					[0, 5], [1, 5], [2, 5], [3, 5], [4, 5], [5, 5], [6, 5], [7, 5]],
+		walkRight: [[0, 5], [1, 5], [2, 5], [3, 5], [4, 5], [5, 5], [6, 5], [7, 5],
+					[0, 4], [1, 4], [2, 4], [3, 4], [4, 4], [5, 4], [6, 4], [7, 4]],
 		flyForwards: [[0, 7], [1, 7], [2, 7], [3, 7], [4, 7], [5, 7], [6, 7], [7, 7]],
 		flySideways: [[0, 8], [1, 8], [2, 8], [3, 8], [4, 8], [5, 8], [6, 8], [7, 8]]
 	},

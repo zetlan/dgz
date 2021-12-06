@@ -57,6 +57,74 @@ function cameraToScreen(point) {
 	return [tX, tY];
 }
 
+//like clipToZ0, but uses distance instead of Z-coordinate.
+function clipToDistance(polyPoints, tolerance) {
+	var allBad = true;
+	var n = 0;
+	while (allBad && n < polyPoints.length) {
+		polyPoints[n][3] = Math.sqrt(polyPoints[n][0] * polyPoints[n][0] + polyPoints[n][1] * polyPoints[n][1] + polyPoints[n][2] * polyPoints[n][2]);
+		if (polyPoints[n][3] < tolerance) {
+			polyPoints[n][4] = true;
+		} else {
+			allBad = false;
+			polyPoints[n][4] = false;
+		}
+		n += 1;
+	}
+
+	//return early if all points are destroyed
+	if (allBad) {
+		return [];
+	}
+
+	while (n < polyPoints.length) {
+		polyPoints[n][3] = Math.sqrt(polyPoints[n][0] * polyPoints[n][0] + polyPoints[n][1] * polyPoints[n][1] + polyPoints[n][2] * polyPoints[n][2]);
+		polyPoints[n][4] = polyPoints[n][3] < tolerance;
+		n += 1;
+	}
+
+	for (var y=0; y<polyPoints.length; y++) {
+		//if the selected point will be clipped, run the algorithm
+		if (polyPoints[y][4]) {
+			// console.log(`point ${y} is too close, clipping`);
+			//decide what to do based on the number of adjacent non-clipped points
+			switch (!polyPoints[(y+(polyPoints.length-1))%polyPoints.length][4] + !polyPoints[(y+1)%polyPoints.length][4]) {
+				case 0:
+					//if there are no free friends, there's no point in attempting, so just move on
+					polyPoints.splice(y, 1);
+					y -= 1;
+					break;
+				case 1:
+					//determine which one is free, then move towards it
+					var friendCoords;
+					var moveAmount;
+					//lesser / greater friend decision friend
+					friendCoords = polyPoints[(y+(polyPoints.length + boolToSigned(polyPoints[(y+(polyPoints.length-1))%polyPoints.length][4])))%polyPoints.length];
+					moveAmount = getPercentage(friendCoords[3], polyPoints[y][3], tolerance);
+					polyPoints[y] = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), 
+								linterp(friendCoords[2], polyPoints[y][2], moveAmount), linterp(friendCoords[3], polyPoints[y][3], moveAmount), true];
+					break;
+				case 2:
+					//move towards both friends
+					var friendCoords = polyPoints[(y+(polyPoints.length-1))%polyPoints.length];
+					var moveAmount = getPercentage(friendCoords[3], polyPoints[y][3], tolerance);
+					polyPoints.splice(y, 0, [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), 
+											linterp(friendCoords[2], polyPoints[y][2], moveAmount), linterp(friendCoords[3], polyPoints[y][3], moveAmount), true]);
+					y += 1;
+
+					friendCoords = polyPoints[(y+1)%polyPoints.length];
+					moveAmount = getPercentage(friendCoords[3], polyPoints[y][3], tolerance);
+					polyPoints[y] = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), 
+									linterp(friendCoords[2], polyPoints[y][2], moveAmount), linterp(friendCoords[3], polyPoints[y][3], moveAmount), true];
+					y -= 1;
+					break;
+			}
+		}
+	}
+	return polyPoints;
+}
+
+
 //WARNING: this function modifies the original array. I may change it later if this causes problems.
 function clipToPlane(polyPoints, tolerance, planePoint, planeNormal) {
 	//transform to plane coordinates
@@ -86,6 +154,14 @@ function dirToTunnelCenter(tunnel, speed, x, y, z) {
 	//transform back to real coordinates
 	[relPos[0], relPos[2]] = rotate(relPos[0], relPos[2], tunnel.theta);
 	return relPos;
+}
+
+function dot(vec1, vec2) {
+	var sum = 0;
+	for (var h=0; h<vec1.length; h++) {
+		sum += vec1[h] * vec2[h];
+	}
+	return sum;
 }
 
 //returns the distance between two objects

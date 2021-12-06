@@ -26,6 +26,7 @@
 	changeTiles(tunnel, tileArray, newTileID);
 	clamp(num, min, max);
 	compressCutsceneData();
+	fastSqrt(num);
 
 	file_export();
 	file_import();
@@ -62,7 +63,6 @@
 	power_slowSmooth(powStart, powEnd, time);
 	power_smooth(powStart, powEnd, time);
 
-	randomBounded(min, max);
 	randomSeeded(min, max);
 	removeInvalidObjects(tunnel);
 	removeObjectType(tunnel, constructorName);
@@ -297,7 +297,7 @@ function challenge_addBox(levelID, strip, tile, unitOffset, size, rot, haltReset
 		return;
 	}
 
-	var tileObj = ref.strips[strip].tiles[tile];
+	var tileObj = ref.tiles[strip][tile];
 	var offset = polToCart(tileObj.dir_down[0], tileObj.dir_down[1], unitOffset);
 	//if a box already exists, instead of adding a box, reset the current box
 	var objs = ref.freeObjs;
@@ -346,7 +346,7 @@ function challenge_addEncounter(levelID, strip, tile, characterName, cutsceneNam
 }
 //respawns the player at a certain strip / tile
 function challenge_changeSpawn(strip, tile) {
-	var spawnObj = player.parent.strips[strip].tiles[tile];
+	var spawnObj = player.parent.tiles[strip][tile];
 	spawnObj.doRotationEffects(player);
 
 	var offsetCoords = polToCart(spawnObj.normal[0], spawnObj.normal[1], 10);
@@ -360,8 +360,8 @@ function challenge_crumble(tunnelID, posArray) {
 	tunnelID = getObjectFromID(tunnelID);
 	posArray.forEach(p => {
 		try {
-			tunnelID.strips[p[0]].tiles[p[1]].fallStatus = physics_crumblingShrinkTime + physics_crumblingShrinkStart - 1;
-			tunnelID.strips[p[0]].tiles[p[1]].propogateCrumble();
+			tunnelID.tiles[p[0]][p[1]].fallStatus = physics_crumblingShrinkTime + physics_crumblingShrinkStart - 1;
+			tunnelID.tiles[p[0]][p[1]].propogateCrumble();
 		} catch (error) {
 			console.log(`Error crumbling tile with strip ${p[0]} and tile ${p[1]} at tunnel ${tunnelID.id}`);
 		}
@@ -371,8 +371,8 @@ function challenge_crumble(tunnelID, posArray) {
 
 function challenge_crumbleAll(tunnelID) {
 	tunnelID = getObjectFromID(tunnelID);
-	tunnelID.strips.forEach(s => {
-		s.realTiles.forEach(t => {
+	tunnelID.realTilesComplex.forEach(s => {
+		s.forEach(t => {
 			if (t.constructor.name == "Tile_Crumbling" && t.fallStatus != physics_crumblingShrinkTime + physics_crumblingShrinkStart - 1) {
 				t.fallStatus = physics_crumblingShrinkTime + physics_crumblingShrinkStart - 1;
 				t.propogateCrumble();
@@ -433,9 +433,9 @@ function challenge_rareReset(tile, reverseDirectionBOOLEAN) {
 	if (Math.sqrt((x * x) + (player.y * player.y)) >= player.parentPrev.r + tunnel_voidWidth - (player.fallMax * 1.5)) {
 		//if there are tiles crumbled, count up the death counter.
 		var tileFound = false;
-		for (var s=0; s<player.parentPrev.strips.length; s++) {
-			for (var t=0; t<player.parentPrev.strips[s].realTiles.length; t++) {
-				if (player.parentPrev.strips[s].realTiles[t].fallStatus != undefined) {
+		for (var s=0; s<player.parentPrev.realTiles.length; s++) {
+			for (var t=0; t<player.parentPrev.realTiles[s].length; t++) {
+				if (player.parentPrev.realTiles[s][t].fallStatus != undefined) {
 					deathCount += 1;
 					tileFound = true;
 					//known bug: this will break if a tunnel has over 1 million strips or 1 million tiles, but the game will probably break before then so I don't care.
@@ -467,7 +467,7 @@ function challenge_resetBox(levelID, strip, tile, unitOffset) {
 		return;
 	}
 
-	var tileObj = ref.strips[strip].tiles[tile];
+	var tileObj = ref.tiles[strip][tile];
 	var offset = polToCart(tileObj.dir_down[0], tileObj.dir_down[1], unitOffset);
 	//just the reset portion
 	var objs = ref.freeObjs;
@@ -543,6 +543,22 @@ function compressCutsceneData(reference) {
 	}
 }
 
+function fastSqrt(num) {
+	//good enough zozzle
+	if (num < 4) {
+		return num;
+	}
+
+	var a, b;
+	a = 40;
+	for (var c=0; c<3; c++) {
+		b = num / a; 
+		a = (a + b) / 2;
+	}
+
+	return a;
+}
+
 //generate file from editor world
 function file_export() {
 	//create data
@@ -575,7 +591,6 @@ function file_export() {
 	});
 
 	var fileObj = new Blob([textDat], {type: 'text/plain'});
-	console.log(fileObj.type);
 
 	//make sure a world file doesn't already exist
 	if (editor_worldFile != undefined) {

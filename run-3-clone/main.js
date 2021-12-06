@@ -51,6 +51,8 @@ var checklist_speed = 0.04;
 var checklist_searchButton = new PropertyButton(checklist_width + (checklist_margin * 2.1) + (checklist_width * 0.375), 1, checklist_width * 0.75, 0.06, `Keep searching`, `loading_state = new State_Challenge(challengeData_angelMissions, data_persistent.goingHomeProgress);`);
 var checklist_stayLines = 3;
 
+var clip_tolerance = 0.1
+
 var controls_altPressed = false;
 var controls_cursorLock = false;
 var controls_escPressed = false;
@@ -246,6 +248,7 @@ var powercells_perTunnel = 10;
 var powercells_spinSpeed = 0.05;
 var powercells_size = 30;
 
+var tunnel_crumbleOffset = 0.05;
 var tunnel_dataStarChainMax = 4;
 var tunnel_dataRepeatMax = 3;
 
@@ -287,6 +290,27 @@ var tunnel_tileAssociation = {
 	"~movableGlow": 102,
 	"~movableBox": 109
 };
+
+var tunnel_tileObjectAssociation = {
+	1: Tile,
+	2: Tile_Bright,
+	3: Tile_Crumbling,
+	4: Tile_Ice,
+	5: Tile_Conveyor_Slow,
+	6: Tile_Conveyor,
+	7: Tile_Conveyor_Left,
+	8: Tile_Conveyor_Right,
+	9: Tile_Box,
+	10: Tile_Box_Spun,
+	11: Tile_Ramp,
+	12: Tile_Ice_Ramp,
+	13: Tile_Warning,
+
+	101: Tile_Ringed,
+	102: Tile_Bright_Ringed,
+	109: Tile_Box_Ringed
+};
+
 var tunnel_translation = {
 	"0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9,
 	":": 10, ";": 11, "<": 12, "=": 13, ">": 14, "?": 15,"@": 16, "A": 17, "B": 18, "C": 19,
@@ -325,7 +349,7 @@ let world_objects = [];
 var world_specialStar;
 let active_objects = [];
 let world_wormhole;
-var world_version = 1.1;
+var world_version = 1.2;
 
 
 var render_animSteps = 9;
@@ -363,7 +387,6 @@ var times_past = {};
 
 //misc variables I couldn't be bothered giving prefixes to
 var haltRotation = false;
-var drawPlayer = false;
 var deathCount = 0;
 
 
@@ -451,14 +474,14 @@ function handleKeyPress(a) {
 	loading_state.handleKeyPress(a);
 
 	//universal keys
-	switch (a.keyCode) {
-		case 16:
+	switch (a.key) {
+		case 'Shift':
 			controls_shiftPressed = true;
 			break;
-		case 18:
+		case 'Alt':
 			controls_altPressed = true;
 			break;
-		case 27:
+		case 'Escape':
 			if (!controls_escPressed) {
 				controls_escPressed = true;
 				toggleForcedReset(1);
@@ -469,10 +492,10 @@ function handleKeyPress(a) {
 				}
 			}
 			break;
-		case 32:
+		case ' ':
 			controls_spacePressed = true;
 			break;
-		case 221:
+		case ']':
 			editor_active = !editor_active;
 			break;
 	}
@@ -480,67 +503,90 @@ function handleKeyPress(a) {
 
 function handleKeyPress_camera(a) {
 	//movement controls
-	switch (a.keyCode) {
+	switch (a.key) {
 		// a/d
-		case 65:
-			world_camera.ax = -1 * world_camera.speed;
+		case 'a':
+			world_camera.ax = -1 * world_camera.aSpeed;
 			break;
-		case 68:
-			world_camera.ax = world_camera.speed;
+		case 'd':
+			world_camera.ax = world_camera.aSpeed;
 			break;
 		// w/s
-		case 87:
-			world_camera.az = world_camera.speed;
+		case 'w':
+			world_camera.az = world_camera.aSpeed;
 			break;
-		case 83:
-			world_camera.az = -1 * world_camera.speed;
+		case 's':
+			world_camera.az = -1 * world_camera.aSpeed;
 			break;
-		//space
-		case 32:
-			//this if block just avoids repeat presses when holding down the key
-			if (!controls_spacePressed) {
-				world_camera.handleSpace();
-			}
+		//space / shift
+		case ' ':
+			world_camera.ay = world_camera.aSpeed;
 			break;
+		case 'Shift':
+			world_camera.ay = -1 * world_camera.aSpeed;
+			break;
+
 		//angle controls
-		case 37:
+		case 'ArrowLeft':
 			world_camera.dt = -1 * world_camera.sens;
 			break;
-		case 38:
+		case 'ArrowUp':
 			world_camera.dp = world_camera.sens;
 			break;
-		case 39:
+		case 'ArrowRight':
 			world_camera.dt = world_camera.sens;
 			break;
-		case 40:
+		case 'ArrowDown':
 			world_camera.dp = -1 * world_camera.sens;
 			break;
-		case 81:
+		case 'q':
 			world_camera.dr = world_camera.sens;
 			break;
-		case 69:
+		case 'e':
 			world_camera.dr = -1 * world_camera.sens;
+			break;
+
+		//speed controls (- / +)
+		case '-':
+			if (world_camera.speedSettingSelected > 0) {
+				world_camera.speedSettingSelected = 0;
+			} else {
+				world_camera.speedSettingSelected = 1;
+			}
+			console.log(world_camera.speedSettingSelected);
+			break;
+		case '=':
+			if (world_camera.speedSettingSelected < 2) {
+				world_camera.speedSettingSelected = 2;
+			} else {
+				world_camera.speedSettingSelected = 1;
+			}
+			break;
+
+		//reset
+		case 'r':
+			world_camera.reset();
 			break;
 	}
 }
 
 function handleKeyPress_player(a) {
-	switch(a.keyCode) {
+	switch(a.key) {
 		//direction controls
 		// a / <--
-		case 65:
-		case 37:
+		case 'a':
+		case 'ArrowLeft':
 			player.ax = -1 * player.strafeSpeed;
 			break;
 		//d / -->
-		case 68:
-		case 39:
+		case 'd':
+		case 'ArrowRight':
 			player.ax = player.strafeSpeed;
 			break;
 		// w / ^ / space
-		case 87:
-		case 38:
-		case 32:
+		case 'w':
+		case 'ArrowUp':
+		case ' ':
 			if (!controls_spacePressed) {
 				//if it's infinite mode, restart
 				if (loading_state instanceof State_Infinite && loading_state.substate == 2) {
@@ -553,7 +599,7 @@ function handleKeyPress_player(a) {
 			controls_spacePressed = true;
 			break;
 		//r
-		case 82:
+		case 'r':
 			if (loading_state instanceof State_Game && loading_state.substate == 0) {
 				loading_state.handlePlayerDeath();
 			}
@@ -565,74 +611,84 @@ function handleKeyNegate(a) {
 	loading_state.handleKeyNegate(a);
 
 	//universals
-	switch (a.keyCode) {
-		case 16:
+	switch (a.key) {
+		case 'Shift':
 			controls_shiftPressed = false;
 			break;
-		case 18:
+		case 'Alt':
 			controls_altPressed = false;
 			break;
-		case 27:
+		case 'Escape':
 			controls_escPressed = false;
 			toggleForcedReset(0);
 			break;
-		case 32:
+		case ' ':
 			controls_spacePressed = false;
 			break;
 	}
 }
 
 function handleKeyNegate_camera(a) {
-	switch(a.keyCode) {
+	switch(a.key) {
 		//direction controls
-		case 65:
+		case 'a':
 			if (world_camera.ax < 0) {
 				world_camera.ax = 0;
 			}
 			break;
-		case 68:
+		case 'd':
 			if (world_camera.ax > 0) {
 				world_camera.ax = 0;
 			}
 			break;
-		case 87:
+		case 'w':
 			if (world_camera.az > 0) {
 				world_camera.az = 0;
 			}
 			break;
-		case 83:
+		case 's':
 			if (world_camera.az < 0) {
 				world_camera.az = 0;
 			}
 			break;
+		case ' ':
+			if (world_camera.ay > 0) {
+				world_camera.ay = 0;
+			}
+			break;
+		case 'Shift':
+			if (world_camera.ay < 0) {
+				world_camera.ay = 0;
+			}
+			break;
 			
 		//angle controls
-		case 37:
+		case 'ArrowLeft':
 			if (world_camera.dt < 0) {
 				world_camera.dt = 0;
 			}
 			break;
-		case 38:
+		case 'ArrowUp':
 			if (world_camera.dp > 0) {
 				world_camera.dp = 0;
 			}
 			break;
-		case 39:
+		case 'ArrowRight':
 			if (world_camera.dt > 0) {
 				world_camera.dt = 0;
 			}
 			break;
-		case 40:
+		case 'ArrowDown':
 			if (world_camera.dp < 0) {
 				world_camera.dp = 0;
 			}
 			break;
-		case 81:
+		case 'q':
 			if (world_camera.dr > 0) {
 				world_camera.dr = 0;
 			}
 			break;
-		case 69:
+		case 'e':
 			if (world_camera.dr < 0) {
 				world_camera.dr = 0;
 			}
@@ -641,25 +697,25 @@ function handleKeyNegate_camera(a) {
 }
 
 function handleKeyNegate_player(a) {
-	switch(a.keyCode) {
+	switch(a.key) {
 		//a / <--
-		case 65:
-		case 37:
+		case 'a':
+		case 'ArrowLeft':
 			if (player.ax < 0) {
 				player.ax = 0;
 			}
 			break;
 		//d / -->
-		case 68:
-		case 39:
+		case 'd':
+		case 'ArrowRight':
 			if (player.ax > 0) {
 				player.ax = 0;
 			}
 			break;
 		// w / ^ / space
-		case 87:
-		case 38:
-		case 32:
+		case 'w':
+		case 'ArrowUp':
+		case ' ':
 			controls_spacePressed = false;
 			break;
 	}
@@ -736,18 +792,29 @@ function updateResolution() {
 	square roots are slow, but faster than trig functions
 	variable declarations take time, but aren't the end of the world
 	running an if statement on a variable to check for clamping is faster than doing clamping all the time
-	instanceof tests are SLOW! avoid them
+	instanceof tests are SLOW! avoid them, if you have to use .constructor.name instead
 	increasing the length of an array is slow
 	forEach loops are approximately 3 times faster than for loops (107 ms vs 315 ms)
 	binary search is indeed, much faster than linear search. For an array of 300 elements, it is at least 20 times as fast.
+	it is possible to create a faster square root than the built-in javascript one, but it's weird and wacky
 
 */
 function performanceTest() {
 	var perfTime = [0, 0];
+	var possibleObjects = [Tile, Tile_Bright, Tile_Ringed]
 	var totalTime = 0;
 	perfTime = [performance.now(), 0];
+	var num = [];
+	var num2 = [];
 	for (var a=0; a<50000; a++) {
-		clipToZ0([[randomBounded(-10, 10), randomBounded(-10, 10), randomBounded(-10, 10)], [randomBounded(-10, 10), randomBounded(-10, 10), randomBounded(-10, 10)], [randomBounded(-10, 10), randomBounded(-10, 10), randomBounded(-10, 10)], [randomBounded(-10, 10), randomBounded(-10, 10), randomBounded(-10, 10)]], 0, false);
+		num[a] = new possibleObjects[Math.floor(randomBounded(0, 2.999))](0, 0, 0, 20, [1, 1], {}, {h: 0, s: 0, v: 0});
+	}
+
+	for (var g=0; g<10; g++) {
+		num2 = [];
+		for (var a=49999; a>-1; a--) {
+			num2[a] = num[a] instanceof Tile_Ringed;
+		}
 	}
 
 	perfTime[1] = performance.now();

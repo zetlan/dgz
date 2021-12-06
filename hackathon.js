@@ -66,6 +66,61 @@
 } 
 
 
+/*here's my old orderObjects function - a radix sort, which I realized was stupidly overcomplicated.
+I've kept it here in case I never need a radix sort to just yoink into another program, but I have now replaced the actual sort with a faster operation using comparisons.
+*/
+// function orderObjectsOld(array, places) {
+// 	logTime(`sort`);
+// 	//addings all objects to first array
+// 	let unsorted_objects = [];
+// 	let ordered = [];
+// 	let buckets = [[], [], [], [], [], [], [], [], [], []];
+// 	var end = array.length-1;
+// 	unsorted_objects[end] = undefined;
+
+// 	for (var a=0; a<array.length; a++) {
+// 		unsorted_objects[a] = array[a];
+// 	}
+
+// 	//running a radix sort
+// 	for (var pos=1; pos<places+1; pos++) {
+// 		//empty buckets
+// 		for (var g=0; g<buckets.length; g++) {
+// 			buckets[g] = [];
+// 		}
+// 		//push objects to buckets
+// 		for (var m=0; m<unsorted_objects.length; m++) {
+// 			//formula determines which bucket to push into
+// 			try {
+// 				buckets[Math.floor(((unsorted_objects[m].cameraDist) % Math.pow(10, pos) / Math.pow(10, pos-1)))].push(unsorted_objects[m]);
+// 			} catch(er) {
+// 				console.error(`cannot sort object ${unsorted_objects[m].constructor.name} with cameraDist ${unsorted_objects[m].cameraDist}`);
+// 				runCrash();
+// 			}
+// 		}
+
+// 		//clear unsorted
+// 		unsorted_objects = [];
+
+// 		//put bucket results into unsorted array
+// 		for (var k=0;k<buckets.length;k++) {
+// 			for (var m=0; m<buckets[k].length; m++) {
+// 				unsorted_objects.push(buckets[k][m]);
+// 			}
+// 		}
+// 	}
+
+// 	//push now ordered list to final array
+// 	ordered[end] = undefined;
+// 	for (var m=0; m<unsorted_objects.length; m++) {
+// 		ordered[m] = unsorted_objects[end - m];
+// 	}
+
+// 	logTimeEnd(`sort`, `sort done in: `);
+// 	return ordered;
+// }
+
+
 /**
  * Procrastination Preparation
  * there are N videos

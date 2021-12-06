@@ -37,7 +37,7 @@ class State_World {
 					if (!player.parent.playerIsInBounds()) {
 						player.parentPrev = player.parent;
 						player.parent = undefined;
-					} else if (!player.parent.coordinateIsInTunnel_Bounded(player.x, player.y, player.z)) {
+					} else if (!player.parent.coordinateIsInTunnel(player.x, player.y, player.z, true)) {
 						//if the player is in the void, try to change parent without the whole jazzy reshuffling
 						this.changePlayerParentUnofficial();
 					}
@@ -53,7 +53,7 @@ class State_World {
 
 				//every once in a while, order the near objects
 				if (world_time % 50 == 24) {
-					this.nearObjs = orderObjects(this.nearObjs, 5);
+					this.nearObjs = orderObjects(this.nearObjs);
 				}
 
 				//ticking near objects
@@ -71,8 +71,19 @@ class State_World {
 					});
 
 					//'foreground' objects
+					var parentDrawn = false;
 					this.nearObjs.forEach(f => {
+						if (parentDrawn) {
+							f.freeObjs.push(player);
+						}
 						f.beDrawn();
+						if (parentDrawn) {
+							f.freeObjs.pop();
+						}
+
+						if (f == player.parentPrev) {
+							parentDrawn = true;
+						}
 					});
 
 					//GUI
@@ -227,7 +238,7 @@ class State_World {
 	changePlayerParentUnofficial() {
 		//try the player in the closest few tunnels
 		for (var v=this.nearObjs.length-1; v>=0; v--) {
-			if (this.nearObjs[v].coordinateIsInTunnel_Bounded(player.x, player.y, player.z)) {
+			if (this.nearObjs[v].coordinateIsInTunnel(player.x, player.y, player.z, true)) {
 				this.changePlayerParent(this.nearObjs[v]);
 				v = -1;
 
@@ -245,6 +256,7 @@ class State_World {
 	}
 
 	handlePlayerDeath() {
+		data_persistent.deaths += 1;
 		player.parentPrev.reset();
 		this.nearObjs = orderObjects(this.nearObjs, 5);
 		player.parent = player.parentPrev;
@@ -330,11 +342,11 @@ class State_World {
 	handleKeyPress(a) {
 		if (!editor_active) {
 			handleKeyPress_player(a);
-			switch(a.keyCode) {
+			switch(a.key) {
 				// w / ^ / space
-				case 87:
-				case 38:
-				case 32:
+				case 'w':
+				case 'ArrowUp':
+				case ' ':
 					if (!controls_spacePressed) {
 						//if it's infinite mode, restart
 						if (loading_state.constructor.name == "State_Infinite" && this.substate == 2) {
@@ -344,7 +356,7 @@ class State_World {
 						}
 					}
 					break;
-				case 13:
+				case 'Enter':
 					//enter, return to 0 state
 					if (this.substate == 1) {
 						this.substate = 0;
@@ -465,7 +477,7 @@ class State_Challenge extends State_World {
 
 	handlePlayerDeath() {
 		//if off the end of the tunnel but not out of the tunnel, count the tunnel as completed
-		if (player.parentPrev.coordinateIsInTunnel_Boundless(player.x, player.y, player.z)) {
+		if (player.parentPrev.coordinateIsInTunnel(player.x, player.y, player.z, false)) {
 			//don't complete if there's an extra end code
 			if (this.data[this.line].endCode == undefined || eval(this.data[this.line].endCode)) {
 				player.parentPrev.resetWithoutPlayer();
@@ -965,19 +977,19 @@ class State_Cutscene extends State_World {
 	handleKeyPress(a) {
 		if (editor_active) {
 			handleKeyPress_camera(a);
-			switch (a.keyCode) {
+			switch (a.key) {
 				//frame control (< / >)
-				case 188:
+				case ',':
 					if (this.frame > 0) {
 						this.frame -= 1;
 						this.updateFrame();
 					}
 					break;
-				case 190:
+				case '.':
 					this.frame += 1;
 					//creating new frame
 					if (this.frame + 1 > this.ref.frames.length) {
-						//if space is pressed duplicate the frame
+						//if shift is pressed duplicate the frame
 						if (controls_shiftPressed) {
 							var strData = this.giveStringDataForLine(this.ref.frames[this.ref.frames.length-1]);
 							this.ref.frames[this.ref.frames.length] = this.convertStringData(strData.substring(1, strData.length-4));
@@ -989,7 +1001,7 @@ class State_Cutscene extends State_World {
 					this.updateFrame();
 					break;
 				//delete button
-				case 8:
+				case 'Backspace':
 					if (this.selected != undefined) {
 						//if shift is pressed, splice out all items
 						if (controls_shiftPressed) {
@@ -1008,11 +1020,11 @@ class State_Cutscene extends State_World {
 					}
 					break;
 				//c, toggles camera modification
-				case 67:
+				case 'c':
 					this.modifyCameraPos = !this.modifyCameraPos;
 					break;
-				//tab, toggles siddebar
-				case 9:
+				//tab, toggles sidebar
+				case 'Tab':
 					this.doSidebar = !this.doSidebar;
 					break;
 			}
@@ -1145,7 +1157,7 @@ class State_Game extends State_World {
 	handleKeyPress(a) {
 		super.handleKeyPress(a);
 		//r for reset
-		if (a.keyCode == 82 && this.substate == 0) {
+		if (a.key == 'r' && this.substate == 0) {
 			this.handlePlayerDeath();
 		}
 	}
@@ -1514,16 +1526,16 @@ class State_Map {
 		if (editor_active) {
 			//just draw everything
 			this.readFrom.forEach(w => {
-				w.beDrawnOnMap(true);
+				w.beDrawn_map(true);
 			});
 		} else {
 			this.discoveredObjs.forEach(w => {
-				w.beDrawnOnMap(true);
+				w.beDrawn_map(true);
 			});
 	
 			ctx.globalAlpha = 0.5;
 			this.halfDiscoveredObjs.forEach(w => {
-				w.beDrawnOnMap(false);
+				w.beDrawn_map(false);
 			});
 			ctx.globalAlpha = 1;
 		}
@@ -1584,7 +1596,7 @@ class State_Map {
 				//drawing cursor
 				drawCircle(color_editor_cursor, cursor_x, cursor_y, canvas.height / 240);
 
-				this.objSelected.beDrawn_selected();
+				this.objSelected.beDrawn_mapSelected();
 				
 				//text at the top
 				ctx.fillStyle = color_text;
@@ -1670,7 +1682,12 @@ class State_Map {
 		}
 
 		if (this.objSelected != undefined) {
-			this.objSelected.handleMouseDown();
+			if (getObjectFromID(this.objSelected.id).id != undefined) {
+				//if the selected object is a tunnel
+				this.handleMD_ObjectTunnel();
+			} else {
+				this.handleMD_ObjectCutscene();
+			}
 		}
 
 		//if now has no object selected, attempt to make one
@@ -1753,6 +1770,52 @@ class State_Map {
 		}
 	}
 
+	handleMD_ObjectCutscene() {
+		var obj = this.objSelected;
+		if (!editor_active) {
+			//activating cutscene if not in edit mode
+			obj.activate();
+		} else {
+			//if in edit mode and the cursor is down too far away, become unselected
+			if (getDistance2d(obj.map_circleCoords, [cursor_x, cursor_y]) > map_iconSize * canvas.height) {
+				loading_state.objSelected = undefined;
+			}
+		}
+	}
+
+	handleMD_ObjectTunnel() {
+		var tun = this.objSelected;
+		console.log(tun);
+		//default case, go into the level
+		if (!editor_active) {
+			player.parentPrev = tun;
+			tun.calculateBackwardsAllow();
+			player.backwards = player.backwards && tun.allowBackwards;
+			loading_state = new State_Game();
+			player.parentPrev.reset();
+
+			//displaying text
+			loading_state.text = tun.id;
+			loading_state.time = tunnel_textTime;
+			return;
+		}
+
+		var knobCoords = [tun.map_startCoords[0] + (editor_thetaCircleRadius * Math.cos(tun.theta)), tun.map_startCoords[1] - (editor_thetaCircleRadius * Math.sin(tim.theta))];
+	
+		//if colliding with the theta change circle, do that stuff
+		if (getDistance2d(knobCoords, [cursor_x, cursor_y]) < editor_thetaKnobRadius) {
+			var diffX = cursor_x - tun.map_startCoords[0];
+			var diffY = cursor_y - tun.map_startCoords[1];
+			tun.theta = (Math.atan2(diffY * -1, diffX) + (Math.PI * 2)) % (Math.PI * 2);
+			tun.updatePosition(tun.x, tun.y, tun.z);
+			this.changingTheta = true;
+		} else {
+			//if not, deselect tunnel
+			this.objSelected = undefined;
+			this.changingTheta = false;
+		}
+	}
+
 	handleMouseMove(a) {
 		updateCursorPos(a);
 
@@ -1782,13 +1845,63 @@ class State_Map {
 			if (this.objSelected != undefined) {
 				//if the editor's active, only register the movement for selected objects
 				if (cursor_down) {
-					this.objSelected.handleMouseMove();
+					if (getObjectFromID(this.objSelected.id).id != undefined) {
+						//if the selected object is a tunnel
+						this.handleMM_ObjectTunnel();
+					} else {
+						this.handleMM_ObjectCutscene();
+					}
 				}
 
 				cursor_x = this.objSelected.map_circleCoords[0];
 				cursor_y = this.objSelected.map_circleCoords[1];
 			}
 		}
+	}
+
+	handleMM_ObjectCutscene() {
+		//move to where the cursor is
+		var obj = this.objSelected;
+		var newCoords = screenToSpace([cursor_x, cursor_y], world_camera.y);
+		obj.x = newCoords[0];
+		obj.z = newCoords[2];
+	}
+
+	handleMM_ObjectTunnel() {
+		var tun = this.objSelected;
+		if (this.changingTheta) {
+			//update direction
+			tun.theta = (Math.atan2(cursor_y - tun.map_startCoords[1], tun.map_startCoords[0] - cursor_x) + Math.PI) % (Math.PI * 2);
+			tun.updatePosition(tun.x, tun.y, tun.z);
+
+			//reset cursor pos 
+			cursor_x = tun.map_circleCoords[0];
+			cursor_y = tun.map_circleCoords[1];
+			return;
+		}
+		//moving the tunnel
+		var snapX = cursor_x;
+		var snapY = cursor_y;
+
+		//if a tunnel end is close enough to the tunnel start, snap the tunnel to that position
+		var startSelectOffset = [tun.map_startCoords[0] - tun.map_circleCoords[0], tun.map_startCoords[1] - tun.map_circleCoords[1]];
+		//calculating tunnel end pos
+		for (var a=0; a<this.readFrom.length; a++) {
+			if (this.readFrom[a] != tun) {
+				var endPos = this.readFrom[a].map_endCoords;
+				if (getDistance2d([endPos[0], endPos[1]], [snapX + startSelectOffset[0], snapY + startSelectOffset[1]]) < editor_mapSnapTolerance) {
+					//moving position of selection
+					//get difference between tunnel start coordinates and selected coordinates
+					snapX = endPos[0] - startSelectOffset[0];
+					snapY = endPos[1] - startSelectOffset[1];
+				}
+			}
+		}
+
+		//update selected tunnel position
+		var offset = [tun.map_startCoords[0] - tun.map_circleCoords[0], tun.map_startCoords[1] - tun.map_circleCoords[1]];
+		var newCoords = screenToSpace([snapX + offset[0], snapY + offset[1]], world_camera.y);
+		tun.updatePosition(newCoords[0], newCoords[1], newCoords[2]);
 	}
 
 	handleKeyPress(a) {
@@ -1799,15 +1912,15 @@ class State_Map {
 			return;
 		}
 		if (!this.dir_held) {
-			switch (a.keyCode) {
+			switch (a.key) {
 				//<--
-				case 65:
-				case 37:
+				case 'a':
+				case 'ArrowLeft':
 					world_camera.targetZ -= map_shift;
 					break;
 				//-->
-				case 68:
-				case 39:
+				case 'd':
+				case 'ArrowRight':
 					world_camera.targetZ += map_shift;
 					break;
 			}
@@ -1829,7 +1942,7 @@ class State_Map {
 		//loop through all map objects and select the closest one
 		var reqDist = editor_cutsceneSnapTolerance;
 		this.readFrom.forEach(c => {
-			if (c.discovered || editor_active) {
+			if (c.map_circleCoords != undefined && (c.discovered || editor_active)) {
 				if (getDistance2d(c.map_circleCoords, [cursor_x, cursor_y]) < reqDist) {
 					this.cursorPos = c.map_circleCoords;
 					this.objSelected = c;
@@ -2211,7 +2324,7 @@ class State_Menu {
 	}
 
 	handleKeyPress(a) {
-		if (a.keyCode == 221 && this.substate == 3) {
+		if (a.key == ']' && this.substate == 3) {
 			//editor updating
 			setTimeout(() => {
 				data_cutsceneTree.getVisible();

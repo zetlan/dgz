@@ -1,6 +1,6 @@
 //because I don't feel like importing another import for my import
 function linterp(a, b, percent) {
-	return a + (b - a * percent);
+	return a + ((b - a) * percent);
 }
 
 //returns a 0-1 apparent brightness of a hex color

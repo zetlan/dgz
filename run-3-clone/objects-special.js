@@ -3,43 +3,86 @@
 //3d binary tree
 class B3Node {
 	constructor() {
-		this.obj;
+		this.objs = [];
 		this.low;
 		this.hie;
+		this.tolerance = 0.002;
 	}
 
 	addObj(object) {
 		//if self is undefined add to self
-		if (this.obj == undefined) {
-			this.obj = object;
+		if (this.objs.length == 0) {
+			this.objs.push(object);
 			return;
 		}
 
+		var objZ = spaceToRelativeRotless([object.x, object.y, object.z], [this.objs[0].x, this.objs[0].y, this.objs[0].z], this.objs[0].normal)[2];
+
 		//if self already contains an object use the object's normal to place the next object
-		if (spaceToRelativeRotless([object.x, object.y, object.z], [this.obj.x, this.obj.y, this.obj.z], this.obj.normal)[2] > 0) {
+		if (objZ > this.tolerance) {
 			//front object
 			if (this.hie == undefined) {
 				this.hie = new B3Node();
 			}
 			this.hie.addObj(object);
-		} else {
+			return;
+		} 
+		if (objZ < this.tolerance) {
 			//object is behind
 			if (this.low == undefined) {
 				this.low = new B3Node();
 			}
 			this.low.addObj(object);
+			return;
+		}
+		this.objs.push(object);
+	}
+
+	//adds an object, but doesn't create a new space partition from them
+	//this is for objects that don't have useful normals; free objects like the player or power cells
+	addObjShallow(object) {
+		//if self is undefined... why? This is a full node, shallow objects shouldn't be in it
+		if (this.objs.length == 0) {
+			console.error(`ERROR: cannot put a shallow object into a deep node`);
+			return;
+		}
+
+		var objZ = spaceToRelativeRotless([object.x, object.y, object.z], [this.objs[0].x, this.objs[0].y, this.objs[0].z], this.objs[0].normal)[2];
+
+		//shallow object, won't go into self
+		if (objZ > 0) {
+			//front object
+			if (this.hie == undefined) {
+				this.hie = new B3NodeLeaf();
+			}
+			this.hie.addObjShallow(object);
+			return;
+		} else {
+			//object is behind
+			if (this.low == undefined) {
+				this.low = new B3NodeLeaf();
+			}
+			this.low.addObjShallow(object);
+			return;
 		}
 	}
 
 	//beDrawn is the only ordered function
 	beDrawn() {
+		//order objects
+		if (this.objs.length > 1) {
+			this.objs = orderObjects(this.objs);
+		}
+
 		//different ordering based on camera position
-		if (spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.obj.x, this.obj.y, this.obj.z], this.obj.normal)[2] > 0) {
+		if (spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.objs[0].x, this.objs[0].y, this.objs[0].z], this.objs[0].normal)[2] > 0) {
 			//camera is on top
 			if (this.low != undefined) {
 				this.low.beDrawn();
 			}
-			this.obj.beDrawn();
+			this.objs.forEach(b => {
+				b.beDrawn();
+			});
 			if (this.hie != undefined) {
 				this.hie.beDrawn();
 			}
@@ -48,12 +91,40 @@ class B3Node {
 			if (this.hie != undefined) {
 				this.hie.beDrawn();
 			}
-			this.obj.beDrawn();
+			this.objs.forEach(b => {
+				b.beDrawn();
+			});
 			if (this.low != undefined) {
 				this.low.beDrawn();
 			}
 		}
 	}
+}
+
+//like the B3Node, except for groups of objects in space that don't form planes (imagine a bunch of powercells, rather than a bunch of tiles)
+class B3NodeLeaf {
+	constructor() {
+		this.objs = [];
+	}
+
+	addObjShallow(object) {
+		this.objs.push(object);
+	}
+
+	beDrawn() {
+		//draw all objects
+		if (this.objs.length > 1) {
+			this.objs = orderObjects(this.objs);
+		}
+
+		this.objs.forEach(j => {
+			j.beDrawn();
+		});
+	}
+
+
+
+
 }
 
 
@@ -734,7 +805,7 @@ class SceneTile extends Scene3dObject {
 		this.tile.z = this.z;
 
 		//if the tile's not in their parent, try to get a new one
-		if (!this.tile.parent.coordinateIsInTunnel_Bounded(this.x, this.y, this.z)) {
+		if (!this.tile.parent.coordinateIsInTunnel(this.x, this.y, this.z, true)) {
 			this.tile.parent = pickNewParent(this.tile, this.tile.parent);
 			this.tile.color = this.tile.parent.color;
 			this.tile.normal[0] = (Math.PI * 1.5) - this.tile.parent.theta;
@@ -1497,27 +1568,8 @@ class MapTexture {
 		}
 	}
 
-	beDrawn_selected() {
+	beDrawn_mapSelected() {
 		this.beDrawn();
-	}
-
-	handleMouseDown() {
-		if (!editor_active) {
-			//activating cutscene if not in edit mode
-			this.activate();
-		} else {
-			//if in edit mode and the cursor is down too far away, become unselected
-			if (getDistance2d(this.map_circleCoords, [cursor_x, cursor_y]) > map_iconSize * canvas.height) {
-				loading_state.objSelected = undefined;
-			}
-		}
-	}
-
-	handleMouseMove() {
-		//move to where the cursor is
-		var newCoords = screenToSpace([cursor_x, cursor_y], world_camera.y);
-		this.x = newCoords[0];
-		this.z = newCoords[2];
 	}
 
 	giveStringData() {

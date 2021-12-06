@@ -534,7 +534,7 @@ class State_Edit_Tiles extends State_Edit {
 				polyPoints = [[0.5 + t, 0, -0.5], [0.5 + t, 0, 0.5], [1.5 + t, 0, 0.5], [1.5 + t, 0, -0.5]];
 				//screen position
 				for (var p=0; p<polyPoints.length; p++) {
-					polyPoints[p] = spaceToScreen(transformPoint(polyPoints[p], [sRef.x, sRef.y, sRef.z], sRef.normal, tRef.tileSize * 2));
+					polyPoints[p] = spaceToScreen(transformPoint(polyPoints[p], sRef.pos, sRef.normal, tRef.tileSize * 2));
 				}
 				
 				//if the cursor is inside the tile, make that selected and then break out
@@ -544,7 +544,7 @@ class State_Edit_Tiles extends State_Edit {
 				}
 			}
 			var tileCoords = tRef.worldPositionOfTile(this.targetTile[0], this.targetTile[1] + 1);
-			this.selectedTileExtra = new Tile_Plexiglass(tileCoords[0], tileCoords[1], tileCoords[2], tRef.tileSize, tRef.strips[this.targetTile[0]].normal, tRef, tRef.color, 0.5);
+			this.selectedTileExtra = new Tile_Plexiglass(tileCoords[0], tileCoords[1], tileCoords[2], tRef.tileSize, sRef.normal, tRef, tRef.color, 0.5);
 			this.selectedTileExtra.playerDist = 50;
 			this.selectedTileExtra.cameraDist = 50;
 		}
@@ -712,44 +712,44 @@ class State_Edit_Tiles extends State_Edit {
 	}
 
 	handleKeyPress(a) {
-		switch(a.keyCode) {
-			case 37:
-			case 65:
+		switch(a.key) {
+			case 'ArrowLeft':
+			case 'a':
 				world_camera.targetTheta -= Math.PI;
 				if (world_camera.targetTheta < 0) {
 					world_camera.targetTheta += Math.PI * 2;
 					world_camera.theta += Math.PI * 2;
 				}
 				break;
-			case 38:
-			case 87:
+			case 'ArrowUp':
+			case 'w':
 				this.cameraMovement = 1;
 				break;
-			case 39:
-			case 68:
+			case 'ArrowRight':
+			case 'd':
 				world_camera.targetTheta += Math.PI;
 				if (world_camera.targetTheta > Math.PI * 2) {
 					world_camera.targetTheta -= Math.PI * 2;
 					world_camera.theta -= Math.PI * 2;
 				}
 				break;
-			case 40:
-			case 83:
+			case 'ArrowDown':
+			case 's':
 				this.cameraMovement = -1;
 				break;
 		}
 	}
 
 	handleKeyNegate(a) {
-		switch(a.keyCode) {
-			case 38:
-			case 87:
+		switch(a.key) {
+			case 'ArrowUp':
+			case 'w':
 				if (this.cameraMovement == 1) {
 					this.cameraMovement = 0;
 				}
 				break;
-			case 40:
-			case 83:
+			case 'ArrowDown':
+			case 's':
 				if (this.cameraMovement == -1) {
 					this.cameraMovement = 0;
 				}
@@ -771,8 +771,8 @@ class State_Edit_Tiles extends State_Edit {
 		//basically just uh... kinda sorta... replace the tile
 		this.tunnel.data[this.targetTile[0]][this.targetTile[1]] = this.tileSelected;
 		var coords = this.tunnel.worldPositionOfTile(this.targetTile[0], this.targetTile[1] + 1);
-		this.tunnel.strips[this.targetTile[0]].tiles[this.targetTile[1]] = this.tunnel.generateTile(this.tileSelected, coords[0], coords[1], coords[2], this.tunnel.tileSize, this.tunnel.strips[this.targetTile[0]].normal, [this.targetTile[0], this.targetTile[1]], this.tunnel.color);
-		replacePlayer(0 + (7 * data_persistent.settings.pastaView));
+		this.tunnel.tiles[this.targetTile[0]][this.targetTile[1]] = this.tunnel.generateTile(this.tileSelected, coords[0], coords[1], coords[2], this.tunnel.tileSize, this.tunnel.strips[this.targetTile[0]].normal, this.targetTile, this.tunnel.color);
+		replacePlayer(data_persistent.settings.pastaView ? 7 : 0);
 		this.tunnel.repairData();
 		this.tunnel.updatePosition(this.tunnel.x, this.tunnel.y, this.tunnel.z);
 		replacePlayer(7);
@@ -1346,48 +1346,48 @@ class State_Edit_World extends State_Edit {
 
 	handleKeyPress(a) {
 		//camera noises
-		switch(a.keyCode) {
-			case 37:
-			case 65:
+		switch(a.key) {
+			case 'ArrowLeft':
+			case 'a':
 				this.cameraForce[0] = -1;
 				break;
-			case 38:
-			case 87:
+			case 'ArrowUp':
+			case 'w':
 				this.cameraForce[1] = 1;
 				break;
-			case 39:
-			case 68:
+			case 'ArrowRight':
+			case 'd':
 				this.cameraForce[0] = 1;
 				break;
-			case 40:
-			case 83:
+			case 'ArrowDown':
+			case 's':
 				this.cameraForce[1] = -1;
 				break;
 		}
 	}
 
 	handleKeyNegate(a) {
-		switch(a.keyCode) {
-			case 37:
-			case 65:
+		switch(a.key) {
+			case 'ArrowLeft':
+			case 'a':
 				if (this.cameraForce[0] == -1) {
 					this.cameraForce[0] = 0;
 				}
 				break;
-			case 38:
-			case 87:
+			case 'ArrowUp':
+			case 'w':
 				if (this.cameraForce[1] == 1) {
 					this.cameraForce[1] = 0;
 				}
 				break;
-			case 39:
-			case 68:
+			case 'ArrowRight':
+			case 'd':
 				if (this.cameraForce[0] == 1) {
 					this.cameraForce[0] = 0;
 				}
 				break;
-			case 40:
-			case 83:
+			case 'ArrowDown':
+			case 's':
 				if (this.cameraForce[1] == -1) {
 					this.cameraForce[1] = 0;
 				}
@@ -1613,7 +1613,7 @@ class State_Playtest extends State_World {
 
 	handleKeyPress(a) {
 		super.handleKeyPress(a);
-		if (a.keyCode == 82 && this.substate == 0) {
+		if (a.key == 'r' && this.substate == 0) {
 			this.handlePlayerDeath();
 		}
 	}

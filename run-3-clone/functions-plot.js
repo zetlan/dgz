@@ -124,7 +124,9 @@ function trueReset() {
 }
 
 function unlockCharacter(characterName) {
-	if (!data_persistent.unlocked.includes(characterName)) {data_persistent.unlocked.push(characterName);}
+	if (!data_persistent.unlocked.includes(characterName)) {
+		data_persistent.unlocked.push(characterName);
+	}
 }
 
 function updatePlotProgression() {
@@ -132,9 +134,12 @@ function updatePlotProgression() {
 
 	//out of date case
 	if (data_persistent.version == undefined || data_persistent.version < world_version) {
-		if (confirm("Your save file is out of date. If you continue without resetting it, things may break. Would you like to reset? \n(Press OK to reset, Cancel to not)")) {
+		if (confirm("Your save file is out of date. Would you like to reset or update it? \n(Press OK to reset, Cancel to update)")) {
 			//resetting stuff
 			trueReset();
+		} else {
+			alert("Your save file is being updated.");
+			updateSave();
 		}
 	} else if (data_persistent.version > world_version) {
 		//past date case, how dare you mess with my save file like this. All your stars are lizards.
@@ -143,16 +148,6 @@ function updatePlotProgression() {
 		}
 	}
 
-	//I have to check for this tag because it's not worth resetting people's data over
-	if (data_persistent.settings.halfRender == undefined) {
-		data_persistent.settings.halfRender = false;
-	}
-
-
-	//activate all cutscene effects
-	if (data_persistent.effectiveCutscenes == undefined) {
-		data_persistent.effectiveCutscenes = [];
-	}
 	data_persistent.effectiveCutscenes.forEach(c => {
 		var reference = eval(`cutsceneData_${c}`);
 		try {
@@ -168,10 +163,18 @@ function updatePlotProgression() {
 		getObjectFromID(a).discovered = true;
 	});
 
-	//level 1 is always discovered
-	//if no characters are unlocked, reset to the default
-	if (data_persistent.unlocked == undefined) {
-		data_persistent.unlocked = ["Runner"];
-	}
 	console.log("applied story progression");
+}
+
+//all the checks for people who had old saves
+function updateSave() {
+	data_persistent.settings.halfRender = data_persistent.settings.halfRender ?? false;
+	data_persistent.effectiveCutscenes = data_persistent.effectiveCutscenes ?? [];
+	data_persistent.unlocked = data_persistent.unlocked ?? ["Runner"];
+
+	data_persistent.deaths = data_persistent.deaths ?? 0;
+	data_persistent.infVisited = data_persistent.infVisited ?? "";
+
+	console.log(`updated save from ${data_persistent.version} to ${world_version}`);
+	data_persistent.version = world_version;
 }

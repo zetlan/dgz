@@ -1,4 +1,14 @@
 
+
+//takes in score data in format [version, points, ]
+function addHighScore(scoreData) {
+	
+}
+
+
+
+
+
 function drawGameOverScreen() {
 	var pxMargin = canvas.width * game_endMargin;
 	var patchHeight = canvas.height - (pxMargin * 2);
@@ -83,7 +93,7 @@ function localStorage_read() {
 }
 
 function localStorage_write() {
-	
+
 }
 
 

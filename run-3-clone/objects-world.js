@@ -182,22 +182,22 @@ class Boat {
 		});
 		pos_inTapesL.forEach(p => {
 			p.forEach(q => {
-				this.transformPointSpecial(q, [this.x, this.y, this.z], this.theta + (Math.PI / 2), this.phi, this.tileSize * 0.9999);
+				this.transformPointSpecial(q, [this.x, this.y, this.z], this.theta + (Math.PI / 2), this.phi, this.tileSize * 0.99);
 			});
 		});
 		pos_inTapesR.forEach(p => {
 			p.forEach(q => {
-				this.transformPointSpecial(q, [this.x, this.y, this.z], this.theta + (Math.PI / 2), this.phi, this.tileSize * 0.9999);
+				this.transformPointSpecial(q, [this.x, this.y, this.z], this.theta + (Math.PI / 2), this.phi, this.tileSize * 0.99);
 			});
 		});
 		pos_outTapesL.forEach(p => {
 			p.forEach(q => {
-				this.transformPointSpecial(q, [this.x, this.y, this.z], this.theta + (Math.PI / 2), this.phi, this.tileSize * 1.00001);
+				this.transformPointSpecial(q, [this.x, this.y, this.z], this.theta + (Math.PI / 2), this.phi, this.tileSize * 1.01);
 			});
 		});
 		pos_outTapesR.forEach(p => {
 			p.forEach(q => {
-				this.transformPointSpecial(q, [this.x, this.y, this.z], this.theta + (Math.PI / 2), this.phi, this.tileSize * 1.00001);
+				this.transformPointSpecial(q, [this.x, this.y, this.z], this.theta + (Math.PI / 2), this.phi, this.tileSize * 1.01);
 			});
 		});
 
@@ -582,7 +582,8 @@ class FarPoly {
 			tempPoints[p] = spaceToRelative(this.points[p], [world_camera.x, world_camera.y, world_camera.z], [world_camera.theta, world_camera.phi, world_camera.rot]);
 		}
 
-		tempPoints = clipToZ0(tempPoints, render_maxColorDistance, false);
+		tempPoints = clipToZ0(tempPoints, 0, false);
+		tempPoints = clipToDistance(tempPoints, render_maxColorDistance * 1.5);
 		
 		//turn points into screen coordinates
 		var screenPoints = [];
@@ -599,6 +600,37 @@ class FarPoly {
 				ctx.lineWidth = 1;
 				ctx.stroke();
 			}
+		}
+	}
+
+	//instead of using Z-distance as the clip metric, uses true distance. Slower, but more precise.
+	beDrawn_precise() {
+		//initial transform to camera coordinates
+		var tempPoints = [];
+		for (var p=this.points.length-1; p>-1; p--) {
+			tempPoints[p] = spaceToRelative(this.points[p], [world_camera.x, world_camera.y, world_camera.z], [world_camera.theta, world_camera.phi, world_camera.rot]);
+		}
+
+		//clipping
+		tempPoints = clipToDistance(tempPoints, render_maxColorDistance, false);
+
+		//transform to screen
+		var screenPoints = [];
+		screenPoints[tempPoints.length-1] = undefined;
+		for (var a=0; a<tempPoints.length; a++) {
+			screenPoints[a] = cameraToScreen(tempPoints[a]);
+		}
+
+		//drawing
+		if (screenPoints.length <= 2) {
+			return;
+		}
+
+		drawPoly("#000", screenPoints);
+		if (editor_active && data_persistent.settings.enableOutlines) {
+			ctx.strokeStyle = color_editor_cursor;
+			ctx.lineWidth = 1;
+			ctx.stroke();
 		}
 	}
 }
@@ -697,7 +729,7 @@ class Powercell {
 		}
 
 		//correcting for outside of tunnel
-		if (!this.parent.coordinateIsInTunnel_Boundless(this.x, this.y, this.z)) {
+		if (!this.parent.coordinateIsInTunnel(this.x, this.y, this.z, false)) {
 			var relPos = dirToTunnelCenter(this.parent, this.speed * (1 - this.friction) * -4, this.x, this.y, this.z);
 			this.pushForce[0] += relPos[0];
 			this.pushForce[1] += relPos[1];
@@ -924,7 +956,7 @@ class PushableBox {
 		//if outside bounds of the tunnel, don't be
 		if (this.dx != 0 || this.dy != 0 || this.dz != 0) {
 			this.box.parent.r -= (this.box.size * 0.7);
-			if (!this.box.parent.coordinateIsInTunnel_Boundless(this.x, this.y, this.z)) {
+			if (!this.box.parent.coordinateIsInTunnel(this.x, this.y, this.z, false)) {
 				var relPos = spaceToRelativeRotless([this.box.parent.x, this.box.parent.y, this.box.parent.z], [this.x, this.y, this.z], this.box.normal);
 				//ignore x, just focus on front/back + up/down
 				var magnitude = Math.sqrt((relPos[1] * relPos[1]) + (relPos[2] * relPos[2]));
@@ -1107,9 +1139,9 @@ class Star {
 					wormDist = world_wormhole.drawR;
 				}
 				//figure out 
+				ctx.beginPath();
 				ctx.strokeStyle = this.color;
 				ctx.lineWidth = this.drawR * 2;
-				ctx.beginPath();
 				ctx.arc(world_wormhole.screenPos[0], world_wormhole.screenPos[1], wormDist, angle - smearAmount, angle + smearAmount);
 				ctx.stroke();
 				return;
@@ -1287,6 +1319,8 @@ class StaticCharacter {
 			return;
 		}
 
+		//make sure house state is defined non-loading state, for permanent static characters
+		this.houseState = {};
 		this.parent.resetWithoutPlayer();
 
 		//put cutscene in the 'activated cutscenes' array
@@ -1301,7 +1335,7 @@ class StaticCharacter {
 	}
 
 	placeSelf() {
-		var targetTile = this.parent.strips[this.strip].tiles[this.tile];
+		var targetTile = this.parent.tiles[this.strip][this.tile];
 		var offset = polToCart(targetTile.dir_down[0], targetTile.dir_down[1], player_radius);
 		this.x = targetTile.x + offset[0];
 		this.y = targetTile.y + offset[1];
@@ -1344,7 +1378,7 @@ class StaticCharacterPermanent extends StaticCharacter {
 		//if self's cutscene has already been activated, don't appear again
 		
 		if (data_persistent.effectiveCutscenes.includes(cutsceneDataSTRING)) {
-			this.houseState = loading_state;
+			this.houseState = {};
 		}
 	}
 }
@@ -1353,16 +1387,17 @@ class StaticCharacterPermanent extends StaticCharacter {
 
 
 
+//with the merging of the tunnel and tunnel_strip classes, I have realized that this class is probably much too large.
 class Tunnel {
 	//so much data here, it's a mess, but oh well
 	constructor(angle, color, data, id, lengthInTiles, power, triggerFunctions, sides, spawns, endSpawns, tilesPerSide, tileSize, x, z, bannedCharacters, music) {
 		this.x = x;
 		this.y = 0;
 		this.z = z;
+		this.r = (tilesPerSide * tileSize) / (2 * Math.sin(Math.PI / sides));
 		this.theta = angle;
 		this.phi = 0;
 
-		
 		this.allowBackwards = false;
 		this.bannedCharacters = bannedCharacters;
 		this.color = color;
@@ -1375,6 +1410,7 @@ class Tunnel {
 		this.functions = triggerFunctions;
 
 		this.id = id;
+		this.len = lengthInTiles;
 		this.music = music;
 		this.playerTilePos = 0;
 		this.power = power;
@@ -1392,39 +1428,27 @@ class Tunnel {
 		});
 
 		this.sides = sides;
-		this.len = lengthInTiles;
 		this.data = data;
 		this.spawns = spawns;
 		this.endSpawns = endSpawns;
 		this.hasSetEndSpawns = this.endSpawns.length > 0;
-		this.strips = [];
+
+		//containing objects
+		this.tiles = [];
+		this.realTiles = [];
+		this.realTilesSimple = [];
+		this.realTilesComplex = [];
 		this.freeObjs = [];
 		this.farPolys = [];
+
 		this.reverseOrder = false;
+		this.simple = true;
 		this.tilesPerSide = tilesPerSide;
 		this.tileSize = tileSize;
-
-		//generating center
-		this.centerPos = [0, 0, (lengthInTiles / 2) * tileSize];
-		[this.centerPos[0], this.centerPos[2]] = rotate(this.centerPos[0], this.centerPos[2], angle);
-		this.centerPos = [this.centerPos[0] + this.x, this.centerPos[1] + this.y, this.centerPos[2] + this.z];
-
-		//generating end
-		this.endPos = [0, 0, lengthInTiles * tileSize];
-		[this.endPos[0], this.endPos[2]] = rotate(this.endPos[0], this.endPos[2], angle);
-		this.endPos = [this.endPos[0] + this.x, this.endPos[1] + this.y, this.endPos[2] + this.z];
-
-		//radius
-		this.r = (this.tilesPerSide * this.tileSize) / (2 * Math.sin(Math.PI / this.sides));
 
 		this.generate();
 		//stop rendering individual tiles when they're less than 1 unit per tile
 		this.maxTileRenderDist = Math.min(render_maxDistance, (this.tileSize * world_camera.scale) / render_minPolySize);
-
-		//map stuffies
-		this.map_startCoords = spaceToScreen([this.x, this.y, this.z]);
-		this.map_circleCoords = spaceToScreen([this.centerPos[0], this.centerPos[1], this.centerPos[2]]);
-		this.map_endCoords = spaceToScreen([this.endPos[0], this.endPos[1], this.endPos[2]]);
 	}
 
 	beDrawn() {
@@ -1439,11 +1463,11 @@ class Tunnel {
 
 		//super high detail for parent
 		if (this == player.parentPrev) {
-			if (data_persistent.settings.altRender) {
-				this.beDrawn_playerParentAlternate();
+			//if (false){//this.simple || !data_persistent.settings.altRender) {
+				this.beDrawn_playerParent();
 				return;
-			}
-			this.beDrawn_playerParent();
+			//}
+			this.beDrawn_playerParentAlternate();
 			return;
 		}
 
@@ -1458,158 +1482,85 @@ class Tunnel {
 		}
 	}
 
-	beDrawn_playerParent() {
-		drawPlayer = true;
-		this.farPolys.forEach(f => {
-			f.beDrawn();
-		});
+	//an attempt to perfectly draw a tunnel, always
+	beDrawn_playerParentAlternate() {
+		//here's the idea: BSTs can draw space perfectly. What if create a BST for this tunnel?
+		var regionOutFar = [];
+		var regionOutNear = [];
+		var regionIn = [];
+		var cameraIsIn = this.coordinateIsInTunnel(world_camera.x, world_camera.y, world_camera.z, false);
+		var cameraAngle = Math.atan2(world_camera.y - this.y, rotate(world_camera.x - this.x, world_camera.z - this.z, -this.theta)[0]);
 
 		var tunnelSize = this.sides * this.tilesPerSide;
 		var tunnelStrip = getClosestObject(this.strips);
-		var strip;
 
-		//organize strips based around that
-		var freeObjsInMiddle = !this.coordinateIsInTunnel_Boundless(world_camera.x, world_camera.y, world_camera.z);
-
-		//back faces
-		for (var n=tunnelSize; n>Math.floor(tunnelSize / 2); n--) {
-			strip = ((tunnelStrip + (Math.floor(n / 2) * boolToSigned(n % 2 == 1))) + tunnelSize) % tunnelSize;
-			if (drawPlayer) {
-				if (!this.strips[strip].playerIsOnTop(strip)) {
-					drawPlayer = false;
-					player.beDrawn();
-				}
-			}
-			this.strips[strip].beDrawn();
-		}
-
-		//if the camera is outside the tunnel do the hybrid approach. If not, do the normal way.
-		if (freeObjsInMiddle) {
-			this.freeObjs.forEach(f => {
-				f.beDrawn();
-			});
-		}
-
-		//front faces
-		for (var n=Math.floor(tunnelSize / 2); n>0; n--) {
-			strip = ((tunnelStrip + (Math.floor(n / 2) * boolToSigned(n % 2 == 1))) + tunnelSize) % tunnelSize;
-			if (drawPlayer) {
-				if (!this.strips[strip].playerIsOnTop(strip)) {
-					drawPlayer = false;
-					player.beDrawn();
-				}
-			}
-			this.strips[strip].beDrawn();
-		}
-
-		//if the free objects still aren't drawn, draw them
-		if (!freeObjsInMiddle) {
-			this.freeObjs.forEach(f => {
-				f.beDrawn();
-			});
-		}
-
-		//if the player's still not drawn, finally draw them
-		if (drawPlayer) {
-			player.beDrawn();
-		}
-
-		if (editor_active) {
-			//numbering strips
-			ctx.font = `${canvas.height / 48}px Comfortaa`;
-			ctx.fillStyle = color_text_bright;
-			var [tX, tY] = [0, 0];
-			for (var v=0; v<tunnelSize; v++) {
-				if (!isClipped([this.strips[v].x, this.strips[v].y, this.strips[v].z])) {
-					[tX, tY] = spaceToScreen([this.strips[v].x, this.strips[v].y, this.strips[v].z]);
-					ctx.fillText(v, tX + 5, tY);
-				}
-			}
-			//dot for closest spot
-			if (!isClipped([this.strips[tunnelStrip].x, this.strips[tunnelStrip].y, this.strips[tunnelStrip].z])) {
-				[tX, tY] = spaceToScreen([this.strips[tunnelStrip].x, this.strips[tunnelStrip].y, this.strips[tunnelStrip].z]);
-				drawCircle("#FFF", tX, tY, 10);
-			}
-		}
-	}
-
-	beDrawn_playerParentAlternate() {
-		drawPlayer = true;
-		//far polygons
+		//draw farpolys first, this isn't in the 5 steps but it's important for optimization
 		this.farPolys.forEach(f => {
 			f.beDrawn();
 		});
 
-		//if self has only 1 tile per side, it doesn't matter, just do regular
-		if (this.tilesPerSide == 1) {
-			this.beDrawn_playerParent();
-			return;
+		//sort objects
+		var sortObjs = [player, ...this.freeObjs];
+		if (player.duplicates != undefined && player.duplicates.length > 0) {
+			sortObjs = [sortObjs, ...player.duplicates];
 		}
-		//figure out whether to do free objects in the center or not
-		var doFreeObjsHalfway = !this.coordinateIsInTunnel_Boundless(world_camera.x, world_camera.y, world_camera.z);
+
+		sortObjs.forEach(o => {
+			//if the object is inside, cool! If it's not, sort it into far and near depending on camera location
+			if (this.coordinateIsInTunnel(o.x, o.y, o.z, false)) {
+				regionIn.push(o);
+				return;
+			}
+			if (cameraIsIn) {
+				regionOutFar.push(o);
+				return;
+			}
+			if (modularDifference(Math.atan2(o.y - this.y, rotate(o.x - this.x, o.z - this.z, -this.theta)[0]), cameraAngle, Math.PI * 2) > Math.PI / 2) {
+				regionOutFar.push(o);
+			} else {
+				regionOutNear.push(o);
+			}
+		});
+
+		regionOutFar = orderObjects(regionOutFar);
+		regionOutNear = orderObjects(regionOutNear);
+		regionIn = orderObjects(regionIn);
+		//outside far
+		regionOutFar.forEach(d => {
+			d.beDrawn();
+		});
+
+		//outside near is lumped in with outside far if the camera is inside
+
+		//walls far
+		for (var n=tunnelSize; n>Math.floor(tunnelSize / 2); n--) {
+			this.beDrawn_strip(((tunnelStrip + (Math.floor(n / 2) * boolToSigned(n % 2 == 1))) + tunnelSize) % tunnelSize);
+		}
 		
-
-		//determine what the closest side is 
-		var relCameraPos = spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], [-1 * this.theta, this.phi]);
-		var closestSide = Math.floor((((Math.atan2(relCameraPos[1], relCameraPos[0]) + (Math.PI * (2 + (1 / this.sides)))) / (Math.PI * 2)) % 1) * this.sides);
-		var trueSideStrip;
-		var centerStripOffset;
-		var nowDrawing;
-
-		//zigzag pattern of side (first half)
-		for (var side=this.sides; side>Math.floor(this.sides/2)-1; side--) {
-			//true side strip is the index of the strip at the start of the side
-			trueSideStrip = modulate((closestSide + (Math.floor(side / 2) * boolToSigned(side % 2 == 1))) * this.tilesPerSide, this.sides * this.tilesPerSide);
-			//center strip offset is the number of the strip that the camera is on top of
-			centerStripOffset = Math.floor((spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.strips[trueSideStrip].x, this.strips[trueSideStrip].y, this.strips[trueSideStrip].z], this.strips[trueSideStrip].normal)[1] / this.tileSize) + 0.5);
-			centerStripOffset = clamp(centerStripOffset, 0, this.tilesPerSide);
-			//loop through strips in current size, same zigzag pattern but with strips instead of sides
-			for (var n=this.tilesPerSide*2; n>0; n--) {
-				nowDrawing = (trueSideStrip + centerStripOffset + (Math.floor(n / 2) * boolToSigned(n % 2 == 1))) % (this.sides * this.tilesPerSide);
-				//don't draw strips out of bounds
-				if (nowDrawing >= trueSideStrip && nowDrawing < trueSideStrip + this.tilesPerSide) {
-					if (drawPlayer && !this.strips[nowDrawing].playerIsOnTop(nowDrawing)) {
-						player.beDrawn();
-						drawPlayer = false;
-					}
-					this.strips[nowDrawing].beDrawn();
-				}
+		//near walls for inside camera
+		if (cameraIsIn) {
+			for (var n=Math.floor(tunnelSize / 2); n>0; n--) {
+				this.beDrawn_strip(((tunnelStrip + (Math.floor(n / 2) * boolToSigned(n % 2 == 1))) + tunnelSize) % tunnelSize);
 			}
 		}
 
-		if (doFreeObjsHalfway) {
-			this.freeObjs.forEach(f => {
-				f.beDrawn();
-			});
-		}
+		//inside of tunel
+		regionIn.forEach(d => {
+			d.beDrawn();
+		});
 
-		//same zigzag pattern, but second half
-		for (var side=Math.floor(this.sides/2)-1; side>0; side--) {
-			trueSideStrip = modulate((closestSide + (Math.floor(side / 2) * boolToSigned(side % 2 == 1))) * this.tilesPerSide, this.sides * this.tilesPerSide);
-			centerStripOffset = Math.floor((spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.strips[trueSideStrip].x, this.strips[trueSideStrip].y, this.strips[trueSideStrip].z], this.strips[trueSideStrip].normal)[1] / this.tileSize) + 0.5);
-			centerStripOffset = clamp(centerStripOffset, 0, this.tilesPerSide);
-			for (var n=this.tilesPerSide*2; n>0; n--) {
-				nowDrawing = (trueSideStrip + centerStripOffset + (Math.floor(n / 2) * boolToSigned(n % 2 == 1))) % (this.sides * this.tilesPerSide);
-				if (nowDrawing >= trueSideStrip && nowDrawing < trueSideStrip + this.tilesPerSide) {
-					if (drawPlayer && !this.strips[nowDrawing].playerIsOnTop(nowDrawing)) {
-						player.beDrawn();
-						drawPlayer = false;
-					}
-					this.strips[nowDrawing].beDrawn();
-				}
+		//near walls for outside camera
+		if (!cameraIsIn) {
+			for (var n=Math.floor(tunnelSize / 2); n>0; n--) {
+				this.beDrawn_strip(((tunnelStrip + (Math.floor(n / 2) * boolToSigned(n % 2 == 1))) + tunnelSize) % tunnelSize);
 			}
 		}
 
-
-		if (!doFreeObjsHalfway) {
-			this.freeObjs.forEach(f => {
-				f.beDrawn();
+		//close out objects for outside camera
+		if (!cameraIsIn) {
+			regionOutNear.forEach(d => {
+				d.beDrawn();
 			});
-		}
-
-		//draw player if they haven't been drawn yet
-		if (drawPlayer) {
-			player.beDrawn();
 		}
 
 		//debug stuff
@@ -1619,15 +1570,128 @@ class Tunnel {
 			ctx.fillStyle = color_text_bright;
 			var [tX, tY] = [0, 0];
 			for (var v=0; v<this.strips.length; v++) {
-				if (!isClipped([this.strips[v].x, this.strips[v].y, this.strips[v].z])) {
-					[tX, tY] = spaceToScreen([this.strips[v].x, this.strips[v].y, this.strips[v].z]);
+				if (!isClipped(this.strips[v].pos)) {
+					[tX, tY] = spaceToScreen(this.strips[v].pos);
 					ctx.fillText(v, tX + 5, tY);
 				}
 			}
 			//dot for closest spot
-			var strip = closestSide * this.tilesPerSide;
-			if (!isClipped([this.strips[strip].x, this.strips[strip].y, this.strips[strip].z])) {
-				[tX, tY] = spaceToScreen([this.strips[strip].x, this.strips[strip].y, this.strips[strip].z]);
+			if (!isClipped(this.strips[tunnelStrip].pos)) {
+				[tX, tY] = spaceToScreen(this.strips[tunnelStrip].pos);
+				drawCircle("#FFF", tX, tY, 10);
+			}
+		}
+	}
+
+	//a function that perfectly draws a tunnel, as long as it has no crumbling tiles, ramps, or boxes
+	beDrawn_playerParent() {
+		/*ok here's the idea: if a tunnel is simple, we can approximate it into 5 regions:
+			the outside of the tunnel (half away from the camera)
+			the outside of the tunnel (half towards the camera)
+			the tunnel walls (half away)
+			the tunnel walls (half towards)
+			the inside of the tunnel
+
+		and as long as those 5 regions are ordered correctly, the entire tunnel will get drawn correctly
+
+		if the camera is inside the tunnel, it just has to go outside -> tunnel walls -> inside.
+		If the camera is outside the tunnel, it has to go back to front, so outside away -> walls away -> inside -> walls towards -> outside towards
+
+		the player is included as a free object, because they are free.
+		*/
+		var regionOutFar = [];
+		var regionOutNear = [];
+		var regionIn = [];
+		var cameraIsIn = this.coordinateIsInTunnel(world_camera.x, world_camera.y, world_camera.z, false);
+		var cameraAngle = Math.atan2(world_camera.y - this.y, rotate(world_camera.x - this.x, world_camera.z - this.z, -this.theta)[0]);
+
+		var tunnelSize = this.sides * this.tilesPerSide;
+		var tunnelStrip = getClosestObject(this.strips);
+
+		//draw farpolys first, this isn't in the 5 steps but it's important for optimization
+		this.farPolys.forEach(f => {
+			f.beDrawn();
+		});
+
+		//sort objects
+		var sortObjs = [player, ...this.freeObjs];
+		if (player.duplicates != undefined && player.duplicates.length > 0) {
+			sortObjs = [sortObjs, ...player.duplicates];
+		}
+
+		sortObjs.forEach(o => {
+			//if the object is inside, cool! If it's not, sort it into far and near depending on camera location
+			if (this.coordinateIsInTunnel(o.x, o.y, o.z, false)) {
+				regionIn.push(o);
+				return;
+			}
+			if (cameraIsIn) {
+				regionOutFar.push(o);
+				return;
+			}
+			if (modularDifference(Math.atan2(o.y - this.y, rotate(o.x - this.x, o.z - this.z, -this.theta)[0]), cameraAngle, Math.PI * 2) > Math.PI / 2) {
+				regionOutFar.push(o);
+			} else {
+				regionOutNear.push(o);
+			}
+		});
+
+		regionOutFar = orderObjects(regionOutFar);
+		regionOutNear = orderObjects(regionOutNear);
+		regionIn = orderObjects(regionIn);
+		//outside far
+		regionOutFar.forEach(d => {
+			d.beDrawn();
+		});
+
+		//outside near is lumped in with outside far if the camera is inside
+
+		//walls far
+		for (var n=tunnelSize; n>Math.floor(tunnelSize / 2); n--) {
+			this.beDrawn_strip(((tunnelStrip + (Math.floor(n / 2) * boolToSigned(n % 2 == 1))) + tunnelSize) % tunnelSize);
+		}
+		
+		//near walls for inside camera
+		if (cameraIsIn) {
+			for (var n=Math.floor(tunnelSize / 2); n>0; n--) {
+				this.beDrawn_strip(((tunnelStrip + (Math.floor(n / 2) * boolToSigned(n % 2 == 1))) + tunnelSize) % tunnelSize);
+			}
+		}
+
+		//inside of tunel
+		regionIn.forEach(d => {
+			d.beDrawn();
+		});
+
+		//near walls for outside camera
+		if (!cameraIsIn) {
+			for (var n=Math.floor(tunnelSize / 2); n>0; n--) {
+				this.beDrawn_strip(((tunnelStrip + (Math.floor(n / 2) * boolToSigned(n % 2 == 1))) + tunnelSize) % tunnelSize);
+			}
+		}
+
+		//close out objects for outside camera
+		if (!cameraIsIn) {
+			regionOutNear.forEach(d => {
+				d.beDrawn();
+			});
+		}
+
+		//debug stuff
+		if (editor_active) {
+			//numbering strips
+			ctx.font = `${canvas.height / 48}px Comfortaa`;
+			ctx.fillStyle = color_text_bright;
+			var [tX, tY] = [0, 0];
+			for (var v=0; v<this.strips.length; v++) {
+				if (!isClipped(this.strips[v].pos)) {
+					[tX, tY] = spaceToScreen(this.strips[v].pos);
+					ctx.fillText(v, tX + 5, tY);
+				}
+			}
+			//dot for closest spot
+			if (!isClipped(this.strips[tunnelStrip].pos)) {
+				[tX, tY] = spaceToScreen(this.strips[tunnelStrip].pos);
 				drawCircle("#FFF", tX, tY, 10);
 			}
 		}
@@ -1641,10 +1705,10 @@ class Tunnel {
 
 		var tunnelSize = this.strips.length;
 		var tunnelStrip = getClosestObject(this.strips);
-		var freeObjsInMiddle = !this.coordinateIsInTunnel_Boundless(world_camera.x, world_camera.y, world_camera.z);
+		var freeObjsInMiddle = !this.coordinateIsInTunnel(world_camera.x, world_camera.y, world_camera.z, false);
 
 		for (var n=tunnelSize; n>tunnelSize / 2; n--) {
-			this.strips[((tunnelStrip + (Math.floor(n / 2) * boolToSigned(n % 2 == 1))) + tunnelSize) % tunnelSize].beDrawn();
+			this.beDrawn_strip(((tunnelStrip + (Math.floor(n / 2) * boolToSigned(n % 2 == 1))) + tunnelSize) % tunnelSize);
 		}
 
 		if (freeObjsInMiddle) {
@@ -1654,7 +1718,7 @@ class Tunnel {
 		}
 
 		for (var n=Math.floor(tunnelSize / 2); n>0; n--) {
-			this.strips[((tunnelStrip + (Math.floor(n / 2) * boolToSigned(n % 2 == 1))) + tunnelSize) % tunnelSize].beDrawn();
+			this.beDrawn_strip(((tunnelStrip + (Math.floor(n / 2) * boolToSigned(n % 2 == 1))) + tunnelSize) % tunnelSize);
 		}
 
 		if (!freeObjsInMiddle) {
@@ -1677,7 +1741,41 @@ class Tunnel {
 		ctx.lineWidth = 2;
 	}
 
-	beDrawnOnMap(drawPoint) {
+	beDrawn_strip(stripNum) {
+		if (!this.reverseOrder) {
+			this.realTiles[stripNum].forEach(t => {
+				if (t.playerDist < render_maxColorDistance + t.size || (t.size / t.cameraDist) * world_camera.scale > render_minTileSize) {
+					t.beDrawn();
+				}
+			});
+		} else {
+			for (var t=this.realTiles[stripNum].length-1; t>-1; t--) {
+				if (this.realTiles[stripNum][t].playerDist < render_maxColorDistance + this.realTiles[stripNum][t].size || 
+				(this.realTiles[stripNum][t].size / this.realTiles[stripNum][t].cameraDist) * world_camera.scale > render_minTileSize) {
+					this.realTiles[stripNum][t].beDrawn();
+				}
+			}
+		}
+
+		//debug
+		if (editor_active) {
+			ctx.beginPath();
+			var cXYZ = polToCart(...this.strips[stripNum].normal, 10);
+			var dXYZ = polToCart(-this.theta, 0, this.tileSize * this.tiles[stripNum].length);
+
+			//spawn
+			ctx.lineWidth = 4;
+			ctx.strokeStyle = this.spawns.includes(stripNum) ? "#0F0" : "#808";
+			drawWorldLine(this.strips[stripNum].pos, [this.strips[stripNum].pos[0] + cXYZ[0], this.strips[stripNum].pos[1] + cXYZ[1], this.strips[stripNum].pos[2] + cXYZ[2]]);
+
+			//end spawn
+			ctx.strokeStyle = this.endSpawns.includes(stripNum) ? "#0F0" : "#808";
+			drawWorldLine([this.strips[stripNum].pos[0] + dXYZ[0], this.strips[stripNum].pos[1] + dXYZ[1], this.strips[stripNum].pos[2] + dXYZ[2]], 
+				[this.strips[stripNum].pos[0] + dXYZ[0] + cXYZ[0], this.strips[stripNum].pos[1] + dXYZ[1] + cXYZ[1], this.strips[stripNum].pos[2] + dXYZ[2] + cXYZ[2]]);
+		}
+	}
+
+	beDrawn_map(drawPoint) {
 		this.map_startCoords = spaceToScreen([this.x, this.y, this.z]);
 		this.map_endCoords = spaceToScreen([this.endPos[0] - (tunnel_transitionLength * Math.sin(this.theta)), this.endPos[1], this.endPos[2] + (tunnel_transitionLength * Math.cos(this.theta))]);
 
@@ -1700,13 +1798,24 @@ class Tunnel {
 		ctx.stroke();
 	}
 
-	beDrawn_selected() {
+	beDrawn_mapSelected() {
 		//drawing theta circle + knob
 		ctx.beginPath();
 		ctx.strokeStyle = color_editor_cursor;
 		ctx.ellipse(this.map_startCoords[0], this.map_startCoords[1], editor_thetaCircleRadius, editor_thetaCircleRadius, 0, 0, Math.PI * 2);
 		ctx.stroke();
 		drawCircle(color_editor_cursor, this.map_startCoords[0] + (editor_thetaCircleRadius * Math.cos(this.theta)), this.map_startCoords[1] - (editor_thetaCircleRadius * Math.sin(this.theta)), editor_thetaKnobRadius);
+	}
+
+	calculatePoints() {
+		this.centerPos = [0, 0, (this.len / 2) * this.tileSize];
+		[this.centerPos[0], this.centerPos[2]] = rotate(this.centerPos[0], this.centerPos[2], this.theta);
+		this.centerPos = [this.centerPos[0] + this.x, this.centerPos[1] + this.y, this.centerPos[2] + this.z];
+
+		//generating end
+		this.endPos = [0, 0, this.len * this.tileSize];
+		[this.endPos[0], this.endPos[2]] = rotate(this.endPos[0], this.endPos[2], this.theta);
+		this.endPos = [this.endPos[0] + this.x, this.endPos[1] + this.y, this.endPos[2] + this.z];
 	}
 
 	calculateBackwardsAllow() {
@@ -1723,31 +1832,24 @@ class Tunnel {
 		}
 	}
 
-	coordinateIsInTunnel_Bounded(x, y, z) {
-		//rotate by tunnel theta
-		[x, z] = rotate(x - this.x, z - this.z, this.theta * -1);
+	calculateBoundsPoly() {
+		this.boundsPoly = [];
+		for (var a=0; a<this.sides; a++) {
+			this.boundsPoly.push([this.r * Math.cos(((Math.PI * 2) / this.sides) * (a - 0.5)), this.r * Math.sin(((Math.PI * 2) / this.sides) * (a - 0.5))]);
+		}
+	}
 
-		if (z < 0 || z > (this.len * this.tileSize)) {
+	coordinateIsInTunnel(x, y, z, boundedBOOLEAN) {
+		//rotate by tunnel theta
+		[x, z] = rotate(x - this.x, z - this.z, -this.theta);
+
+		if (boundedBOOLEAN && (z < 0 || z > (this.len * this.tileSize))) {
 			//if the coordinate is out of the tunnel in the z direction
 			return false;
 		}
 
-		//actually making a polygon and checking that is faster than checking with the 3d strips
-		var polyPoints = [];
-		for (var a=0; a<this.sides; a++) {
-			polyPoints.push([this.r * Math.cos(((Math.PI * 2) / this.sides) * (a - 0.5)), this.r * Math.sin(((Math.PI * 2) / this.sides) * (a - 0.5))]);
-		}
-
-		return inPoly([x, y - this.y], polyPoints);
-	}
-
-	coordinateIsInTunnel_Boundless(x, y, z) {
-		var polyPoints = [];
-		for (var a=0; a<this.sides; a++) {
-			polyPoints.push([this.r * Math.cos(((Math.PI * 2) / this.sides) * (a - 0.5)), this.r * Math.sin(((Math.PI * 2) / this.sides) * (a - 0.5))]);
-		}
-
-		return inPoly([rotate(x - this.x, z - this.z, this.theta * -1)[0], y - this.y], polyPoints);
+		//checking with a 2d poly is faster than checking with the 3d strips
+		return inPoly([x, y - this.y], this.boundsPoly);
 	}
 
 	determinePlexiStrength(s, t) {
@@ -1776,8 +1878,8 @@ class Tunnel {
 
 	doComplexLighting() {
 		//loop through all tiles
-		this.strips.forEach(s => {
-			s.realTiles.forEach(t => {
+		this.realTiles.forEach(s => {
+			s.forEach(t => {
 				t.doComplexLighting();
 			});
 		});
@@ -1790,15 +1892,47 @@ class Tunnel {
 		});
 	}
 
+	//from tiles, figure out which ones are the real tiles that apply
+	establishReals() {
+		this.realTiles = [];
+		this.realTilesComplex = [];
+		this.realTilesSimple = [];
+
+		for (var s=0; s<this.tiles.length; s++) {
+			this.realTiles[s] = [];
+			this.realTilesComplex[s] = [];
+			this.realTilesSimple[s] = [];
+
+			for (var t=0; t<this.tiles[s].length; t++) {
+				if (this.tiles[s][t] != undefined) {
+					//if the tile isn't a plexiglass tile (or it is a plexiglass tile and the player's a pastafarian)
+					if ((this.tiles[s][t].minStrength == undefined || player.personalBridgeStrength != undefined)) {
+						this.realTiles[s].push(this.tiles[s][t]);
+
+						//crumbling, ramp, or box check
+						if ((this.tiles[s][t].fallRate ?? this.tiles[s][t].rampPushForce ?? this.tiles[s][t].leftTile) != undefined) {
+							this.realTilesComplex[s].push(this.tiles[s][t]);
+						} else {
+							this.realTilesSimple[s].push(this.tiles[s][t]);
+						}
+					}
+				}
+			}
+		}
+		
+	}
+
 	//hopefully self-explanatory
 	generate() {
 		this.maxTileRenderDist = Math.min(render_maxDistance, (this.tileSize * world_camera.scale) / render_minPolySize);
 		this.generateTiles();
 		this.generatePlexies();
 		this.generateFarPolys();
+		this.calculateBoundsPoly();
+		this.calculatePoints();
 	}
 
-	//this function is a mess. It shoul probably be rewritten from scratch.
+	//this function is a mess. It should probably be rewritten from scratch.
 	generateFarPolys() {
 		this.farPolys = [];
 		var actualPolyPoints = [];
@@ -1806,165 +1940,169 @@ class Tunnel {
 		this.farPolys[-1] = [];
 
 		//strip by strip
-		this.strips.forEach(s => {
+		var realStrip;
+		var fullStrip;
+		for (var s=0; s<this.realTiles.length; s++) {
+			realStrip = this.realTiles[s];
+			fullStrip = this.tiles[s];
+
 			//create bin for farPolys
 			this.farPolys.push([]);
-			if (s.realTiles[0] == undefined) {
-				return;
-			}
-
-			var lastBin = this.farPolys[this.farPolys.length-2];
-			var lastBinIndex = 0;
-			
-			var bin = this.farPolys[this.farPolys.length-1];
-			var lastIndex = s.tiles.indexOf(s.realTiles[0]);
-			
-			var polyRegister = [];
-			var minMax = [];
-
-			//merge controls
-			var possibleMerge = (lastBin.length > 0) && ((this.farPolys.length - 1) % this.tilesPerSide != 0);
-			var merged = false;
-
-			//start behavior
-			if (s.realTiles[0].constructor.name != "Tile_Plexiglass") {
-				polyRegister.push(s.realTiles[0].points[0]);
-				polyRegister.push(s.realTiles[0].points[1]);
-				minMax[0] = lastIndex;
-			}
-			
-
-			for (var t=1; t<s.realTiles.length; t++) {
-				//skip over plexiglass tiles
-				if (s.realTiles[t].constructor.name != "Tile_Plexiglass") {
-					var index = s.tiles.indexOf(s.realTiles[t]);
-
-					//if there's a greater than 1 gap, end + start another polygon
-					if (index - lastIndex > 1) {
-						polyRegister.push(s.tiles[lastIndex].points[2]);
-						polyRegister.push(s.tiles[lastIndex].points[3]);
-						minMax[1] = lastIndex;
-						
-						//object contains the actual points, the min/max tile range of the strip, and the quarter point (spot to add other polys after)
-						bin.push({
-							points: polyRegister,
-							minMax: minMax,
-							quarterPoint: polyRegister[3],
-						});
-						//do merge behavior
-						if (possibleMerge) {
-							merged = false;
-							var newPoly = bin[bin.length-1];
-							var oldPoly = lastBin[lastBinIndex];
-							var doneEarly = false;
-							//loop until has a polygon that matches up
-							while (oldPoly != undefined && oldPoly.minMax[0] <= newPoly.minMax[1] && !doneEarly) {
-								//if the polygon's max is greater / equal to old's min, it can be merged
-								if (oldPoly.minMax[1] >= newPoly.minMax[0]) {
-									merged = true;
-									//special case for if the mins / maxes are the same, otherwise simply add after quarter point
-									var quarterIndex = oldPoly.points.indexOf(oldPoly.quarterPoint) + 1;
-									//if the mins are the same, merge the lower points
-									if (oldPoly.minMax[0] == newPoly.minMax[0]) {
-										oldPoly.points.splice(quarterIndex, 1);
-									} else {
-										oldPoly.points.splice(quarterIndex, 0, newPoly.points[1]);
-									}
-									oldPoly.points.splice(quarterIndex, 0, newPoly.points[0]);
-									oldPoly.points.splice(quarterIndex, 0, newPoly.points[3]);
-									if (oldPoly.minMax[1] == newPoly.minMax[1]) {
-										oldPoly.points.splice(quarterIndex-1, 1);
-									} else {
-										oldPoly.points.splice(quarterIndex, 0, newPoly.points[2]);
-									}
-
-									//fill next object's row with the same
-									newPoly.points = oldPoly.points;
-									doneEarly = true;
-								} else {
-									//increment last polygon
-									lastBinIndex += 1;
-									oldPoly = lastBin[lastBinIndex];
-								}
-								
-							}
-						}
-
-						//if merged, don't add new array of points as it's already in there
-						if (!merged) {
-							actualPolyPoints.push(polyRegister);
-						}
-						polyRegister = [];
-						minMax = [];
-
-						polyRegister.push(s.realTiles[t].points[0]);
-						polyRegister.push(s.realTiles[t].points[1]);
-						minMax[0] = index;
-					}
-					lastIndex = index;
-				}
-			}
-
-			//if a poly is partially finished, finish it
-			if (polyRegister.length > 0) {
-				var lastValidObj = undefined;
-				var i = s.tiles.indexOf(s.realTiles[s.realTiles.length-1]);
-				while (lastValidObj == undefined && i > -1) {
-					if (s.tiles[i] != undefined && s.tiles[i].constructor.name != "Tile_Plexiglass") {
-						lastValidObj = s.tiles[i];
-					} else {
-						i -= 1;
-					}
-				}
-				if (i == -1) {
-					console.log("log", s.tiles.indexOf(s.realTiles[s.realTiles.length-1]), s.tiles);
-				}
-				polyRegister.push(lastValidObj.points[2]);
-				polyRegister.push(lastValidObj.points[3]);
-				minMax[1] = i;
+			//if there are no tiles in the strip, don't do anything further for this strip
+			if (realStrip[0] != undefined) {
 				
-				bin.push({
-					points: polyRegister,
-					minMax: minMax,
-					quarterPoint: polyRegister[3],
-				});
 
-				//more merge behavior
-				if (possibleMerge) {
-					merged = false;
-					var newPoly = bin[bin.length-1];
-					var oldPoly = lastBin[lastBinIndex];
-					var doneEarly = false;
-					while (oldPoly != undefined && oldPoly.minMax[0] <= newPoly.minMax[1] && !doneEarly) {
-						if (oldPoly.minMax[1] >= newPoly.minMax[0]) {
-							merged = true;
-							var quarterIndex = oldPoly.points.indexOf(oldPoly.quarterPoint) + 1;
-							if (oldPoly.minMax[0] == newPoly.minMax[0]) {
-								oldPoly.points.splice(quarterIndex, 1);
-							} else {
-								oldPoly.points.splice(quarterIndex, 0, newPoly.points[1]);
+				var lastBin = this.farPolys[this.farPolys.length-2];
+				var lastBinIndex = 0;
+				
+				var bin = this.farPolys[this.farPolys.length-1];
+				var lastIndex = fullStrip.indexOf(realStrip[0]);
+				
+				var polyRegister = [];
+				var minMax = [];
+
+				//merge controls
+				var possibleMerge = (lastBin.length > 0) && ((this.farPolys.length - 1) % this.tilesPerSide != 0);
+				var merged = false;
+
+				//start behavior
+				if (realStrip[0].constructor.name != "Tile_Plexiglass") {
+					polyRegister.push(realStrip[0].points[0]);
+					polyRegister.push(realStrip[0].points[1]);
+					minMax[0] = lastIndex;
+				}
+
+				for (var t=1; t<realStrip.length; t++) {
+					//skip over plexiglass tiles
+					if (realStrip[t].constructor.name != "Tile_Plexiglass") {
+						var index = fullStrip.indexOf(realStrip[t]);
+
+						//if there's a greater than 1 gap, end + start another polygon
+						if (index - lastIndex > 1) {
+							polyRegister.push(fullStrip[lastIndex].points[2]);
+							polyRegister.push(fullStrip[lastIndex].points[3]);
+							minMax[1] = lastIndex;
+							
+							//object contains the actual points, the min/max tile range of the strip, and the quarter point (spot to add other polys after)
+							bin.push({
+								points: polyRegister,
+								minMax: minMax,
+								quarterPoint: polyRegister[3],
+							});
+							//do merge behavior
+							if (possibleMerge) {
+								merged = false;
+								var newPoly = bin[bin.length-1];
+								var oldPoly = lastBin[lastBinIndex];
+								var doneEarly = false;
+								//loop until has a polygon that matches up
+								while (oldPoly != undefined && oldPoly.minMax[0] <= newPoly.minMax[1] && !doneEarly) {
+									//if the polygon's max is greater / equal to old's min, it can be merged
+									if (oldPoly.minMax[1] >= newPoly.minMax[0]) {
+										merged = true;
+										//special case for if the mins / maxes are the same, otherwise simply add after quarter point
+										var quarterIndex = oldPoly.points.indexOf(oldPoly.quarterPoint) + 1;
+										//if the mins are the same, merge the lower points
+										if (oldPoly.minMax[0] == newPoly.minMax[0]) {
+											oldPoly.points.splice(quarterIndex, 1);
+										} else {
+											oldPoly.points.splice(quarterIndex, 0, newPoly.points[1]);
+										}
+										oldPoly.points.splice(quarterIndex, 0, newPoly.points[0]);
+										oldPoly.points.splice(quarterIndex, 0, newPoly.points[3]);
+										if (oldPoly.minMax[1] == newPoly.minMax[1]) {
+											oldPoly.points.splice(quarterIndex-1, 1);
+										} else {
+											oldPoly.points.splice(quarterIndex, 0, newPoly.points[2]);
+										}
+
+										//fill next object's row with the same
+										newPoly.points = oldPoly.points;
+										doneEarly = true;
+									} else {
+										//increment last polygon
+										lastBinIndex += 1;
+										oldPoly = lastBin[lastBinIndex];
+									}
+									
+								}
 							}
-							oldPoly.points.splice(quarterIndex, 0, newPoly.points[0]);
-							oldPoly.points.splice(quarterIndex, 0, newPoly.points[3]);
-							if (oldPoly.minMax[1] == newPoly.minMax[1]) {
-								oldPoly.points.splice(quarterIndex-1, 1);
-							} else {
-								oldPoly.points.splice(quarterIndex, 0, newPoly.points[2]);
+
+							//if merged, don't add new array of points as it's already in there
+							if (!merged) {
+								actualPolyPoints.push(polyRegister);
 							}
-							newPoly.points = oldPoly.points;
-							doneEarly = true;
-						} else {
-							lastBinIndex += 1;
-							oldPoly = lastBin[lastBinIndex];
+							polyRegister = [];
+							minMax = [];
+
+							polyRegister.push(realStrip[t].points[0]);
+							polyRegister.push(realStrip[t].points[1]);
+							minMax[0] = index;
 						}
-						
+						lastIndex = index;
 					}
 				}
-				if (!merged) {
-					actualPolyPoints.push(polyRegister);
+
+				//if a poly is partially finished, finish it
+				if (polyRegister.length > 0) {
+					var lastValidObj = undefined;
+					var i = fullStrip.indexOf(realStrip[realStrip.length-1]);
+					while (lastValidObj == undefined && i > -1) {
+						if (fullStrip[i] != undefined && fullStrip[i].constructor.name != "Tile_Plexiglass") {
+							lastValidObj = fullStrip[i];
+						} else {
+							i -= 1;
+						}
+					}
+					if (i == -1) {
+						console.log("log", fullStrip.indexOf(realStrip[realStrip.length-1]), fullStrip);
+					}
+					polyRegister.push(lastValidObj.points[2]);
+					polyRegister.push(lastValidObj.points[3]);
+					minMax[1] = i;
+					
+					bin.push({
+						points: polyRegister,
+						minMax: minMax,
+						quarterPoint: polyRegister[3],
+					});
+
+					//more merge behavior
+					if (possibleMerge) {
+						merged = false;
+						var newPoly = bin[bin.length-1];
+						var oldPoly = lastBin[lastBinIndex];
+						var doneEarly = false;
+						while (oldPoly != undefined && oldPoly.minMax[0] <= newPoly.minMax[1] && !doneEarly) {
+							if (oldPoly.minMax[1] >= newPoly.minMax[0]) {
+								merged = true;
+								var quarterIndex = oldPoly.points.indexOf(oldPoly.quarterPoint) + 1;
+								if (oldPoly.minMax[0] == newPoly.minMax[0]) {
+									oldPoly.points.splice(quarterIndex, 1);
+								} else {
+									oldPoly.points.splice(quarterIndex, 0, newPoly.points[1]);
+								}
+								oldPoly.points.splice(quarterIndex, 0, newPoly.points[0]);
+								oldPoly.points.splice(quarterIndex, 0, newPoly.points[3]);
+								if (oldPoly.minMax[1] == newPoly.minMax[1]) {
+									oldPoly.points.splice(quarterIndex-1, 1);
+								} else {
+									oldPoly.points.splice(quarterIndex, 0, newPoly.points[2]);
+								}
+								newPoly.points = oldPoly.points;
+								doneEarly = true;
+							} else {
+								lastBinIndex += 1;
+								oldPoly = lastBin[lastBinIndex];
+							}
+						}
+					}
+					if (!merged) {
+						actualPolyPoints.push(polyRegister);
+					}
 				}
 			}
-		});
+		}
 
 		//dereference the complex objects, then all that's left is the set of points from before. Turn those into FarPolys.
 		this.farPolys = [];
@@ -1975,13 +2113,16 @@ class Tunnel {
 
 	//I apologize in advance for any headaches this function causes.
 	generateTiles() {
+		this.simple = true;
 		this.strips = [];
+		this.tiles = [];
 		//split array into strips, with each strip being its own data structure
 		for (var t=0; t<this.sides*this.tilesPerSide; t++) {
-			//normal
-			var stripNormal = [(Math.PI * 1.5) - this.theta, ((((Math.PI * 2) / this.sides) * Math.floor(t / this.tilesPerSide) * -1) + (Math.PI * 2)) % (Math.PI * 2)];
-			var stripPos = this.worldPositionOfTile(t, 0);
-			var loadingStrip = new Tunnel_Strip(stripPos[0], stripPos[1], stripPos[2], stripNormal, this, this.tileSize, this.theta);
+			this.strips[t] = {
+				normal: [(Math.PI * 1.5) - this.theta, ((((Math.PI * 2) / this.sides) * Math.floor(t / this.tilesPerSide) * -1) + (Math.PI * 2)) % (Math.PI * 2)],
+				pos: this.worldPositionOfTile(t, 0),
+			}
+			this.tiles[t] = [];
 
 			//run through every tile in the strip
 			for (var a=0; a<this.len; a++) {
@@ -1990,6 +2131,14 @@ class Tunnel {
 				if (value == undefined) {
 					value = 0;
 				}
+
+				//simpleton check
+				if (this.simple) {
+					if (value == 3 || (value >= 9 && value <= 13)) {
+						this.simple = false;
+					}
+				}
+
 				//if at the end and is a tile, add to end spawns
 				if (!this.hasSetEndSpawns && a >= this.len - 2 && value > 0) {
 					if (!this.endSpawns.includes(t)) {
@@ -1997,10 +2146,8 @@ class Tunnel {
 					}
 				}
 				var tileCoordinates = this.worldPositionOfTile(t, a+1);
-				loadingStrip.tiles.push(this.generateTile(value, tileCoordinates[0], tileCoordinates[1], tileCoordinates[2], this.tileSize, stripNormal, this.color, t, a));
+				this.tiles[t][a] = this.generateTile(value, tileCoordinates[0], tileCoordinates[1], tileCoordinates[2], this.tileSize, this.strips[t].normal, this.color, t, a);
 			}
-			loadingStrip.establishReals();
-			this.strips.push(loadingStrip);
 		}
 		// if (this.endSpawns.length == 0) {
 		// 	console.log(`oh no! No end spawns for tunnel id~${this.id}`);
@@ -2008,71 +2155,41 @@ class Tunnel {
 		// if (this.spawns.length == 0) {
 		// 	console.log(`oh no! No spawns for tunnel id~${this.id}`);
 		// }
+		this.establishReals();
 	}
 
 	//generates the plexiglass tiles, to go along the edges of the regular tiles
 	generatePlexies() {
-		//run through every strip
-		for (var s=0; s<this.strips.length; s++) {
-			//run through every tile in the strip
-			for (var t=0; t<this.strips[s].tiles.length; t++) {
+		//run through every tile
+		for (var s=0; s<this.tiles.length; s++) {
+			for (var t=0; t<this.tiles[s].length; t++) {
 				//if it's undefined the plexiglass algorithm can be run
-				if (this.strips[s].tiles[t] == undefined) {
+				if (this.tiles[s][t] == undefined) {
 					//determining strength
 					var tileStrength;
 					tileStrength = this.determinePlexiStrength(s, t);
 					//only create tile if strength is great enough
 					if (tileStrength > 0.01) {
 						var tileCoords = this.worldPositionOfTile(s, t+1);
-						this.strips[s].tiles[t] = new Tile_Plexiglass(tileCoords[0], tileCoords[1], tileCoords[2], this.tileSize, this.strips[s].normal, this, this.color, tileStrength);
+						this.tiles[s][t] = new Tile_Plexiglass(tileCoords[0], tileCoords[1], tileCoords[2], this.tileSize, this.strips[s].normal, this, this.color, tileStrength);
 					}
 				}
 			}
-			this.strips[s].establishReals();
 		}
 	}
 
 	//generates a single tile from parameters
 	generateTile(type, x, y, z, size, normal, color, strip, tile) {
-		switch(type) {
-			case 1:
-				return new Tile(x, y, z, size, normal, this, color);
-			case 2:
-				return new Tile_Bright(x, y, z, size, normal, this, color);
-			case 3:
-				return new Tile_Crumbling(x, y, z, size, normal, this, color, [strip, tile]);
-			case 4:
-				return new Tile_Ice(x, y, z, size, normal, this);
-			case 5:
-				return new Tile_Conveyor_Slow(x, y, z, size, normal, this);
-			case 6:
-				return new Tile_Conveyor(x, y, z, size, normal, this);
-			case 7:
-				return new Tile_Conveyor_Left(x, y, z, size, normal, this);
-			case 8:
-				return new Tile_Conveyor_Right(x, y, z, size, normal, this);
-			case 9: 
-				return new Tile_Box(x, y, z, size, normal, this);
-			case 10:
-				return new Tile_Box_Spun(x, y, z, size, normal, this);
-			case 11:
-				return new Tile_Ramp(x, y, z, size, normal, this, color);
-			case 12: 
-				return new Tile_Ice_Ramp(x, y, z, size, normal, this, color);
-			case 13:
-				return new Tile_Warning(x, y, z, size, normal, this);
-
-
-			case 101:
-				return new Tile_Ringed(x, y, z, size, normal, this, color);
-			case 102:
-				return new Tile_Bright_Ringed(x, y, z, size, normal, this, color);
-
-			case 109:
-				return new Tile_Box_Ringed(x, y, z, size, normal, this);
-			default:
-				return undefined;
+		var objType = tunnel_tileObjectAssociation[type];
+		if (objType == undefined) {
+			return undefined;
 		}
+		
+		//I could pass the strip-tile pair as an extra argument, but I don't want to create too many extra arrays. This check prevents that.
+		if (type == 3) {
+			return new objType(x, y, z, size, normal, this, color, [strip, tile]);
+		}
+		return new objType(x, y, z, size, normal, this, color);
 	}
 
 	getCameraDist() {
@@ -2139,17 +2256,11 @@ class Tunnel {
 		if (player.backwards) {
 			//choosing randomly from spawns 
 			spawnChoice = this.endSpawns[Math.floor(randomBounded(0, this.endSpawns.length-1))];
-			//just in case, if there aren't any end spawns, choose from regular spawns
-			if (spawnChoice == undefined) {
-				spawnChoice = this.spawns[Math.floor(randomBounded(0, this.spawns.length-1))];
-			}
 			//place player
-			spawnObj = this.strips[spawnChoice].realTiles[this.strips[spawnChoice].realTiles.length - 1];
+			spawnObj = this.realTiles[spawnChoice][this.realTiles[spawnChoice].length - 1];
 		} else {
-			//choose randomly from spawns
 			spawnChoice = this.spawns[Math.floor(randomBounded(0, this.spawns.length-1))];
-			//placing player on that tile
-			spawnObj = this.strips[spawnChoice].realTiles[0];
+			spawnObj = this.realTiles[spawnChoice][0];
 		}
 		
 		spawnObj.doRotationEffects(player);
@@ -2159,7 +2270,7 @@ class Tunnel {
 		player.y = spawnObj.y + offsetCoords[1];
 		player.z = spawnObj.z + offsetCoords[2];
 		player.dz = 0;
-		this.playerTilePos = rotate(player.x - this.x, player.z - this.z, this.theta * -1)[1] / this.tileSize;
+		this.playerTilePos = rotate(player.x - this.x, player.z - this.z, -this.theta)[1] / this.tileSize;
 
 		//character specfic stuff
 		//duplicator
@@ -2177,11 +2288,10 @@ class Tunnel {
 	}
 
 	placePowercells() {
-		var gentlemanToggle = (player.constructor.name == "Gentleman");
 		//placing power cells
 		var apothemLength = (this.tilesPerSide * this.tileSize) / (2 * Math.tan(Math.PI / this.sides));
 		var truePowercells = powercells_perTunnel;
-		if (gentlemanToggle) {
+		if (player.constructor.name == "Gentleman") {
 			truePowercells = Math.round(truePowercells * powercells_gentlemanMultiplier);
 		}
 		for (var a=0; a<truePowercells; a++) {
@@ -2202,7 +2312,7 @@ class Tunnel {
 	playerIsInBounds() {
 		var newCoords = [player.x - this.x, player.y - this.y, player.z - this.z];
 		//rotating by tunnel theta
-		[newCoords[0], newCoords[2]] = rotate(newCoords[0], newCoords[2], this.theta * -1);
+		[newCoords[0], newCoords[2]] = rotate(newCoords[0], newCoords[2], -this.theta);
 
 		//determining whether the player is in self's bounds using transformed coordinates
 		if (getDistance2d([newCoords[0], newCoords[1]], [0, 0]) < this.r + tunnel_voidWidth && newCoords[2] > 0 && newCoords[2] < (this.len * this.tileSize) + tunnel_transitionLength * 2) {
@@ -2272,9 +2382,15 @@ class Tunnel {
 		this.powerPrevious = this.power;
 		this.powerTime = 0;
 		this.calculateBackwardsAllow();
+		this.establishReals();
+
 		//reset all crumbling tiles
-		this.strips.forEach(a => {
-			a.reset();
+		this.realTiles.forEach(s => {
+			s.forEach(t => {
+				if (t.constructor.name ==  "Tile_Crumbling") {
+					t.reset();
+				}
+			});
 		});
 
 		//remove any out-of house objects
@@ -2335,8 +2451,15 @@ class Tunnel {
 			this.playerTilePos = rotate(player.x - this.x, player.z - this.z, this.theta * -1)[1] / this.tileSize;
 			
 
+			//tick containing objects
 			this.strips.forEach(s => {
-				s.tick();
+				s.cameraDist = getDistance({x: s.pos[0], y: s.pos[1], z: s.pos[2]}, world_camera);
+			});
+
+			this.realTiles.forEach(s => {
+				s.forEach(t => {
+					t.tick();
+				});
 			});
 
 			//handling functions
@@ -2344,78 +2467,10 @@ class Tunnel {
 				this.runTunnelFunctions();
 			}
 
-			//order and then tick free objects
-			this.freeObjs = orderObjects(this.freeObjs, 5);
+			//free objects
 			this.freeObjs.forEach(f => {
 				f.tick();
 			});
-		}
-	}
-
-	handleMouseDown() {
-		//default case, go into the level
-		if (!editor_active) {
-			player.parentPrev = this;
-			this.calculateBackwardsAllow();
-			player.backwards = player.backwards && this.allowBackwards;
-			loading_state = new State_Game();
-			player.parentPrev.reset();
-
-			//displaying text
-			loading_state.text = this.id;
-			loading_state.time = tunnel_textTime;
-			return;
-		}
-
-		var knobCoords = [this.map_startCoords[0] + (editor_thetaCircleRadius * Math.cos(this.theta)), this.map_startCoords[1] - (editor_thetaCircleRadius * Math.sin(this.theta))];
-	
-		//if colliding with the theta change circle, do that stuff
-		if (getDistance2d(knobCoords, [cursor_x, cursor_y]) < editor_thetaKnobRadius) {
-			var diffX = cursor_x - this.map_startCoords[0];
-			var diffY = cursor_y - this.map_startCoords[1];
-			this.theta = (Math.atan2(diffY * -1, diffX) + (Math.PI * 2)) % (Math.PI * 2);
-			this.updatePosition(this.x, this.y, this.z);
-			loading_state.changingTheta = true;
-		} else {
-			//if not, deselect self
-			loading_state.objSelected = undefined;
-			loading_state.changingTheta = false;
-		}
-	}
-
-	handleMouseMove() {
-		if (loading_state.changingTheta) {
-			//update direction
-			this.theta = (Math.atan2(cursor_y - this.map_startCoords[1], this.map_startCoords[0] - cursor_x) + Math.PI) % (Math.PI * 2);
-			this.updatePosition(this.x, this.y, this.z);
-
-			//reset cursor pos 
-			cursor_x = this.map_circleCoords[0];
-			cursor_y = this.map_circleCoords[1];
-		} else {
-			//moving the tunnel
-			var snapX = cursor_x;
-			var snapY = cursor_y;
-
-			//if a tunnel end is close enough to the tunnel start, snap the tunnel to that position
-			var startSelectOffset = [this.map_startCoords[0] - this.map_circleCoords[0], this.map_startCoords[1] - this.map_circleCoords[1]];
-			//calculating tunnel end pos
-			for (var a=0; a<world_objects.length; a++) {
-				if (world_objects[a] != this) {
-					var endPos = world_objects[a].map_endCoords;
-					if (getDistance2d([endPos[0], endPos[1]], [snapX + startSelectOffset[0], snapY + startSelectOffset[1]]) < editor_mapSnapTolerance) {
-						//moving position of selection
-						//get difference between tunnel start coordinates and selected coordinates
-						snapX = endPos[0] - startSelectOffset[0];
-						snapY = endPos[1] - startSelectOffset[1];
-					}
-				}
-			}
-
-			//update selected tunnel position
-			var offset = [this.map_startCoords[0] - this.map_circleCoords[0], this.map_startCoords[1] - this.map_circleCoords[1]];
-			var newCoords = screenToSpace([snapX + offset[0], snapY + offset[1]], world_camera.y);
-			this.updatePosition(newCoords[0], newCoords[1], newCoords[2]);
 		}
 	}
 
@@ -2546,16 +2601,14 @@ class Tunnel_Blocker {
 						//figure out angle
 						//snap to nearest side
 						var offsetAngle = (Math.PI * 2) / this.parent.sides;
-						var angle = 0;
 						var falseLength = internalR / this.parent.tileSize;
+
 						//clipping polygon
-						
 						for (var n=0; n<this.parent.sides; n++) {
 							points = clipToPlane(points, 0, [falseLength * Math.cos(n * offsetAngle), falseLength * Math.sin(n * offsetAngle), 0], [Math.PI / 2, (n * offsetAngle) + Math.PI]);
 						}
 					}
 				}
-				
 
 				if (points.length > 2) {
 					//place tile
@@ -2569,31 +2622,20 @@ class Tunnel_Blocker {
 					});
 					this.tiles.push(new FreePoly_Vertical(realPoints, this.parent.color));
 				}
-				
 			}
 
 			//movement stuffies, every 180 degrees the line gets 1 longer to make a spiral pattern
 			lenUsed += 1;
 			var endDir = (lenUsed >= dirLen);
-			switch (dir) {
-				case 0:
-					xInTiles += 1;
-					break;
-				case 1:
-					yInTiles += 1;
-					if (endDir) {
-						dirLen += 1;
-					}
-					break;
-				case 2:
-					xInTiles -= 1;
-					break;
-				case 3:
-					yInTiles -= 1;
-					if (endDir) {
-						dirLen += 1;
-					}
-					break;
+			if (dir % 2 == 0) {
+				//even dirs
+				xInTiles -= dir - 1;
+			} else {
+				//odd dirs
+				yInTiles -= dir - 2;
+				if (endDir) {
+					dirLen += 1;
+				}
 			}
 			if (endDir) {
 				dir = (dir + 1) % 4;
@@ -2629,17 +2671,6 @@ class Tunnel_Blocker {
 	}
 
 	beDrawn() {
-		//if the player needs to be drawn
-		if (drawPlayer) {
-			//ignore player if they're outside the tunnel
-			if (this.parent.coordinateIsInTunnel_Bounded(player.x, player.y, player.z)) {
-				//if self is in between the camera and the player, draw the player before self
-				if (spaceToRelative([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], [-1 * this.parent.theta, 0])[2] * spaceToRelative([player.x, player.y, player.z], [this.x, this.y, this.z], [-1 * this.parent.theta, 0])[2] < 0) {
-					player.beDrawn();
-					drawPlayer = false;
-				}
-			}
-		}
 		this.tiles.forEach(t => {
 			t.beDrawn();
 		});
@@ -2668,9 +2699,7 @@ class Tunnel_Strip {
 		this.tunnelTheta = tunnelTheta;
 		this.tileSize = tileSize;
 
-		this.tiles = [];
-		this.realTiles = [];
-		this.realsBackwards = [];
+		
 	}
 
 	//returns true if the player should be drawn on top of the strip
@@ -2712,90 +2741,6 @@ class Tunnel_Strip {
 
 		//if there is a special tile there, use the tile's coordinates
 		return this.tiles[tileToCheck].playerIsOnTop();
-	}
-
-	beDrawn() {
-		if (this.parent.reverseOrder) {
-			this.beDrawn_TilesReversed();
-		} else {
-			this.beDrawn_Tiles();
-		}
-
-		//debug
-		if (editor_active) {
-			ctx.beginPath();
-			var cXYZ = polToCart(this.normal[0], this.normal[1], 10);
-			var dXYZ = polToCart((Math.PI * 2) - this.parent.theta, 0, this.parent.tileSize * this.tiles.length);
-			//spawn
-			ctx.lineWidth = 4;
-			ctx.strokeStyle = "#808";
-			if (this.parent.spawns.includes(this.parent.strips.indexOf(this))) {
-				ctx.strokeStyle = "#0F0";
-			}
-			drawWorldLine([this.x, this.y, this.z], [this.x + cXYZ[0], this.y + cXYZ[1], this.z + cXYZ[2]]);
-
-			//end spawn
-			ctx.strokeStyle = "#808";
-			if (this.parent.endSpawns.includes(this.parent.strips.indexOf(this))) {
-				ctx.strokeStyle = "#0F0";
-			}
-			drawWorldLine([this.x + dXYZ[0], this.y + dXYZ[1], this.z + dXYZ[2]], [this.x + dXYZ[0] + cXYZ[0], this.y + dXYZ[1] + cXYZ[1], this.z + dXYZ[2] + cXYZ[2]]);
-		}
-	}
-
-	beDrawn_Tiles() {
-		this.realTiles.forEach(t => {
-			if (t.playerDist < render_maxColorDistance + t.size || (t.size / t.cameraDist) * world_camera.scale > render_minTileSize) {
-				t.beDrawn();
-			}
-		});
-	}
-
-	beDrawn_TilesReversed() {
-		this.realsBackwards.forEach(t => {
-			if (t.playerDist < render_maxColorDistance + t.size || (t.size / t.cameraDist) * world_camera.scale > render_minTileSize) {
-				t.beDrawn();
-			}
-		});
-	}
-
-	//makes drawing / ticking self tiles slightly faster
-	establishReals() {
-		this.realTiles = [];
-		this.realsBackwards = [];
-		for (var t=0; t<this.tiles.length; t++) {
-			if (this.tiles[t] != undefined) {
-				this.tiles[t].isReal = false;
-
-				//if the tile isn't a plexiglass tile (or it is a plexiglass tile and the player's a pastafarian)
-				if ((this.tiles[t].minStrength == undefined || player.personalBridgeStrength != undefined)) {
-					this.tiles[t].isReal = true;
-					this.realTiles.push(this.tiles[t]);
-					this.realsBackwards.splice(0, 0, this.tiles[t]);
-
-					
-				}
-			}
-		}
-	}
-
-	reset() {
-		this.establishReals();
-		//reset all tiles
-		this.realTiles.forEach(t => {
-			if (t.constructor.name ==  "Tile_Crumbling") {
-				t.reset();
-			}
-		});
-	}
-
-	tick() {
-		//setting camera distance
-		this.cameraDist = getDistance(this, world_camera);
-		this.playerDist = getDistance(this, player);
-		this.realTiles.forEach(t => {
-			t.tick();
-		});
 	}
 }
 

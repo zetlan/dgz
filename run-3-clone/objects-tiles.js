@@ -16,7 +16,6 @@ class Tile extends FreePoly {
 		this.calculatePointsAndNormal();
 
 		this.parent = parent;
-		this.isReal = false;
 	}
 
 	calculatePointsAndNormal() {
@@ -568,6 +567,10 @@ class Tile_Conveyor_Right extends Tile_Conveyor {
 
 class Tile_Crumbling extends Tile {
 	constructor(x, y, z, size, normal, parent, color, tilePosition) {
+		var subtractAmount = polToCart(...normal, tunnel_crumbleOffset);
+		x -= subtractAmount[0];
+		y -= subtractAmount[1];
+		z -= subtractAmount[2];
 		super(x, y, z, size, normal, parent, RGBtoHSV(color_crumbling));
 		this.parentPosition = tilePosition;
 		this.activeSize = this.size;
@@ -652,6 +655,7 @@ class Tile_Crumbling extends Tile {
 			super.beDrawn();
 			if (this.playerDist / render_maxColorDistance < 0.95) {
 				ctx.strokeStyle = `hsl(0, 0%, ${linterp(40, 0, this.playerDist / render_maxColorDistance)}%)`;
+				ctx.lineWidth = (2 / this.cameraDist) * world_camera.scale;
 				drawWorldLine(this.line1[0], this.line1[1]);
 				drawWorldLine(this.line2[0], this.line2[1]);
 			}
@@ -681,8 +685,8 @@ class Tile_Crumbling extends Tile {
 		var positions = [[-1, -1], [-1, 0], [-1, 1], [0, 1], [1, 1], [1, 0], [1, -1], [0, -1]];
 		positions.forEach(r => {
 			//keeping numbers in bounds, for strip number through modulo and for tile number through clamping
-			r[0] = (r[0] + this.parentPosition[0] + this.parent.strips.length) % this.parent.strips.length;
-			r[1] = clamp(r[1] + this.parentPosition[1], 0, this.parent.strips[r[0]].length - 1);
+			r[0] = (r[0] + this.parentPosition[0] + this.parent.tiles.length) % this.parent.tiles.length;
+			r[1] = clamp(r[1] + this.parentPosition[1], 0, this.parent.tiles[r[0]].length - 1);
 		});
 
 		positions.forEach(r => {
@@ -691,9 +695,9 @@ class Tile_Crumbling extends Tile {
 	}
 
 	crumbleOtherTile(strip, num) {
-		if (this.parent.strips[strip].tiles[num] instanceof Tile_Crumbling && this.parent.strips[strip].tiles[num].fallStatus == undefined) {
-			this.parent.strips[strip].tiles[num].fallStatus = Math.max(0, this.fallStatus);
-			this.parent.strips[strip].tiles[num].propogateCrumble();
+		if (this.parent.tiles[strip][num].fallRate != undefined && this.parent.tiles[strip][num].fallStatus == undefined) {
+			this.parent.tiles[strip][num].fallStatus = this.fallStatus;
+			this.parent.tiles[strip][num].propogateCrumble();
 		}
 	}
 }
@@ -716,6 +720,7 @@ class Tile_Ice extends Tile {
 class Tile_Ice_Ramp extends Tile_Ice {
 	constructor(x, y, z, size, normal, parent) {
 		super(x, y, z, size, normal, parent);
+		this.rampPushForce = 0.15;
 	}
 
 	calculatePointsAndNormal() {
@@ -733,8 +738,8 @@ class Tile_Ice_Ramp extends Tile_Ice {
 	doCollisionEffects(entity) {
 		super.doCollisionEffects(entity);
 		//push player up a bit
-		if (entity.dy < entity.dz * 0.1) {
-			entity.dy = entity.dz * 0.1 * ((!player.backwards * 2) - 1);
+		if (entity.dy * boolToSigned(!player.backwards) < entity.dz * this.rampPushForce) {
+			entity.dy = entity.dz * this.rampPushForce * boolToSigned(!player.backwards);
 		}
 		entity.onGround = physics_graceTimeRamp;
 	}
@@ -817,6 +822,7 @@ class Tile_Ramp extends Tile {
 		super(x, y, z, size, normal, parent, color);
 		this.tolerance = player_radius * 0.8;
 		this.size += 5;
+		this.rampPushForce = 0.5;
 	}
 
 	calculatePointsAndNormal() {
@@ -834,7 +840,9 @@ class Tile_Ramp extends Tile {
 	doCollisionEffects(entity) {
 		super.doCollisionEffects(entity);
 		//push player up a bit
-		entity.dy = entity.dz * 0.5 * ((!player.backwards * 2) - 1);
+		if (entity.dy * boolToSigned(!player.backwards) < entity.dz * this.rampPushForce) {
+			entity.dy = entity.dz * this.rampPushForce * boolToSigned(!player.backwards);
+		}
 		entity.onground = physics_graceTimeRamp;
 	}
 

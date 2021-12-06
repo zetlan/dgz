@@ -83,6 +83,7 @@ var controls_s = {
 	l: 'ArrowLeft',
 	r: 'ArrowRight',
 	d: 'ArrowDown',
+	u: 'ArrowUp',
 	hd: ' ',
 
 	rl: 'z',
@@ -124,11 +125,6 @@ var data_persistent = {
 	name2: `Person 2`,
 	music1: `type-A`,
 	music2: `type-C`,
-	controls: [
-		Object.keys(controls_s).map(a => controls_s[a]),
-		Object.keys(controls_m.p1).map(a => controls_m.p1[a]),
-		Object.keys(controls_m.p2).map(a => controls_m.p2[a]),
-	]
 }
 
 var menu_buttons = [

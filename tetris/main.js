@@ -57,6 +57,7 @@ var menu_buttonHeightMax = 0.9;
 var menu_settingMarginH = 0.2;
 var menu_settingMarginW = 0.1;
 
+var sprint_lines = 40;
 
 let state_functions_main = [
 	menu_execute,
@@ -215,22 +216,27 @@ function menu_executeSettings() {
 }
 
 function menu_handleKeyPress(a) {
-	switch (a.keyCode) {
-		case 38:
-		case 40:
-			menu_selected = Math.min(Math.max(0, menu_selected + (a.keyCode - 39)), menu_selectSet.length-1);
+	switch (a.key) {
+		case controls_s.u:
+			menu_selected = clamp(menu_selected - 1, 0, menu_selectSet.length-1);
 			while (menu_selectSet[menu_selected][0] == "") {
-				menu_selected = Math.min(Math.max(0, menu_selected + (a.keyCode - 39)), menu_selectSet.length-1);
+				menu_selected = clamp(menu_selected - 1, 0, menu_selectSet.length-1);
+			}
+			break;
+		case controls_s.d:
+			menu_selected = clamp(menu_selected + 1, 0, menu_selectSet.length-1);
+			while (menu_selectSet[menu_selected][0] == "") {
+				menu_selected = clamp(menu_selected + 1, 0, menu_selectSet.length-1);
 			}
 			break;
 
 		//Z for select
-		case 90:
+		case controls_s.rl:
 			if (menu_selectSet[menu_selected][1] != "") {
 				eval(menu_selectSet[menu_selected][1 + (game_substate > 0)]);
 			}
 			break;
-		case 88:
+		case controls_s.rr:
 			if (game_substate > 0) {
 				game_substate = 0;
 				menu_selectSet = menu_buttons;
@@ -243,6 +249,16 @@ function menu_handleKeyPress(a) {
 function endless_execute() {
 	//audio
 	audio_channel1.tick();
+
+	if (game_substate == 2) {
+		//pause menu
+		ctx.fillStyle = boards[0].palette.text;
+		ctx.textAlign = "center";
+		ctx.fillText(`Paused`, canvas.width / 2, canvas.height / 2);
+		//ctx.fillText(`Press`, canvas.width / 2, canvas.height / 2);
+
+		return;
+	}
 	//background
 	ctx.fillStyle = boards[0].palette.bg;
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -298,11 +314,37 @@ function game_handleKeyPress(a) {
 		case controls_s.hd:
 			boards[0].hardDrop();
 			break;
+
+		//escape / enter
+		case controls_s.esc:
+			if (game_substate == 0) {
+				game_substate = 2;
+			} else {
+				game_state = 0;
+				game_substate = 0;
+			}
+			break;
+		case controls_s.confirm:
+			if (game_substate == 2) {
+				game_substate = 0;
+			}
+			break;
 	}
 }
 
 function sprint_execute() {
-
+	endless_execute();
+	//mark line number + time
+	ctx.fillStyle = color_text;
+	ctx.textAlign = "left";
+	ctx.fillText(`${Math.max(0, sprint_lines - boards[0].linesCleared)} Lines to go!`, canvas.width / 20, canvas.height * 0.95);
+	ctx.textAlign = "right";
+	ctx.fillText(`Time Taken: ${Math.round(boards[0].time / framesPerSecond)} s`, canvas.width * 19 / 20, canvas.height * 0.95);
+	//if there are more than the necessary number of lines, pre-emptively end the game
+	if (boards[0].linesCleared > sprint_lines) {
+		boards[0].stopped = true;
+		game_substate = 1;
+	}
 }
 
 function competition_execute() {

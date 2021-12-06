@@ -101,10 +101,9 @@ function drawLock(x, y, width, height) {
 function drawPoly(color, xyPointsArr) {
 	ctx.beginPath();
 	ctx.fillStyle = color;
-	//ctx.moveTo(xyPointsArr[0][0], xyPointsArr[0][1]);
-	xyPointsArr.forEach(p => {
+	for (p of xyPointsArr) {
 		ctx.lineTo(p[0], p[1]);
-	});
+	}
 	ctx.fill();
 }
 
@@ -730,4 +729,8 @@ function drawTile2d(ex, why, size, type) {
 			drawLine([ex + (size * 0.15), why + (size * 0.7)], [ex + (size * 0.85), why + (size * 0.7)]);
 			break;
 	}
+}
+
+function drawTunnelSectionPerfect(tunnel, simpleTileDat, complexTileDat, freeObjs) {
+	//B3Node()
 }
