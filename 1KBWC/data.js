@@ -132,12 +132,19 @@ function getCardFromID(id) {
 var cardPossibleTags = [
 	`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`, `V`, `W`, `X`, `Y`, `Z`,
 	`non-letter start`, `number start`,
-	//`ELEMENT`, 
 	`wide`,
 	`multi-colored`,
 	`point card`,
 	//`rule card`
 ];
+
+/*
+	when adding a card, append it with possible tags:
+		what does the name start with?
+		is it a points card or a rules card?
+		is it wide?
+		is it multi-colored?
+*/
 var cardData = [{
 	id: `0`,
 	name: `______ in another world`,
@@ -4717,7 +4724,7 @@ var cardData = [{
 }, {
 	id: `1133`,
 	name: `PLANTERN`,
-	tags: ["P","point card"],
+	tags: ["P","point card", "multi-colored"],
 }, {
 	id: `1134`,
 	name: `GUARDIAN`,
@@ -4725,7 +4732,7 @@ var cardData = [{
 }, {
 	id: `1135`,
 	name: `gay`,
-	tags: ["G", "wide","point card"],
+	tags: ["G", "wide","point card", "multi-colored"],
 }, {
 	authors: `Cynthia Clementine`,
 	id: `1136`,
@@ -4768,9 +4775,49 @@ var cardData = [{
 }, {
 	id: `1144`,
 	name: `Self-loathing peanut`,
-	tags: ["S"],
+	tags: ["S", "multi-colored"],
 }, {
 	id: `1145`,
 	name: `Gourdcop`,
 	tags: ["G","point card"],
+}, {
+	id: `1146`,
+	name: `Uneasy Observers`,
+	tags: ["U", "point card", "wide", "multi-colored"],
+}, {
+	id: `1147`,
+	name: `Monopoints`,
+	tags: ["M", "point card", "wide", "multi-colored"],
+}, {
+	id: `1148`,
+	name: `DA»«`,
+	tags: ["D", "point card", "wide", "multi-colored"],
+}, {
+	id: `1149`,
+	name: `Cut! a card in 2.`,
+	tags: ["C", "rules card", "multi-colored"],
+}, {
+	id: `1150`,
+	name: `Radio Silence`,
+	tags: ["R", "rules card", "multi-colored"],
+}, {
+	id: `1151`,
+	name: `Reverse All`,
+	tags: ["R", "rules card"],
+}, {
+	id: `1152`,
+	name: `REDACT Light`,
+	tags: ["R", "rules card", "wide", "multi-colored"],
 }];
+
+
+
+/*
+, {
+	id: ``,
+	name: ``,
+	tags: [starts with? point/rules type? wide? color?],
+}
+
+
+*/
