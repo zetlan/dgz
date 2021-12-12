@@ -228,6 +228,7 @@ class State_Edit_Tiles extends State_Edit {
 		this.tileIsRing = false;
 		this.animTileSelected = 0;
 
+		this.functionList = Object.keys(editor_functionMapping);
 		this.triggerSelected = undefined;
 		this.triggerLastChange = 0;
 
@@ -249,9 +250,7 @@ class State_Edit_Tiles extends State_Edit {
 		var oldTypeNum = this.functionList.indexOf(this.triggerSelected[2]);
 		var newTypeNum = modulate(oldTypeNum + incrementBy, this.functionList.length)
 		//splice out old output controllers
-		while (this.sub2Buttons.length > 3) {
-			this.sub2Buttons.splice(this.sub2Buttons.length-1, 1);
-		}
+		this.sub2Buttons = this.sub2Buttons.slice(0, 3);
 		
 
 		//change type and add new output controllers
@@ -395,10 +394,12 @@ class State_Edit_Tiles extends State_Edit {
 			ctx.fillText((objRef[2] != "cutsceneImmerse" && objRef[2] != "cutscene" && objRef[1].toFixed(data_precision) * 1) || objRef[1], canvas.width * (editor_lTriggerW - 0.01), height + textOffset);
 		}
 
-		this.funcButtons.forEach(f => {
-			f.tick();
-			f.beDrawn();
-		});
+		if (this.substate != 2) {
+			this.funcButtons.forEach(f => {
+				f.tick();
+				f.beDrawn();
+			});
+		}
 	}
 
 	drawTriggerEditor() {
@@ -487,10 +488,6 @@ class State_Edit_Tiles extends State_Edit {
 
 			//substate 2 is selecting tunnel trigger properties, it gets its own thing
 			if (this.substate == 2) {
-				if (this.functionList == undefined) {
-					this.functionList = Object.keys(editor_functionMapping);
-					this.incrementTriggerType(0);
-				}
 				this.drawTriggerEditor();
 			}
 		}
@@ -707,6 +704,10 @@ class State_Edit_Tiles extends State_Edit {
 						this.substate = 2;
 					}
 				});
+				if (this.triggerSelected != undefined) {
+					//make sure the controls to edit the trigger are correct
+					this.incrementTriggerType(0);
+				}
 			}
 		}
 	}
