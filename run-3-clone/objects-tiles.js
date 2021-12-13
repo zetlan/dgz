@@ -566,13 +566,13 @@ class Tile_Conveyor_Right extends Tile_Conveyor {
 }
 
 class Tile_Crumbling extends Tile {
-	constructor(x, y, z, size, normal, parent, color, tilePosition) {
+	constructor(x, y, z, size, normal, parent, color) {
 		var subtractAmount = polToCart(...normal, tunnel_crumbleOffset);
 		x -= subtractAmount[0];
 		y -= subtractAmount[1];
 		z -= subtractAmount[2];
 		super(x, y, z, size, normal, parent, RGBtoHSV(color_crumbling));
-		this.parentPosition = tilePosition;
+		this.crumbleSet = -1;
 		this.activeSize = this.size;
 
 		this.home = [this.x, this.y, this.z];
@@ -682,23 +682,11 @@ class Tile_Crumbling extends Tile {
 
 	propogateCrumble() {
 		//crumble all other tiles around self
-		var positions = [[-1, -1], [-1, 0], [-1, 1], [0, 1], [1, 1], [1, 0], [1, -1], [0, -1]];
-		positions.forEach(r => {
-			//keeping numbers in bounds, for strip number through modulo and for tile number through clamping
-			r[0] = (r[0] + this.parentPosition[0] + this.parent.tiles.length) % this.parent.tiles.length;
-			r[1] = clamp(r[1] + this.parentPosition[1], 0, this.parent.tiles[r[0]].length - 1);
+		this.parent.crumbleSets[this.crumbleSet].forEach(t => {
+			if (t != this && t.fallStatus == undefined) {
+				t.fallStatus = this.fallStatus;
+			}
 		});
-
-		positions.forEach(r => {
-			this.crumbleOtherTile(r[0], r[1]);
-		});
-	}
-
-	crumbleOtherTile(strip, num) {
-		if (this.parent.tiles[strip][num].fallRate != undefined && this.parent.tiles[strip][num].fallStatus == undefined) {
-			this.parent.tiles[strip][num].fallStatus = this.fallStatus;
-			this.parent.tiles[strip][num].propogateCrumble();
-		}
 	}
 }
 
