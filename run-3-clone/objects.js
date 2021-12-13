@@ -70,7 +70,7 @@ class Camera {
 
 		this.scale = 200;
 		this.sens = 0.04;
-		this.speed = 10;
+		this.speed = 0.05;
 		this.aSpeed = 0.8;
 		this.speedSettingSelected = 1;
 		this.speedSettings = [1 / 8, 1, 8];
@@ -87,7 +87,7 @@ class Camera {
 		this.dx = 0;
 		this.dy = 0;
 		this.dz = 0;
-		this.dMax = 1;
+		this.dMax = 10;
 
 		this.ax = 0;
 		this.ay = 0;
@@ -128,7 +128,7 @@ class Camera {
 
 			//handling position
 			//xDir, yDir, zDir. These will be transformed to be relative to the camera
-			var mvMag = this.speedSettings[this.speedSettingSelected] * this.speed;
+			var mvMag = this.speedSettings[this.speedSettingSelected];
 			var drMag = Math.min(this.speedSettings[1] * this.aSpeed, this.speedSettings[this.speedSettingSelected] * this.aSpeed);
 			//first 3 are for positional offsets, second two are for keeping rotation stable
 			var moveDirs = [[1, 0, 0], 
