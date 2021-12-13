@@ -618,6 +618,7 @@ function file_import() {
 		var levelToLoad = worldText.substring(0, worldText.indexOf("\n"));
 		worldText = worldText.substring(worldText.indexOf("\n")+1);
 		while (levelToLoad != "") {
+			console.log(levelToLoad);
 			editor_objects.push(new Tunnel_FromData(levelToLoad));
 
 			levelToLoad = worldText.substring(0, worldText.indexOf("\n"));
@@ -892,7 +893,7 @@ function HSVtoRGB(hsvObject) {
 }
 
 function isValidString(str) {
-	return (str != null && str != undefined && str != "");
+	return (str != null && str != undefined && +str != +"");
 }
 
 function localStorage_read() {
@@ -1705,8 +1706,10 @@ function tunnelData_handle(data) {
 				break;
 			case "trigger":
 				//split tag will be ["trigger", "0", "1", "smooth"], or ["trigger", "0", "abcd", "cutscene"]
-				if (splitTag[3] != "cutscene" && splitTag[3] != "cutsceneImmersive") {
-					splitTag[2] *= 1;
+
+				//turn it into a number if that can be done
+				if (+splitTag[2] > -1e1001) {
+					splitTag[2] = +splitTag[2];
 				}
 				tunnelStructure.functions.push([splitTag[1] * 1, splitTag[2], splitTag[3]]);
 				break;
