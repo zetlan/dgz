@@ -1,0 +1,8 @@
+...........................ox......xxx.......................... o
+...........................ox......oxx.....o.................... x
+..................xx.x....oxxx.....oxxxx..oxxxo..ox....oo....... o
+..................xx.x....oxxx.....oxxxx..oxxxo..oo....oo.o..... x
+....x......xooo...xo.o....xoooo...xoooox.xxoxooxxxxoooooo.o..... x
+...xx......xxoo...xo.x....xooox...xoooox.xxoxooxxxxoooooo.o..... o
+oxxxx..xoooooox.xooo.xoo.xooxoox.oxxooxx.xoxxoxxxxxxxxooo.oxxooo x
+oxxxxx.xoooooxx.xooo.xoo.xooxoox.oxxooxx.xoxxoxxxxxxxxooo.oxxooo o
