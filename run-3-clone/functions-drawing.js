@@ -167,9 +167,10 @@ function drawWorldLine(worldPoint1, worldPoint2) {
 function drawWorldPoly(points, color) {
 	//first get camera coordinate points
 	var tempPoints = [];
-	tempPoints[points.length-1] = spaceToRelative(points[points.length-1], [world_camera.x, world_camera.y, world_camera.z], [world_camera.theta, world_camera.phi, world_camera.rot]);
+
+	tempPoints[points.length-1] = spaceToCamera(points[points.length - 1]);
 	for (var p=0; p<points.length-1; p++) {
-		tempPoints[p] = spaceToRelative(points[p], [world_camera.x, world_camera.y, world_camera.z], [world_camera.theta, world_camera.phi, world_camera.rot]);
+		tempPoints[p] = spaceToCamera(points[p]);
 	}
 
 	tempPoints = clipToZ0(tempPoints, render_clipDistance, false);
@@ -441,6 +442,9 @@ function drawSky(bgColor) {
 	
 	//tick wormhole
 	world_wormhole.tick();
+	if (editor_active) {
+		world_wormhole.beDrawn();
+	}
 	ctx.lineCap = "round";
 
 	//stars
