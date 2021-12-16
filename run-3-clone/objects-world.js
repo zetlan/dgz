@@ -422,10 +422,10 @@ class FreePoly {
 		if (Math.abs(entityCoords[2]) < this.tolerance && Math.abs(entityCoords[0]) < (this.size / 2) + this.tolerance && Math.abs(entityCoords[1]) < (this.size / 2) + this.tolerance) {
 			//different behavior depending on side
 			if (entityCoords[2] < 0) {
-				//outside the tunnel
+				//outside
 				entityCoords[2] = -1 * this.tolerance;
 			} else {
-				//inside the tunnel
+				//inside
 				entityCoords[2] = this.tolerance;
 
 				//special collision effects in general
@@ -529,6 +529,30 @@ class FreePoly {
 			var offset = polToCart(this.normal[0], this.normal[1], render_crosshairSize);
 			drawWorldLine([this.x, this.y, this.z], [this.x + offset[0], this.y + offset[1], this.z + offset[2]]);
 		}
+	}
+}
+
+//cut tiles are expected to retain the color of their parent. They're only used for drawing, not collision.
+class FreePoly_Cut extends FreePoly {
+	constructor(points, colorString) {
+		super(points);
+		this.colorStr = colorString;
+	}
+
+	collideWithEntity(entity) {
+		console.log('why?');
+	}
+
+	doCollisionEffects(entity) {
+		console.log('do not!');
+	}
+
+	doRotationEffects(entity) {
+		console.log('stop.');
+	}
+
+	getColor() {
+		return this.colorStr;
 	}
 }
 
@@ -1100,13 +1124,7 @@ class Star {
 
 	beDrawn() {
 		//does space to screen, but without being relative to the camera coordinates.
-		var tX = this.x;
-		var tY = this.y;
-		var tZ = this.z;
-
-		[tX, tZ] = rotate(tX, tZ, world_camera.theta);
-		[tY, tZ] = rotate(tY, tZ, world_camera.phi);
-		[tX, tY] = rotate(tX, tY, world_camera.rot);
+		multiplyPointByMatrix([this.x, this.y, this.z], world_camera.rotMatrix);
 
 		//if the point isn't going to be clipped, continue
 		if (tZ >= render_clipDistance) {
@@ -1443,8 +1461,7 @@ class Tunnel {
 		this.farPolys = [];
 
 		this.reverseOrder = false;
-		this.simpleIn = true;
-		this.simpleOut = true;
+		this.simple = true;
 		this.tilesPerSide = tilesPerSide;
 		this.tileSize = tileSize;
 
@@ -1465,7 +1482,7 @@ class Tunnel {
 
 		//super high detail for parent
 		if (this == player.parentPrev) {
-			if (this.simpleIn && this.simpleOut) { //|| !data_persistent.settings.altRender) {
+			if (this.simple || !data_persistent.settings.altRender) {
 				this.beDrawn_playerParent();
 				return;
 			}
@@ -1512,25 +1529,53 @@ class Tunnel {
 		}
 
 		//sort tiles
-		if (!this.simpleIn || !this.simpleOut) {
+		if (!this.simple) {
 			for (var s=0; s<this.realTilesComplex.length; s++) {
 				this.realTilesComplex[s].forEach(r => {
 					//only add tiles if they're visible
 					if (r.playerDist < render_maxColorDistance + r.size || (r.size / r.cameraDist) * world_camera.scale > render_minTileSize) {
-						if (r.crumbleSet == undefined) {
-							//put crumbling tiles outside
-							insideBST.addObj(r);
-						} else {
+						
+						
+						//put crumbling tiles outside
+						if (r.crumbleSet != undefined) {
 							if (stripsAreBlocking[s]) {
 								outNearBST.addObj(r);
 							} else {
 								outFarBST.addObj(r);
 							}
+							return;
 						}
+
+						//warning tiles have two parts
+						if (r.verticalObj != undefined) {
+							insideBST.addObj(r);
+							insideBST.addObj(r.verticalObj);
+							return;
+						}
+						//boxes have up to 6 parts
+						if (r.drawPolysIn != undefined) {
+							r.drawPolysIn.forEach(q => {
+								insideBST.addObj(q);
+							});
+
+							if (stripsAreBlocking[s]) {
+								r.drawPolysOut.forEach(q => {
+									outNearBST.addObj(q);
+								});
+							} else {
+								r.drawPolysOut.forEach(q => {
+									outFarBST.addObj(q);
+								});
+							}
+							return;
+						}
+
+						//base case
+						insideBST.addObj(r);
 					}
 				});
 			}
-			gloablView = outFarBST;
+			gloablView = insideBST;
 		}
 		//if there aren't actually any objects being displayed in any of the trees, replace the tree with a leaf to avoid normal problems
 		if (insideBST.objs.length == 0) {
@@ -1601,7 +1646,6 @@ class Tunnel {
 
 					//dot for blocking strips
 					if (stripsAreBlocking[v]) {
-						[tX, tY] = spaceToScreen(this.strips[v].pos);
 						drawCircle("#FFF", tX, tY, 10);
 					}
 				}
@@ -1971,8 +2015,8 @@ class Tunnel {
 					if ((this.tiles[s][t].minStrength == undefined || player.personalBridgeStrength != undefined)) {
 						this.realTiles[s].push(this.tiles[s][t]);
 
-						//crumbling, ramp, or box check
-						if ((this.tiles[s][t].fallRate ?? this.tiles[s][t].rampPushForce ?? this.tiles[s][t].leftTile) != undefined) {
+						//crumbling, ramp, vertical, or box check
+						if ((this.tiles[s][t].fallRate ?? this.tiles[s][t].rampPushForce ?? this.tiles[s][t].leftTile ?? this.tiles[s][t].verticalObj) != undefined) {
 							this.realTilesComplex[s].push(this.tiles[s][t]);
 						} else {
 							this.realTilesSimple[s].push(this.tiles[s][t]);
@@ -2213,8 +2257,7 @@ class Tunnel {
 
 	//I apologize in advance for any headaches this function causes.
 	generateTiles() {
-		this.simpleIn = true;
-		this.simpleOut = true;
+		this.simple = true;
 		this.strips = [];
 		this.tiles = [];
 		//split array into strips, with each strip being its own data structure
@@ -2234,14 +2277,9 @@ class Tunnel {
 				}
 
 				//simpleton check
-				if (this.simpleOut) {
-					if (value == 3) {
-						this.simpleOut = false;
-					}
-				}
-				if (this.simpleIn) {
-					if (value >= 9 && value <= 13) {
-						this.simpleIn = false;
+				if (this.simple) {
+					if (value == 3 || (value >= 9 && value <= 13)) {
+						this.simple = false;
 					}
 				}
 
@@ -2262,7 +2300,7 @@ class Tunnel {
 		// 	console.log(`oh no! No spawns for tunnel id~${this.id}`);
 		// }
 		this.establishReals();
-		if (!this.simpleOut) {
+		if (!this.simple) {
 			this.establishCrumbleSets();
 		}
 	}
