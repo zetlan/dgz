@@ -15,8 +15,12 @@ class B3Node {
 			this.objs.push(object);
 			return;
 		}
-
-		var objZ = spaceToRelativeRotless([object.x, object.y, object.z], [this.objs[0].x, this.objs[0].y, this.objs[0].z], this.objs[0].normal)[2];
+		try {
+			var objZ = spaceToRelativeRotless([object.x, object.y, object.z], [this.objs[0].x, this.objs[0].y, this.objs[0].z], this.objs[0].normal)[2];
+		} catch (error) {
+			console.error(`Couldn't add ${object.constructor.name}!`);
+		}
+		
 
 		//if self already contains an object use the object's normal to place the next object
 		if (objZ > this.tolerance) {
@@ -27,7 +31,7 @@ class B3Node {
 			this.hie.addObj(object);
 			return;
 		} 
-		if (objZ < this.tolerance) {
+		if (objZ < -this.tolerance) {
 			//object is behind
 			if (this.low == undefined) {
 				this.low = new B3Node();
@@ -43,7 +47,7 @@ class B3Node {
 	addObjShallow(object) {
 		//if self is undefined... why? This is a full node, shallow objects shouldn't be in it
 		if (this.objs.length == 0) {
-			console.error(`ERROR: cannot put a shallow object into a deep node`);
+			console.error(`ERROR: cannot put a shallow object (${object.constructor.name}) into a deep node`);
 			return;
 		}
 
@@ -121,10 +125,6 @@ class B3NodeLeaf {
 			j.beDrawn();
 		});
 	}
-
-
-
-
 }
 
 
@@ -309,9 +309,9 @@ class IMNode {
 			if (makeCode != undefined) {
 				//decide whether left or right
 				if (makeCode == 1) {
-					sT = this.parent.tunnel.theta + (Math.PI / 2);
+					sT = this.parent.tunnel.theta + (Math.PI * 0.45);
 				} else {
-					sT = this.parent.tunnel.theta - (Math.PI / 2);
+					sT = this.parent.tunnel.theta - (Math.PI * 0.52);
 				}
 				var frontLen = randomBounded(this.parent.tunnel.len * this.parent.tunnel.tileSize * 0.1, this.parent.tunnel.len * this.parent.tunnel.tileSize * 0.9);
 				var frontOff = [-1 * frontLen * Math.sin(this.parent.tunnel.theta), frontLen * Math.cos(this.parent.tunnel.theta)];
@@ -329,11 +329,20 @@ class IMNode {
 		//randomly change theta a bit
 		sT = modulate(sT + randomBounded(-infinite_wobble, infinite_wobble), Math.PI * 2);
 
+
 		var value = Math.floor(randomBounded(this.difficulty, this.difficulty + infinite_levelRange));
-		if (this.parent != undefined) {
-			while (value == this.parent.lastTunnelLine) {
-				value = Math.floor(randomBounded(this.difficulty, this.difficulty + infinite_levelRange));
+
+		//different choice if levels are being forced
+		if (infinite_levelConstraints.length == 0) {
+			if (this.parent != undefined) {
+				while (value == this.parent.lastTunnelLine) {
+					value = Math.floor(randomBounded(this.difficulty, this.difficulty + infinite_levelRange));
+				}
 			}
+		} else {
+			//pick random spot from the array
+			var tunnelID = `id~IM-${infinite_levelConstraints[Math.floor(randomBounded(0, infinite_levelConstraints.length-0.01))]}|`;
+			value = infinite_data.indexOf(infinite_data.filter(s => s.startsWith(tunnelID))[0]);
 		}
 		
 		this.lastTunnelLine = value;
@@ -1297,7 +1306,7 @@ class SceneBubble extends SceneBox {
 }
 
 class SceneSprite extends SceneBox {
-	constructor(x, y, size, spriteSheetSTRING, rotation, backwardsBoolean, textureX, textureY) {
+	constructor(x, y, size, spriteSheetSTRING, rotation, backwardsBoolean, textureX, textureY, opacity) {
 		super(x, y, size, size);
 		this.textureX = textureX;
 		this.textureY = textureY;
@@ -1308,20 +1317,26 @@ class SceneSprite extends SceneBox {
 		if (spriteSheetSTRING == "data_sprites.Map.sheet") {
 			this.texture = new Texture(eval(spriteSheetSTRING), data_sprites.spriteSize * 2, 1e1001, false, backwardsBoolean, [[this.textureX, this.textureY]]);
 		}
+
+		//gets rid of undefined values / values lower than 0
+		this.opacity = (opacity - 1 >= -1) ? opacity : 1;
 		this.rot = rotation;
 	}
 
 	drawMainBody() {
+		ctx.globalAlpha = this.opacity;
 		this.texture.beDrawn(canvas.width * this.x, canvas.height * this.y, this.rot, canvas.width * this.width * 2);
+		ctx.globalAlpha = 1;
 	}
 
 	drawSelectionCircles() {
-		//each texture has 5, for modifying different aspects of the texture
+		//each texture has 6, for modifying different aspects of the texture
 		drawCircle(color_grey_dark, canvas.width * this.x, canvas.height * this.y, editor_handleRadius);
 		drawCircle(color_grey_dark, (canvas.width * this.x) + (canvas.width * this.width), canvas.height * this.y, editor_handleRadius);
 		drawCircle(color_grey_dark, canvas.width * this.x, (canvas.height * this.y) + (canvas.height * this.height), editor_handleRadius);
 		drawCircle(color_grey_dark, (canvas.width * this.x) + (canvas.width * this.width), (canvas.height * this.y) + (canvas.height * this.height), editor_handleRadius);
 		drawCircle(color_grey_dark, (canvas.width * this.x) - (canvas.width * this.width * 0.5), (canvas.height * this.y) + (canvas.height * this.height * 0.5), editor_handleRadius);
+		drawCircle(color_grey_dark, (canvas.width * this.x) - (canvas.width * this.width), canvas.height * (this.y - (this.height * (this.opacity - 0.5) * 2)), editor_handleRadius);
 
 		//colored circles
 		switch (this.selectedPart) {
@@ -1331,7 +1346,13 @@ class SceneSprite extends SceneBox {
 				break;
 			//size
 			case 1:
+				//shows which direction pull tab goes
+				ctx.strokeStyle = color_grey_dark;
+				var dist = editor_constrainViewLen * canvas.width;
+				drawLine([canvas.width * this.x, Math.max((canvas.height * this.y) + (canvas.height * this.height) - dist, canvas.height * this.y)], 
+						[canvas.width * this.x, (canvas.height * this.y) + (canvas.height * this.height) + dist]);
 				drawCircle(color_editor_cursor, canvas.width * this.x, (canvas.height * this.y) + (canvas.height * this.height), editor_handleRadius);
+				
 				break;
 			//direction
 			case 2:
@@ -1339,11 +1360,22 @@ class SceneSprite extends SceneBox {
 				break;
 			//rotation
 			case 3:
+				ctx.strokeStyle = color_grey_dark;
+				ctx.beginPath();
+				var dist = Math.sqrt((canvas.width * this.width) ** 2 + (canvas.height * this.height) ** 2);
+				ctx.ellipse(canvas.width * this.x, canvas.height * this.y, dist, dist, 0, 0, Math.PI * 2);
+				ctx.stroke();
 				drawCircle(color_editor_cursor, (canvas.width * this.x) + (canvas.width * this.width), (canvas.height * this.y) + (canvas.height * this.height), editor_handleRadius);
 				break;
 			//frame type
 			case 4:
 				drawCircle(color_editor_cursor, (canvas.width * this.x) - (canvas.width * this.width * 0.5), (canvas.height * this.y) + (canvas.height * this.height * 0.5), editor_handleRadius);
+				break;
+			//opacity
+			case 5:
+				ctx.strokeStyle = color_grey_dark;
+				drawLine([canvas.width * (this.x - this.width), canvas.height * (this.y - this.height)], [canvas.width * (this.x - this.width), canvas.height * (this.y + this.height)]);
+				drawCircle(color_editor_cursor, (canvas.width * this.x) - (canvas.width * this.width), canvas.height * (this.y - (this.height * (this.opacity - 0.5) * 2)), editor_handleRadius);
 				break;
 		}
 	}
@@ -1402,6 +1434,10 @@ class SceneSprite extends SceneBox {
 					this.texture.frames[0][1] = this.textureY;
 				}
 				break;
+			case 5:
+				//opacity
+				this.opacity = clamp(-((cursor_y / canvas.height) - this.y) / (this.height * 2) + 0.5, 0, 1);
+				break;
 		}
 		if (!cursor_down) {
 			//if the cursor's not down, stop being moved
@@ -1422,19 +1458,21 @@ class SceneSprite extends SceneBox {
 			backwards toggle
 			rotation
 			sprite select
+			opacity select
 		*/
 		return [
 			[x, y],
 			[x, y + height],
 			[x + width, y],
 			[x + width, y + height],
-			[x - (width / 2), y + (height / 2)]
+			[x - (width / 2), y + (height / 2)],
+			[x - width, y - (height * (this.opacity - 0.5) * 2)]
 		];
 	}
 
 	giveStringData() {
 		var dp = data_precision;
-		return `SPR~${this.x.toFixed(dp)}~${this.y.toFixed(dp)}~${this.width.toFixed(dp)}~${this.sheet}~${this.rot.toFixed(dp)}~${this.texture.backwards}~${this.textureX}~${this.textureY}`;
+		return `SPR~${this.x.toFixed(dp)}~${this.y.toFixed(dp)}~${this.width.toFixed(dp)}~${this.sheet}~${this.rot.toFixed(dp)}~${this.texture.backwards}~${this.textureX}~${this.textureY}~${this.opacity.toFixed(Math.ceil(dp / 2))}`;
 	}
 }
 
@@ -1445,6 +1483,7 @@ class SceneTri {
 		this.endX = x2;
 		this.endY = y2;
 		this.width = width;
+		this.minW = 0.004;
 	}
 
 	beDrawn() {
@@ -1480,6 +1519,9 @@ class SceneTri {
 				break;
 			//offset
 			case 2:
+				ctx.strokeStyle = color_grey_dark;
+				drawLine([canvas.width * Math.max(this.x + this.width - editor_constrainViewLen, this.x + this.minW), canvas.height * this.y], 
+					[canvas.width * (this.x + this.width + editor_constrainViewLen), canvas.height * this.y]);
 				drawCircle(color_editor_cursor, (canvas.width * this.x) + (canvas.width * this.width), canvas.height * this.y, editor_handleRadius);
 				break;
 		}
@@ -1499,7 +1541,7 @@ class SceneTri {
 				break;
 			case 2:
 				//width
-				this.width = Math.abs(this.x - (cursor_x / canvas.width));
+				this.width = Math.max(this.minW, (cursor_x / canvas.width) - this.x);
 				break;
 		}
 		if (!cursor_down) {
