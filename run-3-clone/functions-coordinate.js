@@ -10,10 +10,12 @@
 	getDistance_Tunnel(tunnel, obj2);
 	getDistance_LightSource(obj);
 	isClipped(pointArr);
+	multiplyPointByMatrix(pt, mtx);
 	orderObjects(array, places);
 	relativeToSpace(pointToTransform, point, normal);
 	relativeToSpaceRot(pointToTransform, point, normal);
 	screenToSpace(screenSpot, targetZ);
+	spaceToCamera(point);
 	spaceToRelative(pointToChange, point, normal);
 	spaceToRelativeRotless(pointToChange, point, normal);
 	spaceToScreen(point);
@@ -101,21 +103,18 @@ function clipToDistance(polyPoints, tolerance) {
 					//lesser / greater friend decision friend
 					friendCoords = polyPoints[(y+(polyPoints.length + boolToSigned(polyPoints[(y+(polyPoints.length-1))%polyPoints.length][4])))%polyPoints.length];
 					moveAmount = getPercentage(friendCoords[3], polyPoints[y][3], tolerance);
-					polyPoints[y] = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), 
-								linterp(friendCoords[2], polyPoints[y][2], moveAmount), linterp(friendCoords[3], polyPoints[y][3], moveAmount), true];
+					polyPoints[y] = [...linterp3d(friendCoords, polyPoints[y], moveAmount), linterp(friendCoords[3], polyPoints[y][3], moveAmount), true];
 					break;
 				case 2:
 					//move towards both friends
 					var friendCoords = polyPoints[(y+(polyPoints.length-1))%polyPoints.length];
 					var moveAmount = getPercentage(friendCoords[3], polyPoints[y][3], tolerance);
-					polyPoints.splice(y, 0, [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), 
-											linterp(friendCoords[2], polyPoints[y][2], moveAmount), linterp(friendCoords[3], polyPoints[y][3], moveAmount), true]);
+					polyPoints.splice(y, 0, [...linterp3d(friendCoords, polyPoints[y], moveAmount), linterp(friendCoords[3], polyPoints[y][3], moveAmount), true]);
 					y += 1;
 
 					friendCoords = polyPoints[(y+1)%polyPoints.length];
 					moveAmount = getPercentage(friendCoords[3], polyPoints[y][3], tolerance);
-					polyPoints[y] = [linterp(friendCoords[0], polyPoints[y][0], moveAmount), linterp(friendCoords[1], polyPoints[y][1], moveAmount), 
-									linterp(friendCoords[2], polyPoints[y][2], moveAmount), linterp(friendCoords[3], polyPoints[y][3], moveAmount), true];
+					polyPoints[y] = [...linterp3d(friendCoords, polyPoints[y], moveAmount), linterp(friendCoords[3], polyPoints[y][3], moveAmount), true];
 					y -= 1;
 					break;
 			}
@@ -228,6 +227,14 @@ function isClipped(pointArr) {
 	return (tZ < render_clipDistance);
 }
 
+function multiplyPointByMatrix(pt, mtx) {
+	return [
+		pt[0] * mtx[0][0] + pt[1] * mtx[1][0] + pt[2] * mtx[2][0],
+		pt[0] * mtx[0][1] + pt[1] * mtx[1][1] + pt[2] * mtx[2][1],
+		pt[0] * mtx[0][2] + pt[1] * mtx[1][2] + pt[2] * mtx[2][2]
+	]
+}
+
 //takes in an array of objects with cameraDist values and returns the array, ordered by distance from the camera
 function orderObjects(array) {
 	var newArr = [];
@@ -277,6 +284,11 @@ function screenToSpace(screenSpot, targetZ) {
 	return [world_camera.x + sideOffset[0] + upOffset[0] + frontOffset[0], 
 			world_camera.y + sideOffset[1] + upOffset[1] + frontOffset[1], 
 			world_camera.z + sideOffset[2] + upOffset[2] + frontOffset[2]]; 
+}
+
+//like spaceToRelative, but specifically for the camera, which gets its own special matrix to speed things up
+function spaceToCamera(point) {
+	return multiplyPointByMatrix([point[0] - world_camera.x, point[1] - world_camera.y, point[2] - world_camera.z], world_camera.rotMatrix);
 }
 
 //turns world coordinates into 3d camera coordinates
