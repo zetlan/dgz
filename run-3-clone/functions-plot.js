@@ -169,6 +169,7 @@ function updatePlotProgression() {
 //all the checks for people who had old saves
 function updateSave() {
 	data_persistent.settings.halfRender = data_persistent.settings.halfRender ?? false;
+	data_persistent.settings.gimbal = data_persistent.settings.gimbal ?? false;
 	data_persistent.effectiveCutscenes = data_persistent.effectiveCutscenes ?? [];
 	data_persistent.unlocked = data_persistent.unlocked ?? ["Runner"];
 
