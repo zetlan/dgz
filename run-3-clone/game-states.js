@@ -342,10 +342,10 @@ class State_World {
 	handleKeyPress(a) {
 		if (!editor_active) {
 			handleKeyPress_player(a);
-			switch(a.key) {
+			switch(a.key.toLowerCase()) {
 				// w / ^ / space
 				case 'w':
-				case 'ArrowUp':
+				case 'arrowup':
 				case ' ':
 					if (!controls_spacePressed) {
 						//if it's infinite mode, restart
@@ -356,7 +356,7 @@ class State_World {
 						}
 					}
 					break;
-				case 'Enter':
+				case 'enter':
 					//enter, return to 0 state
 					if (this.substate == 1) {
 						this.substate = 0;
@@ -619,6 +619,7 @@ class State_Cutscene extends State_World {
 		//editor specific thingies
 		this.selected = undefined;
 		this.modifyCameraPos = false;
+		this.cameraIsIn = undefined;
 		this.updateFrame();
 	}
 
@@ -670,41 +671,41 @@ class State_Cutscene extends State_World {
 			switch (s[0]) {
 				case "CAM":
 					for (var n=0; n<s.length-1; n++) {
-						camData[n] = s[n+1] * 1;
+						camData[n] = +s[n+1];
 					}
 					break;
 				case "LGT":
-					objData.push(new SceneLight(s[1] * 1, s[2] * 1, s[3] * 1));
+					objData.push(new SceneLight(+s[1], +s[2], +s[3]));
 					break;
 				case "SPR":
-					objData.push(new SceneSprite(s[1] * 1, s[2] * 1, s[3] * 1, s[4], s[5] * 1, JSON.parse(s[6]), s[7] * 1, s[8] * 1));
+					objData.push(new SceneSprite(+s[1], +s[2], +s[3], s[4], +s[5], JSON.parse(s[6]), +s[7], +s[8], +s[9]));
 					break;
 				case "BUB":
-					objData.push(new SceneBubble(s[1] * 1, s[2] * 1, s[3] * 1, s[4] * 1));
+					objData.push(new SceneBubble(+s[1], +s[2], +s[3], +s[4]));
 					break;
 				case "BOX":
-					objData.push(new SceneBox(s[1] * 1, s[2] * 1, s[3] * 1, s[4] * 1));
+					objData.push(new SceneBox(+s[1], +s[2], +s[3], +s[4]));
 					break;
 				case "COD":
 					objData.push(new SceneCode(s[1]));
 					break;
 				case "LIN":
-					objData.push(new SceneLine(s[1] * 1, s[2] * 1, s[3] * 1, s[4] * 1));
+					objData.push(new SceneLine(+s[1], +s[2], +s[3], +s[4]));
 					break;
 				case "TRI":
-					objData.push(new SceneTri(s[1] * 1, s[2] * 1, s[3] * 1, s[4] * 1, s[5] * 1));
+					objData.push(new SceneTri(+s[1], +s[2], +s[3], +s[4], +s[5]));
 					break;
 				case "TXT":
-					objData.push(new SceneText(s[1] * 1, s[2] * 1, s[3] * 1, s[4] * 1, s[5], JSON.parse(s[6])));
+					objData.push(new SceneText(+s[1], +s[2], +s[3], +s[4], s[5], JSON.parse(s[6])));
 					break;
 				case "POW":
-					objData.push(new ScenePowercell(s[1] * 1, s[2] * 1, s[3] * 1, s[4]));
+					objData.push(new ScenePowercell(+s[1], +s[2], +s[3]));
 					break;
 				case "3TL":
-					objData.push(new SceneTile(s[1] * 1, s[2] * 1, s[3] * 1, s[4] * 1, s[5] * 1, s[6] * 1));
+					objData.push(new SceneTile(+s[1], +s[2], +s[3], +s[4], +s[5], +s[6]));
 					break;
 				case "3BT":
-					objData.push(new SceneBoat(s[1] * 1, s[2] * 1, s[3] * 1, s[4] * 1, s[5] * 1));
+					objData.push(new SceneBoat(+s[1], +s[2], +s[3], +s[4], +s[5]));
 					break;
 			}
 		});
@@ -727,6 +728,30 @@ class State_Cutscene extends State_World {
 		}
 	}
 
+	drawRelativeBar() {
+		ctx.globalAlpha = 0.4;
+		ctx.fillStyle = color_editor_bg;
+		ctx.fillRect(canvas.width * (1 - (editor_cutsceneWidth * 2)), 0, canvas.width * (editor_cutsceneWidth * 2), canvas.height * editor_cutsceneWidth / 2);
+		ctx.globalAlpha = 1;
+
+		var texts = [
+			`Camera is in ${this.cameraIsIn ?? "Space"}`,
+			`Scene is relative to ${this.ref.relativeTo ?? "Space"}`,
+			`Press M to change relativity`
+		];
+		var margin = canvas.height / 35;
+		var yPos = canvas.height * 0.032;
+		var xPos = canvas.width * 0.99;
+
+		ctx.textAlign = "right";
+		ctx.font = `${Math.floor(canvas.height / 42)}px Comfortaa`;
+		ctx.fillStyle = color_text_bright;
+
+		for (var j=0; j<texts.length; j++) {
+			ctx.fillText(texts[j], xPos, yPos + (j * margin));
+		}
+	}
+
 	execute() {
 		//a frame less than 0 is the exit code
 		if (this.frame < 0) {
@@ -746,8 +771,32 @@ class State_Cutscene extends State_World {
 			f.doComplexLighting();
 		});
 		this.nearObjs.forEach(f => {
+			player.parentPrev = f;
 			f.beDrawn();
 		});
+
+		//draw camera reference as cutscene object if having to do that (sorry for organization, but this does need to come before other sprites)
+		if (editor_active) {
+			var cDistFromTrue = getDistance({x: this.ref.frames[this.frame][0][0], y: this.ref.frames[this.frame][0][1], z: this.ref.frames[this.frame][0][2]}, world_camera);
+
+			if (!this.modifyCameraPos && cDistFromTrue > 4) {
+				//draw camera + normal
+				var p1 = this.ref.frames[this.frame][0].slice(0, 3);
+				var p2 = polToCart(this.ref.frames[this.frame][0][3], this.ref.frames[this.frame][0][4], cDistFromTrue / 10);
+				p2 = [p2[0] + p1[0], p2[1] + p1[1], p2[2] + p1[2]];
+
+				ctx.strokeStyle = color_editor_camera;
+				drawWorldLine(p1, p2);
+
+				if (!isClipped(p1)) {
+					drawCircle(color_editor_camera, ...spaceToScreen(p1), editor_handleRadius * 2);
+				}
+
+				if (!isClipped(p2)) {
+					drawCircle(color_editor_camera, ...spaceToScreen(p2), editor_handleRadius);
+				}
+			}
+		}
 
 		//draw cutscene objects
 		this.ref.frames[this.frame][1].forEach(d => {
@@ -768,17 +817,42 @@ class State_Cutscene extends State_World {
 				ctx.globalAlpha = 1;
 			}
 
+			//update where the camera is in
+			if (this.cameraIsIn == undefined) {
+				//search for a new tunnel to inhabit
+				if (world_time % 5 == 0) {
+					var fullTunnelArr = []
+					fullTunnelArr = orderObjects([...this.farObjs, ...this.nearObjs]);
+					//only check closest few tunnels
+
+					fullTunnelArr = fullTunnelArr.slice(-10);
+					for (var tun of fullTunnelArr) {
+						if (tun.coordinateIsInTunnel(world_camera.x, world_camera.y, world_camera.z, true)) {
+							this.cameraIsIn = tun.id;
+						}
+					}
+				}
+				
+			} else {
+				//if the camera isn't in the location
+				if (!getObjectFromID(this.cameraIsIn).coordinateIsInTunnel(world_camera.x, world_camera.y, world_camera.z, true)) {
+					this.cameraIsIn = undefined;
+				}
+			}
+
+			if (this.doSidebar) {
+				this.drawSidebar();
+				this.drawRelativeBar();
+			}
+
 			//show frame number + id at the top
 			ctx.font = `${canvas.height * 0.06}px Comfortaa`;
+			ctx.textAlign = "center";
 			drawSelectionBox(canvas.width * 0.5, canvas.height * 0.03, ctx.measureText(this.ref.id).width + (canvas.width * 0.02), canvas.height * 0.06);
 			ctx.fillStyle = color_text_bright;
 			
 			ctx.fillText(this.ref.id, canvas.width * 0.5, canvas.height * 0.05);
 			ctx.fillText(`${this.frame+1} / ${this.ref.frames.length}`, canvas.width * 0.5, canvas.height * 0.1);
-
-			if (this.doSidebar) {
-				this.drawSidebar();
-			}
 
 			//sidebar triangle
 			ctx.fillStyle = color_editor_bg;
@@ -854,7 +928,17 @@ class State_Cutscene extends State_World {
 		}
 		outputString += `\tframes: [\n\t\t${frameData}]\n\t}`;
 
-		return outputString;
+		if (this.ref.relativeTo == undefined) {
+			return outputString;
+		}
+
+		//relativity cohesion, if necessary
+		var relTun = getObjectFromID(this.ref.relativeTo);
+		outputString = outputString.replaceAll("\n", "").replaceAll("\t", "");
+		console.log(outputString);
+		var objectified = JSON.parse(outputString);
+		objectified.relativeTo = undefined;
+		return makeCutsceneRelative(relTun, objectified);
 	}
 
 	giveStringDataForLine(arr) {
@@ -977,7 +1061,7 @@ class State_Cutscene extends State_World {
 	handleKeyPress(a) {
 		if (editor_active) {
 			handleKeyPress_camera(a);
-			switch (a.key) {
+			switch (a.key.toLowerCase()) {
 				//frame control (< / >)
 				case ',':
 					if (this.frame > 0) {
@@ -1001,7 +1085,7 @@ class State_Cutscene extends State_World {
 					this.updateFrame();
 					break;
 				//delete button
-				case 'Backspace':
+				case 'backspace':
 					if (this.selected != undefined) {
 						//if shift is pressed, splice out all items
 						if (controls_shiftPressed) {
@@ -1019,12 +1103,16 @@ class State_Cutscene extends State_World {
 						}
 					}
 					break;
+				case 'm':
+					//make cutscene relative to what the camera is relative to
+					this.ref.relativeTo = this.cameraIsIn;
+					break;
 				//c, toggles camera modification
 				case 'c':
 					this.modifyCameraPos = !this.modifyCameraPos;
 					break;
 				//tab, toggles sidebar
-				case 'Tab':
+				case 'tab':
 					this.doSidebar = !this.doSidebar;
 					break;
 			}
@@ -1157,7 +1245,7 @@ class State_Game extends State_World {
 	handleKeyPress(a) {
 		super.handleKeyPress(a);
 		//r for reset
-		if (a.key == 'r' && this.substate == 0) {
+		if (a.key.toLowerCase() == 'r' && this.substate == 0) {
 			this.handlePlayerDeath();
 		}
 	}
@@ -1414,7 +1502,12 @@ class State_Loading {
 
 				if (this.time == 540) {
 					//load in one time cutscenes
-					placeOneTimeCutsceneTriggers();
+					try {
+						placeOneTimeCutsceneTriggers();
+					} catch (error) {
+						console.error(`COULD NOT LOAD CUTSCENE TRIGGERS!`)
+					}
+
 					//story things after loading everything else
 					updatePlotProgression();
 				}
@@ -1785,7 +1878,6 @@ class State_Map {
 
 	handleMD_ObjectTunnel() {
 		var tun = this.objSelected;
-		console.log(tun);
 		//default case, go into the level
 		if (!editor_active) {
 			player.parentPrev = tun;
@@ -1912,15 +2004,15 @@ class State_Map {
 			return;
 		}
 		if (!this.dir_held) {
-			switch (a.key) {
+			switch (a.key.toLowerCase()) {
 				//<--
 				case 'a':
-				case 'ArrowLeft':
+				case 'arrowleft':
 					world_camera.targetZ -= map_shift;
 					break;
 				//-->
 				case 'd':
-				case 'ArrowRight':
+				case 'arrowright':
 					world_camera.targetZ += map_shift;
 					break;
 			}
@@ -2024,6 +2116,7 @@ class State_Menu {
 
 			new PropertyToggle(0.525, 0.15 + (3 * menu_propertyHeight), 0.4, `editor - show polygon outlines`, `data_persistent.settings.enableOutlines`),
 			new PropertyToggle(0.525, 0.15 + (4 * menu_propertyHeight), 0.4, `editor - show light bridge tiles`, `data_persistent.settings.pastaView`),
+			new PropertyToggle(0.525, 0.15 + (5 * menu_propertyHeight), 0.4, `editor - use gimbal camera`, `data_persistent.settings.gimbal`),
 
 			new PropertyToggle(0.525, 0.15 + (0 * menu_propertyHeight), 0.4, `contain mouse inputs to canvas`, `data_persistent.settings.maskCursor`),
 
