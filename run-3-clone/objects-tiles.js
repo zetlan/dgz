@@ -88,19 +88,65 @@ class Tile_Box extends Tile {
 		super(x, y, z, size, normal, parent, RGBtoHSV(color_box));
 
 		//all boxes have extra tiles, for changing rotation
-		this.leftTile = new Tile(x, y, z, size, [normal[0], (normal[1] + (Math.PI * 1.5)) % (Math.PI * 2)], parent, this.color);
-		this.rightTile = new Tile(x, y, z, size, [normal[0], (normal[1] + (Math.PI * 0.5)) % (Math.PI * 2)], parent, this.color);
+		var fset = polToCart(normal[0], normal[1] + (Math.PI * 1.5), this.size / 2);
+		this.leftTile = new Tile(x + fset[0], y + fset[1], z + fset[2], size, [normal[0], (normal[1] + (Math.PI * 1.5)) % (Math.PI * 2)], parent, this.color);
+		this.rightTile = new Tile(x - fset[0], y - fset[1], z - fset[2], size, [normal[0], (normal[1] + (Math.PI * 0.5)) % (Math.PI * 2)], parent, this.color);
 	}
 
 	calculatePointsAndNormal() {
 		var points = [	[-1, 1, -1], [-1, 1, 1], [1, 1, 1], [1, 1, -1],
-						[-1, -1, -1], [-1, -1, 1], [1, -1, 1], [1, -1, -1]];
+						[-1, -1, -1], [-1, -1, 1], [1, -1, 1], [1, -1, -1],
+						[-1, 0, -1], [-1, 0, 1], [1, 0, 1], [1, 0, -1]];
 
 		for (var p=0; p<points.length; p++) {
 			points[p] = transformPoint(points[p], [this.x, this.y, this.z], this.normal, this.size + 0.5);
 		}
+
+		/* 
+		Points: birds eye view
+
+		forwards in tunnel
+
+		2       3
+		 6     7
+		 5     4
+		1       0
+
+		backwards in tunnel
+
+
+		and then 8, 9, 10, 11 look like this, in between the other sets
+
+		10   11
+
+		9    8
+		*/
 		
 		this.points = points;
+		//TODO: these polys are misnamed, fix that
+		this.polys = {
+			"uu": new FreePoly([points[0], points[1], points[2], points[3]], this.color),
+			"ub": new FreePoly([points[0], points[1], points[9], points[8]], this.color),
+			"uf": new FreePoly([points[3], points[2], points[10], points[11]], this.color),
+			"ul": new FreePoly([points[1], points[2], points[10], points[9]], this.color),
+			"ur": new FreePoly([points[0], points[3], points[11], points[8]], this.color),
+
+			"dd": new FreePoly([points[4], points[5], points[6], points[7]], this.color),
+			"db": new FreePoly([points[4], points[5], points[9], points[8]], this.color),
+			"df": new FreePoly([points[7], points[6], points[10], points[11]], this.color),
+			"dl": new FreePoly([points[5], points[6], points[10], points[9]], this.color),
+			"dr": new FreePoly([points[4], points[7], points[11], points[8]], this.color),
+		}
+		var h = this.polys;
+
+		//I am aware that putting the front and back faces first for insertion may create more clipping planes. However, the player can't be clipped, 
+		//and therefore I don't want a lot of planes to intersect them. Putting the planes that the player will generally be perpendicular to first
+		//means that the player won't be clipped through a plane as often, causing errors less often.
+		this.drawPolysIn = [h["uf"], h["ub"], h["uu"], h["ul"], h["ur"]];
+		this.drawPolysIn.forEach(a => {a.calculateNormal();});
+		this.drawPolysOut = [h["df"], h["db"], h["dd"], h["dl"], h["dr"]];
+		this.drawPolysOut.forEach(a => {a.calculateNormal();});
+		
 		this.dir_right = [this.normal[0], this.normal[1] + (Math.PI / 2)];
 		this.dir_down = this.normal;
 	}
@@ -108,17 +154,6 @@ class Tile_Box extends Tile {
 
 	beDrawn() {
 		if ((this.size / this.cameraDist) * world_camera.scale > render_minTileSize * 0.5 && this.cameraDist < render_maxColorDistance * 2) {
-			//actual box shape
-			/*faces:
-			top - 0 1 2 3 
-			bottom - 4 5 6 7
-
-			left - 0 1 5 4
-			right - 3 2 6 7
-
-			front - 1 2 6 5
-			back - 0 3 7 4
-			*/
 
 			//getting camera position relative to self for proper ordering
 			var relCPos = spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], this.normal);
@@ -131,18 +166,22 @@ class Tile_Box extends Tile {
 				drawWorldPoly([this.points[4], this.points[5], this.points[6], this.points[7]], color);
 			}
 
-			//left / right switch
+			//forward / back switch
 			if (relCPos[0] > 0) {
 				drawWorldPoly([this.points[3], this.points[2], this.points[6], this.points[7]], color);
 			} else {
 				drawWorldPoly([this.points[0], this.points[1], this.points[5], this.points[4]], color);
 			}
 
-			//forwards / back switch
+			//left / right switch
 			if (relCPos[1] > 0) {
-				drawWorldPoly([this.points[0], this.points[3], this.points[7], this.points[4]], color);
+				this.leftTile.cameraDist = this.cameraDist;
+				this.rightTile.playerDist = this.playerDist;
+				this.rightTile.beDrawn();
 			} else {
-				drawWorldPoly([this.points[1], this.points[2], this.points[6], this.points[5]], color);
+				this.leftTile.cameraDist = this.cameraDist;
+				this.leftTile.playerDist = this.playerDist;
+				this.leftTile.beDrawn();
 			}
 		} else {
 			//simple circle for far away
@@ -150,7 +189,7 @@ class Tile_Box extends Tile {
 				var pos = spaceToScreen([this.x, this.y, this.z]);
 				drawCircle(this.getColor(), pos[0], pos[1], (this.size / this.cameraDist) * world_camera.scale * 0.6);
 			}
-		} 
+		}
 	}
 
 	collideWithEntity(entity) {
@@ -190,11 +229,7 @@ class Tile_Box extends Tile {
 	collide_forwardsBackwards(entity, entityCoords) {
 		//if x is the greatest
 		entity.dz = 0;
-		if (entityCoords[0] > 0) {
-			entityCoords[0] = 0.5 * this.size + this.tolerance;
-		} else {
-			entityCoords[0] = (-0.5 * this.size) - this.tolerance;
-		}
+		entityCoords[0] = (0.5 * this.size + this.tolerance) * boolToSigned(entityCoords[0] > 0);
 	}
 
 	collide_upDown(entity, entityCoords) {
@@ -276,83 +311,42 @@ class Tile_Box extends Tile {
 
 	tick() {
 		super.getCameraDist();
+
+		//if camera distance is close enough and self needs to be rendered in the precise way
+		if (this.cameraDist < render_maxColorDistance * 2 && data_persistent.settings.altRender) {
+			//establish drawPolys
+			//x = forwards, z = up, y = left
+			//var relCPos = spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], this.normal);
+
+			this.drawPolysIn.forEach(p => {
+				p.cameraDist = this.cameraDist;
+				p.playerDist = this.playerDist;
+			});
+
+			this.drawPolysOut.forEach(p => {
+				p.cameraDist = this.cameraDist;
+				p.playerDist = this.playerDist;
+			});
+		}
 	}
 }
 
 class Tile_Box_Ringed extends Tile_Box {
 	constructor(x, y, z, size, normal, parent) {
 		super(x, y, z, size, normal, parent);
-		
-	}
 
-	calculatePointsAndNormal() {
-		super.calculatePointsAndNormal();
-		var ringOff = polToCart(this.normal[0], (this.normal[1] + (Math.PI * 1.5)) % (Math.PI * 2), (this.size / 2) + 2);
-		this.ringL = new Ring(this.x + ringOff[0], this.y + ringOff[1], this.z + ringOff[2], this.normal[0], (this.normal[1] + (Math.PI * 1.5)) % (Math.PI * 2), render_ringSize);
-		this.ringR = new Ring(this.x - ringOff[0], this.y - ringOff[1], this.z - ringOff[2], this.normal[0], (this.normal[1] + (Math.PI * 0.5)) % (Math.PI * 2), render_ringSize);
-	}
-
-	beDrawn() {
-		//TODO: refactor this to align with parent class, currently is inefficient
-		if ((this.size / this.cameraDist) * world_camera.scale > render_minTileSize * 0.5 && this.cameraDist < render_maxColorDistance * 2) {
-			var relCPos = spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], this.normal);
-			var color = this.getColor();
-			//always draw two rings
-			if (relCPos[1] <= 0) {
-				this.ringR.beDrawn();
-			} else {
-				this.ringL.beDrawn();
-			}
-			if (relCPos[2] > 0) {
-				drawWorldPoly([this.points[0], this.points[1], this.points[2], this.points[3]], color);
-			} else {
-				drawWorldPoly([this.points[4], this.points[5], this.points[6], this.points[7]], color);
-			}
-			//front / back
-			if (relCPos[0] > 0) {
-				drawWorldPoly([this.points[3], this.points[2], this.points[6], this.points[7]], color);
-			} else {
-				drawWorldPoly([this.points[0], this.points[1], this.points[5], this.points[4]], color);
-			}
-			//left / right
-			if (relCPos[1] > 0) {
-				//change order of ring / face depending on position
-				if (relCPos[1] <= this.size / 2) {
-					this.ringR.beDrawn();
-				}
-				drawWorldPoly([this.points[0], this.points[3], this.points[7], this.points[4]], color);
-				if (relCPos[1] > this.size / 2) {
-					this.ringR.beDrawn();
-				}
-			} else {
-				if (relCPos[1] >= this.size / -2) {
-					this.ringL.beDrawn();
-				}
-				drawWorldPoly([this.points[1], this.points[2], this.points[6], this.points[5]], color);
-				if (relCPos[1] < this.size / -2) {
-					this.ringL.beDrawn();
-				}
-			}
-			return;
-		}
-		//simple circle for far away
-		if (!isClipped([this.x, this.y, this.z])) {
-			var pos = spaceToScreen([this.x, this.y, this.z]);
-			drawCircle(this.getColor(), pos[0], pos[1], (this.size / this.cameraDist) * world_camera.scale * 0.6);
-		}
+		var fset = polToCart(normal[0], normal[1] + (Math.PI * 1.5), this.size / 2);
+		this.leftTile = new Tile_Ringed(x + fset[0], y + fset[1], z + fset[2], size, [normal[0], (normal[1] + (Math.PI * 1.5)) % (Math.PI * 2)], parent, this.color);
+		this.rightTile = new Tile_Ringed(x - fset[0], y - fset[1], z - fset[2], size, [normal[0], (normal[1] + (Math.PI * 0.5)) % (Math.PI * 2)], parent, this.color);
 	}
 
 	doComplexLighting() {
 		super.doComplexLighting();
-		this.ringL.doComplexLighting();
-		this.ringR.doComplexLighting();
 		
 	}
 
 	tick() {
 		super.tick();
-		this.ringL.tick();
-		this.ringR.tick();
 	}
 }
 
@@ -360,9 +354,27 @@ class Tile_Box_Spun extends Tile_Box {
 	constructor(x, y, z, size, normal, parent) {
 		super(x, y, z, size, [normal[0], normal[1] + (Math.PI * 0.25)], parent);
 		this.collisionMult = 1.414;
+
+		//mmmmmmm probably bad practice but it works
+		this.leftTile.points = this.polys["l"].points;
+		[this.leftTile.x, this.leftTile.y, this.leftTile.z] = [this.polys["l"].x, this.polys["l"].y, this.polys["l"].z];
+		this.rightTile.points = this.polys["r"].points;
+		[this.rightTile.x, this.rightTile.y, this.rightTile.z] = [this.polys["r"].x, this.polys["r"].y, this.polys["r"].z];
 	}
 
 	calculatePointsAndNormal() {
+		/*
+		similar map
+
+		    2
+		6        3
+		     7
+
+		    1
+		5        0
+		     4
+
+		*/
 		var len = 1 / Math.sqrt(2);
 		var points = [	[-1, len, -len], [-1, len, len], [1, len, len], [1, len, -len],
 						[-1, -len, -len], [-1, -len, len], [1, -len, len], [1, -len, -len]];
@@ -372,6 +384,23 @@ class Tile_Box_Spun extends Tile_Box {
 		}
 		
 		this.points = points;
+		this.polys = {
+			"u": new FreePoly([points[0], points[1], points[2], points[3]], this.color),
+			"l": new FreePoly([points[1], points[5], points[6], points[2]], this.color),
+			"r": new FreePoly([points[0], points[4], points[7], points[3]], this.color),
+			"d": new FreePoly([points[4], points[5], points[6], points[7]], this.color),
+
+			"uf": new FreePoly([points[2], points[6], points[3]], this.color),
+			"df": new FreePoly([points[6], points[3], points[7]], this.color),
+			"ub": new FreePoly([points[5], points[1], points[0]], this.color),
+			"db": new FreePoly([points[5], points[0], points[4]], this.color),
+		}
+		var h = this.polys;
+
+		this.drawPolysIn = [h["uf"], h["ub"], h["u"], h["l"]];
+		this.drawPolysIn.forEach(a => {a.calculateNormal();});
+		this.drawPolysOut = [h["df"], h["db"], h["d"], h["r"]];
+		this.drawPolysOut.forEach(a => {a.calculateNormal();});
 		this.dir_right = [this.normal[0], this.normal[1] + (Math.PI / 2)];
 		this.dir_down = this.normal;
 		this.size -= player.r * 0.6;
@@ -567,10 +596,6 @@ class Tile_Conveyor_Right extends Tile_Conveyor {
 
 class Tile_Crumbling extends Tile {
 	constructor(x, y, z, size, normal, parent, color) {
-		var subtractAmount = polToCart(...normal, tunnel_crumbleOffset);
-		x -= subtractAmount[0];
-		y -= subtractAmount[1];
-		z -= subtractAmount[2];
 		super(x, y, z, size, normal, parent, RGBtoHSV(color_crumbling));
 		this.crumbleSet = -1;
 		this.activeSize = this.size;
@@ -849,57 +874,37 @@ class Tile_Vertical extends Tile {
 class Tile_Warning extends Tile {
 	constructor(x, y, z, size, normal, parent) {
 		super(x, y, z, size, normal, parent, RGBtoHSV(color_warning));
-		this.verticalPlayerDist = 1000;
 	}
 
 	calculatePointsAndNormal() {
 		super.calculatePointsAndNormal();
-		this.verticalPoints = [[1, 0, -1], [1, 1.25, -1], [1, 1.25, 1], [1, 0, 1]];
-		this.verticalCenter = avgArray(this.verticalPoints);
-
-		transformPoint(this.verticalCenter, [this.x, this.y, this.z], this.normal, this.size + 0.5);
-		this.verticalPoints.forEach(p => {
+		var verticalPoints = [[1, 0, -1], [1, 1.25, -1], [1, 1.25, 1], [1, 0, 1]];
+		verticalPoints.forEach(p => {
 			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 0.5);
 		});
+		this.verticalObj = new FreePoly_Vertical(verticalPoints, this.color);
 	}
 
 	doComplexLighting() {
 		super.doComplexLighting();
-		this.verticalPlayerDist = getDistance_LightSource({x: this.verticalCenter[0], y: this.verticalCenter[1], z: this.verticalCenter[2]});
+		this.verticalObj.doComplexLighting();
 	}
 
 	tick() {
 		super.tick();
-
-		//get player distance for vertical part
-		this.verticalPlayerDist = getDistance(player, {x: this.verticalCenter[0], y: this.verticalCenter[1], z: this.verticalCenter[2]});
-	}
-
-	getVerticalColor() {
-		return `hsl(${this.color.h}, ${this.color.s}%, ${linterp((this.color.v * 45) * (this.parent.power + 0.5), 0, clamp((this.verticalPlayerDist / render_maxColorDistance) * (1 / (this.parent.power + 0.001)), 0.1, 1))}%)`;
+		this.verticalObj.tick();
 	}
 
 	collideWithEntity(entity) {
 		super.collideWithEntity(entity);
-
-		//also colliding with front bit
-		//transform player to self's coordinates
-		var entityCoords = spaceToRelative([entity.x, entity.y, entity.z], this.verticalCenter, [this.dir_down[0] + (Math.PI / 2), 0, this.dir_down[1]]);
-		if (Math.abs(entityCoords[2]) < this.tolerance && Math.abs(entityCoords[0] < this.size + this.tolerance) && Math.abs(entityCoords[0]) < (this.size * 0.25) + this.tolerance) {
-			//different behavior depending on side
-			if (entityCoords[2] < 0) {
-				entityCoords[2] = -this.tolerance;
-			} else {
-				entityCoords[2] = this.tolerance;
-			}
-			entity.dz = 0;
-			//transforming back to regular coordinates
-			[entity.x, entity.y, entity.z] = relativeToSpaceRot(entityCoords, this.verticalCenter, [this.dir_down[0] + (Math.PI / 2), 0, this.dir_down[1]]);
-		}
+		this.verticalObj.collideWithEntity(entity);
 	}
 
 	beDrawn() {
 		super.beDrawn();
-		drawWorldPoly(this.verticalPoints, this.getVerticalColor());
+		//don't draw vertical part if that's being taken care of
+		if (this.parent.simple) {
+			this.verticalObj.beDrawn();
+		}
 	}
 }
