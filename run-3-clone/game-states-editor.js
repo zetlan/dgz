@@ -713,8 +713,8 @@ class State_Edit_Tiles extends State_Edit {
 	}
 
 	handleKeyPress(a) {
-		switch(a.key) {
-			case 'ArrowLeft':
+		switch(a.key.toLowerCase()) {
+			case 'arrowleft':
 			case 'a':
 				world_camera.targetTheta -= Math.PI;
 				if (world_camera.targetTheta < 0) {
@@ -722,11 +722,11 @@ class State_Edit_Tiles extends State_Edit {
 					world_camera.theta += Math.PI * 2;
 				}
 				break;
-			case 'ArrowUp':
+			case 'arrowup':
 			case 'w':
 				this.cameraMovement = 1;
 				break;
-			case 'ArrowRight':
+			case 'arrowright':
 			case 'd':
 				world_camera.targetTheta += Math.PI;
 				if (world_camera.targetTheta > Math.PI * 2) {
@@ -734,7 +734,7 @@ class State_Edit_Tiles extends State_Edit {
 					world_camera.theta -= Math.PI * 2;
 				}
 				break;
-			case 'ArrowDown':
+			case 'arrowdown':
 			case 's':
 				this.cameraMovement = -1;
 				break;
@@ -742,14 +742,14 @@ class State_Edit_Tiles extends State_Edit {
 	}
 
 	handleKeyNegate(a) {
-		switch(a.key) {
-			case 'ArrowUp':
+		switch(a.key.toLowerCase()) {
+			case 'arrowup':
 			case 'w':
 				if (this.cameraMovement == 1) {
 					this.cameraMovement = 0;
 				}
 				break;
-			case 'ArrowDown':
+			case 'arrowdown':
 			case 's':
 				if (this.cameraMovement == -1) {
 					this.cameraMovement = 0;
@@ -1347,20 +1347,20 @@ class State_Edit_World extends State_Edit {
 
 	handleKeyPress(a) {
 		//camera noises
-		switch(a.key) {
-			case 'ArrowLeft':
+		switch(a.key.toLowerCase()) {
+			case 'arrowleft':
 			case 'a':
 				this.cameraForce[0] = -1;
 				break;
-			case 'ArrowUp':
+			case 'arrowup':
 			case 'w':
 				this.cameraForce[1] = 1;
 				break;
-			case 'ArrowRight':
+			case 'arrowright':
 			case 'd':
 				this.cameraForce[0] = 1;
 				break;
-			case 'ArrowDown':
+			case 'arrowdown':
 			case 's':
 				this.cameraForce[1] = -1;
 				break;
@@ -1368,26 +1368,26 @@ class State_Edit_World extends State_Edit {
 	}
 
 	handleKeyNegate(a) {
-		switch(a.key) {
-			case 'ArrowLeft':
+		switch(a.key.toLowerCase()) {
+			case 'arrowleft':
 			case 'a':
 				if (this.cameraForce[0] == -1) {
 					this.cameraForce[0] = 0;
 				}
 				break;
-			case 'ArrowUp':
+			case 'arrowup':
 			case 'w':
 				if (this.cameraForce[1] == 1) {
 					this.cameraForce[1] = 0;
 				}
 				break;
-			case 'ArrowRight':
+			case 'arrowright':
 			case 'd':
 				if (this.cameraForce[0] == 1) {
 					this.cameraForce[0] = 0;
 				}
 				break;
-			case 'ArrowDown':
+			case 'arrowdown':
 			case 's':
 				if (this.cameraForce[1] == -1) {
 					this.cameraForce[1] = 0;
@@ -1614,7 +1614,7 @@ class State_Playtest extends State_World {
 
 	handleKeyPress(a) {
 		super.handleKeyPress(a);
-		if (a.key == 'r' && this.substate == 0) {
+		if (a.key.toLowerCase() == 'r' && this.substate == 0) {
 			this.handlePlayerDeath();
 		}
 	}
