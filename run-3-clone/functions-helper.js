@@ -26,6 +26,7 @@
 	changeTiles(tunnel, tileArray, newTileID);
 	clamp(num, min, max);
 	compressCutsceneData();
+	fastLoad();
 	fastSqrt(num);
 
 	file_export();
@@ -38,6 +39,8 @@
 
 	handleAudio();
 	HSVtoRGB();
+	isValidString();
+	linterp3d();
 	localStorage_read();
 	localStorage_write();
 	logTime();
@@ -543,6 +546,15 @@ function compressCutsceneData(reference) {
 	}
 }
 
+function fastLoad() {
+	placeTunnelSet(levelData_main);
+	var tun = world_objects[0];
+	editor_active = true;
+	player.parentPrev = tun;
+	loading_state = new State_Game();
+	tun.reset();
+}
+
 function fastSqrt(num) {
 	//good enough zozzle
 	if (num < 4) {
@@ -894,6 +906,10 @@ function HSVtoRGB(hsvObject) {
 
 function isValidString(str) {
 	return (str != null && str != undefined && +str != +"");
+}
+
+function linterp3d(p1, p2, percentage) {
+	return [linterp(p1[0], p2[0], percentage), linterp(p1[1], p2[1], percentage), linterp(p1[2], p2[2], percentage)];
 }
 
 function localStorage_read() {
