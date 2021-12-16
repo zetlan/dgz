@@ -88,6 +88,7 @@ class Camera {
 		this.dy = 0;
 		this.dz = 0;
 		this.dMax = 10;
+		this.dMin = 0.02;
 
 		this.ax = 0;
 		this.ay = 0;
@@ -101,70 +102,139 @@ class Camera {
 		this.targetPhi = xRot;
 		this.targetRot = 0;
 
+		this.rotMatrix = [];
+		this.createMatrix();
+
 		this.dt = 0;
 		this.dp = 0;
 		this.dr = 0;
 	}
 
+	createMatrix() {
+		//creates a rotation matrix based on the current rotation values
+		this.rotMatrix = [
+			[1, 0, 0],
+			[0, 1, 0],
+			[0, 0, 1],
+		];
+		this.rotMatrix.forEach(b => {
+			[b[0], b[2]] = rotate(b[0], b[2], this.theta);
+			[b[1], b[2]] = rotate(b[1], b[2], this.phi);
+			[b[0], b[1]] = rotate(b[0], b[1], this.rot);
+		})
+	}
+
+	moveFollow() {
+		//changing with average
+		this.x = (this.targetX + (this.x * (render_animSteps - 1))) / render_animSteps;
+		this.y = (this.targetY + (this.y * (render_animSteps - 1))) / render_animSteps;
+		this.z = (this.targetZ + (this.z * (render_animSteps - 1))) / render_animSteps;
+		this.theta = (this.targetTheta + (this.theta * (render_animSteps - 1))) / render_animSteps;
+		this.phi = (this.targetPhi + (this.phi * (render_animSteps - 1))) / render_animSteps;
+		this.rot = (this.targetRot + (this.rot * (render_animSteps - 1))) / render_animSteps;
+	}
+
+	moveFree() {
+		//velocity: add, then bind max, then apply friction
+		var vels = [this.dx, this.dy, this.dz];
+		var accs = [this.ax, this.ay, this.az];
+
+		for (var u=0; u<vels.length; u++) {
+			//if accelerating, add and keep inside bounds. If not, just apply friction
+			vels[u] = (accs[u] != 0) ? clamp(vels[u] + accs[u], -this.dMax, this.dMax) : vels[u] * this.friction;
+		}
+		[this.dx, this.dy, this.dz] = vels;
+
+		//handling position
+		var mvMag = this.speedSettings[this.speedSettingSelected];
+		var drMag = Math.min(this.speedSettings[1] * this.aSpeed, this.speedSettings[this.speedSettingSelected] * this.aSpeed);
+		//first 3 are for positional offsets, second two are for keeping rotation stable
+		var moveDirs = [
+			[1, 0, 0], 
+			[0, 1, 0], 
+			[0, 0, 1],
+			polToCart(this.dt * drMag, this.dp * drMag, 1), //the new theta-phi vector
+			polToCart(this.dt * drMag, (this.dp * drMag) - 0.05, 1) //a reference to get the rotation from
+		];
+		
+		//transform to be relative to the world
+		for (var v=0; v<moveDirs.length; v++) {
+			[moveDirs[v][0], moveDirs[v][1]] = rotate(moveDirs[v][0], moveDirs[v][1], -this.rot);
+			[moveDirs[v][1], moveDirs[v][2]] = rotate(moveDirs[v][1], moveDirs[v][2], -this.phi);
+			[moveDirs[v][0], moveDirs[v][2]] = rotate(moveDirs[v][0], moveDirs[v][2], -this.theta);
+		}
+
+		//figure out theta and phi
+		var pol = cartToPol(moveDirs[3][0], moveDirs[3][1], moveDirs[3][2]);
+		this.theta = pol[0];
+		this.phi = pol[1];
+
+		//figure out rotation by reverse transforming
+		[moveDirs[4][0], moveDirs[4][2]] = rotate(moveDirs[4][0], moveDirs[4][2], this.theta);
+		[moveDirs[4][1], moveDirs[4][2]] = rotate(moveDirs[4][1], moveDirs[4][2], this.phi);
+		var calculatedRot = (Math.atan2(-moveDirs[4][0], -moveDirs[4][1]) + Math.PI * 2) % (Math.PI * 2);
+		this.rot = ((calculatedRot + this.dr) + Math.PI * 2) % (Math.PI * 2);
+
+		//change magnitude of the inertia
+		moveDirs[0] = (Math.abs(this.dx) > this.dMin) ? moveDirs[0].map(a => a * this.dx * mvMag) : [0, 0, 0];
+		moveDirs[1] = (Math.abs(this.dy) > this.dMin) ? moveDirs[1].map(a => a * this.dy * mvMag) : [0, 0, 0];
+		moveDirs[2] = (Math.abs(this.dz) > this.dMin) ? moveDirs[2].map(a => a * this.dz * mvMag) : [0, 0, 0];
+		
+		//update positions
+		this.x += moveDirs[0][0] + moveDirs[1][0] + moveDirs[2][0];
+		this.y += moveDirs[0][1] + moveDirs[1][1] + moveDirs[2][1];
+		this.z += moveDirs[0][2] + moveDirs[1][2] + moveDirs[2][2];
+	}
+
+	moveGimbals() {
+		var drMag = Math.min(this.speedSettings[1] * this.aSpeed, this.speedSettings[this.speedSettingSelected] * this.aSpeed);
+		var mvMag = this.speedSettings[this.speedSettingSelected];
+
+		//velocity
+		var vels = [this.dx, this.dy, this.dz];
+		var accs = [this.ax, this.ay, this.az];
+		for (var u=0; u<vels.length; u++) {
+			vels[u] = (accs[u] != 0) ? clamp(vels[u] + accs[u], -this.dMax, this.dMax) : vels[u] * this.friction;
+		}
+		[this.dx, this.dy, this.dz] = vels;
+
+		//position
+		var moveCoords = [0, 0, 0];
+		if (Math.abs(this.dz) > this.dMin) {
+			var toAdd = polToCart(this.theta, this.phi, this.dz * mvMag);
+			moveCoords = [moveCoords[0] + toAdd[0], moveCoords[1] + toAdd[1], moveCoords[2] + toAdd[2]];
+		}
+		if (Math.abs(this.dx) > this.dMin) {
+			var toAdd = polToCart(this.theta + (Math.PI / 2), 0, this.dx * mvMag);
+			moveCoords = [moveCoords[0] + toAdd[0], moveCoords[1] + toAdd[1], moveCoords[2] + toAdd[2]];
+		}
+		if (Math.abs(this.dy) > this.dMin) {
+			var toAdd = polToCart(0, Math.PI / 2, this.dy * mvMag);
+			moveCoords = [moveCoords[0] + toAdd[0], moveCoords[1] + toAdd[1], moveCoords[2] + toAdd[2]];
+		}
+
+		//theta, phi, and rot are pretty simple
+		this.theta += this.dt * drMag;
+		//constrain phi to avoid camera weirdness
+		this.phi = clamp(this.phi + this.dp * drMag, -Math.PI / 2, Math.PI / 2);
+		this.rot += this.dr * drMag;
+
+		this.x += moveCoords[0];
+		this.y += moveCoords[1];
+		this.z += moveCoords[2];	
+	}
+
 	tick() {
 		if (!editor_active) {
-			//changing with average
-			this.x = (this.targetX + (this.x * (render_animSteps - 1))) / render_animSteps;
-			this.y = (this.targetY + (this.y * (render_animSteps - 1))) / render_animSteps;
-			this.z = (this.targetZ + (this.z * (render_animSteps - 1))) / render_animSteps;
-			this.theta = (this.targetTheta + (this.theta * (render_animSteps - 1))) / render_animSteps;
-			this.phi = (this.targetPhi + (this.phi * (render_animSteps - 1))) / render_animSteps;
-			this.rot = (this.targetRot + (this.rot * (render_animSteps - 1))) / render_animSteps;
+			this.moveFollow();
 		} else {
-			//velocity: add, then bind max, then apply friction
-			var vels = [this.dx, this.dy, this.dz];
-			var accs = [this.ax, this.ay, this.az];
-
-			for (var u=0; u<vels.length; u++) {
-				//if accelerating, add and keep inside bounds. If not, just apply friction
-				vels[u] = (accs[u] != 0) ? clamp(vels[u] + accs[u], -this.dMax, this.dMax) : vels[u] * this.friction;
+			if (data_persistent.settings.gimbal) {
+				this.moveGimbals();
+			} else {
+				this.moveFree();
 			}
-			[this.dx, this.dy, this.dz] = vels;
-
-			//handling position
-			//xDir, yDir, zDir. These will be transformed to be relative to the camera
-			var mvMag = this.speedSettings[this.speedSettingSelected];
-			var drMag = Math.min(this.speedSettings[1] * this.aSpeed, this.speedSettings[this.speedSettingSelected] * this.aSpeed);
-			//first 3 are for positional offsets, second two are for keeping rotation stable
-			var moveDirs = [[1, 0, 0], 
-							[0, 1, 0], 
-							[0, 0, 1],
-							polToCart(this.dt * drMag, this.dp * drMag, 1), //the new theta-phi vector
-							polToCart(this.dt * drMag, (this.dp * drMag) - 0.05, 1) //a reference to get the rotation from
-							];
-			
-			for (var v=0; v<moveDirs.length; v++) {
-				[moveDirs[v][0], moveDirs[v][1]] = rotate(moveDirs[v][0], moveDirs[v][1], -this.rot);
-				[moveDirs[v][1], moveDirs[v][2]] = rotate(moveDirs[v][1], moveDirs[v][2], -this.phi);
-				[moveDirs[v][0], moveDirs[v][2]] = rotate(moveDirs[v][0], moveDirs[v][2], -this.theta);
-			}
-
-			//figure out theta and phi
-			var pol = cartToPol(moveDirs[3][0], moveDirs[3][1], moveDirs[3][2]);
-			this.theta = pol[0];
-			this.phi = pol[1];
-
-			//figure out rotation by reverse transforming
-			[moveDirs[4][0], moveDirs[4][2]] = rotate(moveDirs[4][0], moveDirs[4][2], this.theta);
-			[moveDirs[4][1], moveDirs[4][2]] = rotate(moveDirs[4][1], moveDirs[4][2], this.phi);
-			var calculatedRot = (Math.atan2(-moveDirs[4][0], -moveDirs[4][1]) + Math.PI * 2) % (Math.PI * 2);
-			this.rot = ((calculatedRot + this.dr) + Math.PI * 2) % (Math.PI * 2);
-
-			//change magnitude of the inertia
-			moveDirs[0] = (Math.abs(this.dx) > 0.02) ? moveDirs[0].map(a => a * this.dx * mvMag) : [0, 0, 0];
-			moveDirs[1] = (Math.abs(this.dy) > 0.02) ? moveDirs[1].map(a => a * this.dy * mvMag) : [0, 0, 0];
-			moveDirs[2] = (Math.abs(this.dz) > 0.02) ? moveDirs[2].map(a => a * this.dz * mvMag) : [0, 0, 0];
-			
-			//update positions
-			this.x += moveDirs[0][0] + moveDirs[1][0] + moveDirs[2][0];
-			this.y += moveDirs[0][1] + moveDirs[1][1] + moveDirs[2][1];
-			this.z += moveDirs[0][2] + moveDirs[1][2] + moveDirs[2][2];
 		}
+		this.createMatrix();
 	}
 
 	reconcileTargets() {
