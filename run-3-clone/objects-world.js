@@ -1127,15 +1127,8 @@ class Star {
 
 		//if the point isn't going to be clipped, continue
 		if (tZ >= render_clipDistance) {
-			tX /= tZ;
-			tY /= tZ;
-
-			//factoring in scale
-			tX *= world_camera.scale;
-			tY *= -1 * world_camera.scale;
-		
 			//accounting for screen coordinates
-			var tPos = [tX + canvas.width / 2, tY + canvas.height / 2];
+			var tPos = [(tX / tZ * world_camera.scale) + canvas.width / 2, (tY / tZ * -world_camera.scale) + canvas.height / 2];
 
 			//ignore the wormhole if possible
 			if (world_wormhole.ignore) {
@@ -1144,43 +1137,34 @@ class Star {
 			}
 
 			//draw as a regular circle if too far from the wormhole
-			var focusDist = getDistance2d(world_wormhole.f1, tPos) + getDistance2d(world_wormhole.f2, tPos);
-			if (focusDist > world_wormhole.drawRTot * world_wormhole.maxRadiusMult * 2) {
+			var circularDist = getDistance2d(world_wormhole.sPos, tPos);
+			if (circularDist > world_wormhole.drawR * world_wormhole.maxRadiusMult) {
 				this.beDrawn_normally(tPos[0], tPos[1]);
+				return;
+			}
+
+			//don't bother if wormhole takes up the whole screen
+			if (world_wormhole.engulfsCamera) {
 				return;
 			}
 
 			//if still here, we have to deal with spacial smearing.
 
-			//elliptical coordinates are difficult to deal with, transform to circular
-			var coordsWithCircle = rotate(world_wormhole.sPos[0] - tPos[0], world_wormhole.sPos[1] - tPos[1], -world_wormhole.drawA);
-			//multiply out eccentricity
-			coordsWithCircle[1] *= (world_wormhole.drawRX / world_wormhole.drawRY);
-			var circularDist = Math.sqrt(coordsWithCircle[0] ** 2 + coordsWithCircle[1] ** 2);
-
 			//use radius to determine amount of smearing
-			var smearAmount = world_wormhole.arcAtRadius / ((circularDist / world_wormhole.drawRX) ** 4);
+			var smearAmount = world_wormhole.arcAtRadius / ((circularDist / world_wormhole.drawR) ** 4);
 			//console.log(circularDist, world_wormhole.drawRX);
-			var angle = Math.atan2(coordsWithCircle[1], coordsWithCircle[0]) + Math.PI + world_wormhole.drawA;
+			var angle = Math.atan2(world_wormhole.sPos[1] - tPos[1], world_wormhole.sPos[0] - tPos[0]) + Math.PI;
 
 			//don't smear more than a circle's worth
 			if (smearAmount > Math.PI) {
-				/*don't bother being drawn if the camera is inside the wormhole
-				I put this check here, because I didn't want to slow down regular rendering 
-				and figured if the wormhole takes the entire screen it's going to stretch all stars more than 180° anyways*/
-				if (world_wormhole.engulfsCamera) {
-					return;
-				}
 				smearAmount = Math.PI;
 			}
 
 			//don't have star inside the wormhole
-			if (circularDist < world_wormhole.drawRX) {
-				circularDist = world_wormhole.drawRX;
+			if (circularDist < world_wormhole.drawR) {
+				circularDist = world_wormhole.drawR;
 			}
-			//now that we have the circular coordinates, it's easy to determine how large of an ellipse the point lines up on
-			var multiplier = circularDist / world_wormhole.drawRX;
-			this.beDrawn_smeared(angle, smearAmount, world_wormhole.drawRX * multiplier, world_wormhole.drawRY * multiplier);
+			this.beDrawn_smeared(angle, smearAmount, circularDist);
 		}
 	}
 
@@ -1188,11 +1172,11 @@ class Star {
 		drawCircle(this.color, screenX, screenY, this.drawR);
 	}
 
-	beDrawn_smeared(angle, smearAmount, distanceX, distanceY) {
+	beDrawn_smeared(angle, smearAmount, radius) {
 		ctx.beginPath();
 		ctx.strokeStyle = this.color;
 		ctx.lineWidth = this.drawR * 2;
-		ctx.ellipse(world_wormhole.sPos[0], world_wormhole.sPos[1], distanceX, distanceY, world_wormhole.drawA, angle - smearAmount, angle + smearAmount);
+		ctx.arc(world_wormhole.sPos[0], world_wormhole.sPos[1], radius, angle - smearAmount, angle + smearAmount);
 		ctx.stroke();
 	}
 }
@@ -1243,99 +1227,89 @@ class Star_Wormhole extends Star {
 
 	//like the original star beDrawn, except the smear is opposite, and doesn't draw self if outside the wormhole
 	beDrawn() {
+		//if wormhole isn't on screen, neither is self
+		if (world_wormhole.ignore) {
+			return;
+		}
+
+
 		var [tX, tY, tZ] = multiplyPointByMatrix([this.x, this.y, this.z], world_camera.rotMatrix);
 
 		//if the point isn't going to be clipped, continue
 		if (tZ >= render_clipDistance) {
-			tX /= tZ;
-			tY /= tZ;
-			tX *= world_camera.scale;
-			tY *= -1 * world_camera.scale;
-			var tPos = [tX + canvas.width / 2, tY + canvas.height / 2];
+			//accounting for screen coordinates
+			var tPos = [(tX / tZ * world_camera.scale) + canvas.width / 2, (tY / tZ * -world_camera.scale) + canvas.height / 2];
 
-			//if wormhole won't be visible, self won't be as well
-			if (world_wormhole.ignore) {
-				return;
-			}
 			
-			var focusDist = getDistance2d(world_wormhole.f1, tPos) + getDistance2d(world_wormhole.f2, tPos);
-			//if outside of the wormhole, mask away
-			if (focusDist > world_wormhole.drawRTot) {
+			var circularDist = getDistance2d(world_wormhole.sPos, tPos);
+			//wormhole is a mask, if outside don't be drawn
+			if (circularDist > world_wormhole.drawR) {
 				return;
 			}
 
-			if (world_wormhole.engulfsCamera || focusDist < world_wormhole.drawRTot / world_wormhole.maxRadiusMult) {
+			if (world_wormhole.engulfsCamera || circularDist < world_wormhole.drawR / 4) {
 				this.beDrawn_normally(tPos[0], tPos[1]);
 				return;
 			}
 
-			//use radius to determine amount of smearing
-			var fadeAmount = (focusDist / world_wormhole.drawRTot) ** 7;
-			var smearAmount = world_wormhole.arcAtRadius / ((world_wormhole.drawRTot / focusDist) ** 4);
+			//smearing
+			var fadeAmount = (circularDist / world_wormhole.drawR) ** 7;
+			var smearAmount = world_wormhole.arcAtRadius / ((world_wormhole.drawR / circularDist) ** 4);
 			var angle = Math.atan2(world_wormhole.sPos[1] - tPos[1], world_wormhole.sPos[0] - tPos[0]) + Math.PI;
 
+			//don't smear more than a circle's worth
 			if (smearAmount > Math.PI) {
 				smearAmount = Math.PI;
 			}
 
-			//don't have star outside the wormhole
-			if (focusDist > world_wormhole.drawRTot) {
-				focusDist = world_wormhole.drawRTot;
-			}
-			var multiplier = focusDist / world_wormhole.drawRTot;
 			ctx.globalAlpha = render_starOpacity * (1 - fadeAmount);
-			this.beDrawn_smeared(angle, smearAmount, world_wormhole.drawRX * multiplier, world_wormhole.drawRY * multiplier);
+			this.beDrawn_smeared(angle, smearAmount, circularDist);
 			ctx.globalAlpha = render_starOpacity;
 		}
-		// var tX = this.x;
-		// var tY = this.y;
-		// var tZ = this.z;
+		// var [tX, tY, tZ] = multiplyPointByMatrix([this.x, this.y, this.z], world_camera.rotMatrix);
 
-		// [tX, tZ] = rotate(tX, tZ, world_camera.theta);
-		// [tY, tZ] = rotate(tY, tZ, world_camera.phi);
-		// [tX, tY] = rotate(tX, tY, world_camera.rot);
-
+		// //if the point isn't going to be clipped, continue
 		// if (tZ >= render_clipDistance) {
 		// 	tX /= tZ;
 		// 	tY /= tZ;
-
 		// 	tX *= world_camera.scale;
 		// 	tY *= -1 * world_camera.scale;
+		// 	var tPos = [tX + canvas.width / 2, tY + canvas.height / 2];
 
-		// 	tX += canvas.width / 2;
-		// 	tY += canvas.height / 2;
-
-		// 	var wormDist = getDistance2d([tX, tY], world_wormhole.screenPos);
-		// 	if (wormDist > world_wormhole.drawR * 2) {
+		// 	//if wormhole won't be visible, self won't be as well
+		// 	if (world_wormhole.ignore) {
 		// 		return;
 		// 	}
-		// 	if (wormDist > world_wormhole.drawR * 0.5) {
-		// 		//don't draw self outside the wormhole
-		// 		if (wormDist > world_wormhole.drawR) {
-		// 			wormDist = world_wormhole.drawR;
-		// 		}
-		// 		//use radius to determine amount of smearing
-		// 		var fadeAmount = Math.pow(wormDist / world_wormhole.drawR, 7);
-		// 		var smearAmount = world_wormhole.arcAtRadius * fadeAmount;
-		// 		var angle = Math.atan2(world_wormhole.screenPos[1] - tY, world_wormhole.screenPos[0] - tX) + Math.PI;
-
-		// 		if (smearAmount > Math.PI) {
-		// 			smearAmount = Math.PI;
-		// 		}
-
-				
-		// 		//figure out 
-		// 		ctx.strokeStyle = this.color;
-		// 		ctx.lineWidth = this.drawR * 2;
-		// 		ctx.globalAlpha = render_starOpacity * (1 - fadeAmount);
-		// 		ctx.beginPath();
-		// 		ctx.arc(world_wormhole.screenPos[0], world_wormhole.screenPos[1], wormDist, angle - smearAmount, angle + smearAmount);
-		// 		ctx.stroke();
-		// 		ctx.globalAlpha = render_starOpacity;
+			
+		// 	var focusDist = getDistance2d(world_wormhole.f1, tPos) + getDistance2d(world_wormhole.f2, tPos);
+		// 	//if outside of the wormhole, mask away
+		// 	if (focusDist > world_wormhole.drawRTot) {
 		// 		return;
 		// 	}
-		// 	drawCircle(this.color, tX, tY, this.drawR);
+
+		// 	if (world_wormhole.engulfsCamera || focusDist < world_wormhole.drawRTot / world_wormhole.maxRadiusMult) {
+		// 		this.beDrawn_normally(tPos[0], tPos[1]);
+		// 		return;
 		// 	}
+
+		// 	//use radius to determine amount of smearing
+		// 	var fadeAmount = (focusDist / world_wormhole.drawRTot) ** 7;
+		// 	var smearAmount = world_wormhole.arcAtRadius / ((world_wormhole.drawRTot / focusDist) ** 4);
+		// 	var angle = Math.atan2(world_wormhole.sPos[1] - tPos[1], world_wormhole.sPos[0] - tPos[0]) + Math.PI;
+
+		// 	if (smearAmount > Math.PI) {
+		// 		smearAmount = Math.PI;
+		// 	}
+
+		// 	//don't have star outside the wormhole
+		// 	if (focusDist > world_wormhole.drawRTot) {
+		// 		focusDist = world_wormhole.drawRTot;
+		// 	}
+		// 	var multiplier = focusDist / world_wormhole.drawRTot;
+		// 	ctx.globalAlpha = render_starOpacity * (1 - fadeAmount);
+		// 	this.beDrawn_smeared(angle, smearAmount, world_wormhole.drawRX * multiplier, world_wormhole.drawRY * multiplier);
+		// 	ctx.globalAlpha = render_starOpacity;
+		// }
 	}
 }
 
@@ -2958,16 +2932,11 @@ class Wormhole {
 		this.z = z;
 		this.r = 6000;
 
-		//ellipse properties
+		//visibility properties
 		this.ignore = false;
 		this.engulfsCamera = false;
-		this.drawA;
-		this.drawRX;
-		this.drawRY;
-		this.drawRTot;
+		this.drawR;
 		this.sPos = [];
-		this.f1 = [];
-		this.f2 = [];
 
 		//space-bending properties
 		this.arcAtRadius = 1.3;
@@ -3000,9 +2969,7 @@ class Wormhole {
 		this.engulfsCamera = (getDistance(world_camera, this) <= this.r);
 		if (this.engulfsCamera) {
 			this.sPos = [canvas.width / 2, canvas.height / 2];
-			this.drawRX = canvas.width * 2;
-			this.drawRY = canvas.width * 2;
-			this.drawRTot = this.drawRX + this.drawRY;
+			this.drawR = canvas.width;
 			return;
 		}
 		
@@ -3010,9 +2977,8 @@ class Wormhole {
 			this.ignore = true;
 			return;
 		}
-		
 
-		//figure out Xradius and Yradius using transformations
+		//figure out radius using transformations
 		var wormCPos = multiplyPointByMatrix([this.x - world_camera.x, this.y - world_camera.y, this.z - world_camera.z], world_camera.rotMatrix);
 		var distToCenter = getDistance(world_camera, world_wormhole);
 
@@ -3027,10 +2993,8 @@ class Wormhole {
 			return;
 		}
 
-		//figure out offset points:
 		//offset points should always be closer to the center of the screen, but will be 
 		//some point forwards from the center of the sphere (because perspective)
-		
 		var angleQ = Math.acos(this.r / distToCenter);
 		var height = this.r * Math.sin(angleQ);
 		var width = this.r * Math.cos(angleQ);
@@ -3053,22 +3017,12 @@ class Wormhole {
 		var sXO = cameraToScreen(xOff);
 		var sYO = cameraToScreen(yOff);
 
-		this.sPos = cameraToScreen(wormCPos);
-		this.drawRX = Math.min(getDistance2d(this.sPos, sXO), canvas.width * Math.cos(wormTheta));
-		this.drawRY = Math.min(getDistance2d(this.sPos, sYO), canvas.width * Math.cos(wormTheta));
-
 		//when the wormhole gets close to the clipping plane (far out of the FOV), effects get weird. I want to reduce that.
+		var maxRad = canvas.width * Math.cos(wormTheta)
 
-		//various other helpful properties
-		//angle
-		//use whichever's greater for the angle
-		this.drawA = 0;//Math.atan2(sXO[1] - this.sPos[1], sXO[0] - this.sPos[0]);
-		//'string' distance
-		var ctfDistSqrd = Math.abs(this.drawRX ** 2 - this.drawRY ** 2);
-		this.drawRTot = 2 * (Math.sqrt(ctfDistSqrd + Math.min(this.drawRX, this.drawRY) ** 2));
-		ctfDistSqrd = Math.sqrt(ctfDistSqrd) / 2;
+		this.sPos = cameraToScreen(wormCPos);
+		this.drawR = (Math.min(getDistance2d(this.sPos, sXO), maxRad) + Math.min(getDistance2d(this.sPos, sYO), maxRad)) / 2;
 
-		this.f1 = polToXY(this.sPos[0], this.sPos[1], this.drawA + (Math.PI * 0.5 * (this.drawRX < this.drawRY)), ctfDistSqrd);
-		this.f2 = polToXY(this.sPos[0], this.sPos[1], this.drawA + (Math.PI * 0.5 * (this.drawRX < this.drawRY)), -ctfDistSqrd);
+		
 	}
 }
