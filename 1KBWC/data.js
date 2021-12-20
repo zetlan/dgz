@@ -135,7 +135,7 @@ var cardPossibleTags = [
 	`wide`,
 	`multi-colored`,
 	`point card`,
-	//`rule card`
+	`rule card`
 ];
 
 /*
@@ -1157,8 +1157,8 @@ var cardData = [{
 	tags: ["C","point card"],
 }, {
 	id: `248`,
-	name: `Cursive Whoo`,
-	tags: ["C"],
+	name: `Cursive whoof`,
+	tags: ["C","point card"],
 }, {
 	id: `249`,
 	name: `Cyber Jaw`,
@@ -1209,9 +1209,10 @@ var cardData = [{
 	name: `DAWN of the IRON AGE`,
 	tags: ["D","point card"],
 }, {
+	authors: `Kaiden W.`,
 	id: `261`,
 	name: `DAY`,
-	tags: ["D","ELEMENT"],
+	tags: ["D"],
 }, {
 	id: `262`,
 	name: `DEAD on the Inside`,
@@ -2094,9 +2095,10 @@ var cardData = [{
 	name: `Inkwell`,
 	tags: ["I","point card"],
 }, {
+	authors: `Kaiden W.`,
 	id: `481`,
 	name: `INSPECTION`,
-	tags: ["I","ELEMENT","multi-colored"],
+	tags: ["I","multi-colored"],
 }, {
 	id: `482`,
 	name: `Inspirationally Deficient Card`,
@@ -2130,9 +2132,10 @@ var cardData = [{
 	name: `Is that even sustainable?`,
 	tags: ["I","point card"],
 }, {
+	authors: `Kaiden W.`,
 	id: `490`,
 	name: `IS`,
-	tags: ["I","ELEMENT"],
+	tags: ["I"],
 }, {
 	id: `491`,
 	name: `It slices`,
@@ -2961,6 +2964,7 @@ var cardData = [{
 	name: `Pelosi at the 2020 SOTU`,
 	tags: ["P"],
 }, {
+	authors: `Kaiden W.`,
 	id: `697`,
 	name: `PEN`,
 	tags: ["P","ELEMENT","multi-colored"],
@@ -4761,6 +4765,8 @@ var cardData = [{
 	name: `Headless <span style="text-decoration: line-through;">Horseman</span> TJ kid`,
 	tags: ["H"],
 }, {
+	//shameful. Missed the F at the end and so accidentally repeated this one.
+	hide: true,
 	id: `1141`,
 	name: `Cursive whoof`,
 	tags: ["C","point card"],
@@ -4795,19 +4801,19 @@ var cardData = [{
 }, {
 	id: `1149`,
 	name: `Cut! a card in 2.`,
-	tags: ["C", "rules card", "multi-colored"],
+	tags: ["C", "rule card", "multi-colored"],
 }, {
 	id: `1150`,
 	name: `Radio Silence`,
-	tags: ["R", "rules card", "multi-colored"],
+	tags: ["R", "rule card", "multi-colored"],
 }, {
 	id: `1151`,
 	name: `Reverse All`,
-	tags: ["R", "rules card"],
+	tags: ["R", "rule card"],
 }, {
 	id: `1152`,
 	name: `REDACT Light`,
-	tags: ["R", "rules card", "wide", "multi-colored"],
+	tags: ["R", "rule card", "wide", "multi-colored"],
 }];
 
 
