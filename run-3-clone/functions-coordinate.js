@@ -217,14 +217,7 @@ function getDistance_LightSource(obj) {
 
 //determines if a point will be clipped due to being behind / too close to the camera
 function isClipped(pointArr) {
-	var [tX, tY, tZ] = pointArr;
-	tX -= world_camera.x;
-	tY -= world_camera.y;
-	tZ -= world_camera.z;
-	[tX, tZ] = rotate(tX, tZ, world_camera.theta);
-	[tY, tZ] = rotate(tY, tZ, world_camera.phi);
-
-	return (tZ < render_clipDistance);
+	return (multiplyPointByMatrix([pointArr[0] - world_camera.x, pointArr[1] - world_camera.y, pointArr[2] - world_camera.z], world_camera.rotMatrix)[2] < render_clipDistance);
 }
 
 function multiplyPointByMatrix(pt, mtx) {
@@ -319,40 +312,25 @@ function spaceToRelativeRotless(pointToChange, point, normal) {
 
 function spaceToScreen(point) {
 	//takes in an xyz list and outputs an xy list
-	var tX = point[0];
-	var tY = point[1];
-	var tZ = point[2];
 
 	//step 1: make coordinates relative to camera
-	tX -= world_camera.x;
-	tY -= world_camera.y;
-	tZ -= world_camera.z;
+	var tCoords = [point[0] - world_camera.x, point[1] - world_camera.y, point[2] - world_camera.z];
 
 	//step 2: rotate coordinates
-	//around y axis
-	[tX, tZ] = rotate(tX, tZ, world_camera.theta);
-
-	//around x axis
-	[tY, tZ] = rotate(tY, tZ, world_camera.phi);
-
-	//around self
-	[tX, tY] = rotate(tX, tY, world_camera.rot);
+	tCoords = multiplyPointByMatrix(tCoords, world_camera.rotMatrix);
 
 	//step 3: divide by axis perpendicular to camera
-	tX /= tZ;
-	tY /= tZ;
+	tCoords[0] /= tCoords[2];
+	tCoords[1] /= tCoords[2];
 
 	//step 4: account for camera scale
-	tX *= world_camera.scale;
+	tCoords[0] *= world_camera.scale;
 
 	//flipping image
-	tY *= -1 * world_camera.scale;
+	tCoords[1] *= -1 * world_camera.scale;
 
-	//accounting for screen coordinates
-	tX += canvas.width / 2;
-	tY += canvas.height / 2;
-
-	return [tX, tY];
+	//accounting for screen coordinates and returning
+	return [tCoords[0] + canvas.width / 2, tCoords[1] + canvas.height / 2];
 }
 
 function transformPoint(pointToTransform, addPoint, normal, size) {
