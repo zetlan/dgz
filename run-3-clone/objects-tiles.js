@@ -272,6 +272,14 @@ class Tile_Box extends Tile {
 		entityCoords[1] = -0.5 * this.size - this.tolerance;
 	}
 
+	doComplexLighting() {
+		super.doComplexLighting();
+		[...this.drawPolysOut, ...this.drawPolysIn].forEach(p => {
+			p.cameraDist = this.cameraDist;
+			p.playerDist = this.playerDist;
+		});
+	}
+
 	doRotationEffects_Underside(entity) {
 		//same but with some variables swapped around for the opposite direction
 		var cameraRotAttempt;
@@ -737,7 +745,7 @@ class Tile_Ice_Ramp extends Tile_Ice {
 	}
 
 	calculatePointsAndNormal() {
-		this.points = [[-1, 0, -1], [-1, 0, 1], [-1, 0.5, 1], [-1, 0.5, -1]];
+		this.points = [[-1, 0, -1], [-1, 0, 1], [1, 0.5, 1], [1, 0.5, -1]];
 		this.points.forEach(p => {
 			transformPoint(p, [this.x, this.y, this.z], this.normal, this.size + 0.5);
 		});
