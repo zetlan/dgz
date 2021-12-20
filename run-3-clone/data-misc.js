@@ -178,7 +178,7 @@ var data_characters = {
 }
 var data_levelSets = [`main`, `boxRoad`, `boxStorage`, `planA`, `planC`, `wayBack`, `wayBackNot`, `winterGames`, `lowPower`, `new`,
 						`A`, `B`, `C`, `D`, `F`, `G`, `H`, `I`, `L`, `M`, `N`, `T`, `U`, `W`];
-//data_levelSets = [`main`, `lowPower`, `new`, `F`, `U`, `wayBack`, `wayBack2`, `planA`, `planC`];
+//data_levelSets = [`main`, `F`, `U`, `wayBack`, `wayBackNot`, `planA`, `planC`];
 var data_musics = ['CrumblingWalls', 'LeaveTheSolarSystem', 'MapOfTheStars', 'TheVoid', 'TravelTheGalaxy', 'WormholeToSomewhere', 'WormholeToSomewhereFar', 'None'];
 
 var data_persistent = {
@@ -191,7 +191,8 @@ var data_persistent = {
 	unlocked: [`Runner`],
 
 	//stats
-	deaths: 0,
+	deathsE: 0,
+	deathsI: 0,
 	highscores: [],
 	powercells: 0,
 	infVisited: "",
@@ -201,6 +202,7 @@ var data_persistent = {
 		altRender: true,
 		antiAlias: true,
 		enableOutlines: true,
+		gimbal: false,
 		halfRender: false,
 		highResolution: false,
 		maskCursor: false,
@@ -378,8 +380,10 @@ var data_sprites = {
 		jumpSideways: [[0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [5, 1], [6, 1]],
 		walkForwards: [[0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [5, 2], [6, 2], [7, 2],
 					   [0, 3], [1, 3], [2, 3], [3, 3], [4, 3], [5, 3], [6, 3], [7, 3]],
-		walkSideways: [[0, 4], [1, 4], [2, 4], [3, 4], [4, 4], [5, 4], [6, 4], [7, 4],
+		walkLeft: [[0, 4], [1, 4], [2, 4], [3, 4], [4, 4], [5, 4], [6, 4], [7, 4],
 						[0, 5], [1, 5], [2, 5], [3, 5], [4, 5], [5, 5], [6, 5], [7, 5]],
+		walkRight: [[0, 5], [1, 5], [2, 5], [3, 5], [4, 5], [5, 5], [6, 5], [7, 5], 
+					[0, 4], [1, 4], [2, 4], [3, 4], [4, 4], [5, 4], [6, 4], [7, 4]],
 	}
 };
 
