@@ -73,7 +73,7 @@ class Camera {
 		this.speed = 0.05;
 		this.aSpeed = 0.8;
 		this.speedSettingSelected = 1;
-		this.speedSettings = [1 / 8, 1, 8];
+		this.speedSettings = [1 / 8, 1, 10];
 
 
 		this.x = x;
@@ -87,7 +87,7 @@ class Camera {
 		this.dx = 0;
 		this.dy = 0;
 		this.dz = 0;
-		this.dMax = 10;
+		this.dMax = 12;
 		this.dMin = 0.02;
 
 		this.ax = 0;
