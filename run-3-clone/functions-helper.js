@@ -553,6 +553,10 @@ function fastLoad() {
 	player.parentPrev = tun;
 	loading_state = new State_Menu();
 	tun.reset();
+
+	world_camera.x = 75000;
+	world_camera.y = 1000;
+	world_camera.z = world_wormhole.z + 100;
 }
 
 function fastSqrt(num) {
