@@ -17,14 +17,13 @@ TODO list
 change the way cutscene data works. Perhaps all the cutscenes could be put into a giant dictionary?
 instead of cutsceneData_id it would be data_cutscene["id"]
 would also cut down on the distinction between "planetMissing" and "Planet Missing" for example, as keys can be any string
+all cutscenes should be relative to some tunnel. I don't know how many things I'm going to accidentally break when I move a tunnel and the cutscenes don't come with. It's annoying.
 
 Fix tunnel rendering. Goish I feel terrible about that. Currently it seems like a binary space partition is the only way to go, but maybe there are some shortcuts that can be taken.
 	If going with a BSP, make sure it's fast. Find a way to group tiles into one plane
 	is it possible to not cut any tile planes? Boxes + ramps seem like a big no-go on that but it may be possible
 
 challenge mode is a mess. Maybe something with that?
-
-all cutscenes should be relative to some tunnel. I don't know how many things I'm going to accidentally break when I move a tunnel and the cutscenes don't come with. It's annoying.
 
 
 */
@@ -34,7 +33,6 @@ var audio_channel2 = new AudioChannel(0.5);
 var audio_consentRequired = true;
 var audio_fadeTime = 75;
 var audio_tolerance = 1 / 30;
-
 
 var canvas;
 var ctx;
@@ -74,9 +72,12 @@ const color_crumbling = "#CCCCCC";
 const color_crumbling_secondary = "#808080";
 const color_cutsceneBox = "#FFF";
 const color_cutsceneLink = "#404";
+const color_deathE = "#4BF";
+const color_deathI = "#F93";
 
 const color_editor_bg = "#335";
 const color_editor_border = "#F8F";
+const color_editor_camera = "#0F0";
 const color_editor_cursor = "#0FF";
 const color_editor_normal = "#F80";
 
@@ -112,7 +113,7 @@ var credits = [
 	``,
 	`ADDITIONAL LEVELS BY:`,
 	`Karsh777, mathwiz100, portugal2000, Huggaso,`,
-	`StarsOfTheSky, Fivebee2, and Gecco.`,
+	`StarsOfTheSky, Fivebee2, Gecco, and Cynthia Clementine`,
 	``,
 	`SPECIAL THANKS:`,
 	`A*16 - "I barely did anything but I still wanted`,
@@ -140,6 +141,7 @@ var editor_thetaKnobRadius = 10;
 var editor_buttonHeightPercentage = 0.45;
 var editor_cameraLimit = 300000;
 var editor_colorMultiplier = 1.7;
+var editor_constrainViewLen = 0.02;
 var editor_cutsceneColumns = 3;
 var editor_cutsceneMargin = 0.08;
 var editor_functionMapping = {
@@ -202,6 +204,7 @@ var infinite_data = levelData_infinite.split("\n");
 var infinite_difficultyBoost = 4;
 var infinite_levelRange = 40;
 var infinite_wobble = 0.3;
+var infinite_levelConstraints = ["229", "230", "233", "326"];
 
 
 
@@ -351,6 +354,7 @@ let active_objects = [];
 let world_wormhole;
 var world_version = 1.2;
 
+var gloablView;
 
 var render_animSteps = 9;
 var render_crosshairSize = 10;
@@ -396,6 +400,7 @@ var deathCount = 0;
 function setup() {
 	canvas = document.getElementById("cornh");
 	ctx = canvas.getContext("2d");
+	setCanvasPreferences();
 
 	//cursor movements setup
 	document.addEventListener("mousemove", handleMouseMove, false);
@@ -422,8 +427,7 @@ function setup() {
 	loading_state = new State_Loading();
 
 	//setting up world
-	//as a reminder, tunnels are (x, y, z, angle, tile size, sides, tiles per sides, color, length, data)
-	world_objects = []; 
+	//fastLoad();
 
 	generateStarSphere();
 	generateAngelLines();
@@ -474,14 +478,14 @@ function handleKeyPress(a) {
 	loading_state.handleKeyPress(a);
 
 	//universal keys
-	switch (a.key) {
-		case 'Shift':
+	switch (a.key.toLowerCase()) {
+		case 'shift':
 			controls_shiftPressed = true;
 			break;
-		case 'Alt':
+		case 'alt':
 			controls_altPressed = true;
 			break;
-		case 'Escape':
+		case 'escape':
 			if (!controls_escPressed) {
 				controls_escPressed = true;
 				toggleForcedReset(1);
@@ -503,7 +507,7 @@ function handleKeyPress(a) {
 
 function handleKeyPress_camera(a) {
 	//movement controls
-	switch (a.key) {
+	switch (a.key.toLowerCase()) {
 		// a/d
 		case 'a':
 			world_camera.ax = -1 * world_camera.aSpeed;
@@ -522,21 +526,21 @@ function handleKeyPress_camera(a) {
 		case ' ':
 			world_camera.ay = world_camera.aSpeed;
 			break;
-		case 'Shift':
+		case 'shift':
 			world_camera.ay = -1 * world_camera.aSpeed;
 			break;
 
 		//angle controls
-		case 'ArrowLeft':
+		case 'arrowleft':
 			world_camera.dt = -1 * world_camera.sens;
 			break;
-		case 'ArrowUp':
+		case 'arrowup':
 			world_camera.dp = world_camera.sens;
 			break;
-		case 'ArrowRight':
+		case 'arrowright':
 			world_camera.dt = world_camera.sens;
 			break;
-		case 'ArrowDown':
+		case 'arrowdown':
 			world_camera.dp = -1 * world_camera.sens;
 			break;
 		case 'q':
@@ -553,7 +557,6 @@ function handleKeyPress_camera(a) {
 			} else {
 				world_camera.speedSettingSelected = 1;
 			}
-			console.log(world_camera.speedSettingSelected);
 			break;
 		case '=':
 			if (world_camera.speedSettingSelected < 2) {
@@ -571,21 +574,21 @@ function handleKeyPress_camera(a) {
 }
 
 function handleKeyPress_player(a) {
-	switch(a.key) {
+	switch(a.key.toLowerCase()) {
 		//direction controls
 		// a / <--
 		case 'a':
-		case 'ArrowLeft':
+		case 'arrowleft':
 			player.ax = -1 * player.strafeSpeed;
 			break;
 		//d / -->
 		case 'd':
-		case 'ArrowRight':
+		case 'arrowright':
 			player.ax = player.strafeSpeed;
 			break;
 		// w / ^ / space
 		case 'w':
-		case 'ArrowUp':
+		case 'arrowup':
 		case ' ':
 			if (!controls_spacePressed) {
 				//if it's infinite mode, restart
@@ -611,14 +614,14 @@ function handleKeyNegate(a) {
 	loading_state.handleKeyNegate(a);
 
 	//universals
-	switch (a.key) {
-		case 'Shift':
+	switch (a.key.toLowerCase()) {
+		case 'shift':
 			controls_shiftPressed = false;
 			break;
-		case 'Alt':
+		case 'alt':
 			controls_altPressed = false;
 			break;
-		case 'Escape':
+		case 'escape':
 			controls_escPressed = false;
 			toggleForcedReset(0);
 			break;
@@ -629,7 +632,7 @@ function handleKeyNegate(a) {
 }
 
 function handleKeyNegate_camera(a) {
-	switch(a.key) {
+	switch(a.key.toLowerCase()) {
 		//direction controls
 		case 'a':
 			if (world_camera.ax < 0) {
@@ -656,29 +659,29 @@ function handleKeyNegate_camera(a) {
 				world_camera.ay = 0;
 			}
 			break;
-		case 'Shift':
+		case 'shift':
 			if (world_camera.ay < 0) {
 				world_camera.ay = 0;
 			}
 			break;
 			
 		//angle controls
-		case 'ArrowLeft':
+		case 'arrowleft':
 			if (world_camera.dt < 0) {
 				world_camera.dt = 0;
 			}
 			break;
-		case 'ArrowUp':
+		case 'arrowup':
 			if (world_camera.dp > 0) {
 				world_camera.dp = 0;
 			}
 			break;
-		case 'ArrowRight':
+		case 'arrowright':
 			if (world_camera.dt > 0) {
 				world_camera.dt = 0;
 			}
 			break;
-		case 'ArrowDown':
+		case 'arrowdown':
 			if (world_camera.dp < 0) {
 				world_camera.dp = 0;
 			}
@@ -697,24 +700,24 @@ function handleKeyNegate_camera(a) {
 }
 
 function handleKeyNegate_player(a) {
-	switch(a.key) {
+	switch(a.key.toLowerCase()) {
 		//a / <--
 		case 'a':
-		case 'ArrowLeft':
+		case 'arrowleft':
 			if (player.ax < 0) {
 				player.ax = 0;
 			}
 			break;
 		//d / -->
 		case 'd':
-		case 'ArrowRight':
+		case 'arrowright':
 			if (player.ax > 0) {
 				player.ax = 0;
 			}
 			break;
 		// w / ^ / space
 		case 'w':
-		case 'ArrowUp':
+		case 'arrowup':
 		case ' ':
 			controls_spacePressed = false;
 			break;
@@ -771,6 +774,7 @@ function updateResolution() {
 	star_arr.forEach(w => {
 		w.tick();
 	});
+	setCanvasPreferences();
 }
 
 /* results:
