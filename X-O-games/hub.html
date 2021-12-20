@@ -11,19 +11,22 @@
         <style>
 
         body {
-            background-color: rgb(151, 136, 247);
+            background-color: #9788f7;
         }
         #terminal {
             text-align: left;
             margin-left: 10%;
             margin-right: 10%;
             font-family: 'Roboto Mono', monospace;
-            color: rgb(74, 1, 83);
+            color: #4A0153;
         }
         #terminal-input {
             position:absolute;
             bottom: 10%;
             margin-top: auto;
+        }
+        #terminal-output {
+            font-size: x-large;
         }
         </style>
     </head>
@@ -31,7 +34,7 @@
         <script src="games.js"></script>
         <script src="main.js"></script>
         <div id="terminal">
-            <p id="terminal-output"></p>
+            <p><pre id="terminal-output"></pre></p>
             <input type="text" id="terminal-input" onsubmit="acceptTextCommand()">
         </div>
     </body>
