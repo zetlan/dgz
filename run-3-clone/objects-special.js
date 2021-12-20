@@ -250,7 +250,7 @@ class CNode {
 			ctx.font = `${textSize}px Comfortaa`;
 			ctx.fillStyle = color_text_bright;
 			ctx.textAlign = "center";
-			ctx.fillText(this.cutsceneRef.id, this.x * canvas.width, (this.y * canvas.height) + (textSize / 2));
+			ctx.fillText(this.cutsceneRef.id, this.x * canvas.width, this.y * canvas.height);
 
 			//if (editor_active) {
 			//	drawCircle(color_grey_light, this.x * canvas.width, this.y * canvas.height, editor_handleRadius);
@@ -1059,7 +1059,7 @@ class SceneText {
 		ctx.textAlign = "center";
 		ctx.font = `${this.fontSize * canvas.height}px Comfortaa`;
 		for (var p=0; p<this.processedContent.length; p++) {
-			ctx.fillText(this.processedContent[p], (this.x * canvas.width), (this.y * canvas.height) + (canvas.height * this.fontSize * (p + 0.66)));
+			ctx.fillText(this.processedContent[p], this.x * canvas.width, (this.y * canvas.height) + (canvas.height * this.fontSize * (p + 0.4)));
 		}
 	}
 
@@ -1658,7 +1658,7 @@ class PropertyButton {
 		ctx.font = `${canvas.height / 25}px Comfortaa`;
 		ctx.textAlign = "center";
 		ctx.fillStyle = color_text;
-		ctx.fillText(this.label, canvas.width * this.x, (canvas.height * this.y) + (canvas.height / 75));
+		ctx.fillText(this.label, canvas.width * this.x, canvas.height * this.y);
 	}
 
 	tick() {
@@ -1706,7 +1706,7 @@ class PropertySlider {
 		ctx.fillStyle = color_text_bright;
 		ctx.font = `${canvas.height / 40}px Comfortaa`;
 		ctx.textAlign = "left";
-		ctx.fillText(`${this.label} (${displayValue})`, canvas.width * this.x, (canvas.height * this.y) + (canvas.height / 108));
+		ctx.fillText(`${this.label} (${displayValue})`, canvas.width * this.x, canvas.height * this.y);
 
 
 
@@ -1769,7 +1769,7 @@ class PropertyTextBox {
 		ctx.fillStyle = color_text_bright;
 		ctx.font = `${canvas.height / 42}px Comfortaa`;
 		ctx.textAlign = "left";
-		ctx.fillText(this.label + eval(this.property), canvas.width * (this.x + 0.01), (canvas.height * this.y) + (canvas.height / 126));
+		ctx.fillText(this.label + eval(this.property), canvas.width * (this.x + 0.01), canvas.height * this.y);
 	}
 
 	interact() {
@@ -1824,7 +1824,7 @@ class PropertyToggle {
 		//text
 		ctx.font = `${canvas.height / 36}px Comfortaa`;
 		ctx.textAlign = "left";
-		ctx.fillText(this.text, canvas.width * this.x, (canvas.height * this.y) + (canvas.height / 108));
+		ctx.fillText(this.text, canvas.width * this.x, canvas.height * this.y);
 	}
 
 	interact() {
