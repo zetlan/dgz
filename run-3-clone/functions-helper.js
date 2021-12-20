@@ -34,7 +34,7 @@
 
 	getClosestObject();
 	getImage();
-	getObjectFromID(id);
+	getObjectFromID(id, array);
 	getTimeFromFrames();
 
 	handleAudio();
@@ -121,7 +121,7 @@ function generateStarSphere() {
 	}
 
 	//wormhole stars
-	for (var e=0; e<star_number/7; e++) {
+	for (var e=0; e<Math.floor(star_number/7); e++) {
 		var cosPhi = Math.pow(randomSeeded(-1, 1), 7);
 
 		var phi = Math.acos(cosPhi) - (Math.PI / 2);
@@ -551,7 +551,7 @@ function fastLoad() {
 	var tun = world_objects[0];
 	editor_active = true;
 	player.parentPrev = tun;
-	loading_state = new State_Game();
+	loading_state = new State_Menu();
 	tun.reset();
 }
 
@@ -715,26 +715,30 @@ function getKey(obj, value) {
 	return Object.keys(obj)[Object.values(obj).indexOf(value)];
 }
 
-function getObjectFromID(id) {
+function getObjectFromID(id, array) {
+	//array might be undefined. If so, use the current state's readFrom array
+	array = array ?? world_objects;
+
+	if (array.length < 1) {
+		return undefined;
+	}
 	//binary search through the list
 	var low = 0;
-	var high = world_objects.length;
+	var high = array.length - 1;
 
 	while (low < high) {
-		if (world_objects[Math.floor((low + high) / 2)].id.localeCompare(id) < 0) {
+		if (array[Math.floor((low + high) / 2)].id.localeCompare(id) < 0) {
 			low = Math.floor((low + high) / 2) + 1;
 		} else {
 			high = Math.floor((low + high) / 2);
 		}
 	}
 
-	if (world_objects[low].id == id) {
-		return world_objects[low];
+	if (array[low].id == id) {
+		return array[low];
 	}
 
-	//to prevent errors, return an empty object if nothing is found
-	//commented out because the errors get annoying.
-	//console.error(`ERROR: couldn't find tunnel with id ${id}`);
+	//return an empty object to avoid errors
 	return {};
 }
 
@@ -1024,11 +1028,10 @@ function makeCutsceneAbsolute(cutsceneData) {
 	return cutsceneData;
 }
 
-function makeCutsceneRelative(relativeTunnel, cutsceneData) {
+function makeCutsceneRelative(relativeTunnelSTRING, cutsceneData) {
 	var relPos;
 	var relDirs;
 	var tunnel;
-	var newDat;
 	var buffer1;
 
 	//if the cutscene is already relative, first make it into absolute positioning
@@ -1036,9 +1039,9 @@ function makeCutsceneRelative(relativeTunnel, cutsceneData) {
 		cutsceneData = makeCutsceneAbsolute(cutsceneData);
 	}
 
-	tunnel = getObjectFromID(relativeTunnel);
+	tunnel = getObjectFromID(relativeTunnelSTRING);
 	if (tunnel.id == undefined) {
-		console.log(cutsceneData);
+		console.error(`${relativeTunnelSTRING} is not a valid tunnel name!`);
 		return;
 	}
 	relPos = [tunnel.x, tunnel.y, tunnel.z];
@@ -1054,7 +1057,7 @@ function makeCutsceneRelative(relativeTunnel, cutsceneData) {
 		cutsceneData.frames[ln] = buffer1.reduce((a, b) => a + "|" + b);
 	}
 
-	cutsceneData.relativeTo = relativeTunnel;
+	cutsceneData.relativeTo = relativeTunnelSTRING;
 	return makeCutscene(cutsceneData);
 }
 
@@ -1397,7 +1400,7 @@ function sortWorldArray() {
 	//alphabetical sort
 	world_objects.sort(function (a, b) {
 		return (a.id).localeCompare(b.id);
-	})
+	});
 }
 
 function spliceIn(string, charStart, string2) {
