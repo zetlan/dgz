@@ -1561,7 +1561,7 @@ class Tunnel {
 		//sort objects
 		var sortObjs = [player, ...this.freeObjs];
 		if (player.duplicates != undefined && player.duplicates.length > 0) {
-			sortObjs = [sortObjs, ...player.duplicates];
+			sortObjs = [...sortObjs, ...player.duplicates];
 		}
 
 		//sort tiles
@@ -1673,17 +1673,14 @@ class Tunnel {
 		if (editor_active) {
 			//numbering strips
 			ctx.font = `${canvas.height / 48}px Comfortaa`;
-			ctx.fillStyle = color_text_bright;
+			
 			var [tX, tY] = [0, 0];
 			for (var v=0; v<this.strips.length; v++) {
 				if (!isClipped(this.strips[v].pos)) {
 					[tX, tY] = spaceToScreen(this.strips[v].pos);
+					ctx.beginPath();
+					ctx.fillStyle = stripsAreBlocking[v] ? "#F00" : color_text_bright;
 					ctx.fillText(v, tX + 5, tY);
-
-					//dot for blocking strips
-					if (stripsAreBlocking[v]) {
-						drawCircle("#FFF", tX, tY, 10);
-					}
 				}
 			}
 		}
@@ -1727,7 +1724,7 @@ class Tunnel {
 		//sort objects
 		var sortObjs = [player, ...this.freeObjs];
 		if (player.duplicates != undefined && player.duplicates.length > 0) {
-			sortObjs = [sortObjs, ...player.duplicates];
+			sortObjs = [...sortObjs, ...player.duplicates];
 		}
 
 		sortObjs.forEach(o => {
@@ -1793,13 +1790,9 @@ class Tunnel {
 			for (var v=0; v<this.strips.length; v++) {
 				if (!isClipped(this.strips[v].pos)) {
 					[tX, tY] = spaceToScreen(this.strips[v].pos);
+					ctx.beginPath();
+					ctx.fillStyle = stripsAreBlocking[v] ? "#0F0" : color_text_bright;
 					ctx.fillText(v, tX + 5, tY);
-				}
-
-				//dot for blocking strips
-				if (stripsAreBlocking[v]) {
-					[tX, tY] = spaceToScreen(this.strips[v].pos);
-					drawCircle("#FFF", tX, tY, 10);
 				}
 			}
 		}
@@ -2954,12 +2947,13 @@ class Wormhole {
 		ctx.ellipse(this.sPos[0], this.sPos[1], this.drawRX, this.drawRY, this.drawA, 0, Math.PI * 2);
 		ctx.fill();
 
-		//drawCircle("#000", this.screenPos[0], this.screenPos[1], this.drawR);
 		var circSize = Math.min(canvas.height / 100, this.drawRX / 5);
 
+		//recalculate where offset points are to draw them
+
 		drawCircle("#F0F", ...this.sPos, circSize);
-		drawCircle("#F0F", ...this.f1, circSize);
-		drawCircle("#F0F", ...this.f2, circSize);
+		drawCircle("#F0F", ...this.sXO, circSize);
+		drawCircle("#F0F", ...this.sYO, circSize);
 	}
 
 	tick() {
@@ -3014,14 +3008,14 @@ class Wormhole {
 		var xOff = [wormCPos[0] + zOC[0] + xOC[0], wormCPos[1] + zOC[1] + xOC[1], wormCPos[2] + zOC[2] + xOC[2]];
 		var yOff = [wormCPos[0] + zOC[0] + yOC[0], wormCPos[1] + zOC[1] + yOC[1], wormCPos[2] + zOC[2] + yOC[2]];
 
-		var sXO = cameraToScreen(xOff);
-		var sYO = cameraToScreen(yOff);
+		this.sXO = cameraToScreen(xOff);
+		this.sYO = cameraToScreen(yOff);
 
 		//when the wormhole gets close to the clipping plane (far out of the FOV), effects get weird. I want to reduce that.
 		var maxRad = canvas.width * Math.cos(wormTheta)
 
 		this.sPos = cameraToScreen(wormCPos);
-		this.drawR = (Math.min(getDistance2d(this.sPos, sXO), maxRad) + Math.min(getDistance2d(this.sPos, sYO), maxRad)) / 2;
+		this.drawR = (Math.min(getDistance2d(this.sPos, this.sXO), maxRad) + Math.min(getDistance2d(this.sPos, this.sYO), maxRad)) / 2;
 
 		
 	}
