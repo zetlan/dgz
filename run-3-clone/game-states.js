@@ -135,7 +135,7 @@ class State_World {
 				ctx.font = `${canvas.height / 15}px Comfortaa`;
 				ctx.textAlign = "center";
 				if (player.parent == undefined) {
-					ctx.fillText("Space", canvas.width * 0.5, canvas.height * 0.075);
+					ctx.fillText("Space", canvas.width * 0.5, canvas.height * 0.1);
 				} else {
 					ctx.fillText(player.parent.id, canvas.width * 0.5, canvas.height * 0.1);
 				}
@@ -256,7 +256,8 @@ class State_World {
 	}
 
 	handlePlayerDeath() {
-		data_persistent.deaths += 1;
+		data_persistent.deathsE += 1;
+		console.log(`1 death counted`)
 		player.parentPrev.reset();
 		this.nearObjs = orderObjects(this.nearObjs, 5);
 		player.parent = player.parentPrev;
@@ -588,11 +589,15 @@ class State_Cutscene extends State_World {
 		];
 
 
-		//loop through frames, if it's a string convert to objects
-		this.readFrom = loading_state.readFrom;
+		//make sure read from is sorted so orderObjects will work on it
+		this.readFrom = loading_state.readFrom.sort(function (a, b) {
+			return (a.id).localeCompare(b.id);
+		});
+
 		this.frame = 0;
 		//activate effects
 		eval(this.ref.effects);
+		//loop through frames, if it's a string convert to objects
 		for (var e=0; e<this.ref.frames.length; e++) {
 			//if the data line is a string, convert it to a set of objects
 			if (this.ref.frames[e].constructor.name == "String") {
@@ -835,7 +840,7 @@ class State_Cutscene extends State_World {
 				
 			} else {
 				//if the camera isn't in the location
-				if (!getObjectFromID(this.cameraIsIn).coordinateIsInTunnel(world_camera.x, world_camera.y, world_camera.z, true)) {
+				if (!getObjectFromID(this.cameraIsIn, this.readFrom).coordinateIsInTunnel(world_camera.x, world_camera.y, world_camera.z, true)) {
 					this.cameraIsIn = undefined;
 				}
 			}
@@ -913,6 +918,27 @@ class State_Cutscene extends State_World {
 	}
 
 	giveStringData() {
+		//different process for relative cutscenes
+		if (this.ref.relativeTo != undefined) {
+			
+			//relative tunnels are expecting an object, so just turn each line into its string form and then use that
+			for (var m=0; m<this.ref.frames.length; m++) {
+				this.ref.frames[m] = this.giveStringDataForLine(this.ref.frames[m]);
+			}
+
+			//temporarily remove relativity, because makeCutsceneRelative will erroniously remove it otherwise
+			var relStore = this.ref.relativeTo;
+			this.ref.relativeTo = undefined;
+
+			var toReturn = makeCutsceneRelative(getObjectFromID(relStore), this.ref);
+			this.ref.relativeTo = relStore;
+			return toReturn;
+		}
+
+
+
+		//regular case
+
 		//go through all frames
 		var frameData = ``;
 		this.ref.frames.forEach(d => {
@@ -927,18 +953,7 @@ class State_Cutscene extends State_World {
 			outputString += `\trelativeTo: \`${this.ref.relativeTo}\`,\n`;
 		}
 		outputString += `\tframes: [\n\t\t${frameData}]\n\t}`;
-
-		if (this.ref.relativeTo == undefined) {
-			return outputString;
-		}
-
-		//relativity cohesion, if necessary
-		var relTun = getObjectFromID(this.ref.relativeTo);
-		outputString = outputString.replaceAll("\n", "").replaceAll("\t", "");
-		console.log(outputString);
-		var objectified = JSON.parse(outputString);
-		objectified.relativeTo = undefined;
-		return makeCutsceneRelative(relTun, objectified);
+		return outputString;
 	}
 
 	giveStringDataForLine(arr) {
@@ -1309,6 +1324,7 @@ class State_Infinite extends State_World {
 	}
 
 	pushScoreToLeaderboard() {
+		data_persistent.deathsI += 1;
 		//format is [name, distance, powercells, characters used]
 		//go through scoreboard scores and append self if necessary
 		for (var spot=0; spot<10; spot++) {
@@ -1391,7 +1407,9 @@ class State_Infinite extends State_World {
 			data_persistent.powercells += this.characterData[player.constructor.name].powercells;
 		} else {
 			super.handlePlayerDeath();
+			data_persistent.deathsE -= 1;
 			this.distance = 0;
+			this.lastPlayerPos = [player.x - player.parentPrev.x, player.z - player.parentPrev.z];
 			this.characterData[player.constructor.name].distance = 0;
 		}
 	}
@@ -1479,7 +1497,7 @@ class State_Loading {
 		if (this.time == 10) {
 			//turn time data into actual fps
 			var fps = Math.round((1000 * (this.timeBuffer.length-1)) / (this.timeBuffer[this.timeBuffer.length-1] - this.timeBuffer[0]));
-			var rounded = Math.round(fps / render_rateBase) * render_rateBase;
+			var rounded = Math.max(render_rateBase, Math.round(fps / render_rateBase) * render_rateBase);
 			console.log(`guessing FPS is ${fps}, which rounds to ${rounded}`);
 			render_rate = rounded;
 		}
@@ -1645,7 +1663,7 @@ class State_Map {
 			var multiplier = 0.5 + ((Math.sin(world_time / 35) + 1) * 0.2);
 			ctx.strokeStyle = color_editor_cursor;
 			ctx.beginPath();
-			ctx.ellipse(orbitCoords[0], orbitCoords[1], editor_thetaCircleRadius * multiplier, editor_thetaCircleRadius * multiplier, 0, 0, Math.PI * 2);
+			ctx.arc(orbitCoords[0], orbitCoords[1], editor_thetaCircleRadius * multiplier, 0, Math.PI * 2);
 			ctx.stroke();
 		}
 
@@ -1693,12 +1711,12 @@ class State_Map {
 				
 				//text at the top
 				ctx.fillStyle = color_text;
-				ctx.fillText(`selected-id: ${this.objSelected.id}`, canvas.width * 0.5, canvas.height * 0.1);
-				ctx.fillText(`θ: ${this.objSelected.theta}`, canvas.width * 0.5, (canvas.height * 0.1) + fontSize);
+				ctx.fillText(`selected-id: ${this.objSelected.id}`, canvas.width * 0.5, canvas.height * 0.075);
+				ctx.fillText(`θ: ${this.objSelected.theta}`, canvas.width * 0.5, (canvas.height * 0.075) + fontSize);
 			} else {
 				ctx.fillStyle = color_text;
-				ctx.fillText(`selected-id: undefined`, canvas.width * 0.5, canvas.height * 0.1);
-				ctx.fillText(`θ: undefined`, canvas.width * 0.5, (canvas.height * 0.1) + fontSize);
+				ctx.fillText(`selected-id: undefined`, canvas.width * 0.5, canvas.height * 0.075);
+				ctx.fillText(`θ: undefined`, canvas.width * 0.5, (canvas.height * 0.075) + fontSize);
 			}
 
 			//border around screen
@@ -1717,7 +1735,7 @@ class State_Map {
 		drawCircle(color_editor_cursor, this.cursorPos[0], this.cursorPos[1], canvas.height / 240);
 		if (this.objSelected != undefined) {
 			ctx.fillStyle = color_text;
-			ctx.fillText(this.objSelected.id, canvas.width * 0.5, canvas.height * 0.1);
+			ctx.fillText(this.objSelected.id, canvas.width * 0.5, canvas.height * 0.075);
 		}
 
 		//box drawings
@@ -2148,20 +2166,20 @@ class State_Menu {
 				this.displayCharacterSelected = ((this.displayCharacterSelected * (render_animSteps - 1)) + this.characterSelected) / render_animSteps;
 
 				//selection box for username
-				drawSelectionBox(canvas.width * ((player_maxNameWidth / 2) + 0.01), canvas.height * 0.0375, canvas.width * player_maxNameWidth, canvas.height * 0.055);
+				drawSelectionBox(canvas.width * ((player_maxNameWidth / 2) + 0.02), canvas.height * 0.0375, canvas.width * (player_maxNameWidth + 0.02), canvas.height * 0.055);
 
 				//title card
 				ctx.font = `${canvas.height / 8}px Comfortaa`;
 				ctx.textAlign = `center`;
 				ctx.fillStyle = color_text_bright;
-				ctx.fillText(`Run 3`, canvas.width * 0.5, canvas.height * 0.13);
+				ctx.fillText(`Run 3`, canvas.width * 0.5, canvas.height * 0.1);
 
-				//powercell readout
+				//name + powercell readout
 				ctx.font = `${canvas.height / 32}px Comfortaa`;
 				ctx.textAlign = `left`;
 
-				ctx.fillText(data_persistent.name, canvas.width * 0.02, canvas.height * 0.05);
-				ctx.fillText(`${data_persistent.powercells} power cells`, canvas.width * 0.02, canvas.height * 0.1);
+				ctx.fillText(data_persistent.name, canvas.width * 0.02, canvas.height * 0.0375);
+				ctx.fillText(`${data_persistent.powercells} power cells`, canvas.width * 0.02, canvas.height * 0.09);
 				ctx.textAlign = `center`;
 				
 				ctx.strokeStyle = color_grey_dark;
@@ -2172,7 +2190,7 @@ class State_Menu {
 
 				//lower left buttons
 				for (var b=0; b<4; b++) {
-					drawTile2d((canvas.height * 0.03) + (canvas.width * (b * 0.07)), canvas.height * 0.9, canvas.width * 0.06, 40 + b);
+					drawTile2d((canvas.width * 0.01) + (canvas.width * (b * 0.07)), canvas.height - (canvas.width * 0.07), canvas.width * 0.06, 40 + b);
 				}
 
 				//drawing characters
@@ -2214,32 +2232,75 @@ class State_Menu {
 				break;
 			case 1:
 				//leaderboards
-				ctx.font = `${Math.floor(canvas.height / 30)}px Comfortaa`;
+				var baseHeight = 0.125;
+				var offHeight = 0.0625;
+				var ws = [0.03, 0.34, 0.48, 0.625];
+
+				
+				ctx.font = `${Math.floor(canvas.height / 32)}px Comfortaa`;
 				ctx.textAlign = "left";
 				ctx.fillStyle = color_text_bright;
 				//headers
-				ctx.fillText("Username", canvas.width * 0.04, canvas.height * 0.15);
-				ctx.fillText("Distance", canvas.width * 0.35, canvas.height * 0.15);
-				if (data_persistent.effectiveCutscenes.includes("batteries")) {
-					ctx.fillText("Batteries", canvas.width * 0.5, canvas.height * 0.15);
-				} else {
-					ctx.fillText("Powercells", canvas.width * 0.5, canvas.height * 0.15);
-				}
-				ctx.fillText("Characters Used", canvas.width * 0.65, canvas.height * 0.15);
+				ctx.fillText("Username", canvas.width * ws[0], canvas.height * baseHeight);
+				ctx.fillText("Distance", canvas.width * ws[1], canvas.height * baseHeight);
+				ctx.fillText((data_persistent.effectiveCutscenes.includes("batteries")) ? "Batteries" : "Powercells", canvas.width * ws[2], canvas.height * baseHeight);
+				ctx.fillText("Characters Used", canvas.width * ws[3], canvas.height * baseHeight);
 
+				//actual highscores
 				for (var j=0; j<data_persistent.highscores.length; j++) {
-					ctx.fillText(data_persistent.highscores[j][0], canvas.width * 0.04, ((canvas.height * 0.2) + (canvas.width * 0.05 * j)) + (Math.floor(canvas.height / 30) * 0.5), canvas.width * 0.34);
+					ctx.fillText(data_persistent.highscores[j][0], canvas.width * 0.04, canvas.height * (baseHeight + offHeight * (j + 1)), canvas.width * 0.34);
 					//normal data
-					ctx.fillText(data_persistent.highscores[j][1] + "m", canvas.width * 0.35, ((canvas.height * 0.2) + (canvas.width * 0.05 * j)) +  (Math.floor(canvas.height / 30) * 0.5));
-					ctx.fillText(data_persistent.highscores[j][2], canvas.width * 0.5, ((canvas.height * 0.2) + (canvas.width * 0.05 * j)) +  (Math.floor(canvas.height / 30) * 0.5));
+					ctx.fillText(data_persistent.highscores[j][1] + "m", canvas.width * 0.35, canvas.height * (baseHeight + offHeight * (j + 1)));
+					ctx.fillText(data_persistent.highscores[j][2], canvas.width * 0.5, canvas.height * (baseHeight + offHeight * (j + 1)));
 
 					//characters used
 					for (var k=0; k<data_persistent.highscores[j][3].length; k++) {
 						var charIndex = data_characters.map[data_persistent.highscores[j][3][k]];
 						textures_common[charIndex].frame = 0;
-						textures_common[charIndex].beDrawn((canvas.width * 0.65) + (menu_characterSize * 0.8 * (k + 0.5)), (canvas.height * 0.2) + (canvas.width * 0.05 * j), 0, menu_characterSize * 0.75);
+						textures_common[charIndex].beDrawn((canvas.width * 0.65) + (menu_characterSize * 0.8 * (k + 0.5)), canvas.height * (baseHeight + offHeight * (j + 1)), 0, menu_characterSize * 0.75);
 					}
 				}
+
+				//death counter
+				//ctx.font = `${Math.floor(canvas.height / 40)}px Comfortaa`;
+				
+				var deathHeight = 0.9;
+				var pieR = 0.045;
+				var textOff = 0.025;
+				var deathRatio = data_persistent.deathsE / (data_persistent.deathsE + data_persistent.deathsI);
+
+				
+
+				//actual pie chart
+				if (data_persistent.deathsE + data_persistent.deathsI > 0) {
+					ctx.fillStyle = color_deathE;
+					ctx.beginPath();
+					ctx.moveTo(canvas.width / 2, canvas.height * deathHeight);
+					//infinite deaths will layer overtop, so this can just be a circle
+					ctx.arc(canvas.width / 2, canvas.height * deathHeight, canvas.height * pieR, 0, Math.PI * 2);
+					ctx.fill();
+
+					ctx.fillStyle = color_deathI;
+					ctx.beginPath();
+					ctx.moveTo(canvas.width / 2, canvas.height * deathHeight);
+					ctx.arc(canvas.width / 2, canvas.height * deathHeight, canvas.height * pieR, -Math.PI / 2, (-Math.PI * 0.5) - (Math.PI * 2 * (1 - deathRatio)), true);
+					ctx.fill();
+
+					//texts
+					ctx.textAlign = "left";
+					ctx.fillStyle = color_deathE;
+					ctx.fillText(`Explore retries: ${data_persistent.deathsE}`, (canvas.width / 2) + (canvas.height * (pieR + textOff)), canvas.height * deathHeight);
+
+					ctx.textAlign = "right";
+					ctx.fillStyle = color_deathI;
+					ctx.fillText(`Infinite retries: ${data_persistent.deathsI}`, (canvas.width / 2) - (canvas.height * (pieR + textOff)), canvas.height * deathHeight);
+				}
+				
+
+				ctx.textAlign = "center";
+				ctx.fillStyle = color_text_bright;
+				ctx.fillText(`Total retries: ${data_persistent.deathsE + data_persistent.deathsI}`, canvas.width / 2, canvas.height * (deathHeight + pieR + textOff));
+
 				break;
 			case 2:
 				//reset save data button
@@ -2247,7 +2308,7 @@ class State_Menu {
 				ctx.fillStyle = color_text_danger;
 				ctx.textAlign = "center";
 				ctx.font = `${canvas.height / 20}px Comfortaa`;
-				ctx.fillText(`Delete save data`, canvas.width * 0.5, canvas.height * 0.95);
+				ctx.fillText(`Delete save data`, canvas.width * 0.5, canvas.height * 0.94);
 
 				
 				//settings menu
@@ -2271,7 +2332,7 @@ class State_Menu {
 				ctx.font = `${canvas.height / 25}px Comfortaa`;
 				ctx.textAlign = "left";
 				for (var l=0; l<credits.length; l++) {
-					ctx.fillText(credits[l], canvas.width * 0.03, canvas.height * (0.15 + 0.05 * l));
+					ctx.fillText(credits[l], canvas.width * 0.03, canvas.height * (0.14 + 0.05 * l));
 				}
 				break;
 		}
