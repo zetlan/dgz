@@ -6,6 +6,7 @@ INDEX:
 		drawCrosshair(center, normal1, normal2, normal3);
 		drawLine(p1, p2);
 		drawLock(x, y, width, height);
+		drawPieChart(x, y, radius, number1, color1, text1, number2, color2, text2, ... ,numberN, colorN, textN);
 		drawPoly(color, xyPointsArr);
 		drawRoundedRectangle(x, y, width, height, arcRadius);
 		drawTriangle(x, y, radius, rot);
@@ -15,7 +16,6 @@ INDEX:
 	specifics:
 		drawAngelPanel(time);
 		drawCharacterText();
-		drawKeys();
 		drawInfiniteEndScreen();
 		drawKeys();
 		drawSelectionBox(x, y, width, height);
@@ -442,7 +442,7 @@ function drawSky(bgColor) {
 	
 	//tick wormhole
 	world_wormhole.tick();
-	if (editor_active) {
+	if (editor_active && data_persistent.settings.enableOutlines) {
 		world_wormhole.beDrawn();
 	}
 	ctx.lineCap = "round";
@@ -737,4 +737,9 @@ function drawTile2d(ex, why, size, type) {
 
 function drawTunnelSectionPerfect(tunnel, simpleTileDat, complexTileDat, freeObjs) {
 	//B3Node()
+}
+
+
+function setCanvasPreferences() {
+	ctx.textBaseline = "middle";
 }
