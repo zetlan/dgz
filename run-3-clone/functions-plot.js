@@ -173,7 +173,8 @@ function updateSave() {
 	data_persistent.effectiveCutscenes = data_persistent.effectiveCutscenes ?? [];
 	data_persistent.unlocked = data_persistent.unlocked ?? ["Runner"];
 
-	data_persistent.deaths = data_persistent.deaths ?? 0;
+	data_persistent.deathsE = data_persistent.deathsE ?? 0;
+	data_persistent.deathsI = data_persistent.deathsI ?? 0;
 	data_persistent.infVisited = data_persistent.infVisited ?? "";
 
 	console.log(`updated save from ${data_persistent.version} to ${world_version}`);
