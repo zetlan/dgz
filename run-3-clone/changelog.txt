@@ -5,21 +5,52 @@
 V1.2 - THE VISUAL UPDATE - ????
     bug fixes:
         tunnels made in the editor no longer reset their music to "Travel The Galaxy" every time you load them
+        editing tunnel triggers will no longer crash the level editor (so sorry about this one, that should have been found + fixed waay earlier)
+
         Fixed animation timing bug when strafing right on some characters
-        Fixed skater + lizard encounters continually showing during their respective cutscenes
         duplicator duplicates will now no longer be seen through tiles
+        Fixed skater + lizard encounters continually showing during their respective cutscenes
+        fixed lighting not working when tunnels were far away in cutscenes
+
 
     quality-of-life:
-        adjusted the postion of the G-tunnel
-        Nerfed the bunny's speed and strafing a little bit from their uncontrollably fast earlier speed.
-        The Lizard is now allowed into part 1 of the memory evaluation tunnel.
-        improved camera for cutscene editing
-        improved low-precision tunnel rendering
-        //improved precise tunnel rendering
+        Gameplay:
+            adjusted the postion of the G-tunnel
+            Nerfed the bunny's speed and strafing a little bit from their uncontrollably fast earlier speed.
+            The Lizard is now allowed into part 1 of the memory evaluation tunnel.
+
+        Editor:
+            improved cutscene editing camera
+                controls are different
+                when moving around, but not modifying the camera position, a green indicator shows the position of the true camera.
+
+        misc:
+            improved wormhole rendering, especially in corners of the screen
+            improved low-precision tunnel rendering
+            improved high-precision tunnel rendering
+
 
     misc development:
         switched from using .keyCode to .key for inputs, as .keyCode is different for firefox.
             side note: why are keycodes like this? What possible reason could browsers have for using 61 AND 187 for the equals key???? It's a mystery to me.
+
+
+    TODO YET:
+        RENDERING:
+            farPolys have issues
+            ice ramps  
+
+        BUGS
+            With the skater, you can activate angelVBunny even without completing the going home checklist
+            weird backwards level issue in N-7
+            relativity controls in-editor (make sure exporting works)
+
+        FEATURES
+            better line system in editor pull orbs?
+            death counter + inf visited counter
+            ability to lock editor files
+            rotation for tile editing
+            characters?
 
 
 
