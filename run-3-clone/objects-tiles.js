@@ -186,8 +186,10 @@ class Tile_Box extends Tile {
 		} else {
 			//simple circle for far away
 			if (!isClipped([this.x, this.y, this.z])) {
-				var pos = spaceToScreen([this.x, this.y, this.z]);
-				drawCircle(this.getColor(), pos[0], pos[1], (this.size / this.cameraDist) * world_camera.scale * 0.6);
+				var pos = spaceToCamera([this.x, this.y, this.z]);
+				var pos2 = cameraToScreen([pos[0], pos[1] + this.size * 0.5, pos[2]]);
+				pos = cameraToScreen(pos);
+				drawCircle(this.getColor(), pos[0], pos[1], getDistance2d(pos2, pos));
 			}
 		}
 	}
