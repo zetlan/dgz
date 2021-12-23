@@ -6,12 +6,13 @@ Tag helper!
 
 
 
-SPR - character sprite	x~y~size~sheetSource~rotation~backwards?~textureX~textureY
+SPR - character sprite	x~y~size~sheetSource~rotation~backwards?~textureX~textureY~opacity?
 BUB - text box			x~y~width~height
 BOX - text bubble		x~y~width~height
 LIN - line				x1~y1~x2~y2
 TRI - triangle line		x1~y1~x2~y2~width
 TXT - text box			x~y~width~textSize~content~useLightColor?
+COD - code block		code
 
 
 3BT - boat				x~y~z~theta~phi
@@ -323,9 +324,6 @@ var cutsceneData_planetStolen = {
 		`CAM~-2654.0965~-3.6590~-50743.2478~3.2430~-0.0108~0.7798|SPR~0.5401~0.8156~0.0336~data_sprites.Runner.sheet~0.0000~false~13~0|SPR~0.4096~0.8406~0.0383~data_sprites.Duplicator.sheet~0.0000~false~13~6|LGT~-2580.1338~-133.7576~-50948.1245|LGT~-2520.6882~-56.5130~-50930.6770|BUB~0.5549~0.3594~0.3719~0.0729|TRI~0.5760~0.4156~0.5494~0.7198~0.0111|TXT~0.5572~0.3146~0.3229~0.0500~I think I'll ignore that entirely. Help me map out this next area.~false|SPR~0.5408~0.5125~0.0117~data_sprites.Child.sheet~4.7404~false~11~1`, 
 	]
 }
-//START: changeTiles("Memory Evaluation, Part 3", [[1, 7], [2, 5], [2, 6], [2, 7], [2, 3], [20, 25], [20, 27], [20, 28], [20, 29], [19, 29], [17, 30]], 0);
-
-//END: changeTiles("Memory Evaluation, Part 3", [[1, 7], [2, 5], [2, 6], [2, 7], [2, 3], [20, 25]], 2); changeTiles("Memory Evaluation, Part 3", [[20, 27], [20, 28], [20, 29], [19, 29], [17, 30]], 1);
 
 var cutsceneData_revision = {
 	id: `Revision`,
