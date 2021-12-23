@@ -8,6 +8,7 @@
 	activateCutsceneFromTunnel(start, end, time);
 	avgArray(array);
 	
+	calculateLevelsVisited();
 	challenge_isCutscene(tile, reverseDirectionBOOLEAN, cutscene, immersiveBOOLEAN);
 	challenge_isComplete();
 	challenge_isEmpty();
@@ -25,12 +26,17 @@
 	changeTile(tunnel, tileCoords, newTileID);
 	changeTiles(tunnel, tileArray, newTileID);
 	clamp(num, min, max);
-	compressCutsceneData();
+	compressCutsceneData(csObj);
+	compressCutsceneLine(line);
+	decompressCutsceneData(csObj);
+	decompressCutsceneLine(line);
 	fastLoad();
 	fastSqrt(num);
 
 	file_export();
 	file_import();
+	file_import_1dot1(worldText);
+	file_import_1dot2(worldText);
 
 	getClosestObject();
 	getImage();
@@ -39,7 +45,8 @@
 
 	handleAudio();
 	HSVtoRGB();
-	isValidString();
+	isComplex(tile);
+	isValidString(str);
 	linterp3d();
 	localStorage_read();
 	localStorage_write();
@@ -187,6 +194,24 @@ function avgArray(array) {
 	}
 
 	return finArr;
+}
+
+//returns the total number of levels that have been visited
+function calculateLevelsVisited() {
+	var infCount = 0;
+	var expCount = 0;
+
+	//first do explore mode levels
+	world_objects.forEach(w => {
+		expCount += w.discovered;
+	});
+
+	//then do infinite mode levels
+	infCount = (infinite_levelsVisited.match(/1/g) || []).length;
+	
+
+
+	return [expCount, infCount];
 }
 
 
@@ -374,13 +399,10 @@ function challenge_crumble(tunnelID, posArray) {
 
 function challenge_crumbleAll(tunnelID) {
 	tunnelID = getObjectFromID(tunnelID);
-	tunnelID.realTilesComplex.forEach(s => {
-		s.forEach(t => {
-			if (t.constructor.name == "Tile_Crumbling" && t.fallStatus != physics_crumblingShrinkTime + physics_crumblingShrinkStart - 1) {
-				t.fallStatus = physics_crumblingShrinkTime + physics_crumblingShrinkStart - 1;
-				t.propogateCrumble();
-			}
-		});
+	//loop through all crumbling tile sets, crumble the first tile of every set then propogate it naturally
+	tunnelID.crumbleSets.forEach(s => {
+		s[0].fallStatus = physics_crumblingShrinkTime + physics_crumblingShrinkStart - 1;
+		s[0].propogateCrumble();
 	});
 }
 
@@ -523,27 +545,109 @@ function clamp(num, min, max) {
 	return num <= min ? min : num >= max ? max : num;
 }
 
-function compressCutsceneData(reference) {
+function compressCutsceneData(csObj) {
 	//loop through all frames
-	//if it's an array of objects, get string data and replace it
-	for (var f=0; f<reference.frames.length; f++) {
-		var arr = reference.frames[f];
-		if (arr.constructor.name == "Array") {
-			//camera data
-			var camData = "CAM~";
-			for (var a=0; a<arr[0].length-1; a++) {
-				camData += arr[0][a].toFixed(data_precision) + "~";
-			}
-			camData += arr[0][arr[0].length-1].toFixed(data_precision);
-
-			var objData = "";
-			arr[1].forEach(a => {
-				objData += "|" + a.giveStringData();
-			});
-
-			reference.frames[f] = camData + objData;
+	for (var f=0; f<csObj.frames.length; f++) {
+		//only compress if it's not compressed
+		if (csObj.frames[f].constructor.name == "Array") {
+			csObj.frames[f] = compressCutsceneLine(csObj.frames[f]);
 		}
 	}
+
+	//is the cutscene relative to something? Then make sure that's reflected in the data
+	if (csObj.relativeTo != undefined) {
+		makeCutsceneRelative(csObj.relativeTo, csObj);
+	}
+}
+
+function compressCutsceneLine(line) {
+	//don't compress if already compressed
+	if (line.constructor.name == "String") {
+		return line;
+	}
+
+	//camera data
+	var camData = "CAM~";
+	for (var a=0; a<line[0].length-1; a++) {
+		camData += line[0][a].toFixed(data_precision) + "~";
+	}
+	camData += line[0][line[0].length-1].toFixed(data_precision);
+
+	var objData = ``;
+	for (var a=0; a<line[1].length; a++) {
+		objData += "|" + line[1][a].giveStringData();
+	}
+
+	return `${camData}${objData}`;
+}
+
+function decompressCutsceneData(csObj) {
+	//if it's relative, revert that before decompressing
+	if (csObj.relativeTo != undefined) {
+		makeCutsceneAbsolute(csObj);
+	}
+
+
+	for (var f=0; f<csObj.frames.length; f++) {
+		//only decompress if it's compressed
+		if (csObj.frames[f].constructor.name == "String") {
+			csObj.frames[f] = decompressCutsceneLine(csObj.frames[f]);
+		}
+	}
+}
+
+//turns a single cutscene line into an array
+function decompressCutsceneLine(line) {
+	var camData = [0, 0, 0, 0, 0, 0];
+	var objData = [];
+
+	//translate each tag into its corresponding object
+	//for an easier read of possible tags and arguments, see data-cutscenes.js, line 1
+	var tags = line.split("|");
+	tags.forEach(t => {
+		var s = t.split("~");
+		switch (s[0]) {
+			case "CAM":
+				for (var n=0; n<s.length-1; n++) {
+					camData[n] = +s[n+1];
+				}
+				break;
+			case "LGT":
+				objData.push(new SceneLight(+s[1], +s[2], +s[3]));
+				break;
+			case "SPR":
+				objData.push(new SceneSprite(+s[1], +s[2], +s[3], s[4], +s[5], JSON.parse(s[6]), +s[7], +s[8], +s[9]));
+				break;
+			case "BUB":
+				objData.push(new SceneBubble(+s[1], +s[2], +s[3], +s[4]));
+				break;
+			case "BOX":
+				objData.push(new SceneBox(+s[1], +s[2], +s[3], +s[4]));
+				break;
+			case "COD":
+				objData.push(new SceneCode(s[1]));
+				break;
+			case "LIN":
+				objData.push(new SceneLine(+s[1], +s[2], +s[3], +s[4]));
+				break;
+			case "TRI":
+				objData.push(new SceneTri(+s[1], +s[2], +s[3], +s[4], +s[5]));
+				break;
+			case "TXT":
+				objData.push(new SceneText(+s[1], +s[2], +s[3], +s[4], s[5], JSON.parse(s[6])));
+				break;
+			case "POW":
+				objData.push(new ScenePowercell(+s[1], +s[2], +s[3]));
+				break;
+			case "3TL":
+				objData.push(new SceneTile(+s[1], +s[2], +s[3], +s[4], +s[5], +s[6]));
+				break;
+			case "3BT":
+				objData.push(new SceneBoat(+s[1], +s[2], +s[3], +s[4], +s[5]));
+				break;
+		}
+	});
+	return [camData, objData];
 }
 
 function fastLoad() {
@@ -580,14 +684,20 @@ function file_export() {
 	//create data
 	var textDat = '';
 
+	//version number at the top
+	textDat += world_version.toFixed(2) + "\n";
+
+	//should the file be locked?
+	textDat += editor_locked;
+
+	//spawn object index
+	textDat += editor_objects.indexOf(editor_spawn) + "\n";
+
 	//world objects
 	editor_objects.forEach(e => {
 		textDat += e.giveStringData() + "\n";
 	});
 	textDat += "\n";
-
-	//spawn index
-	textDat += editor_objects.indexOf(editor_spawn) + "\n";
 
 	//cutscenes
 	//loop through all cutscenes
@@ -619,6 +729,9 @@ function file_export() {
 }
 
 
+
+
+
 //turn file into editor world
 function file_import() {
 	//people say javascript is its most awkward when it's interacting with html + other elements. I think they're right.
@@ -627,61 +740,139 @@ function file_import() {
 	fileReader.onload = function(fileLoadedEvent) {
 		//function for when the text actually loads
 		var worldText = fileLoadedEvent.target.result;
+		var version = worldText.split("\n")[0];
+		var nowsVersion = world_version.toFixed(2);
 
-
-		//loading levels
-		editor_objects = [];
-		var levelToLoad = worldText.substring(0, worldText.indexOf("\n"));
-		worldText = worldText.substring(worldText.indexOf("\n")+1);
-		while (levelToLoad != "") {
-			console.log(levelToLoad);
-			editor_objects.push(new Tunnel_FromData(levelToLoad));
-
-			levelToLoad = worldText.substring(0, worldText.indexOf("\n"));
-			worldText = worldText.substring(worldText.indexOf("\n")+1);
-		}
-
-		loading_state.readFrom = orderObjects(editor_objects, 6);
-
-		//load start level
-		editor_spawn = editor_objects[worldText.substring(0, worldText.indexOf("\n")) * 1];
-		worldText = worldText.substring(worldText.indexOf("\n")+2);
-		
-		//safety
-		var tolerance = 5000;
-		//loading cutscenes
-		worldText = worldText.split("\n");
-		while (worldText.length > 1) {
-			console.log("length: ", worldText.length);
-			var ref = worldText[0];
-			var cName = worldText[1];
-			var cEffects = worldText[2];
-			var cFrames = [];
-			var lineCheck = 3;
-
-			//4 + is frames, search
-			while (worldText[lineCheck] != "end") {
-				cFrames.push(worldText[lineCheck]);
-				lineCheck += 1;
-
-				tolerance -= 1;
-				if (tolerance <= 0) {
-					if (!confirm(editor_warning_file)) {
-						return;
-					}
-				}
-			}
-			//push cutscene and delete from the data
-			editor_cutscenes[ref] = {
-				id: cName,
-				effects: cEffects,
-				frames: cFrames
-			};
-			worldText.splice(0, lineCheck+1);
+		//do different things depending on the save file version
+		switch(version) {
+			case "1.20":
+				file_import_1dot2(worldText);
+			default:
+				file_import_1dot1(worldText);
+				break;
 		}
 	};
 
 	fileReader.readAsText(fileObj, "UTF-8");
+}
+
+
+//for old files
+function file_import_1dot1(worldText) {
+	//loading levels
+	editor_locked = false;
+	editor_objects = [];
+	var levelToLoad = worldText.substring(0, worldText.indexOf("\n"));
+	worldText = worldText.substring(worldText.indexOf("\n")+1);
+	while (levelToLoad != "") {
+		console.log(levelToLoad);
+		editor_objects.push(new Tunnel_FromData(levelToLoad));
+
+		levelToLoad = worldText.substring(0, worldText.indexOf("\n"));
+		worldText = worldText.substring(worldText.indexOf("\n")+1);
+	}
+
+	loading_state.readFrom = orderObjects(editor_objects, 6);
+
+	//load start level
+	editor_spawn = editor_objects[worldText.substring(0, worldText.indexOf("\n")) * 1];
+	worldText = worldText.substring(worldText.indexOf("\n")+2);
+	
+	//safety
+	var tolerance = 5000;
+	//loading cutscenes
+	worldText = worldText.split("\n");
+	while (worldText.length > 1) {
+		console.log("length: ", worldText.length);
+		var ref = worldText[0];
+		var cName = worldText[1];
+		var cEffects = worldText[2];
+		var cFrames = [];
+		var lineCheck = 3;
+
+		//4 + is frames, search
+		while (worldText[lineCheck] != "end") {
+			cFrames.push(worldText[lineCheck]);
+			lineCheck += 1;
+
+			tolerance -= 1;
+			if (tolerance <= 0) {
+				if (!confirm(editor_warning_file)) {
+					return;
+				}
+			}
+		}
+		//push cutscene and delete from the data
+		editor_cutscenes[ref] = {
+			id: cName,
+			effects: cEffects,
+			frames: cFrames
+		};
+		worldText.splice(0, lineCheck+1);
+	}
+}
+
+function file_import_1dot2(worldText) {
+	//first split tag
+	var splitText = worldText.split("\n");
+
+	//misc properties go at the top, for example:
+
+	//the version number, this can be skipped
+	splitText.splice(0, 1);
+	
+	//is the world locked?
+	editor_locked = +splitText.splice(0, 1)[0];
+
+	//what's the start index?
+	var startInd = +splitText.splice(0, 1)[0];
+
+	//load all levels
+	while (splitText[0] != "") {
+		console.log(splitText[0]);
+		editor_objects.push(new Tunnel_FromData(splitText.splice(0, 1)[0]));
+	}
+	//get rid of the empty space
+	splitText.splice(0, 1);
+	loading_state.readFrom = orderObjects(editor_objects, 6);
+
+	//load start level
+	editor_spawn = editor_objects[startInd];
+	
+	//safety
+	var tolerance;
+	//loading cutscenes
+	worldText = worldText.split("\n");
+	while (worldText.length > 1) {
+		tolerance = 1000;
+		console.log("length: ", worldText.length);
+		var cID = worldText[0];
+		var cName = worldText[1];
+		var cEffects = worldText[2];
+		var cRelative;
+		var cFrames = [];
+		var lineCheck = 3;
+
+		//4 + is frames, search
+		while (worldText[lineCheck] != "end") {
+			cFrames.push(worldText[lineCheck]);
+			lineCheck += 1;
+
+			tolerance -= 1;
+			if (tolerance <= 0) {
+				if (!confirm(editor_warning_file)) {
+					return;
+				}
+			}
+		}
+		//push cutscene and delete from the data
+		editor_cutscenes[cID] = {
+			id: cName,
+			effects: cEffects,
+			frames: cFrames
+		};
+		worldText.splice(0, lineCheck+1);
+	}
 }
 
 function flipObject(object) {
@@ -912,6 +1103,11 @@ function HSVtoRGB(hsvObject) {
 	return RGBString;
 }
 
+//says whether a tile is a complex tile or not
+function isComplex(tile) {
+	return ((tile.fallRate ?? tile.rampPushForce ?? tile.polys ?? tile.verticalObj) != undefined);
+}
+
 function isValidString(str) {
 	return (str != null && str != undefined && +str != +"");
 }
@@ -968,7 +1164,15 @@ function localStorage_write() {
 			data_persistent.discovered += "~"+world_objects[a].id;
 		}
 	}
-	data_persistent.discovered = data_persistent.discovered.substring(1);
+	data_persistent.discovered = data_persistent.discovered.slice(1);
+
+	//collapse the infinite visited array
+	data_persistent.infVisited = "";
+	for (var p=0; p<infinite_levelsVisited.length; p+=6) {
+		data_persistent.infVisited += tunnel_translationInverse[parseInt(infinite_levelsVisited.slice(p, p+6), 2)];
+	}
+
+
 	window.localStorage["run3_data"] = JSON.stringify(data_persistent);
 }
 
@@ -1014,7 +1218,18 @@ function makeCutscene(ref) {
 }
 
 function makeCutsceneAbsolute(cutsceneData) {
-	var tunnel = getObjectFromID(cutsceneData.relativeTo);
+	//determine which array to look for in terms of relativity
+	var isEditor = false;
+	var editCutKeys = Object.keys(editor_cutscenes);
+	for (var x=0; x<editCutKeys.length; x++) {
+		if (editor_cutscenes[editCutKeys[x]] == cutsceneData) {
+			isEditor = true;
+			x = editCutKeys.length;
+		}
+	}
+
+	var tunnel = getObjectFromID(cutsceneData.relativeTo, isEditor ? editor_objects : world_objects);
+	console.log(isEditor);
 	var relPos = [tunnel.x, tunnel.y, tunnel.z];
 	var relDirs = [tunnel.theta, 0, 0];
 	var buffer1;
@@ -1028,22 +1243,26 @@ function makeCutsceneAbsolute(cutsceneData) {
 		}
 		cutsceneData.frames[ln] = buffer1.reduce((a, b) => a + "|" + b);
 	}
-	cutsceneData.relativeTo = undefined;
-	return cutsceneData;
 }
 
+//given a cutscene object with string frames, makes it relative to a tunnel.
 function makeCutsceneRelative(relativeTunnelSTRING, cutsceneData) {
 	var relPos;
 	var relDirs;
 	var tunnel;
 	var buffer1;
 
-	//if the cutscene is already relative, first make it into absolute positioning
-	if (cutsceneData.relativeTo != undefined) {
-		cutsceneData = makeCutsceneAbsolute(cutsceneData);
+	var isEditor = false;
+	var editCutKeys = Object.keys(editor_cutscenes);
+	for (var x=0; x<editCutKeys.length; x++) {
+		if (editor_cutscenes[editCutKeys[x]] == cutsceneData) {
+			isEditor = true;
+			x = editCutKeys.length;
+		}
 	}
 
-	tunnel = getObjectFromID(relativeTunnelSTRING);
+	tunnel = getObjectFromID(relativeTunnelSTRING, isEditor ? editor_objects : world_objects);
+	console.log(isEditor);
 	if (tunnel.id == undefined) {
 		console.error(`${relativeTunnelSTRING} is not a valid tunnel name!`);
 		return;
@@ -1060,9 +1279,6 @@ function makeCutsceneRelative(relativeTunnelSTRING, cutsceneData) {
 		}
 		cutsceneData.frames[ln] = buffer1.reduce((a, b) => a + "|" + b);
 	}
-
-	cutsceneData.relativeTo = relativeTunnelSTRING;
-	return makeCutscene(cutsceneData);
 }
 
 function makeCutsceneTag(tag, sign, positionData, directionData) {
@@ -1103,7 +1319,7 @@ function makeCutsceneTag(tag, sign, positionData, directionData) {
 				return `CAM~${nt[1].toFixed(dp)}~${nt[2].toFixed(dp)}~${nt[3].toFixed(dp)}~${nt[4].toFixed(dp)}~${nt[5]}~${nt[6]}`;
 			}
 
-			//you know what, this isn't completed but it's completed enough for what I'm doing right now. 
+			//this is not completed. Boats have theta and Tiles have a size tag, which could scale with the tunnel. I don't particularly care at this point in time though.
 
 			break;
 		//ignore all 2d objects
@@ -1806,7 +2022,7 @@ function tunnelData_parseData(toParse, tileArray, tilesInLoop, tileTypeNum) {
 	//next step is converting the data to 1s/0s
 	var newData = "";
 	for (var e=0;e<toParse.length;e++) {
-		newData += ("000000" + (tunnel_translation[toParse[e]]).toString(2)).substr(-6);
+		newData += tunnel_translation[toParse[e]].toString(2).padStart(6, "0");
 	}
 
 	//final step is to map the 1s/0s onto the tunnel array
@@ -1862,8 +2078,8 @@ function tunnelData_parseDataReverse(tileDataArray) {
 		if (dataLists[q] * 1 != 0) {
 			//go through each set of binary numbers, turn into a b64 character, then remove them. After the whole set has been done put the b64 string back into the list
 			while (dataLists[q].length > 0) {
-				stringRegister2 += getKey(tunnel_translation, parseInt(dataLists[q].substring(0, 6), 2));
-				dataLists[q] = dataLists[q].substring(6);
+				stringRegister2 += tunnel_translationInverse[parseInt(dataLists[q].slice(0, 6), 2)];
+				dataLists[q] = dataLists[q].slice(6);
 				//if only zeroes are left, escape early
 				if (dataLists[q] * 1 == 0) {
 					dataLists[q] = "";
