@@ -688,7 +688,7 @@ function file_export() {
 	textDat += world_version.toFixed(2) + "\n";
 
 	//should the file be locked?
-	textDat += editor_locked;
+	textDat += editor_locked + "\n";
 
 	//spawn object index
 	textDat += editor_objects.indexOf(editor_spawn) + "\n";
@@ -707,6 +707,7 @@ function file_export() {
 		textDat += `\n${c}\n`;
 		textDat += `${editor_cutscenes[c].id}\n`;
 		textDat += `${editor_cutscenes[c].effects}\n`;
+		textDat += `${editor_cutscenes[c].relativeTo || ""}\n`;
 
 		//frames
 		var frameRef = editor_cutscenes[c].frames;
@@ -741,12 +742,18 @@ function file_import() {
 		//function for when the text actually loads
 		var worldText = fileLoadedEvent.target.result;
 		var version = worldText.split("\n")[0];
-		var nowsVersion = world_version.toFixed(2);
+		console.log(`file version detected: ${version}`);
+
+		//reset world before loading
+		editor_locked = false;
+		editor_objects = [];
+		editor_cutscenes = {};
 
 		//do different things depending on the save file version
 		switch(version) {
 			case "1.20":
 				file_import_1dot2(worldText);
+				break;
 			default:
 				file_import_1dot1(worldText);
 				break;
@@ -760,12 +767,9 @@ function file_import() {
 //for old files
 function file_import_1dot1(worldText) {
 	//loading levels
-	editor_locked = false;
-	editor_objects = [];
 	var levelToLoad = worldText.substring(0, worldText.indexOf("\n"));
 	worldText = worldText.substring(worldText.indexOf("\n")+1);
 	while (levelToLoad != "") {
-		console.log(levelToLoad);
 		editor_objects.push(new Tunnel_FromData(levelToLoad));
 
 		levelToLoad = worldText.substring(0, worldText.indexOf("\n"));
@@ -839,39 +843,23 @@ function file_import_1dot2(worldText) {
 	//load start level
 	editor_spawn = editor_objects[startInd];
 	
-	//safety
-	var tolerance;
 	//loading cutscenes
-	worldText = worldText.split("\n");
-	while (worldText.length > 1) {
-		tolerance = 1000;
-		console.log("length: ", worldText.length);
-		var cID = worldText[0];
-		var cName = worldText[1];
-		var cEffects = worldText[2];
-		var cRelative;
-		var cFrames = [];
-		var lineCheck = 3;
-
-		//4 + is frames, search
-		while (worldText[lineCheck] != "end") {
-			cFrames.push(worldText[lineCheck]);
-			lineCheck += 1;
-
-			tolerance -= 1;
-			if (tolerance <= 0) {
-				if (!confirm(editor_warning_file)) {
-					return;
-				}
-			}
-		}
-		//push cutscene and delete from the data
-		editor_cutscenes[cID] = {
-			id: cName,
-			effects: cEffects,
-			frames: cFrames
+	while (splitText.length > 1) {
+		console.log("length: ", splitText.length);
+		var cName = splitText[0]
+		editor_cutscenes[cName] = {
+			id: splitText[1],
+			effects: splitText[2],
+			frames: []
 		};
-		worldText.splice(0, lineCheck+1);
+		//relative to something?
+		if (splitText[3] != "") {
+			editor_cutscenes[cName].relativeTo = splitText[3];
+		}
+		splitText.splice(0, 4);
+
+		//frames
+		editor_cutscenes[cName].frames = splitText.splice(0, splitText.indexOf("end") + 1);
 	}
 }
 
@@ -1229,7 +1217,6 @@ function makeCutsceneAbsolute(cutsceneData) {
 	}
 
 	var tunnel = getObjectFromID(cutsceneData.relativeTo, isEditor ? editor_objects : world_objects);
-	console.log(isEditor);
 	var relPos = [tunnel.x, tunnel.y, tunnel.z];
 	var relDirs = [tunnel.theta, 0, 0];
 	var buffer1;
@@ -1262,7 +1249,6 @@ function makeCutsceneRelative(relativeTunnelSTRING, cutsceneData) {
 	}
 
 	tunnel = getObjectFromID(relativeTunnelSTRING, isEditor ? editor_objects : world_objects);
-	console.log(isEditor);
 	if (tunnel.id == undefined) {
 		console.error(`${relativeTunnelSTRING} is not a valid tunnel name!`);
 		return;
@@ -1308,19 +1294,25 @@ function makeCutsceneTag(tag, sign, positionData, directionData) {
 				[nt[1], nt[3]] = rotate(nt[1], nt[3], sign * directionData[0]);
 			}
 
-			//the light and powercell only have xyz, and are now done
-			if (nt[0] == "LGT" || nt[0] == "POW") {
-				return `${nt[0]}~${nt[1].toFixed(dp)}~${nt[2].toFixed(dp)}~${nt[3].toFixed(dp)}`;
-			}
-
 			//direction change completes camera
 			if (nt[0] == "CAM") {
 				nt[4] = ((+nt[4] - (sign * directionData[0])) + (Math.PI * 2)) % (Math.PI * 2);
 				return `CAM~${nt[1].toFixed(dp)}~${nt[2].toFixed(dp)}~${nt[3].toFixed(dp)}~${nt[4].toFixed(dp)}~${nt[5]}~${nt[6]}`;
 			}
 
-			//this is not completed. Boats have theta and Tiles have a size tag, which could scale with the tunnel. I don't particularly care at this point in time though.
+			//the light and powercell only have xyz, and are now done
+			if (nt[0] == "LGT" || nt[0] == "POW") {
+				return `${nt[0]}~${nt[1].toFixed(dp)}~${nt[2].toFixed(dp)}~${nt[3].toFixed(dp)}`;
+			}
 
+			//boats and tiles have more complex constructors. Should boat theta or Tile size change with the tunnel? Perhaps, but I don't really care enough.
+			if (nt[0] == "3BT") {
+				return `3BT~${nt[1].toFixed(dp)}~${nt[2].toFixed(dp)}~${nt[3].toFixed(dp)}~${nt[4]}~${nt[5]}`;
+			}
+
+			if (nt[0] == "3TL") {
+				return `3TL~${nt[1].toFixed(dp)}~${nt[2].toFixed(dp)}~${nt[3].toFixed(dp)}~${nt[4]}~${nt[5]}~${nt[6]}`;
+			}
 			break;
 		//ignore all 2d objects
 		default:
