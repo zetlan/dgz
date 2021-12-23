@@ -7,6 +7,7 @@ INDEX:
 	trueReset();
 	unlockCharacter(characterName);
 	updatePlotProgression();
+	updateSave();
 */
 
 //takes it string data for a cutscene tree and creates objects from it
@@ -162,6 +163,12 @@ function updatePlotProgression() {
 	discoveredLevels.forEach(a => {
 		getObjectFromID(a).discovered = true;
 	});
+
+	//infinite visited is stored in modified base64 that needs to be converted to 1s / 0s, which then needs to be converted to a boolean array
+	infinite_levelsVisited = "";
+	for (var h=0; h<data_persistent.infVisited.length; h++) {
+		infinite_levelsVisited += tunnel_translation[data_persistent.infVisited[h]].toString(2).padStart(6, "0");
+	}
 
 	console.log("applied story progression");
 }
