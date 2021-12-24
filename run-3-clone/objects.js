@@ -1293,7 +1293,7 @@ class Runner extends Character {
 		super(x, y, z, `Runner`);
 
 		this.jumpStrength = 2.9;
-		this.jumpBoostStrength = 0.1;
+		this.jumpBoostStrength = 0.12;
 		this.friction = 0.92;
 		this.speed = 0.12;
 		this.dMax = 4;
@@ -1301,7 +1301,7 @@ class Runner extends Character {
 
 	tick() {
 		//strafe speed is greater on ground
-		this.strafeSpeed = this.speed * (1.3 + (0.6 * (this.onGround > 0)));
+		this.strafeSpeed = (this.onGround < 0) ? this.speed * 1.3 : this.speed * 2;
 		super.tick();
 	}
 }
