@@ -238,6 +238,7 @@ class State_Edit_Tiles extends State_Edit {
 		this.selectedTileExtra.playerDist = 50;
 		this.selectedTileExtra.cameraDist = 50;
 		this.cameraMovement = 0;
+		this.cameraRotation = 0;
 		this.calculateTunnelPoints();
 	}
 
@@ -431,11 +432,17 @@ class State_Edit_Tiles extends State_Edit {
 
 	execute() {
 		//move camera
-		if (this.cameraMovement != 0) {
-			var cameraOffset = polToCart(world_camera.targetTheta, world_camera.targetPhi, (8*(controls_shiftPressed+1)) * this.cameraMovement);
+		if (this.cameraMovement != 0 || this.cameraRotation != 0) {
+			var cameraOffset = polToCart(world_camera.targetTheta, world_camera.targetPhi, world_camera.dMax * world_camera.speedSettings[world_camera.speedSettingSelected] * this.cameraMovement);
 			world_camera.targetX += cameraOffset[0];
 			world_camera.targetY += cameraOffset[1];
 			world_camera.targetZ += cameraOffset[2];
+			//keep rotation in bounds
+			world_camera.targetRot = (world_camera.targetRot + (this.cameraRotation * world_camera.sens) + (Math.PI * 2)) % (Math.PI * 2);
+			//make sure rotation difference isn't too great
+			if (Math.abs(world_camera.rot - world_camera.targetRot) > Math.PI) {
+				world_camera.rot += Math.PI * 2 * boolToSigned(world_camera.rot <= Math.PI);
+			}
 
 			this.getSelectedTile();
 
@@ -497,16 +504,15 @@ class State_Edit_Tiles extends State_Edit {
 	getSelectedTile() {
 		var xOffset = cursor_x - (canvas.width * 0.5);
 		var yOffset = cursor_y - (canvas.height * 0.5);
+
 		var tRef = this.tunnel;
-		//outRate is the rate at which the ray travels out from the center. Used to calculate at what z position it will hit the tunnel
-		var outRate = Math.sqrt(((xOffset * xOffset) + (yOffset * yOffset))) / world_camera.scale;
-		//rough estimate of intersection point
-		var intersectZ = tRef.r / outRate;
 
 		if (Math.sqrt((xOffset * xOffset) + (yOffset * yOffset)) > editor_minEditAngle * canvas.height) {
 			//update the tile self points to
 			var isBackwards = (modularDifference((Math.PI * 2) - loading_state.tunnel.theta, world_camera.targetTheta, Math.PI * 2) != 0);
-			var angle = (Math.atan2(yOffset, -xOffset) + Math.PI) / (Math.PI * 2);
+			
+			//rotate for camera orientation
+			var angle = (Math.atan2(yOffset, -xOffset) + Math.PI - world_camera.rot) / (Math.PI * 2);
 			if (isBackwards) {
 				angle = 0.5 - angle;
 			}
@@ -738,6 +744,13 @@ class State_Edit_Tiles extends State_Edit {
 			case 's':
 				this.cameraMovement = -1;
 				break;
+			//camera rotation
+			case 'q':
+				this.cameraRotation = 1;
+				break;
+			case 'e':
+				this.cameraRotation = -1;
+				break;
 		}
 	}
 
@@ -745,15 +758,17 @@ class State_Edit_Tiles extends State_Edit {
 		switch(a.key.toLowerCase()) {
 			case 'arrowup':
 			case 'w':
-				if (this.cameraMovement == 1) {
-					this.cameraMovement = 0;
-				}
+				this.cameraMovement = Math.min(this.cameraMovement, 0);
 				break;
 			case 'arrowdown':
 			case 's':
-				if (this.cameraMovement == -1) {
-					this.cameraMovement = 0;
-				}
+				this.cameraMovement = Math.max(this.cameraMovement, 0);
+				break;
+			case 'q':
+				this.cameraRotation = Math.min(this.cameraRotation, 0);
+				break;
+			case 'e':
+				this.cameraRotation = Math.max(this.cameraRotation, 0);
 				break;
 		}
 	}
@@ -807,7 +822,7 @@ class State_Edit_Properties extends State_Edit {
 			//banned characters
 
 			//tunnel name
-			new PropertyTextBox(0.01, 0.14 + (15 * editor_sliderHeight), editor_lPropertyW - (editor_sliderMargin * 2), `id~`, `loading_state.tunnel.id = value;`, `loading_state.tunnel.id`, `New Tunnel Name: `, ``, false),
+			new PropertyTextBox(0.01, 0.14 + (15 * editor_sliderHeight), editor_lPropertyW - (editor_sliderMargin * 2), `id~`, `loading_state.renameTunnelTo(value);`, `loading_state.tunnel.id`, `New Tunnel Name: `, ``, false),
 			
 			//save / load individual level
 			new PropertyTextBox(0.01,							0.14 + (16 * editor_sliderHeight), (editor_lPropertyW / 2) - editor_sliderMargin, `load`, `loading_state.newTunnelData = value;`, `""`, `Input Tunnel Data: `, ``, true),
@@ -931,7 +946,7 @@ class State_Edit_Properties extends State_Edit {
 
 				//rule
 				ctx.fillStyle = color_text_bright;
-				ctx.fillText(this.banStorage[r][0], baseX + 4, baseY + (canvas.height * 0.01));
+				ctx.fillText(this.banStorage[r][0], baseX + 4, baseY + (canvas.height * 0.002));
 
 				//characters it applies to
 				for (var c=0; c<this.banStorage[r][1].length; c++) {
@@ -967,11 +982,7 @@ class State_Edit_Properties extends State_Edit {
 			//bg
 			if (this.allowStorage.includes(data_characters.indexes[c]) || this.banStorage[this.banSelected][1].includes(data_characters.indexes[c])) {
 				//select color and draw wedge
-				if (this.allowStorage.includes(data_characters.indexes[c])) {
-					ctx.fillStyle = color_grey_light;
-				} else {
-					ctx.fillStyle = data_characters[data_characters.indexes[c]].color;
-				}
+				ctx.fillStyle = (this.allowStorage.includes(data_characters.indexes[c])) ? color_editor_bg : data_characters[data_characters.indexes[c]].color;
 
 				ctx.beginPath();
 				ctx.moveTo(centerX, centerY);
@@ -1065,7 +1076,7 @@ class State_Edit_Properties extends State_Edit {
 		ctx.font = `${canvas.height / 45}px Comfortaa`;
 		ctx.textAlign = "center";
 		ctx.fillStyle = color_text_bright;
-		ctx.fillText("banned characters", (editor_lPropertyW / 2) * canvas.width, (0.15 + (14 * editor_sliderHeight)) * canvas.height);
+		ctx.fillText("banned characters", (editor_lPropertyW / 2) * canvas.width, (0.141 + (14 * editor_sliderHeight)) * canvas.height);
 	}
 
 	parseBanned() {
@@ -1102,6 +1113,25 @@ class State_Edit_Properties extends State_Edit {
 			});
 		});
 		this.tunnel.bannedCharacters = obj;
+	}
+
+	renameTunnelTo(name) {
+		//make sure name is good
+		if (getObjectFromID(name, editor_objects).id != undefined) {
+			//if a tunnel is already using that name, don't allow it
+			alert(`Multiple tunnels may not share the same name.`);
+			return;
+		}
+
+		//make all cutscenes relative to the old to tunnel relative to the new tunnel
+		var cutsceneList = Object.keys(editor_cutscenes);
+		for (var sRef of cutsceneList) {
+			if (editor_cutscenes[sRef].relativeTo == this.tunnel.id) {
+				editor_cutscenes[sRef].relativeTo = name;
+			}
+		}
+
+		this.tunnel.id = name;
 	}
 
 	handleMouseDown(a) {
@@ -1513,9 +1543,9 @@ class State_Edit_Cutscenes extends State_Edit {
 			xOff = canvas.width * ((0.5 + Math.floor(r / this.colHeight)) / (this.cols));
 			yOff = canvas.height * (editor_topBarHeight + 0.08 + (r % this.colHeight * ((1 - editor_topBarHeight - (2 * editor_cutsceneMargin)) / this.colHeight)));
 
-			drawSelectionBox(xOff, yOff - (canvas.height / 90), ctx.measureText(editor_cutscenes[this.cutscenes[r]].id).width + 10, canvas.height / 20);
+			drawSelectionBox(xOff, yOff, ctx.measureText(editor_cutscenes[this.cutscenes[r]].id).width + 10, canvas.height / 20);
 			ctx.fillStyle = color_text_bright;
-			ctx.fillText(editor_cutscenes[this.cutscenes[r]].id, xOff, yOff);
+			ctx.fillText(editor_cutscenes[this.cutscenes[r]].id, xOff, yOff + (canvas.height / 400));
 		}
 
 		if (this.cutscenes.length < editor_maxCutscenes) {
