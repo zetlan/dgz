@@ -20,10 +20,15 @@ class B3Node {
 		} catch (error) {
 			console.error(`Couldn't add ${object.constructor.name}!`);
 		}
-		
+
+		//object is close enough to be part of self's plane
+		if (Math.abs(objZ) <= this.tolerance) {
+			this.objs.push(object);
+			return;
+		}
 
 		//if self already contains an object use the object's normal to place the next object
-		if (objZ > this.tolerance) {
+		if (objZ > 0) {
 			//front object
 			if (this.hie == undefined) {
 				this.hie = new B3Node();
@@ -31,15 +36,11 @@ class B3Node {
 			this.hie.addObj(object);
 			return;
 		} 
-		if (objZ < -this.tolerance) {
-			//object is behind
-			if (this.low == undefined) {
-				this.low = new B3Node();
-			}
-			this.low.addObj(object);
-			return;
+
+		if (this.low == undefined) {
+			this.low = new B3Node();
 		}
-		this.objs.push(object);
+		this.low.addObj(object);
 	}
 
 	//adds an object, but doesn't create a new space partition from them
@@ -1307,20 +1308,26 @@ class SceneBubble extends SceneBox {
 
 class SceneSprite extends SceneBox {
 	constructor(x, y, size, spriteSheetSTRING, rotation, backwardsBoolean, textureX, textureY, opacity) {
-		super(x, y, size, size);
+		super(x, y, size, size * (canvas.width / canvas.height));
 		this.textureX = textureX;
 		this.textureY = textureY;
+		this.backwards = backwardsBoolean;
 		this.sheet = spriteSheetSTRING;
-		this.texture = new Texture(eval(spriteSheetSTRING), data_sprites.spriteSize, 1e1001, false, backwardsBoolean, [[this.textureX, this.textureY]]);
-
-		//special case for map sprite sheet
-		if (spriteSheetSTRING == "data_sprites.Map.sheet") {
-			this.texture = new Texture(eval(spriteSheetSTRING), data_sprites.spriteSize * 2, 1e1001, false, backwardsBoolean, [[this.textureX, this.textureY]]);
-		}
+		this.createTexture();
 
 		//gets rid of undefined values / values lower than 0
 		this.opacity = (opacity - 1 >= -1) ? opacity : 1;
 		this.rot = rotation;
+	}
+
+	//creates a texture for self based on sheet
+	createTexture() {
+		this.texture = new Texture(eval(this.sheet), data_sprites.spriteSize, 1e1001, false, this.backwards, [[this.textureX, this.textureY]]);
+
+		//special case for map sprite sheet
+		if (this.sheet == "data_sprites.Map.sheet") {
+			this.texture = new Texture(eval(this.sheet), data_sprites.spriteSize * 2, 1e1001, false, this.b, [[this.textureX, this.textureY]]);
+		}
 	}
 
 	drawMainBody() {
@@ -1330,13 +1337,11 @@ class SceneSprite extends SceneBox {
 	}
 
 	drawSelectionCircles() {
-		//each texture has 6, for modifying different aspects of the texture
-		drawCircle(color_grey_dark, canvas.width * this.x, canvas.height * this.y, editor_handleRadius);
-		drawCircle(color_grey_dark, (canvas.width * this.x) + (canvas.width * this.width), canvas.height * this.y, editor_handleRadius);
-		drawCircle(color_grey_dark, canvas.width * this.x, (canvas.height * this.y) + (canvas.height * this.height), editor_handleRadius);
-		drawCircle(color_grey_dark, (canvas.width * this.x) + (canvas.width * this.width), (canvas.height * this.y) + (canvas.height * this.height), editor_handleRadius);
-		drawCircle(color_grey_dark, (canvas.width * this.x) - (canvas.width * this.width * 0.5), (canvas.height * this.y) + (canvas.height * this.height * 0.5), editor_handleRadius);
-		drawCircle(color_grey_dark, (canvas.width * this.x) - (canvas.width * this.width), canvas.height * (this.y - (this.height * (this.opacity - 0.5) * 2)), editor_handleRadius);
+		//each texture has knobs for modifying different aspects of the texture
+		var coords = this.giveHandles();
+		for (var sPos of coords) {
+			drawCircle(color_grey_dark, sPos[0], sPos[1], editor_handleRadius);
+		}
 
 		//colored circles
 		switch (this.selectedPart) {
@@ -1363,7 +1368,7 @@ class SceneSprite extends SceneBox {
 				ctx.strokeStyle = color_grey_dark;
 				ctx.beginPath();
 				var dist = Math.sqrt((canvas.width * this.width) ** 2 + (canvas.height * this.height) ** 2);
-				ctx.ellipse(canvas.width * this.x, canvas.height * this.y, dist, dist, 0, 0, Math.PI * 2);
+				ctx.arc(canvas.width * this.x, canvas.height * this.y, dist, 0, Math.PI * 2);
 				ctx.stroke();
 				drawCircle(color_editor_cursor, (canvas.width * this.x) + (canvas.width * this.width), (canvas.height * this.y) + (canvas.height * this.height), editor_handleRadius);
 				break;
@@ -1376,6 +1381,22 @@ class SceneSprite extends SceneBox {
 				ctx.strokeStyle = color_grey_dark;
 				drawLine([canvas.width * (this.x - this.width), canvas.height * (this.y - this.height)], [canvas.width * (this.x - this.width), canvas.height * (this.y + this.height)]);
 				drawCircle(color_editor_cursor, (canvas.width * this.x) - (canvas.width * this.width), canvas.height * (this.y - (this.height * (this.opacity - 0.5) * 2)), editor_handleRadius);
+				break;
+			case 6:
+				//sprite type
+				ctx.strokeStyle = color_grey_dark;
+				ctx.beginPath();
+				//draw polygon
+				var dist = Math.sqrt((canvas.width * this.width / 2) ** 2 + (canvas.height * this.height / 2) ** 2);
+				var offset;
+				ctx.moveTo((canvas.width * (this.x - this.width / 2)), (canvas.height * (this.y - this.height / 2)));
+				for (var g=0; g<data_sprites.possibleSheets.length; g++) {
+					offset = polToXY(0, 0, (Math.PI * 0.75) - (Math.PI * 2 * g / data_sprites.possibleSheets.length), dist);
+					ctx.lineTo(canvas.width * this.x + offset[0], canvas.height * this.y - offset[1]);
+				}
+				ctx.lineTo((canvas.width * (this.x - this.width / 2)), (canvas.height * (this.y - this.height / 2)));
+				ctx.stroke();
+				drawCircle(color_editor_cursor, (canvas.width * (this.x - this.width / 2)), (canvas.height * (this.y - this.height / 2)), editor_handleRadius);
 				break;
 		}
 	}
@@ -1394,7 +1415,7 @@ class SceneSprite extends SceneBox {
 				if (this.height < 0.004) {
 					this.height = 0.004;
 				}
-				this.width = this.height * 0.75;
+				this.width = this.height * (canvas.height / canvas.width);
 				break;
 			case 2:
 				this.texture.backwards = !this.texture.backwards;
@@ -1408,7 +1429,6 @@ class SceneSprite extends SceneBox {
 				break;
 			case 4:
 				//frame to display
-				this.rot = 0;
 				var xOffset = cursor_x - ((canvas.width * this.x) - (canvas.width * this.width * 0.5));
 				var yOffset = cursor_y - ((canvas.height * this.y) + (canvas.height * this.height * 0.5));
 
@@ -1438,6 +1458,16 @@ class SceneSprite extends SceneBox {
 				//opacity
 				this.opacity = clamp(-((cursor_y / canvas.height) - this.y) / (this.height * 2) + 0.5, 0, 1);
 				break;
+			case 6:
+				//image type, determined by angle
+				var a = (Math.atan2(cursor_y - (this.y * canvas.height), cursor_x - (this.x * canvas.width)) + Math.PI * 2.75) % (Math.PI * 2);
+				a /= Math.PI * 2;
+				a = Math.round(a * data_sprites.possibleSheets.length) % data_sprites.possibleSheets.length;
+				if (this.sheet != `data_sprites.${data_sprites.possibleSheets[a]}.sheet`) {
+					this.sheet = `data_sprites.${data_sprites.possibleSheets[a]}.sheet`;
+					this.createTexture();
+				}
+				break;
 		}
 		if (!cursor_down) {
 			//if the cursor's not down, stop being moved
@@ -1466,7 +1496,8 @@ class SceneSprite extends SceneBox {
 			[x + width, y],
 			[x + width, y + height],
 			[x - (width / 2), y + (height / 2)],
-			[x - width, y - (height * (this.opacity - 0.5) * 2)]
+			[x - width, y - (height * (this.opacity - 0.5) * 2)],
+			[x - (width / 2), y - (height / 2)]
 		];
 	}
 
@@ -1658,7 +1689,7 @@ class PropertyButton {
 		ctx.font = `${canvas.height / 25}px Comfortaa`;
 		ctx.textAlign = "center";
 		ctx.fillStyle = color_text;
-		ctx.fillText(this.label, canvas.width * this.x, canvas.height * this.y);
+		ctx.fillText(this.label, canvas.width * this.x, canvas.height * (this.y + 0.002));
 	}
 
 	tick() {
