@@ -390,9 +390,12 @@ class Character {
 	}
 
 	tick() {
-		//getting camera distance
+		//getting camera distance, for draw radius use a reference point to be more accurate
 		this.cameraDist = getDistance(this, world_camera);
-		this.drawR = (this.r / this.cameraDist) * world_camera.scale;
+		var p1 = spaceToCamera([this.x, this.y, this.z]);
+		var p2 = [p1[0], p1[1] + this.r, p1[2]];
+
+		this.drawR = getDistance2d(cameraToScreen(p1), cameraToScreen(p2));
 
 		//setting camera position
 		this.setCameraPosition();
@@ -871,9 +874,9 @@ class Duplicator extends Character {
 		friend.parent = this.parent;
 		friend.parentPrev = this.parentPrev;
 		friend.backwards = this.backwards;
-		friend.dx = this.dx + randomBounded(-0.3, 0.3);
+		friend.dx = this.dx + Math.sign(Math.random() - 0.5) * (randomBounded(0.1, 0.6) ** 0.5);
 		friend.dy = this.dy + randomBounded(0.1, 0.7);
-		friend.dz = this.dz + randomBounded(-0.3, 0.3);
+		friend.dz = this.dz + Math.sign(Math.random() - 0.5) * (randomBounded(0.1, 0.5) ** 0.5);
 
 		friend.dir_down = this.dir_down;
 		friend.dir_side = this.dir_side;
@@ -1048,7 +1051,7 @@ class Gentleman extends Character {
 		this.airFriction = 0.46;
 		this.attractionAnimationTime = 0;
 		this.attractionAnimationBuffer = 10;
-		this.abilityDistance = 600;
+		this.abilityDistance = 500;
 	}
 
 	modifyDerivitives(activeGravity, activeFriction, naturalFriction, activeAX, activeAZ) {
@@ -1100,17 +1103,29 @@ class Gentleman extends Character {
 
 	handleSpace() {
 		if (this.onGround < 1 && this.parent != undefined && this.attracting == undefined) {
+			//use two tunnels: self's parent, and the tunnel that's closest (but not the parent)
+			//closeArr is a list of the freeObjects in the closest tunnels
+			var closeArr;
+			if (loading_state.nearObjs.length > 1) {
+				closeArr = loading_state.nearObjs[loading_state.nearObjs.length - 1];
+				if (closeArr == this.parent) {
+					closeArr = loading_state.nearObjs[loading_state.nearObjs.length - 2];
+				}
+				closeArr = [...this.parent.freeObjs, ...closeArr.freeObjs];
+			} else {
+				closeArr = this.parent.freeObjs;
+			}
+			
 			//get closest free object that's also in front of self
 			var closestObj = undefined;
-			var closestObjDist = 99999;
-			for (var h=1; h<this.parent.freeObjs.length; h++) {
-				//only be attracted to power cells in front
-				if (spaceToRelativeRotless([this.parent.freeObjs[h].x, this.parent.freeObjs[h].y, this.parent.freeObjs[h].z], [this.x, this.y, this.z], [this.dir_down[0], (Math.PI * 2) - this.dir_down[1]])[0] > -20) {
-					var tempDist = getDistance(this, this.parent.freeObjs[h]);
-					if (tempDist < this.abilityDistance && (closestObj == undefined || tempDist < closestObjDist)) {
-					closestObj = this.parent.freeObjs[h];
-					closestObjDist = getDistance(this, this.parent.freeObjs[h]);
-				}
+			var closestObjDist = this.abilityDistance;
+			for (var h=0; h<closeArr.length; h++) {
+				if (spaceToRelativeRotless([closeArr[h].x, closeArr[h].y, closeArr[h].z], [this.x, this.y, this.z], [this.dir_down[0], -this.dir_down[1]])[0] > -20) {
+					var tempDist = getDistance(this, closeArr[h]);
+					if (tempDist < closestObjDist) {
+						closestObj = closeArr[h];
+						closestObjDist = getDistance(this, closeArr[h]);
+					}
 				}
 				
 			}
@@ -1212,7 +1227,7 @@ class Lizard extends Character {
 		this.jumpStrength = 4.3;
 		this.jumpBoostStrength = 0.13;
 		this.speed = 0.09;
-		this.dMax = 2.86;
+		this.dMax = 2.94;
 	}
 }
 
@@ -1256,7 +1271,9 @@ class Pastafarian extends Character {
 			centerStripOffset = clamp(centerStripOffset + trueSideStrip, trueSideStrip, trueSideStrip + ref.tilesPerSide - 1);
 			var selfTile = Math.floor((relPos[2] / ref.tileSize) - 0.2);
 			if (ref.tiles[centerStripOffset][selfTile] != undefined) {
-				if (ref.tiles[centerStripOffset][selfTile].constructor.name == "Tile_Plexiglass" || ref.tiles[centerStripOffset][selfTile].constructor.name == "Tile_Crumbling") {
+				//crumbling tiles can only be collided with under special conditions - I don't want the player to get trapped out of the tunnel
+				var collide2 = (ref.tiles[centerStripOffset][selfTile].constructor.name == "Tile_Crumbling") && (spaceToRelativeRotless([this.x, this.y, this.z], ref.tiles[centerStripOffset][selfTile].home, ref.tiles[centerStripOffset][selfTile].normal)[2] > 0);
+				if (ref.tiles[centerStripOffset][selfTile].constructor.name == "Tile_Plexiglass" || collide2) {
 					//if on a bridge tile, boost the bridge strength
 					this.personalBridgeStrength += this.bridgeBoost;
 					if (this.personalBridgeStrength > 1) {
@@ -1296,7 +1313,7 @@ class Skater extends Character {
 
 		this.gravStrength += 0.01;
 		this.jumpStrength = 2.5;
-		this.jumpBoostStrength = 0.06;
+		this.jumpBoostStrength = 0.065;
 		this.speed = 0.07;
 		this.strafeSpeed = this.speed * 1.6;
 		this.dMax = 11.1;
