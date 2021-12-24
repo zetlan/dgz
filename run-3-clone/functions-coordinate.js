@@ -170,7 +170,7 @@ function getDistance(obj1, obj2) {
 
 //returns the pythagorean xy distance between two objects 
 function getDistance2d(xyP1, xyP2) {
-	return Math.sqrt(((xyP1[0] - xyP2[0]) * (xyP1[0] - xyP2[0])) + ((xyP1[1] - xyP2[1]) * (xyP1[1] - xyP2[1])));
+	return Math.sqrt((xyP1[0] - xyP2[0]) ** 2 + (xyP1[1] - xyP2[1]) ** 2);
 }
 
 function getDistancePoint(p1, p2) {
@@ -286,27 +286,23 @@ function spaceToCamera(point) {
 
 //turns world coordinates into 3d camera coordinates
 function spaceToRelative(pointToChange, point, normal) {
-	var tX = pointToChange[0] - point[0];
-	var tY = pointToChange[1] - point[1];
-	var tZ = pointToChange[2] - point[2];
+	var tCoords = [pointToChange[0] - point[0], pointToChange[1] - point[1], pointToChange[2] - point[2]];
 
-	[tX, tZ] = rotate(tX, tZ, normal[0]);
-	[tY, tZ] = rotate(tY, tZ, normal[1]);
-	[tX, tY] = rotate(tX, tY, normal[2]);
+	[tCoords[0], tCoords[2]] = rotate(tCoords[0], tCoords[2], normal[0]);
+	[tCoords[1], tCoords[2]] = rotate(tCoords[1], tCoords[2], normal[1]);
+	[tCoords[0], tCoords[1]] = rotate(tCoords[0], tCoords[1], normal[2]);
 
-	return [tX, tY, tZ];
+	return tCoords;
 }
 
 //like spaceToRelative, but without the rotation that a lot of objects don't need
 function spaceToRelativeRotless(pointToChange, point, normal) {
-	var tX = pointToChange[0] - point[0];
-	var tY = pointToChange[1] - point[1];
-	var tZ = pointToChange[2] - point[2];
+	var tCoords = [pointToChange[0] - point[0], pointToChange[1] - point[1], pointToChange[2] - point[2]];
 
-	[tX, tZ] = rotate(tX, tZ, normal[0]);
-	[tY, tZ] = rotate(tY, tZ, normal[1]);
+	[tCoords[0], tCoords[2]] = rotate(tCoords[0], tCoords[2], normal[0]);
+	[tCoords[1], tCoords[2]] = rotate(tCoords[1], tCoords[2], normal[1]);
 
-	return [tX, tY, tZ];
+	return tCoords;
 }
 
 
