@@ -51,8 +51,8 @@ class State_World {
 					this.orderWorld();
 				}
 
-				//every once in a while, order the near objects
-				if (world_time % 50 == 24) {
+				//every once in a while, or if the camera's outside the tunnel, order the near objects
+				if (world_time % 50 == 24 || player.parentPrev.coordinateIsInTunnel(world_camera.x, world_camera.y, world_camera.z, false)) {
 					this.nearObjs = orderObjects(this.nearObjs);
 				}
 
@@ -134,11 +134,7 @@ class State_World {
 				ctx.fillStyle = color_text_bright;
 				ctx.font = `${canvas.height / 15}px Comfortaa`;
 				ctx.textAlign = "center";
-				if (player.parent == undefined) {
-					ctx.fillText("Space", canvas.width * 0.5, canvas.height * 0.1);
-				} else {
-					ctx.fillText(player.parent.id, canvas.width * 0.5, canvas.height * 0.1);
-				}
+				ctx.fillText((player.parent || {id: "Space"}).id, canvas.width * 0.5, canvas.height * 0.08);
 				break;
 			case 3:
 				//drawing rejection text
@@ -257,7 +253,6 @@ class State_World {
 
 	handlePlayerDeath() {
 		data_persistent.deathsE += 1;
-		console.log(`1 death counted`)
 		player.parentPrev.reset();
 		this.nearObjs = orderObjects(this.nearObjs, 5);
 		player.parent = player.parentPrev;
@@ -341,31 +336,32 @@ class State_World {
 	}
 
 	handleKeyPress(a) {
-		if (!editor_active) {
-			handleKeyPress_player(a);
-			switch(a.key.toLowerCase()) {
-				// w / ^ / space
-				case 'w':
-				case 'arrowup':
-				case ' ':
-					if (!controls_spacePressed) {
-						//if it's infinite mode, restart
-						if (loading_state.constructor.name == "State_Infinite" && this.substate == 2) {
-							this.pushScoreToLeaderboard();
-							loading_state = new State_Infinite();
-							loading_state.doWorldEffects();
-						}
-					}
-					break;
-				case 'enter':
-					//enter, return to 0 state
-					if (this.substate == 1) {
-						this.substate = 0;
-					}
-					break;
-			}
-		} else {
+		if (this.substate == 0 && editor_active) {
 			handleKeyPress_camera(a);
+			return;
+		}
+
+		handleKeyPress_player(a);
+		switch(a.key.toLowerCase()) {
+			// w / ^ / space
+			case 'w':
+			case 'arrowup':
+			case ' ':
+				if (!controls_spacePressed) {
+					//if it's infinite mode, restart
+					if (loading_state.constructor.name == "State_Infinite" && this.substate == 2) {
+						this.pushScoreToLeaderboard();
+						loading_state = new State_Infinite();
+						loading_state.doWorldEffects();
+					}
+				}
+				break;
+			case 'enter':
+				//enter, return to 0 state
+				if (this.substate == 1) {
+					this.substate = 0;
+				}
+				break;
 		}
 	}
 
@@ -558,28 +554,15 @@ class State_Cutscene extends State_World {
 				]
 			}
 		}
-
-		//make sure that data is in absolute positioning
-		if (data.relativeTo != undefined) {
-			data = makeCutsceneAbsolute(data);
-		} 
 		this.ref = data;
-		//make a copy without linking to the reference
-		this.selectionTextures = [];
-		textures_common.forEach(c => {
-			this.selectionTextures.push(c);
-		});
-
-		
-		//sidebar stuff
-		this.selectionTextures.push(new Texture(data_sprites["Map"].sheet, data_sprites.spriteSize * 2, 1e1001, false, false, [[0, 0], [0, 0]]));
 		this.objs2d = [
 			`new SceneBox(0.5, 0.5, 0.1, 0.1)`,
 			`new SceneBubble(0.5, 0.5, 0.1, 0.1)`,
 			`new SceneLine(0.4, 0.4, 0.6, 0.6)`,
 			`new SceneTri(0.4, 0.4, 0.6, 0.6, (editor_handleRadius * 2) / canvas.width)`,
 			`new SceneText(0.5, 0.5, 0.1, 0.05, "lorem ipsum dolor set amet, quim eres it", false);`,
-			`new SceneCode(\`console.log("Make absolutely sure you know what you're doing before you use this. For real. 100% sure. I don't take responsibility for anything that breaks as a result.");\`);`
+			`new SceneCode(\`console.log("Make absolutely sure you know what you're doing before you use this. For real. 100% sure. I don't take responsibility for anything that breaks as a result.");\`);`,
+			`new SceneSprite(0.5, 0.5, 0.1, "data_sprites.Runner.sheet", 0, false, 0, 0, 1)`
 		];
 		this.objs3d = [
 			`new SceneLight(world_camera.x + polToCart(world_camera.theta, world_camera.phi, 5)[0], world_camera.y + polToCart(world_camera.theta, world_camera.phi, 5)[1], world_camera.z + polToCart(world_camera.theta, world_camera.phi, 5)[2])`,
@@ -595,15 +578,10 @@ class State_Cutscene extends State_World {
 		});
 
 		this.frame = 0;
-		//activate effects
+		//activate effects, and convert to objects
 		eval(this.ref.effects);
-		//loop through frames, if it's a string convert to objects
-		for (var e=0; e<this.ref.frames.length; e++) {
-			//if the data line is a string, convert it to a set of objects
-			if (this.ref.frames[e].constructor.name == "String") {
-				this.ref.frames[e] = this.convertStringData(this.ref.frames[e]);
-			}
-		}
+		decompressCutsceneData(this.ref);
+
 		this.doSidebar = true;
 		this.destinationState = optionalExitState || new State_Map();
 		this.savedCameraVals;
@@ -628,11 +606,11 @@ class State_Cutscene extends State_World {
 		this.updateFrame();
 	}
 
-	drawIconLine(x, IDstart, dataArr) {
+	drawIconLine(x, IDstart, numIcons) {
 		var targetY = 0;
 		//cutscene objects
-		for (var a=0; a<dataArr.length; a++) {
-			targetY = ((canvas.height / dataArr.length) * a) + (canvas.height / (dataArr.length * 2));
+		for (var a=0; a<numIcons; a++) {
+			targetY = ((canvas.height / numIcons) * a) + (canvas.height / (numIcons * 2));
 			drawTile2d(x, targetY, canvas.height / 30, IDstart + a);
 		}
 	}
@@ -649,94 +627,20 @@ class State_Cutscene extends State_World {
 	changePlayerParent(newParent) {
 	}
 
-	convertStringData(line) {
-		var camData = [0, 0, 0, 0, 0, 0];
-		var objData = [];
-		/*
-		CAM - camera data		x~y~z~theta~phi~rot
-		LGT - light source		x~y~z
-		SPR - character sprite	x~y~size~sheetSource~rotation~backwards?~textureX~textureY
-		BUB - text box			x~y~width~height
-		BOX - text bubble		x~y~width~height
-		LIN - line				x1~y1~x2~y2
-		TRI - triangle line		x1~y1~x2~y2~width
-		TXT - text box			x~y~width~textSize~content~useLightColor? 
-		COD - code block		code
-
-		POW - powercell			x~y~z 
-		3TL - tile				x~y~z~type~size~rot
-		3BT - boat				x~y~z~theta~phi
-		
-		*/
-
-		//split by vertical seperator, then parse each tag
-		var tags = line.split("|");
-		tags.forEach(t => {
-			var s = t.split("~");
-			switch (s[0]) {
-				case "CAM":
-					for (var n=0; n<s.length-1; n++) {
-						camData[n] = +s[n+1];
-					}
-					break;
-				case "LGT":
-					objData.push(new SceneLight(+s[1], +s[2], +s[3]));
-					break;
-				case "SPR":
-					objData.push(new SceneSprite(+s[1], +s[2], +s[3], s[4], +s[5], JSON.parse(s[6]), +s[7], +s[8], +s[9]));
-					break;
-				case "BUB":
-					objData.push(new SceneBubble(+s[1], +s[2], +s[3], +s[4]));
-					break;
-				case "BOX":
-					objData.push(new SceneBox(+s[1], +s[2], +s[3], +s[4]));
-					break;
-				case "COD":
-					objData.push(new SceneCode(s[1]));
-					break;
-				case "LIN":
-					objData.push(new SceneLine(+s[1], +s[2], +s[3], +s[4]));
-					break;
-				case "TRI":
-					objData.push(new SceneTri(+s[1], +s[2], +s[3], +s[4], +s[5]));
-					break;
-				case "TXT":
-					objData.push(new SceneText(+s[1], +s[2], +s[3], +s[4], s[5], JSON.parse(s[6])));
-					break;
-				case "POW":
-					objData.push(new ScenePowercell(+s[1], +s[2], +s[3]));
-					break;
-				case "3TL":
-					objData.push(new SceneTile(+s[1], +s[2], +s[3], +s[4], +s[5], +s[6]));
-					break;
-				case "3BT":
-					objData.push(new SceneBoat(+s[1], +s[2], +s[3], +s[4], +s[5]));
-					break;
-			}
-		});
-		return [camData, objData];
-	}
-
 	drawSidebar() {
 		ctx.globalAlpha = 0.4;
 		ctx.fillStyle = color_editor_bg;
 		ctx.fillRect(0, 0, canvas.width * editor_cutsceneWidth, canvas.height);
 		ctx.globalAlpha = 1;
 
-		this.drawIconLine((editor_cutsceneWidth * 0.2) * canvas.width, 26, this.objs3d);
-		this.drawIconLine((editor_cutsceneWidth * 0.5) * canvas.width, 20, this.objs2d);
-
-		var targetX = (editor_cutsceneWidth * 0.8) * canvas.width;
-		//texture objects
-		for (var a=0; a<11; a++) {
-			this.selectionTextures[a].beDrawn(targetX, ((canvas.height / 11) * a) + (canvas.height / 22), 0, canvas.height / 16);
-		}
+		this.drawIconLine((editor_cutsceneWidth * 0.25) * canvas.width, 30, this.objs3d.length);
+		this.drawIconLine((editor_cutsceneWidth * 0.75) * canvas.width, 20, this.objs2d.length);
 	}
 
 	drawRelativeBar() {
 		ctx.globalAlpha = 0.4;
 		ctx.fillStyle = color_editor_bg;
-		ctx.fillRect(canvas.width * (1 - (editor_cutsceneWidth * 2)), 0, canvas.width * (editor_cutsceneWidth * 2), canvas.height * editor_cutsceneWidth / 2);
+		ctx.fillRect(canvas.width * 0.65, 0, canvas.width * 0.35, canvas.height * 0.125);
 		ctx.globalAlpha = 1;
 
 		var texts = [
@@ -856,8 +760,8 @@ class State_Cutscene extends State_World {
 			drawSelectionBox(canvas.width * 0.5, canvas.height * 0.03, ctx.measureText(this.ref.id).width + (canvas.width * 0.02), canvas.height * 0.06);
 			ctx.fillStyle = color_text_bright;
 			
-			ctx.fillText(this.ref.id, canvas.width * 0.5, canvas.height * 0.05);
-			ctx.fillText(`${this.frame+1} / ${this.ref.frames.length}`, canvas.width * 0.5, canvas.height * 0.1);
+			ctx.fillText(this.ref.id, canvas.width * 0.5, canvas.height * 0.035);
+			ctx.fillText(`${this.frame+1} / ${this.ref.frames.length}`, canvas.width * 0.5, canvas.height * 0.09);
 
 			//sidebar triangle
 			ctx.fillStyle = color_editor_bg;
@@ -904,6 +808,7 @@ class State_Cutscene extends State_World {
 	}
 
 	exit() {
+		compressCutsceneData(this.ref);
 		player = this.playerStore;
 		loading_state = this.destinationState;
 		if (this.savedCameraVals != undefined) {
@@ -918,62 +823,30 @@ class State_Cutscene extends State_World {
 	}
 
 	giveStringData() {
-		//different process for relative cutscenes
-		if (this.ref.relativeTo != undefined) {
-			
-			//relative tunnels are expecting an object, so just turn each line into its string form and then use that
-			for (var m=0; m<this.ref.frames.length; m++) {
-				this.ref.frames[m] = this.giveStringDataForLine(this.ref.frames[m]);
-			}
+		compressCutsceneData(this.ref);
 
-			//temporarily remove relativity, because makeCutsceneRelative will erroniously remove it otherwise
-			var relStore = this.ref.relativeTo;
-			this.ref.relativeTo = undefined;
-
-			var toReturn = makeCutsceneRelative(getObjectFromID(relStore), this.ref);
-			this.ref.relativeTo = relStore;
-			return toReturn;
-		}
-
-
-
-		//regular case
-
-		//go through all frames
-		var frameData = ``;
-		this.ref.frames.forEach(d => {
-			frameData += this.giveStringDataForLine(d);
-		});
-
-		//ack this is a bit of a mess
+		//convert compressed cutscene data to better form, because JSON.stringify will mess up formatting
 		var outputString = `{\n`;
 		outputString += `\tid: \`${this.ref.id}\`,\n`;
 		outputString += `\teffects: \`${this.ref.effects}\`,\n`;
 		if (this.ref.relativeTo != undefined) {
 			outputString += `\trelativeTo: \`${this.ref.relativeTo}\`,\n`;
 		}
-		outputString += `\tframes: [\n\t\t${frameData}]\n\t}`;
+		var frameData = ``;
+		this.ref.frames.forEach(d => {
+			frameData += `\t\t\`${d}\`,\n`;
+		});
+		outputString += `\tframes: [\n${frameData}]\n\t}`;
+
+		//make sure to decompress self to keep function
+		decompressCutsceneData(this.ref);
+
 		return outputString;
-	}
-
-	giveStringDataForLine(arr) {
-		//camera data
-		var camData = "CAM~";
-		for (var a=0; a<arr[0].length-1; a++) {
-			camData += arr[0][a].toFixed(data_precision) + "~";
-		}
-		camData += arr[0][arr[0].length-1].toFixed(data_precision);
-
-		var objData = ``;
-		for (var a=0; a<arr[1].length; a++) {
-			objData += "|" + arr[1][a].giveStringData();
-		}
-
-		return `\`${camData}${objData}\`, \n`;
 	}
 
 	handlePlayerDeath() {
 		//no death in cutscenes
+		console.log(`hey why is the player dead please`);
 	}
 
 	handleMouseMove(a) {
@@ -1015,27 +888,10 @@ class State_Cutscene extends State_World {
 
 		//sidebar search
 		if (this.doSidebar && cursor_x < canvas.width * editor_cutsceneWidth) {
-			var targetX = (editor_cutsceneWidth / 3) * canvas.width;
-			this.tickIconLine(editor_cutsceneWidth * 0.2 * canvas.width, this.objs3d);
-			this.tickIconLine(editor_cutsceneWidth * 0.5 * canvas.width, this.objs2d);
-
-			targetX = (editor_cutsceneWidth * 0.8) * canvas.width;
-			//texture objects
-			for (var a=0; a<10; a++) {
-				if (getDistance2d([cursor_x, cursor_y], [targetX, ((canvas.height / 11) * a) + (canvas.height / 22)]) < canvas.height / 35) {
-					this.ref.frames[this.frame][1].push(new SceneSprite(0.5, 0.5, 0.1, `data_sprites.${data_characters.indexes[a]}.sheet`, 0, false, 0, 0));
-					return;
-				}
-			}
-
-			//the map object
-			if (getDistance2d([cursor_x, cursor_y], [targetX, ((canvas.height / 11) * 10) + (canvas.height / 22)]) < canvas.height / 35) {
-				this.ref.frames[this.frame][1].push(new SceneSprite(0.5, 0.5, 0.1, `data_sprites.Map.sheet`, 0, false, 0, 0));
-				return;
-			}
+			this.tickIconLine(editor_cutsceneWidth * 0.25 * canvas.width, this.objs3d);
+			this.tickIconLine(editor_cutsceneWidth * 0.75 * canvas.width, this.objs2d);
 			return;
 		}
-		
 
 		//search through list of objects
 		var tolerance = editor_handleRadius * 3;
@@ -1090,8 +946,7 @@ class State_Cutscene extends State_World {
 					if (this.frame + 1 > this.ref.frames.length) {
 						//if shift is pressed duplicate the frame
 						if (controls_shiftPressed) {
-							var strData = this.giveStringDataForLine(this.ref.frames[this.ref.frames.length-1]);
-							this.ref.frames[this.ref.frames.length] = this.convertStringData(strData.substring(1, strData.length-4));
+							this.ref.frames[this.ref.frames.length] = decompressCutsceneLine(compressCutsceneLine(this.ref.frames[this.ref.frames.length-1]));
 							return;
 						} else {
 							this.ref.frames[this.ref.frames.length] = [JSON.parse(JSON.stringify(this.ref.frames[this.ref.frames.length-1][0])), []];
@@ -1288,6 +1143,12 @@ class State_Infinite extends State_World {
 		this.readFrom = this.worldTree.getTunnelList();
 	}
 
+	changePlayerParent(newParent) {
+		super.changePlayerParent(newParent);
+		//make sure player parent always gets visited
+		this.makeVisited(+player.parentPrev.id.slice(3));
+	}
+
 	doWorldEffects() {
 		//move camera to start so objects are ordered properly, but I also want that nice zoom in effect, so the camera is far away
 		world_camera.x = -100;
@@ -1301,6 +1162,13 @@ class State_Infinite extends State_World {
 		this.readFrom = this.worldTree.getTunnelList();
 		this.placePlayer();
 		this.orderWorld();
+	}
+
+	makeVisited(levelID) {
+		//first make sure the visited data stretches to that level ID
+		infinite_levelsVisited = infinite_levelsVisited.padEnd(levelID, "0");
+		//make that index a 1
+		infinite_levelsVisited = infinite_levelsVisited.slice(0, levelID) + "1" + infinite_levelsVisited.slice(levelID + 1);
 	}
 
 	placePlayer() {
@@ -1321,6 +1189,9 @@ class State_Infinite extends State_World {
 			time: 0
 		};
 		this.charactersUsed.push(player.constructor.name);
+
+		//make sure the tunnel is marked as visited
+		this.makeVisited(+player.parentPrev.id.slice(3));
 	}
 
 	pushScoreToLeaderboard() {
@@ -1357,7 +1228,8 @@ class State_Infinite extends State_World {
 				//ignore if crossing tunnels
 				if (this.lastPlayerPos[0] == player.parentPrev) {
 					//disregard x, z is the distance, and there are 30 units in a meter
-					var difference = Math.abs(this.lastPlayerPos[1] - newPlayerPos[1]);
+					//max is used so that going backwards doesn't count
+					var difference = Math.max(0, (newPlayerPos[1] - this.lastPlayerPos[1]));
 					this.distance += difference / 30;
 					this.characterData[player.constructor.name].distance += difference / 30;
 				}
@@ -1685,6 +1557,13 @@ class State_Map {
 				}
 			}
 
+			//if the camera is moving, update what the user has selected
+			if (!editor_active && Math.abs(world_camera.targetZ - world_camera.z) > 1) {
+				this.cursorPos = [-100, -100];
+				this.objSelected = undefined;
+				this.selectMapObject();
+			}
+
 			//angel going home panel
 			if (data_persistent.goingHomeProgress != undefined) {
 				this.substate += this.angelPanelSpeed;
@@ -1904,13 +1783,16 @@ class State_Map {
 			loading_state = new State_Game();
 			player.parentPrev.reset();
 
+			//make sure this doesn't count as a death, since the tunnel is resetting it assumes player has died
+			data_persistent.deathsE -= 1;
+
 			//displaying text
 			loading_state.text = tun.id;
 			loading_state.time = tunnel_textTime;
 			return;
 		}
 
-		var knobCoords = [tun.map_startCoords[0] + (editor_thetaCircleRadius * Math.cos(tun.theta)), tun.map_startCoords[1] - (editor_thetaCircleRadius * Math.sin(tim.theta))];
+		var knobCoords = [tun.map_startCoords[0] + (editor_thetaCircleRadius * Math.cos(tun.theta)), tun.map_startCoords[1] - (editor_thetaCircleRadius * Math.sin(tun.theta))];
 	
 		//if colliding with the theta change circle, do that stuff
 		if (getDistance2d(knobCoords, [cursor_x, cursor_y]) < editor_thetaKnobRadius) {
@@ -2140,13 +2022,13 @@ class State_Menu {
 
 		];
 		this.buttons = [
-			new PropertyButton(0.5, 0.5 - ((menu_buttonHeight * 0.75) * 3) + 						   (menu_characterSize / canvas.height), menu_buttonWidth, menu_buttonHeight, "Infinite Mode", `loading_state = new State_Infinite(); loading_state.doWorldEffects();`),
-			new PropertyButton(0.5, 0.5 - ((menu_buttonHeight * 0.75) * 3) + (menu_buttonHeight * 2) + (menu_characterSize / canvas.height), menu_buttonWidth, menu_buttonHeight, "Explore Mode", `loading_state = new State_Map(); loading_state.doWorldEffects();`),
-			new PropertyButton(0.5, 0.5 - ((menu_buttonHeight * 0.75) * 3) + (menu_buttonHeight * 4) + (menu_characterSize / canvas.height), menu_buttonWidth, menu_buttonHeight, "Edit Mode", `loading_state = new State_Edit_Tiles(); alert(editor_warning);`),
+			new PropertyButton(0.5, menu_ringHeight - (menu_buttonHeight * 2), menu_buttonWidth, menu_buttonHeight, "Infinite Mode", `loading_state = new State_Infinite(); loading_state.doWorldEffects();`),
+			new PropertyButton(0.5, menu_ringHeight   						 , menu_buttonWidth, menu_buttonHeight, "Explore Mode", `loading_state = new State_Map(); loading_state.doWorldEffects();`),
+			new PropertyButton(0.5, menu_ringHeight + (menu_buttonHeight * 2), menu_buttonWidth, menu_buttonHeight, "Edit Mode", `loading_state = new State_Edit_Tiles(); alert(editor_warning);`),
 		];
 		this.readFrom = orderObjects(world_objects, 6);
 
-		this.characterTextTime = undefined;
+		this.characterTextTime = 0;
 		this.characterTextObj = undefined;
 	}
 	execute() {
@@ -2172,13 +2054,13 @@ class State_Menu {
 				ctx.font = `${canvas.height / 8}px Comfortaa`;
 				ctx.textAlign = `center`;
 				ctx.fillStyle = color_text_bright;
-				ctx.fillText(`Run 3`, canvas.width * 0.5, canvas.height * 0.1);
+				ctx.fillText(`Run 3`, canvas.width * 0.5, canvas.height * 0.09);
 
 				//name + powercell readout
 				ctx.font = `${canvas.height / 32}px Comfortaa`;
 				ctx.textAlign = `left`;
 
-				ctx.fillText(data_persistent.name, canvas.width * 0.02, canvas.height * 0.0375);
+				ctx.fillText(data_persistent.name, canvas.width * 0.02, canvas.height * 0.04);
 				ctx.fillText(`${data_persistent.powercells} power cells`, canvas.width * 0.02, canvas.height * 0.09);
 				ctx.textAlign = `center`;
 				
@@ -2196,23 +2078,21 @@ class State_Menu {
 				//drawing characters
 
 				//selection box
-				var offX = menu_characterCircleRadius * canvas.height * Math.cos((Math.PI * 2 * (1 / data_characters.indexes.length) * this.displayCharacterSelected) - (Math.PI * 0.5));
-				var offY = menu_characterCircleRadius * canvas.height * Math.sin((Math.PI * 2 * (1 / data_characters.indexes.length) * this.displayCharacterSelected) - (Math.PI * 0.5));
-				drawSelectionBox((canvas.width * 0.5) + offX, (canvas.height * 0.5) + offY + menu_characterSize - 5, menu_characterSize * 2, menu_characterSize * 2);
+				var offCoords = polToXY(canvas.width / 2, canvas.height * menu_ringHeight, (Math.PI * 2 * (this.displayCharacterSelected / data_characters.indexes.length)) - (Math.PI * 0.5), menu_characterCircleRadius * canvas.height);
+				drawSelectionBox(offCoords[0], offCoords[1] - 5, menu_characterSize * 2, menu_characterSize * 2);
 
 				for (var h=0; h<data_characters.indexes.length; h++) {
-					offX = menu_characterCircleRadius * canvas.height * Math.cos((Math.PI * 2 * (1 / data_characters.indexes.length) * h) - (Math.PI * 0.5));
-					offY = menu_characterCircleRadius * canvas.height * Math.sin((Math.PI * 2 * (1 / data_characters.indexes.length) * h) - (Math.PI * 0.5));
+					offCoords = polToXY(canvas.width / 2, canvas.height * menu_ringHeight, (Math.PI * 2 * (h / data_characters.indexes.length)) - (Math.PI * 0.5), menu_characterCircleRadius * canvas.height);
 					//character texture
-					textures_common[h].frame = 0 + (modularDifference(this.displayCharacterSelected, h, data_characters.indexes.length) < 0.5 && data_persistent.unlocked.includes(data_characters.indexes[h]));
-					textures_common[h].beDrawn((canvas.width * 0.5) + offX, (canvas.height * 0.5) + offY + menu_characterSize, 0, menu_characterSize * 1.7);
+					textures_common[h].frame = +(modularDifference(this.displayCharacterSelected, h, data_characters.indexes.length) < 0.5 && data_persistent.unlocked.includes(data_characters.indexes[h]));
+					textures_common[h].beDrawn(offCoords[0], offCoords[1], 0, menu_characterSize * 1.7);
 					if (!data_persistent.unlocked.includes(data_characters.indexes[h])) {
-						drawLock((canvas.width * 0.5) + offX, (canvas.height * 0.5) + offY + (menu_characterSize * 0.75), menu_characterSize, menu_characterSize);
+						drawLock(offCoords[0], offCoords[1] - (menu_characterSize * 0.25), menu_characterSize, menu_characterSize);
 					}
 				}
 
 				//drawing character text, if there is any
-				if (this.characterTextTime != undefined) {
+				if (this.characterTextTime > 0) {
 					this.characterTextTime -= 1;
 
 					ctx.globalAlpha = 1 - Math.pow(1.8 * (this.characterTextTime / menu_characterTextTime) - 1, 10);
@@ -2223,20 +2103,23 @@ class State_Menu {
 
 					//text
 					this.characterTextObj.beDrawn();
-
-					if (this.characterTextTime <= 0) {
-						this.characterTextTime = undefined;
-					}
 					ctx.globalAlpha = 1;
+				}
+				if (editor_active) {
+					ctx.strokeStyle = color_grey_lightest;
+					ctx.beginPath();
+					ctx.arc(canvas.width / 2, canvas.height * menu_ringHeight, canvas.height * menu_characterCircleRadius - menu_characterSize, 0, Math.PI * 2);
+					ctx.stroke();
+					ctx.arc(canvas.width / 2, canvas.height * menu_ringHeight, canvas.height * menu_characterCircleRadius + menu_characterSize, 0, Math.PI * 2);
+					ctx.stroke();
 				}
 				break;
 			case 1:
 				//leaderboards
 				var baseHeight = 0.125;
 				var offHeight = 0.0625;
-				var ws = [0.03, 0.34, 0.48, 0.625];
+				var ws = [0.035, 0.34, 0.48, 0.625];
 
-				
 				ctx.font = `${Math.floor(canvas.height / 32)}px Comfortaa`;
 				ctx.textAlign = "left";
 				ctx.fillStyle = color_text_bright;
@@ -2248,59 +2131,32 @@ class State_Menu {
 
 				//actual highscores
 				for (var j=0; j<data_persistent.highscores.length; j++) {
-					ctx.fillText(data_persistent.highscores[j][0], canvas.width * 0.04, canvas.height * (baseHeight + offHeight * (j + 1)), canvas.width * 0.34);
+					ctx.fillText(data_persistent.highscores[j][0], canvas.width * ws[0], canvas.height * (baseHeight + offHeight * (j + 1)), canvas.width * (ws[1] - ws[0] * 0.8));
 					//normal data
-					ctx.fillText(data_persistent.highscores[j][1] + "m", canvas.width * 0.35, canvas.height * (baseHeight + offHeight * (j + 1)));
+					ctx.fillText(data_persistent.highscores[j][1] + "m", canvas.width * ws[1], canvas.height * (baseHeight + offHeight * (j + 1)));
 					ctx.fillText(data_persistent.highscores[j][2], canvas.width * 0.5, canvas.height * (baseHeight + offHeight * (j + 1)));
 
 					//characters used
 					for (var k=0; k<data_persistent.highscores[j][3].length; k++) {
 						var charIndex = data_characters.map[data_persistent.highscores[j][3][k]];
 						textures_common[charIndex].frame = 0;
-						textures_common[charIndex].beDrawn((canvas.width * 0.65) + (menu_characterSize * 0.8 * (k + 0.5)), canvas.height * (baseHeight + offHeight * (j + 1)), 0, menu_characterSize * 0.75);
+						textures_common[charIndex].beDrawn((canvas.width * ws[3]) + (menu_characterSize * 0.75 * (k + 0.5)), canvas.height * (baseHeight + offHeight * (j + 1)), 0, menu_characterSize * 0.75);
 					}
 				}
 
-				//death counter
-				//ctx.font = `${Math.floor(canvas.height / 40)}px Comfortaa`;
-				
-				var deathHeight = 0.9;
-				var pieR = 0.045;
-				var textOff = 0.025;
-				var deathRatio = data_persistent.deathsE / (data_persistent.deathsE + data_persistent.deathsI);
+				//pie charts for deaths and levels visited
+				ctx.font = `${Math.floor(canvas.height / 40)}px Comfortaa`;
 
-				
+				drawPieChart(canvas.width / 4, canvas.height * 0.9, canvas.height * 0.045, canvas.height * 0.025, `Total: `, 
+							data_persistent.deathsE, color_deathE, `Explore retries: `, 
+							data_persistent.deathsI, color_deathI, `Infinite retries: `);
 
-				//actual pie chart
-				if (data_persistent.deathsE + data_persistent.deathsI > 0) {
-					ctx.fillStyle = color_deathE;
-					ctx.beginPath();
-					ctx.moveTo(canvas.width / 2, canvas.height * deathHeight);
-					//infinite deaths will layer overtop, so this can just be a circle
-					ctx.arc(canvas.width / 2, canvas.height * deathHeight, canvas.height * pieR, 0, Math.PI * 2);
-					ctx.fill();
-
-					ctx.fillStyle = color_deathI;
-					ctx.beginPath();
-					ctx.moveTo(canvas.width / 2, canvas.height * deathHeight);
-					ctx.arc(canvas.width / 2, canvas.height * deathHeight, canvas.height * pieR, -Math.PI / 2, (-Math.PI * 0.5) - (Math.PI * 2 * (1 - deathRatio)), true);
-					ctx.fill();
-
-					//texts
-					ctx.textAlign = "left";
-					ctx.fillStyle = color_deathE;
-					ctx.fillText(`Explore retries: ${data_persistent.deathsE}`, (canvas.width / 2) + (canvas.height * (pieR + textOff)), canvas.height * deathHeight);
-
-					ctx.textAlign = "right";
-					ctx.fillStyle = color_deathI;
-					ctx.fillText(`Infinite retries: ${data_persistent.deathsI}`, (canvas.width / 2) - (canvas.height * (pieR + textOff)), canvas.height * deathHeight);
-				}
-				
-
-				ctx.textAlign = "center";
-				ctx.fillStyle = color_text_bright;
-				ctx.fillText(`Total retries: ${data_persistent.deathsE + data_persistent.deathsI}`, canvas.width / 2, canvas.height * (deathHeight + pieR + textOff));
-
+				var visitStats = calculateLevelsVisited();
+				drawPieChart(canvas.width * 3 / 4, canvas.height * 0.9, canvas.height * 0.045, canvas.height * 0.025, `Total: `, 
+							visitStats[0], color_deathE, `Explore visited: `, 
+							world_objects.length - 2 - visitStats[0], color_deathE2, `Undiscovered: `,
+							infinite_data.length - visitStats[1], color_deathI2, `Undiscovered: `,
+							visitStats[1], color_deathI, `Infinite visited: `,);
 				break;
 			case 2:
 				//reset save data button
@@ -2364,7 +2220,7 @@ class State_Menu {
 				if (cursor_x < canvas.width * 0.25 && cursor_y < canvas.height * 0.1) {
 					var value = prompt("Enter new username please:", data_persistent.name);
 					if (isValidString(value)) {
-						//make sure name fits in the box lol
+						//make sure name fits in the box
 						ctx.font = `${canvas.height / 32}px Comfortaa`;
 						var charNum = value.length;
 						while (ctx.measureText(value).width > canvas.width * player_maxNameWidth) {
@@ -2377,45 +2233,49 @@ class State_Menu {
 				}
 
 				//collision with characters.
-				for (var h=0; h<data_characters.indexes.length; h++) {
-					var posX = (canvas.width * 0.5) + (menu_characterCircleRadius * canvas.height * Math.cos((Math.PI * 2 * (1 / data_characters.indexes.length) * h) - (Math.PI * 0.5)));
-					var posY = (canvas.height * 0.5) + menu_characterSize + (menu_characterCircleRadius * canvas.height * Math.sin((Math.PI * 2 * (1 / data_characters.indexes.length) * h) - (Math.PI * 0.5)));
-					var charRef = data_characters.indexes[h];
-					//selection box
-					if (cursor_x > posX - menu_characterSize && cursor_x < posX + menu_characterSize &&
-					cursor_y > posY - menu_characterSize && cursor_y < posY + menu_characterSize &&
-					data_persistent.unlocked.includes(charRef)) {
-						//if the character is already selected, display their text box
-						if (this.characterSelected == h) {
-							var text = data_characters[charRef].text;
-							if (this.characterTextTime != undefined) {
-								//if the text is already being displayed, switch to a different text
-								text = data_characters[charRef].trivia[Math.floor(randomBounded(0, data_characters[charRef].trivia.length-0.01))];
+				var [cDist, cAngle] = XYtoPol(cursor_x - (canvas.width / 2), cursor_y - (canvas.height * menu_ringHeight));
+
+				//characters are positioned in a ring. If the cursor is on that ring, it could intersect with a character
+				if (cDist < canvas.height * menu_characterCircleRadius + menu_characterSize && cDist > canvas.height * menu_characterCircleRadius - menu_characterSize) {
+					//character based on angle
+					var clickedCharNum = ((cAngle + Math.PI * 0.5) % (Math.PI * 2)) / (Math.PI * 2) * 10;
+					clickedCharNum = Math.round(clickedCharNum) % 10;
+					var clickedCharStr = data_characters.indexes[clickedCharNum];
+					
+					//if the character is selectable
+					if (data_persistent.unlocked.includes(clickedCharStr)) {
+						//if they aren't already selected, update the selection
+						if (this.characterSelected != clickedCharNum) {
+							this.characterTextTime = 0;
+							this.characterSelected = clickedCharNum;
+							replacePlayer(clickedCharNum);
+							if (Math.abs(this.characterSelected - this.displayCharacterSelected) > data_characters.indexes.length / 2) {
+								if (this.characterSelected < this.displayCharacterSelected) {
+									this.displayCharacterSelected -= data_characters.indexes.length;
+								} else {
+									this.displayCharacterSelected += data_characters.indexes.length;
+								}
 							}
-							
-							this.characterTextTime = menu_characterTextTime;
-							this.characterTextObj = new SceneText(0.5, 0.75, menu_characterTextWidth / 2.02, 1 / 35, text, true);
-						} else {
-							this.characterTextTime = undefined;
+							return;
 						}
-						this.characterSelected = h;
-						player = eval(`new ${charRef}(0, 0, 0)`);
-						if (Math.abs(this.characterSelected - this.displayCharacterSelected) > data_characters.indexes.length / 2) {
-							if (this.characterSelected < this.displayCharacterSelected) {
-								this.displayCharacterSelected -= data_characters.indexes.length;
-							} else {
-								this.displayCharacterSelected += data_characters.indexes.length;
-							}
-						}
+
+						//if they are already selected, display their text box
+						//if already displaying that, display a trivia instead
+						var triviaBin = data_characters[clickedCharStr].trivia;
+						var text = (this.characterTextTime > 0) ? triviaBin[Math.floor(randomBounded(0, triviaBin.length))] : data_characters[clickedCharStr].text;
+						
+						this.characterTextTime = menu_characterTextTime;
+						this.characterTextObj = new SceneText(0.5, 0.75, menu_characterTextWidth / 2.02, 1 / 35, text, true);
 						return;
 					}
 				}
+
 				//collision with lower buttons
 				for (var b=0; b<4; b++) {
-					var xOff = (canvas.height * 0.03) + (canvas.width * (b * 0.07));
+					var xOff = (canvas.height * 0.01) + (canvas.width * (b * 0.07));
 					var yOff = canvas.height * 0.9;
 
-					if (cursor_x > xOff && cursor_x < xOff + canvas.width * 0.05 && cursor_y > yOff && cursor_y < yOff + canvas.width * 0.05) {
+					if (cursor_x > xOff && cursor_x < xOff + canvas.width * 0.06 && cursor_y > yOff && cursor_y < yOff + canvas.width * 0.06) {
 						this.substate = b + 1;
 						//if cutscene mode, update viewership
 						if (this.substate == 3) {
