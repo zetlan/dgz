@@ -73,7 +73,9 @@ const color_crumbling_secondary = "#808080";
 const color_cutsceneBox = "#FFF";
 const color_cutsceneLink = "#404";
 const color_deathE = "#4BF";
+const color_deathE2 = "#689";
 const color_deathI = "#F93";
+const color_deathI2 = "#A86";
 
 const color_editor_bg = "#335";
 const color_editor_border = "#F8F";
@@ -81,7 +83,7 @@ const color_editor_camera = "#0F0";
 const color_editor_cursor = "#0FF";
 const color_editor_normal = "#F80";
 
-const color_grey_dark = "#888";
+const color_grey_dark = "#666";
 const color_grey_light = "#CCC";
 const color_grey_lightest = "#FEF";
 const color_ice = "#D1E4E6";
@@ -110,6 +112,7 @@ var credits = [
 	`Joseph Cloutier - level design, original art, and story`,
 	`Alex Ostroff - original art/animation`,
 	`Jesse Valentine - music`,
+	`NintendoPanda101 - providing some improved music loops`,
 	``,
 	`ADDITIONAL LEVELS BY:`,
 	`Karsh777, mathwiz100, portugal2000, Huggaso,`,
@@ -119,9 +122,6 @@ var credits = [
 	`A*16 - "I barely did anything but I still wanted`,
 	`to be in the credits."`,
 	`Chair - "Chair or LongNeckedChair."`,
-	``,
-	`Thanks to NintendoPanda101 for providing some`,
-	`improved music loops.`
 ]
 var cursor_x = 0;
 var cursor_y = 0;
@@ -155,18 +155,14 @@ var editor_functionMapping = {
 	"notSoFalseAlarm":	"power (true alarm)",
 	"cutsceneImmerse":	"cutscene"
 };
-var editor_maxCutscenes = 21;
-var editor_cutscenes = {}
 var editor_mapHeight = 10000;
 var editor_minEditAngle = 0.06;
-var editor_objects = [];
 var editor_lPropertyW = 0.3;
 var editor_lTileW = 0.06;
 var editor_lTriggerW = 0.2;
 var editor_sliderHeight = 0.05;
 var editor_sliderProportion = 0.145;
 var editor_sliderMargin = 0.008;
-var editor_spawn = undefined;
 var editor_substateTravelSpeed = 0.07;
 var editor_topBarHeight = 0.12;
 var editor_tileSize = 0.02;
@@ -181,12 +177,13 @@ If you would like to stop processing the file, click cancel. If continuing is al
 var editor_controlText = [
 	`EDIT MODE CONTROLS:`,
 	`< / > - decrement / increment cutscene frame`,
-	`WASD - change camera position`,
-	`arrow keys - change camera orientation`,
-	`QE - change camera rotation`,
-	`space - reset camera's rotation`,
+	`WASD, space, and shift - change camera position`,
+	`arrow keys, Q, and E - change camera orientation`,
+	`r - reset camera orientation`,
 	`c - toggle permanent camera change`,
 	`esc - reset camera position`,
+
+
 	`NORMAL MODE CONTROLS:`,
 	`esc - skip cutscene`,
 	`click - advance frame`
@@ -196,7 +193,16 @@ var editor_worldFile = undefined;
 
 //for the cutscene editor
 var editor_handleRadius = 6;
-var editor_cutsceneWidth = 0.2;
+var editor_cutsceneWidth = 0.15;
+
+//for custom worlds
+var editor_maxCutscenes = 21;
+var editor_cutscenes = {}
+var editor_objects = [];
+var editor_spawn = undefined;
+var editor_locked = false;
+var editor_lockOutput = false;
+
 
 var infinite_branchChance = 0.2;
 var infinite_branchCooldown = 8;
@@ -204,7 +210,8 @@ var infinite_data = levelData_infinite.split("\n");
 var infinite_difficultyBoost = 4;
 var infinite_levelRange = 40;
 var infinite_wobble = 0.3;
-var infinite_levelConstraints = ["229", "230", "233", "326"];
+var infinite_levelConstraints = [];
+var infinite_levelsVisited = "";
 
 
 
@@ -224,6 +231,7 @@ var menu_characterTextTime = 160;
 var menu_characterTextWidth = 0.7;
 var menu_cutsceneParallax = 0.4;
 var menu_propertyHeight = 0.07;
+var menu_ringHeight = 0.56;
 
 let page_animation;
 let page_escBuffer;
@@ -250,6 +258,42 @@ var powercells_gentlemanMultiplier = 0.5;
 var powercells_perTunnel = 10;
 var powercells_spinSpeed = 0.05;
 var powercells_size = 30;
+
+var render_animSteps = 9;
+var render_crosshairSize = 10;
+var render_clipDistance = 0.1;
+var render_identicalPointTolerance = 0.0001;
+var render_maxColorDistance = 950;
+var render_maxDistance = 25000;
+var render_minTileSize = 8;
+var render_minPolySize = 4;
+var render_ringSize = 18;
+//rate + rateStep are how often the game ticks. This fixes the problem with 120Hz monitors being twice as fast. If you use a monitor that's not a multiple of 60, you're out of luck, soiry.
+var render_rate = 60;
+var render_rateBase = 60;
+var render_rateParity = 0;
+var render_starOpacity = 0.6;
+var render_voidSpinSpeed = 0.04;
+
+var spaceToRelativeMatrices = {};
+var spaceToRelativeRotlessMatrices = {};
+
+let star_arr = [];
+var star_distance = 2300;
+var star_number = 500;
+
+var text_queue = [];
+var text_timeMax = 240;
+var text_time = text_timeMax;
+
+var textures_common = [];
+data_characters.indexes.forEach(c => {
+	textures_common.push(new Texture(eval(`data_sprites.${c}.sheet`), data_sprites.spriteSize, 1e1001, false, false, eval(`[data_sprites.${c}.back[0], data_sprites.${c}.front[0]]`)));
+});
+
+var times_holiday = undefined;
+var times_current = {};
+var times_past = {};
 
 var tunnel_crumbleOffset = 0.05;
 var tunnel_dataStarChainMax = 4;
@@ -323,6 +367,7 @@ var tunnel_translation = {
 	"b": 50, "c": 51, "d": 52, "e": 53, "f": 54, "g": 55, "h": 56, "i": 57, "j": 58, "k": 59,
 	"l": 60, "m": 61, "n": 62, "o": 63,
 };
+var tunnel_translationInverse = `0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[/]^_!abcdefghijklmno`;
 var tunnel_validIndeces = {
 	0: true,
 	1: true,
@@ -354,44 +399,15 @@ let active_objects = [];
 let world_wormhole;
 var world_version = 1.2;
 
-var gloablView;
-
-var render_animSteps = 9;
-var render_crosshairSize = 10;
-var render_clipDistance = 0.1;
-var render_identicalPointTolerance = 0.0001;
-var render_maxColorDistance = 950;
-var render_maxDistance = 25000;
-var render_minTileSize = 8;
-var render_minPolySize = 4;
-var render_ringSize = 18;
-//rate + rateStep are how often the game ticks. This fixes the problem with 120Hz monitors being twice as fast. If you use a monitor that's not a multiple of 60, you're out of luck, soiry.
-var render_rate = 60;
-var render_rateBase = 60;
-var render_rateParity = 0;
-var render_starOpacity = 0.6;
-var render_voidSpinSpeed = 0.04;
-
-let star_arr = [];
-var star_distance = 2300;
-var star_number = 500;
-
-var text_queue = [];
-var text_timeMax = 240;
-var text_time = text_timeMax;
-
-var textures_common = [];
-data_characters.indexes.forEach(c => {
-	textures_common.push(new Texture(eval(`data_sprites.${c}.sheet`), data_sprites.spriteSize, 1e1001, false, false, eval(`[data_sprites.${c}.back[0], data_sprites.${c}.front[0]]`)));
-});
-
-var times_holiday = undefined;
-var times_current = {};
-var times_past = {};
-
 //misc variables I couldn't be bothered giving prefixes to
+/*
+haltRotation - a variable to force tunnels to not rotate more than once per frame
+deathCount - a counter used in challenge mode to see how many times player has died (used in resetting boxes)
+gloablView - stores a copy of a binary tree generated in playerParent drawing
+*/
 var haltRotation = false;
 var deathCount = 0;
+var gloablView;
 
 
 
