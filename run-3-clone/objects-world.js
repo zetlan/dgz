@@ -2047,6 +2047,7 @@ class Tunnel {
 	}
 
 	establishCrumbleSets() {
+		this.crumbleSets = undefined;
 		for (var s=0; s<this.realTilesComplex.length; s++) {
 			for (var t=0; t<this.realTilesComplex[s].length; t++) {
 				//is it a crumbling tile that hasn't been sorted yet?
@@ -2277,6 +2278,7 @@ class Tunnel {
 	//I apologize in advance for any headaches this function causes.
 	generateTiles() {
 		this.simple = true;
+		this.crumbleSets = undefined;
 		this.strips = [];
 		this.tiles = [];
 		//split array into strips, with each strip being its own data structure
@@ -2296,10 +2298,11 @@ class Tunnel {
 				}
 
 				//simpleton check
-				if (this.simple) {
-					if (value == 3 || (value >= 9 && value <= 13)) {
-						this.simple = false;
-					}
+				if (value == 3) {
+					this.simple = false;
+					this.crumbleSets = [];
+				} else if (this.simple && value >= 9 && value <= 13) {
+					this.simple = false;
 				}
 
 				//if at the end and is a tile, add to end spawns
@@ -2319,7 +2322,7 @@ class Tunnel {
 		// 	console.log(`oh no! No spawns for tunnel id~${this.id}`);
 		// }
 		this.establishReals();
-		if (!this.simple) {
+		if (this.crumbleSets != undefined) {
 			this.establishCrumbleSets();
 		}
 	}
