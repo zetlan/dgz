@@ -41,7 +41,7 @@ var data_bridgeBuilding = [
 	["Box Storage Area, Part 1", challengeData_bridgeBuildingRunner, 0, 2],
 	["T-4", 					challengeData_bridgeBuildingRunner, 6, 3],
 	["M-4", 					challengeData_bridgeBuildingSkater, 0, 3]
-]
+];
 var data_characters = {
 	indexes: [`Runner`, `Skater`, `Lizard`, `Bunny`, `Gentleman`, `Duplicator`, `Child`, `Pastafarian`, `Student`, `Angel`],
 	map: {"Runner": 0, "Skater": 1, "Lizard": 2, "Bunny": 3, "Gentleman": 4, "Duplicator": 5, "Child": 6, "Pastafarian": 7, "Student": 8, "Angel": 9},
@@ -112,6 +112,10 @@ var data_characters = {
 			`Wait until the Gentleman falls below the level of the proximal power cell before energizing his electromagnet to ensure he is propelled upwards.`,
 			`In what he considers to be a mildly amusing symmetry, the Gentleman's electromagnet is activated by electromagnetic waves.`
 		]
+	},
+	"Ice Skater": {
+		color: undefined,
+		text: `Everyone tries new things sometimes.`
 	},
 	"Lizard": {
 		color: "#5A5",
@@ -224,6 +228,19 @@ the .fla file I created that stores all the sprites.
 I hope someone finds it useful (:    */
 
 var data_sprites = {
+	possibleSheets: [
+		`Runner`,
+		`Skater`,
+		`Lizard`,
+		`Bunny`,
+		`Gentleman`,
+		`Duplicator`,
+		`Child`,
+		`Pastafarian`,
+		`Student`,
+		`Angel`,
+		`Map`,
+	],
 	spriteSize: 144,
 
 	Map: {
