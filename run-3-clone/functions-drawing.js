@@ -98,6 +98,64 @@ function drawLock(x, y, width, height) {
 	drawRoundedRectangle(x - (width * 0.5), y, width, height * 0.95, canvas.height / 100);
 }
 
+function drawPieChart(x, y, radius, textMargin, lowerLabel, number1, color1, text1, number2, color2, text2) {
+	var numbers = [];
+	var colors = [];
+	var labels = [];
+	var totalAmount = 0;
+	var totalSoFar = 0;
+
+	//parse in arguments, because pie chart can have variable number of slices
+	for (var a=5; a<arguments.length-1; a+=3) {
+		numbers.push(arguments[a]);
+	}
+	for (a=6; a<arguments.length-1; a+=3) {
+		colors.push(arguments[a]);
+	}
+	for (a=7; a<arguments.length; a+=3) {
+		labels.push(arguments[a]);
+	}
+	totalAmount = numbers.reduce((a, b) => a + b);
+
+	//draw total amount
+	ctx.textAlign = "center";
+	ctx.fillStyle = color_text_bright;
+	ctx.fillText(lowerLabel + totalAmount, x, y + radius + textMargin);
+
+	//if there's no data to display, don't.. display data
+	if (totalAmount == 0) {
+		return;
+	}
+	
+
+	//draw pie slices
+	drawCircle(colors[0], x, y, radius);
+	for (var d=1; d<numbers.length; d++) {
+		totalSoFar += numbers[d-1];
+		ctx.beginPath();
+		ctx.fillStyle = colors[d];
+		ctx.moveTo(x, y);
+		ctx.arc(x, y, radius, (Math.PI * -0.5) + (totalSoFar / totalAmount * (Math.PI * 2)), Math.PI * 1.5);
+		ctx.fill();
+	}
+
+	//draw texts
+	var isOdd = (numbers.length % 2 == 0);
+	var textDenom = numbers.length * (1 + isOdd);
+	var qValue = +isOdd;
+
+	for (var h=0; h<labels.length; h++) {
+		//first get angle, then offset, then actually draw the thing
+		var angle = (Math.PI * 2) * (qValue / textDenom);
+		var coords = polToXY(0, 0, (Math.PI * -0.5) + angle, radius + textMargin);
+		ctx.textAlign = (angle < Math.PI) ? "left" : "right";
+		ctx.fillStyle = colors[h];
+		ctx.fillText(labels[h] + numbers[h], x + coords[0], y + coords[1] * 0.75);
+		qValue += 1 + isOdd;
+	}
+	
+}
+
 function drawPoly(color, xyPointsArr) {
 	ctx.beginPath();
 	ctx.fillStyle = color;
@@ -219,7 +277,7 @@ function drawAngelPanel(time) {
 		ctx.lineWidth = 2;
 		ctx.font = `${canvas.height / 30}px Permanent Marker`;
 		ctx.textAlign = "center";
-		ctx.fillText(data_angelChecklist[0], canvas.width * (checklist_margin + (checklist_width / 2)), yDefault + yOffset + (canvas.height * 0.07));
+		ctx.fillText(data_angelChecklist[0], canvas.width * (checklist_margin + (checklist_width / 2)), yDefault + yOffset + (canvas.height * 0.06));
 
 		//line
 		ctx.moveTo(canvas.width * (checklist_margin + (checklist_width * 0.05)), yDefault + yOffset + (canvas.height * 0.075));
@@ -239,14 +297,14 @@ function drawAngelPanel(time) {
 
 			//box
 			ctx.beginPath();
-			ctx.rect(textXOffset - (boxSize * 2), yDefault + yOffset + textYOffset - (boxSize * 0.9), boxSize, boxSize);
+			ctx.rect(textXOffset - (boxSize * 2), yDefault + yOffset + textYOffset - (boxSize * 0.6), boxSize, boxSize);
 			ctx.stroke();
 
 			//box check
 			if (data_persistent.effectiveCutscenes.includes(data_angelChecklist[g][2])) {
 				//superscript
 				ctx.font = `${canvas.height / 50}px Permanent Marker`;
-				ctx.fillText(data_angelChecklist[g][1], textXOffset + currentTextWidth, yDefault + yOffset + textYOffset - (canvas.height / 50));
+				ctx.fillText(data_angelChecklist[g][1], textXOffset + currentTextWidth, yDefault + yOffset + textYOffset - (canvas.height / 60));
 				ctx.font = `${canvas.height / 35}px Permanent Marker`;
 
 				if (data_angelChecklist[g][3]) {
@@ -275,12 +333,12 @@ function drawAngelPanel(time) {
 function drawCharacterText() {
 	var yOffset = Math.pow((text_time / (text_timeMax / 2)) - 1, 12);
 
-	var yPos = (canvas.height * 0.92) + (yOffset * canvas.width * 0.08);
+	var yPos = (canvas.height * 0.92) + (yOffset * canvas.width * 0.08) + (menu_characterSize / 2);
 	ctx.fillStyle = color_grey_light;
 	ctx.strokeStyle = color_grey_dark;
-	drawRoundedRectangle(canvas.width * 0.11, yPos - (menu_characterSize * 0.15), canvas.width * 0.8, menu_characterSize * 1.3, canvas.height / 96);
+	drawRoundedRectangle(canvas.width * 0.11, yPos - (menu_characterSize * 0.65), canvas.width * 0.8, menu_characterSize * 1.3, canvas.height / 96);
 	if (text_queue[0][0] != undefined) {
-		textures_common[text_queue[0][0]].beDrawn(canvas.width * 0.14, yPos + (menu_characterSize / 2), 0, menu_characterSize);
+		textures_common[text_queue[0][0]].beDrawn(canvas.width * 0.14, yPos, 0, menu_characterSize);
 	}
 	
 	ctx.fillStyle = color_text;
@@ -304,7 +362,7 @@ function drawCharacterText() {
 		}
 	}
 	for (var a=0; a<text_queue[0][1].length; a++) {
-		ctx.fillText(text_queue[0][1][a], (canvas.width * 0.5) + menu_characterSize, yPos + (menu_characterSize * 0.1) + (menu_characterSize * 1.25 * ((a + 1) / (text_queue[0][1].length + 1))));
+		ctx.fillText(text_queue[0][1][a], (canvas.width * 0.5) + menu_characterSize, yPos - (canvas.height * 0.002) + (menu_characterSize * 1.25 * ((a + 1) / (text_queue[0][1].length + 1))));
 	}
 }
 
@@ -347,7 +405,7 @@ function drawInfiniteEndScreen() {
 		var offX = canvas.width * 0.6 * ((a % 5) / 5);
 
 		var textOffset = canvas.height / 40;
-		var textOffset2 = menu_characterSize * 2.3;
+		var textOffset2 = menu_characterSize * 2.1;
 
 		ctx.fillStyle = color_text;
 		
@@ -459,7 +517,7 @@ function drawSky(bgColor) {
 
 //draws all tiles but in 2 dimensions, used for the editor
 function drawTile2d(ex, why, size, type) {
-	if (type >= 30 && type < 100) {
+	if (type >= 40 && type < 100) {
 		drawSelectionBox(ex + (size / 2), why + (size / 2), size, size);
 	}
 	ctx.beginPath();
@@ -636,7 +694,7 @@ function drawTile2d(ex, why, size, type) {
 			//text
 			ctx.fillStyle = color_text_bright;
 			ctx.font = `${size}px Comfortaa`;
-			ctx.fillText("T", ex, why + (size * 0.66));
+			ctx.fillText("T", ex, why);
 			break;
 		case 25:
 			//code console
@@ -644,11 +702,17 @@ function drawTile2d(ex, why, size, type) {
 			ctx.fillRect(ex - (size * 0.5), why - (size * 0.5), size, size);
 			ctx.fillStyle = color_text;
 			ctx.font = `${size}px Comfortaa`;
-			ctx.fillText(">", ex + (size * 0.2), why + (size * 0.4));
+			ctx.fillText(">", ex + (size * 0.2), why);
 			break;
+		case 26:
+			//sprite
+			textures_common[0].frame = 0;
+			textures_common[0].beDrawn(ex, why, 0, size);
+			break;
+
 		
 		//3d cutscene icons
-		case 26:
+		case 30:
 			//light
 			ctx.fillStyle = color_map_bg;
 			ctx.globalAlpha = 0.5;
@@ -656,22 +720,24 @@ function drawTile2d(ex, why, size, type) {
 			ctx.globalAlpha = 1;
 			drawCircle(color_map_bg, ex, why, size / 3);
 			break;
-		case 27:
+		case 31:
 			//powercell
 			ctx.beginPath();
 			ctx.fillStyle = colors_powerCells[0];
-			ctx.moveTo(ex + (size * 0.1), why + (size * 0.1));
-			ctx.lineTo(ex + (size * 0.9), why + (size * 0.4));
-			ctx.lineTo(ex + (size * 0.3), why + (size * 0.9))
-			ctx.lineTo(ex + (size * 0.1), why + (size * 0.1));
+			ctx.moveTo(ex - (size * 0.4), why - (size * 0.4));
+			ctx.lineTo(ex + (size * 0.4), why - (size * 0.1));
+			ctx.lineTo(ex - (size * 0.2), why + (size * 0.4))
+			ctx.lineTo(ex - (size * 0.4), why - (size * 0.4));
 			ctx.fill();
 			break;
-		case 28:
+		case 32:
 			//box with rings
-			drawTile2d(ex, why, size, 109);
+			drawTile2d(ex - (size / 2), why - (size / 2), size, 109);
 			break;
-		case 29:
+		case 33:
 			//boat
+			ex -= size / 2;
+			why -= size / 2;
 			ctx.beginPath();
 			ctx.fillStyle = "#8FF0F7";
 			ctx.moveTo(ex, why + (size / 3));
@@ -681,16 +747,15 @@ function drawTile2d(ex, why, size, type) {
 			ctx.lineTo(ex, why + (size * 0.666));
 			ctx.fill();
 			break;
-		case 30:
+		case 34:
 			//movable tile
-			drawTile2d(ex, why, size, 101);
+			drawTile2d(ex - (size / 2), why - (size / 2), size, 101);
 			break;
-		
 
 
 
 
-			
+
 		//menu icons
 		case 40:
 			//leaderboards
@@ -742,4 +807,5 @@ function drawTunnelSectionPerfect(tunnel, simpleTileDat, complexTileDat, freeObj
 
 function setCanvasPreferences() {
 	ctx.textBaseline = "middle";
+	ctx.imageSmoothingEnabled = data_persistent.settings.antiAlias;
 }
