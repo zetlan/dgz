@@ -56,11 +56,7 @@ class Tile extends FreePoly {
 		world_camera.targetTheta = entity.dir_front[0] % (Math.PI * 2);
 		//if the difference is too great, fix that
 		if (Math.abs(world_camera.theta - world_camera.targetTheta) > Math.PI) {
-			if (world_camera.theta > Math.PI) {
-				world_camera.theta -= Math.PI * 2;
-			} else {
-				world_camera.theta += Math.PI * 2;
-			}
+			world_camera.theta += Math.PI * 2 * boolToSigned(world_camera.theta < Math.PI);
 		}
 
 		if (!editor_active && world_camera.targetRot != cameraRotAttempt) {
@@ -142,9 +138,9 @@ class Tile_Box extends Tile {
 		//I am aware that putting the front and back faces first for insertion may create more clipping planes. However, the player can't be clipped, 
 		//and therefore I don't want a lot of planes to intersect them. Putting the planes that the player will generally be perpendicular to first
 		//means that the player won't be clipped through a plane as often, causing errors less often.
-		this.drawPolysIn = [h["uf"], h["ub"], h["uu"], h["ul"], h["ur"]];
+		this.drawPolysIn = [h["uf"], h["ub"], h["ul"], h["ur"], h["uu"]];
 		this.drawPolysIn.forEach(a => {a.calculateNormal();});
-		this.drawPolysOut = [h["df"], h["db"], h["dd"], h["dl"], h["dr"]];
+		this.drawPolysOut = [h["df"], h["db"], h["dl"], h["dr"], h["dd"]];
 		this.drawPolysOut.forEach(a => {a.calculateNormal();});
 		
 		this.dir_right = [this.normal[0], this.normal[1] + (Math.PI / 2)];
@@ -744,6 +740,9 @@ class Tile_Ice_Ramp extends Tile_Ice {
 	constructor(x, y, z, size, normal, parent) {
 		super(x, y, z, size, normal, parent);
 		this.rampPushForce = 0.15;
+		//since self slopes, the long way (back to front) is longer than the side way.
+		//magic number is gathered using pythagorean theorum hypotenuse sqrt(1^2 + 0.25^2)
+		this.longMult = 1.15;
 	}
 
 	calculatePointsAndNormal() {
@@ -844,8 +843,8 @@ class Tile_Ramp extends Tile {
 	constructor(x, y, z, size, normal, parent, color) {
 		super(x, y, z, size, normal, parent, color);
 		this.tolerance = player_radius * 0.8;
-		this.size += 5;
 		this.rampPushForce = 0.5;
+		this.longMult = 1.4142135624;
 	}
 
 	calculatePointsAndNormal() {
