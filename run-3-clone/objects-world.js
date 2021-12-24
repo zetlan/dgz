@@ -391,6 +391,7 @@ class FreePoly {
 		this.z;
 		this.points = points;
 		this.normal;
+		this.size;
 		this.color = color;
 		this.cameraDist = render_maxColorDistance + 1;
 		this.playerDist = render_maxColorDistance + 1;
@@ -402,37 +403,42 @@ class FreePoly {
 	calculateNormal() {
 		//first get average point, that's self's xyz
 		[this.x, this.y, this.z] = avgArray(this.points);
+		//determine size based on xyz + points
+		this.size = Math.sqrt((this.x - this.points[0][0]) ** 2 + (this.y - this.points[0][1]) ** 2 + (this.z - this.points[0][2]) ** 2);
 
 		//get cross product of first two points, that's the normal
 		//every shape has to have at least 3 points, so 
 		//comparing points 2 and 3 to point 1 for normal getting
 		var v1 = [this.points[1][0] - this.points[0][0], this.points[1][1] - this.points[0][1], this.points[1][2] - this.points[0][2]];
 		var v2 = [this.points[2][0] - this.points[0][0], this.points[2][1] - this.points[0][1], this.points[2][2] - this.points[0][2]];
-		var cross = [(v1[1] * v2[2]) - (v1[2] * v2[1]), (v1[2] * v2[0]) - (v1[0] * v2[2]), (v1[0] * v2[1]) - (v1[1] * v2[0])];
 		
-		cross = cartToPol(cross[0], cross[1], cross[2]);
+		var cross = cartToPol((v1[1] * v2[2]) - (v1[2] * v2[1]), (v1[2] * v2[0]) - (v1[0] * v2[2]), (v1[0] * v2[1]) - (v1[1] * v2[0]));
 		this.normal = [cross[0], cross[1]];
 	}
 
 	collideWithEntity(entity) {
 		//transform player to self's coordinates
 		var entityCoords = spaceToRelativeRotless([entity.x, entity.y, entity.z], [this.x, this.y, this.z], this.normal);
+		
+		//sizeLong can be filled out by child classes for extra control over stretching
+		if (this.longMult != undefined) {
+			entityCoords[0] /= this.longMult;
+		}
 
 		//if the player is colliding, do collision stuffies
 		if (Math.abs(entityCoords[2]) < this.tolerance && Math.abs(entityCoords[0]) < (this.size / 2) + this.tolerance && Math.abs(entityCoords[1]) < (this.size / 2) + this.tolerance) {
-			//different behavior depending on side
-			if (entityCoords[2] < 0) {
-				//outside
-				entityCoords[2] = -1 * this.tolerance;
-			} else {
-				//inside
-				entityCoords[2] = this.tolerance;
 
-				//special collision effects in general
+			//push player outside of self
+			entityCoords[2] = this.tolerance * boolToSigned(entityCoords[2] > 0);
+			//special collision effects inside the tunnel
+			if (entityCoords[2] > 0) {
 				this.doCollisionEffects(entity);
 			}
 
 			//transforming back to regular coordinates
+			if (this.longMult != undefined) {
+				entityCoords[0] *= this.longMult;
+			}
 			[entity.x, entity.y, entity.z] = relativeToSpace(entityCoords, [this.x, this.y, this.z], this.normal);
 		}
 	}
@@ -494,14 +500,15 @@ class FreePoly {
 
 			//turning point array into objects that can be put into nodes
 			inPart = new FreePoly(tempPoints, this.color);
+			inPart.calculateNormal();
 			outPart = new FreePoly(outPoints, this.color);
+			outPart.calculateNormal();
 		} else {
 			//if clipping is not necessary, then just return self
 			if (tempPoints[0][2] > 0) {
-				inPart = this;
-			} else {
-				outPart = this;
+				return [this, undefined];
 			}
+			return [undefined, this];
 		}
 		return [inPart, outPart];
 	}*/
@@ -606,8 +613,8 @@ class FarPoly {
 			tempPoints[p] = spaceToRelative(this.points[p], [world_camera.x, world_camera.y, world_camera.z], [world_camera.theta, world_camera.phi, world_camera.rot]);
 		}
 
-		tempPoints = clipToZ0(tempPoints, 0, false);
-		tempPoints = clipToDistance(tempPoints, render_maxColorDistance * 1.5);
+		tempPoints = clipToZ0(tempPoints, render_maxColorDistance, false);
+		//tempPoints = clipToDistance(tempPoints, render_maxColorDistance);
 		
 		//turn points into screen coordinates
 		var screenPoints = [];
@@ -624,37 +631,6 @@ class FarPoly {
 				ctx.lineWidth = 1;
 				ctx.stroke();
 			}
-		}
-	}
-
-	//instead of using Z-distance as the clip metric, uses true distance. Slower, but more precise.
-	beDrawn_precise() {
-		//initial transform to camera coordinates
-		var tempPoints = [];
-		for (var p=this.points.length-1; p>-1; p--) {
-			tempPoints[p] = spaceToRelative(this.points[p], [world_camera.x, world_camera.y, world_camera.z], [world_camera.theta, world_camera.phi, world_camera.rot]);
-		}
-
-		//clipping
-		tempPoints = clipToDistance(tempPoints, render_maxColorDistance, false);
-
-		//transform to screen
-		var screenPoints = [];
-		screenPoints[tempPoints.length-1] = undefined;
-		for (var a=0; a<tempPoints.length; a++) {
-			screenPoints[a] = cameraToScreen(tempPoints[a]);
-		}
-
-		//drawing
-		if (screenPoints.length <= 2) {
-			return;
-		}
-
-		drawPoly("#000", screenPoints);
-		if (editor_active && data_persistent.settings.enableOutlines) {
-			ctx.strokeStyle = color_editor_cursor;
-			ctx.lineWidth = 1;
-			ctx.stroke();
 		}
 	}
 }
@@ -681,14 +657,16 @@ class OneTimeCutsceneTrigger {
 			return;
 		}
 
-		//if the player is close enough horizontally, go into target cutscene
-		var winCondition;
-		if (this.checkPrevious) {
-			winCondition = this.parent.playerTilePos <= this.tile;
-		} else {
-			winCondition = this.parent.playerTilePos >= this.tile;
+		//if the player is close enough horizontally and in self's tunnel, go into target cutscene
+		if (player.parentPrev != this.parent) {
+			return;
 		}
-		winCondition = winCondition && (player.parent == this.parent);
+
+		var winCondition = this.parent.playerTilePos > this.tile;
+		if (this.checkPrevious) {
+			winCondition = !winCondition;
+		}
+
 		if (winCondition) {
 			//put cutscene in the 'activated cutscenes' array
 			data_persistent.effectiveCutscenes.push(this.cutscene);
@@ -1539,7 +1517,7 @@ class Tunnel {
 
 	//an attempt to perfectly draw a tunnel, always
 	beDrawn_playerParentAlternate() {
-		//here's the idea: BSTs can draw space perfectly. What if create a BST for this tunnel?
+		//here's the idea: BSTs can draw space perfectly. What if just create a BST for all the complex parts of the tunnel?
 		var insideBST = new B3Node();
 		var outFarBST = new B3Node();
 		var outNearBST = new B3Node();
@@ -1553,7 +1531,7 @@ class Tunnel {
 
 		var stripsAreBlocking = this.strips.map(s => (rotate(cameraRelPos[0], cameraRelPos[1], s.normal[1])[0] > this.rApothem));
 
-		//draw farpolys first, this isn't in the 5 steps but it's important for optimization
+		//farpolys
 		this.farPolys.forEach(f => {
 			f.beDrawn();
 		});
@@ -1568,10 +1546,8 @@ class Tunnel {
 		if (!this.simple) {
 			for (var s=0; s<this.realTilesComplex.length; s++) {
 				this.realTilesComplex[s].forEach(r => {
-					//only add tiles if they're visible
-					if (r.playerDist < render_maxColorDistance + r.size || (r.size / r.cameraDist) * world_camera.scale > render_minTileSize) {
-						
-						
+					//only add tiles to the BST if if they're visible and need ordering (visible but far away tiles don't need ordering, because they're dark, I don't care)
+					if (r.playerDist < render_maxColorDistance + r.size) {
 						//put crumbling tiles outside
 						if (r.crumbleSet != undefined) {
 							if (stripsAreBlocking[s]) {
@@ -1608,6 +1584,12 @@ class Tunnel {
 
 						//base case
 						insideBST.addObj(r);
+						return;
+					}
+
+					if ((r.size / r.cameraDist) * world_camera.scale > render_minTileSize) {
+						//if it's too dark to be lit, just draw it first
+						r.beDrawn();
 					}
 				});
 			}
@@ -1876,21 +1858,24 @@ class Tunnel {
 		}
 	}
 
+	//like drawing a strip, but only draws the simple tiles
 	beDrawn_stripSimp(stripNum) {
-		if (!this.reverseOrder) {
-			this.realTilesSimple[stripNum].forEach(t => {
-				if (t.playerDist < render_maxColorDistance + t.size || (t.size / t.cameraDist) * world_camera.scale > render_minTileSize) {
-					t.beDrawn();
-				}
-			});
-		} else {
+		if (this.reverseOrder) {
 			for (var t=this.realTilesSimple[stripNum].length-1; t>-1; t--) {
 				if (this.realTilesSimple[stripNum][t].playerDist < render_maxColorDistance + this.realTilesSimple[stripNum][t].size || 
 				(this.realTilesSimple[stripNum][t].size / this.realTilesSimple[stripNum][t].cameraDist) * world_camera.scale > render_minTileSize) {
 					this.realTilesSimple[stripNum][t].beDrawn();
 				}
 			}
+		} else {
+			this.realTilesSimple[stripNum].forEach(t => {
+				if (t.playerDist < render_maxColorDistance + t.size || (t.size / t.cameraDist) * world_camera.scale > render_minTileSize) {
+					t.beDrawn();
+				}
+			});
 		}
+
+		
 
 		//debug
 		if (editor_active) {
@@ -2045,8 +2030,13 @@ class Tunnel {
 						this.realTiles[s].push(this.tiles[s][t]);
 
 						//crumbling, ramp, vertical, or box check
-						if ((this.tiles[s][t].fallRate ?? this.tiles[s][t].rampPushForce ?? this.tiles[s][t].leftTile ?? this.tiles[s][t].verticalObj) != undefined) {
-							this.realTilesComplex[s].push(this.tiles[s][t]);
+						if (isComplex(this.tiles[s][t])) {
+							//special case for boxes, they take priority so they go at the start
+							if (this.tiles[s][t].polys != undefined) {
+								this.realTilesComplex[s].splice(0, 0, this.tiles[s][t]);
+							} else {
+								this.realTilesComplex[s].push(this.tiles[s][t]);
+							}
 						} else {
 							this.realTilesSimple[s].push(this.tiles[s][t]);
 						}
