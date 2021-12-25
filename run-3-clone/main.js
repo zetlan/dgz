@@ -201,7 +201,6 @@ var editor_cutscenes = {}
 var editor_objects = [];
 var editor_spawn = undefined;
 var editor_locked = false;
-var editor_lockOutput = false;
 
 
 var infinite_branchChance = 0.2;
