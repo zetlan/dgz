@@ -177,6 +177,7 @@ function updatePlotProgression() {
 function updateSave() {
 	data_persistent.settings.halfRender = data_persistent.settings.halfRender ?? false;
 	data_persistent.settings.gimbal = data_persistent.settings.gimbal ?? false;
+	data_persistent.settings.eWarn = data_persistent.settings.eWarn ?? true;
 	data_persistent.effectiveCutscenes = data_persistent.effectiveCutscenes ?? [];
 	data_persistent.unlocked = data_persistent.unlocked ?? ["Runner"];
 
