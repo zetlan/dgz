@@ -331,8 +331,7 @@ class State_World {
 				this.nearObjs.push(v);
 			}
 		});
-
-		this.nearObjs = orderObjects(this.nearObjs, 5);
+		this.nearObjs = orderObjects(this.nearObjs);
 	}
 
 	handleKeyPress(a) {
@@ -2017,6 +2016,7 @@ class State_Menu {
 			new PropertyToggle(0.525, 0.15 + (3 * menu_propertyHeight), 0.4, `editor - show polygon outlines`, `data_persistent.settings.enableOutlines`),
 			new PropertyToggle(0.525, 0.15 + (4 * menu_propertyHeight), 0.4, `editor - show light bridge tiles`, `data_persistent.settings.pastaView`),
 			new PropertyToggle(0.525, 0.15 + (5 * menu_propertyHeight), 0.4, `editor - use gimbal camera`, `data_persistent.settings.gimbal`),
+			new PropertyToggle(0.525, 0.15 + (6 * menu_propertyHeight), 0.4, `editor - show entrance warning`, `data_persistent.settings.eWarn`),
 
 			new PropertyToggle(0.525, 0.15 + (0 * menu_propertyHeight), 0.4, `contain mouse inputs to canvas`, `data_persistent.settings.maskCursor`),
 
@@ -2024,13 +2024,25 @@ class State_Menu {
 		this.buttons = [
 			new PropertyButton(0.5, menu_ringHeight - (menu_buttonHeight * 2), menu_buttonWidth, menu_buttonHeight, "Infinite Mode", `loading_state = new State_Infinite(); loading_state.doWorldEffects();`),
 			new PropertyButton(0.5, menu_ringHeight   						 , menu_buttonWidth, menu_buttonHeight, "Explore Mode", `loading_state = new State_Map(); loading_state.doWorldEffects();`),
-			new PropertyButton(0.5, menu_ringHeight + (menu_buttonHeight * 2), menu_buttonWidth, menu_buttonHeight, "Edit Mode", `loading_state = new State_Edit_Tiles(); alert(editor_warning);`),
+			new PropertyButton(0.5, menu_ringHeight + (menu_buttonHeight * 2), menu_buttonWidth, menu_buttonHeight, "Edit Mode", `loading_state.exitToEdit();`),
 		];
 		this.readFrom = orderObjects(world_objects, 6);
 
 		this.characterTextTime = 0;
 		this.characterTextObj = undefined;
 	}
+
+	exitToEdit() {
+		if (editor_locked) {
+			loading_state = new State_Edit_Select();
+		} else {
+			loading_state = new State_Edit_Tiles(); 
+			if (data_persistent.settings.eWarn) {
+				alert(editor_warning);
+			}
+		}
+	}
+
 	execute() {
 		//bege
 		ctx.fillStyle = color_bg;
@@ -2338,7 +2350,7 @@ class State_Menu {
 	}
 
 	handleKeyPress(a) {
-		if (a.key == ']' && this.substate == 3) {
+		if (a.key.toLowerCase() == ']' && this.substate == 3) {
 			//editor updating
 			setTimeout(() => {
 				data_cutsceneTree.getVisible();
