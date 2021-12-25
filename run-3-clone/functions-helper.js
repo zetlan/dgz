@@ -688,7 +688,8 @@ function file_export() {
 	textDat += world_version.toFixed(2) + "\n";
 
 	//should the file be locked?
-	textDat += editor_locked + "\n";
+	var value = confirm(`Locking a file will prevent it from being edited after it is exported. Lock the exported file?\nPress Ok to lock the file, and Cancel to keep it unlocked.`);
+	textDat += value + "\n";
 
 	//spawn object index
 	textDat += editor_objects.indexOf(editor_spawn) + "\n";
@@ -771,7 +772,6 @@ function file_import_1dot1(worldText) {
 	worldText = worldText.substring(worldText.indexOf("\n")+1);
 	while (levelToLoad != "") {
 		editor_objects.push(new Tunnel_FromData(levelToLoad));
-
 		levelToLoad = worldText.substring(0, worldText.indexOf("\n"));
 		worldText = worldText.substring(worldText.indexOf("\n")+1);
 	}
@@ -787,7 +787,6 @@ function file_import_1dot1(worldText) {
 	//loading cutscenes
 	worldText = worldText.split("\n");
 	while (worldText.length > 1) {
-		console.log("length: ", worldText.length);
 		var ref = worldText[0];
 		var cName = worldText[1];
 		var cEffects = worldText[2];
@@ -826,14 +825,13 @@ function file_import_1dot2(worldText) {
 	splitText.splice(0, 1);
 	
 	//is the world locked?
-	editor_locked = +splitText.splice(0, 1)[0];
+	editor_locked = (splitText.splice(0, 1)[0] == "true");
 
 	//what's the start index?
 	var startInd = +splitText.splice(0, 1)[0];
 
 	//load all levels
 	while (splitText[0] != "") {
-		console.log(splitText[0]);
 		editor_objects.push(new Tunnel_FromData(splitText.splice(0, 1)[0]));
 	}
 	//get rid of the empty space
@@ -845,7 +843,6 @@ function file_import_1dot2(worldText) {
 	
 	//loading cutscenes
 	while (splitText.length > 1) {
-		console.log("length: ", splitText.length);
 		var cName = splitText[0]
 		editor_cutscenes[cName] = {
 			id: splitText[1],
@@ -860,6 +857,14 @@ function file_import_1dot2(worldText) {
 
 		//frames
 		editor_cutscenes[cName].frames = splitText.splice(0, splitText.indexOf("end") + 1);
+	}
+
+	//if the world is locked, go to the lock screen
+	if (editor_locked) {
+		if (loading_state.constructor.name == "State_Edit_World") {
+			render_maxColorDistance /= loading_state.lightMultiplier;
+		}
+		loading_state = new State_Edit_Select();
 	}
 }
 
