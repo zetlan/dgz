@@ -2,7 +2,7 @@
 
 
 
-V1.2 - THE VISUAL UPDATE - ????
+V1.2 - THE VISUAL UPDATE - December-24-2021
     bug fixes:
         tunnels made in the editor no longer reset their music to "Travel The Galaxy" every time you load them
         editing tunnel triggers will no longer crash the level editor (so sorry about this one, that should have been found + fixed waay earlier)
@@ -33,6 +33,7 @@ V1.2 - THE VISUAL UPDATE - ????
         you can now make cutscenes relative to a tunnel, meaning they will move if the tunnel is moved.
         Sprite type can now be modified without requiring creation of a new sprite object
         Sprites won't reset their rotation when you change their frame
+        Added the ability to lock worlds on export to a file
 
     misc:
         improved wormhole rendering, especially in corners of the screen
@@ -46,18 +47,6 @@ V1.2 - THE VISUAL UPDATE - ????
     misc development:
         switched from using .keyCode to .key for inputs, as .keyCode is different for firefox.
         changed editor files to support versioning and cutscene relativity
-
-
-    TODO YET:
-        RENDERING:
-            farPolys have issues
-
-        BUGS
-            weird backwards level issue in N-7
-
-        FEATURES
-            editor files - ability to lock
-            costumes?
 
 
 
