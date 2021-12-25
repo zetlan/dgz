@@ -1597,6 +1597,77 @@ class State_Edit_Cutscenes extends State_Edit {
 	}
 }
 
+class State_Edit_Select {
+	constructor() {
+		//buttons to choose what to do
+		this.buttons = [
+			new PropertyButton(1 / 3, 0.5, menu_buttonWidth, menu_buttonHeight, `Play World`, `loading_state.gotoPlaytest();`),
+			new PropertyButton(2 / 3, 0.5, menu_buttonWidth, menu_buttonHeight, `Delete World`, `loading_state.gotoDelete();`),
+		];
+	}
+
+	gotoPlaytest() {
+		player.parentPrev = editor_spawn; 
+		loading_state = new State_Playtest(); 
+		loading_state.returnState = this; 
+		loading_state.text = player.parentPrev.id; 
+		loading_state.time = tunnel_textTime; 
+		player.parentPrev.reset();
+	}
+
+	gotoDelete() {
+		editor_cutscenes = {};
+		editor_objects = [new Tunnel(0.00, {h: 120, s: 50, v: 0.8}, JSON.parse(JSON.stringify(editor_tunnelDefaultData)), 'Custom Tunnel IeCo', 5, 1, [], 4, [1], [], 4, 75, 0, 0, [], `TravelTheGalaxy`)];
+		editor_spawn = editor_objects[0];
+		editor_locked = false;
+		loading_state = new State_Menu();
+	}
+
+	doWorldEffects() {
+
+	}
+
+	execute() {
+		//bege
+		ctx.fillStyle = color_editor_bg;
+		ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+		//title text
+		ctx.font = `${canvas.height / 20}px Comfortaa`;
+		ctx.fillStyle = color_text_bright;
+		ctx.fillText(`The editor is locked.`, canvas.width / 2, canvas.height * 0.35);
+
+		//buttons
+		this.buttons.forEach(b => {
+			b.beDrawn();
+			b.tick();
+		});
+	}
+
+	handleMouseDown(a) {
+		updateCursorPos(a);
+		this.buttons.forEach(b => {
+			b.interact();
+		});
+	}
+
+	handleMouseMove(a) {
+		updateCursorPos(a);
+	}
+
+	handleKeyPress(a) {
+
+	}
+
+	handleKeyNegate(a) {
+
+	}
+
+	handleEscape() {
+		loading_state = new State_Menu();
+	}
+}
+
 class State_Playtest extends State_World {
 	constructor() {
 		super();
