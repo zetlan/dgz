@@ -785,13 +785,14 @@ class State_Edit_Tiles extends State_Edit {
 		}
 
 		//basically just uh... kinda sorta... replace the tile
-		this.tunnel.data[this.targetTile[0]][this.targetTile[1]] = this.tileSelected;
-		var coords = this.tunnel.worldPositionOfTile(this.targetTile[0], this.targetTile[1] + 1);
-		this.tunnel.tiles[this.targetTile[0]][this.targetTile[1]] = this.tunnel.generateTile(this.tileSelected, coords[0], coords[1], coords[2], this.tunnel.tileSize, this.tunnel.strips[this.targetTile[0]].normal, this.targetTile, this.tunnel.color);
 		replacePlayer(data_persistent.settings.pastaView ? 7 : 0);
-		this.tunnel.repairData();
-		this.tunnel.updatePosition(this.tunnel.x, this.tunnel.y, this.tunnel.z);
+		changeTile(this.tunnel, this.targetTile, this.tileSelected);
+		this.tunnel.generateEndSpawns();
 		replacePlayer(7);
+		//also establish reals if the goal is to see the plexiglass tiles (they're an area thing, not just the same strip as the tile being replaced)
+		if (data_persistent.settings.pastaView) {
+			this.tunnel.establishReals();
+		}
 	}
 }
 
@@ -1266,8 +1267,14 @@ class State_Edit_World extends State_Edit {
 			tag += data_alphaNumerics[Math.floor(randomBounded(0, data_alphaNumerics.length-1))];
 		}
 		var pos = screenToSpace([canvas.width / 2, canvas.height / 2], world_camera.targetY);
-		editor_objects.push(new Tunnel(0.00, {h: Math.round(randomBounded(0, 360)), s: Math.round(randomBounded(20, 80)), v: randomBounded(0.2, 0.8)}, JSON.parse(JSON.stringify(editor_tunnelDefaultData)), 'Custom Tunnel '+tag, 5, 1, [], 4, [1], [], 4, 75, pos[0], pos[2], [], `TravelTheGalaxy`));
-		this.readFrom = orderObjects(editor_objects, 6);
+		var newTun = new Tunnel_FromData(editor_tunnelDefaultData);
+		newTun.id = `Custom Tunnel ${tag}`;
+		newTun.color.h = Math.round(randomBounded(0, 360));
+		newTun.color.s = Math.round(randomBounded(20, 80));
+		newTun.color.v = randomBounded(0.2, 0.8);
+		editor_objects.push(newTun);
+		newTun.updatePosition(pos[0], newTun.y, pos[1]);
+		this.readFrom = orderObjects(editor_objects);
 	}
 
 	deleteTunnel() {
@@ -1617,7 +1624,7 @@ class State_Edit_Select {
 
 	gotoDelete() {
 		editor_cutscenes = {};
-		editor_objects = [new Tunnel(0.00, {h: 120, s: 50, v: 0.8}, JSON.parse(JSON.stringify(editor_tunnelDefaultData)), 'Custom Tunnel IeCo', 5, 1, [], 4, [1], [], 4, 75, 0, 0, [], `TravelTheGalaxy`)];
+		editor_objects = [new Tunnel_FromData(editor_tunnelDefaultData)];
 		editor_spawn = editor_objects[0];
 		editor_locked = false;
 		loading_state = new State_Menu();
