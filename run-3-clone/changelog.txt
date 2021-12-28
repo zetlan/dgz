@@ -2,6 +2,18 @@
 
 
 
+V1.21 - December-28-2021
+    bug fixes:
+        fixed ocassional crash when transferring between tunnels of different sets
+        corrected the displayed number of infinite mode levels from 328 to 327
+        fixed errors in selecting a character to enter a tunnel with
+
+    misc:
+        tile editing is less laggy
+        improved angel checklist interactions
+        fixed directionality weirdness when transferring between levels
+
+
 V1.2 - THE VISUAL UPDATE - December-24-2021
     bug fixes:
         tunnels made in the editor no longer reset their music to "Travel The Galaxy" every time you load them
@@ -14,7 +26,6 @@ V1.2 - THE VISUAL UPDATE - December-24-2021
         Fixed issue with objects not being selected correctly when the map scrolled
         Fixed falling through various ramps
         you can no longer activate angelVBunny before completing the going home checklist
-
 
     Gameplay:
         adjusted the postion of the G-tunnel
@@ -41,8 +52,6 @@ V1.2 - THE VISUAL UPDATE - December-24-2021
         improved low-precision tunnel rendering
         improved high-precision tunnel rendering
         the stats page now shows a count of how many times you've died, as well as a count of how many levels you've visited
-        
-
 
     misc development:
         switched from using .keyCode to .key for inputs, as .keyCode is different for firefox.
@@ -60,6 +69,7 @@ V1.15 - November-16-2021
 
     quality-of-life:
         the level editor will now detect if you have old run 3 level data and convert it. This can be in the form of kongregate object data or individual level data from player_03's website.
+
 
 V1.14 - November-11-2021
     bug fixes:
@@ -83,5 +93,6 @@ V1.14 - November-11-2021
 
 V1.13 - October-22-2021
 fixed issue where framerate would double on 120Hz monitors
+
 
 V1.1 - FINAL MAIN RELEASE - June-1-2021
