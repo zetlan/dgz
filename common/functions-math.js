@@ -37,10 +37,7 @@ function linterp(a, b, percentage) {
 
 //like the modulo operator, but keeps the number in bounds both ways
 function modulate(n, modulus) {
-	while (n < 0) {
-		n += modulus;
-	}
-	return (n % modulus);
+	return (n > 0) ? (n % modulus) : (modulus + (n % modulus)) % modulus;
 }
 
 //returns a random value between the min value and max values, using the default javascript randomizer
