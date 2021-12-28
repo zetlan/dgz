@@ -1590,7 +1590,6 @@ class Tunnel {
 					}
 				});
 			}
-			gloablView = insideBST;
 		}
 		//if there aren't actually any objects being displayed in any of the trees, replace the tree with a leaf to avoid normal problems
 		if (insideBST.objs.length == 0) {

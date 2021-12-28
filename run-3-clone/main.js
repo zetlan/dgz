@@ -169,7 +169,7 @@ var editor_tileSize = 0.02;
 var editor_triggerRibX = 0.0075;
 var editor_triggerEditW = 0.4;
 var editor_triggerEditH = 0.15;
-var editor_tunnelDefaultData = [[1, 1, 1, 1, 1], [1, 0, 1, 0, 1], [], [], [], [], [], [], [], [], [], [], [], [], [], []];
+var editor_tunnelDefaultData = `id~Custom Tunnel IeCo|pos-x~0|pos-z~2|direction~0.0000|tube~4~4|color~4CCC4C|spawn~1|tileWidth~75|terrain~!0200<00P03|music~TravelTheGalaxy`;
 var editor_warning = "Warning: Editor data does not save between sessions. If you want to save your data, make sure to export your world before closing the window.";
 var editor_warning_file = `the file you have entered has been detected at over 5000 lines long. 
 This either means you have quite a large file, or something's gone wrong. 
@@ -294,14 +294,15 @@ var times_holiday = undefined;
 var times_current = {};
 var times_past = {};
 
+var tunnel_bufferTiles = 4;
 var tunnel_crumbleOffset = 0.05;
 var tunnel_dataStarChainMax = 4;
 var tunnel_dataRepeatMax = 3;
+var tunnel_minPlexiStrength = 0.01;
 
 var tunnel_textTime = 50;
 var tunnel_transitionLength = 200;
 var tunnel_voidWidth = 200;
-var tunnel_bufferTiles = 4;
 
 var tunnel_functions = {
 	"instant": power_instant,
@@ -386,7 +387,7 @@ var tunnel_validIndeces = {
 	101: true,
 	102: true,
 	109: true,
-}
+};
 
 let world_camera;
 var world_pRandValue = 1.2532;
@@ -435,7 +436,7 @@ function setup() {
 
 	//edit world objects
 	if (editor_objects.length == 0) {
-		editor_objects.push(new Tunnel(0.00, {h: 120, s: 50, v: 0.8}, JSON.parse(JSON.stringify(editor_tunnelDefaultData)), 'Custom Tunnel IeCo', 5, 1, [], 4, [1], [], 4, 75, 0, 0, [], `TravelTheGalaxy`));
+		editor_objects.push(new Tunnel_FromData(editor_tunnelDefaultData));
 		editor_spawn = editor_objects[0];
 	}
 
