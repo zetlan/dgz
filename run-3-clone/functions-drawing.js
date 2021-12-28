@@ -313,9 +313,9 @@ function drawAngelPanel(time) {
 				} else {
 					//drawing cross-out lines
 					ctx.beginPath();
-					ctx.moveTo(textXOffset, yDefault + yOffset + textYOffset - (canvas.height / 35) + (canvas.height * (1/40) * data_angelChecklist[g][5][0]));
+					ctx.moveTo(textXOffset, yDefault + yOffset + textYOffset - (canvas.height / 60) + (canvas.height * (1/40) * data_angelChecklist[g][5][0]));
 					for (var a=1; a<=checklist_stayLines; a++) {
-						ctx.lineTo(textXOffset + (currentTextWidth * 0.91 * (a % 2)), yDefault + yOffset + textYOffset - (canvas.height / 40) + (canvas.height * (1/40) * data_angelChecklist[g][5][a]));
+						ctx.lineTo(textXOffset + (currentTextWidth * 0.91 * (a % 2)), yDefault + yOffset + textYOffset - (canvas.height / 65) + (canvas.height * (1/40) * data_angelChecklist[g][5][a]));
 					}
 					ctx.stroke();
 				}
@@ -332,12 +332,14 @@ function drawAngelPanel(time) {
 
 function drawCharacterText() {
 	var yOffset = Math.pow((text_time / (text_timeMax / 2)) - 1, 12);
+	var boxHeight = menu_characterSize * 1.3;
 
 	var yPos = (canvas.height * 0.92) + (yOffset * canvas.width * 0.08) + (menu_characterSize / 2);
 	ctx.fillStyle = color_grey_light;
 	ctx.strokeStyle = color_grey_dark;
-	drawRoundedRectangle(canvas.width * 0.11, yPos - (menu_characterSize * 0.65), canvas.width * 0.8, menu_characterSize * 1.3, canvas.height / 96);
+	drawRoundedRectangle(canvas.width * 0.11, yPos - (boxHeight / 2), canvas.width * 0.8, boxHeight, canvas.height / 96);
 	if (text_queue[0][0] != undefined) {
+		textures_common[text_queue[0][0]].frame = 1;
 		textures_common[text_queue[0][0]].beDrawn(canvas.width * 0.14, yPos, 0, menu_characterSize);
 	}
 	
@@ -361,8 +363,9 @@ function drawCharacterText() {
 
 		}
 	}
+	var textHeight = boxHeight - (menu_characterSize * 0.05);
 	for (var a=0; a<text_queue[0][1].length; a++) {
-		ctx.fillText(text_queue[0][1][a], (canvas.width * 0.5) + menu_characterSize, yPos - (canvas.height * 0.002) + (menu_characterSize * 1.25 * ((a + 1) / (text_queue[0][1].length + 1))));
+		ctx.fillText(text_queue[0][1][a], (canvas.width * 0.5) + menu_characterSize, yPos + (canvas.height * 0.002) - (textHeight / 2) + (textHeight * ((a + 1) / (text_queue[0][1].length + 1))));
 	}
 }
 
