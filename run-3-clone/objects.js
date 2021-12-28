@@ -346,6 +346,17 @@ class Character {
 		haltRotation = false;
 	}
 
+	giveVelocity() {
+		var turnForce = polToCart(this.dir_side[0], this.dir_side[1], this.dx);
+		var gravForce = polToCart(this.dir_down[0], this.dir_down[1], this.dy);
+		var frontForce = polToCart(this.dir_front[0], this.dir_front[1], this.dz);
+		return [
+			turnForce[0] + gravForce[0] + frontForce[0],
+			turnForce[1] + gravForce[1] + frontForce[1],
+			turnForce[2] + gravForce[2] + frontForce[2],
+		];
+	}
+
 	modifyDerivitives(activeGravity, activeFriction, naturalFriction, activeAX, activeAZ) {
 		//decreasing the time to jump
 		this.onGround -= 1;
@@ -434,13 +445,11 @@ class Character {
 			}
 
 			//moving according to forces
-			var turnForce = polToCart(this.dir_side[0], this.dir_side[1], this.dx);
-			var gravForce = polToCart(this.dir_down[0], this.dir_down[1], this.dy);
-			var frontForce = polToCart(this.dir_front[0], this.dir_front[1], this.dz);
+			var motion = this.giveVelocity();
 
-			this.x += gravForce[0] + turnForce[0] + frontForce[0];
-			this.y += gravForce[1] + turnForce[1] + frontForce[1];
-			this.z += gravForce[2] + turnForce[2] + frontForce[2];
+			this.x += motion[0];
+			this.y += motion[1];
+			this.z += motion[2];
 
 			//colliding with tiles
 			this.collide();
