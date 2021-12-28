@@ -206,6 +206,7 @@ var data_persistent = {
 		altRender: true,
 		antiAlias: true,
 		enableOutlines: true,
+		eWarn: true,
 		gimbal: false,
 		halfRender: false,
 		highResolution: false,
