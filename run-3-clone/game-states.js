@@ -274,9 +274,10 @@ class State_World {
 				var targetX = (canvas.width * 0.125) + (charWidth * c) + (charWidth * 0.5);
 				//if selectable and the cursor is on top, select it
 				if (data_persistent.unlocked.includes(data_characters.indexes[c]) && player.parentPrev.bannedCharacters[data_characters.indexes[c]] == undefined) {
-					if (cursor_x > targetX - menu_characterSize * 1.5 && cursor_x < targetX + menu_characterSize * 1.5 && cursor_y > targetY - menu_characterSize * 1.5 && cursor_y < targetY + menu_characterSize * 1.5) {
+					if (Math.abs(cursor_x - targetX) < menu_characterSize * 0.75 && Math.abs(cursor_y - targetY) < menu_characterSize * 0.75) {
 						replacePlayer(c);
 						this.substate = 0;
+						return;
 					}
 				}
 			}
@@ -1079,18 +1080,27 @@ class State_Game extends State_World {
 
 	changePlayerParent(newParent) {
 		//make sure player isn't being backwards when they shouldn't be (if entering from a map or something)
-		if (player.backwards) {
-			newParent.calculateBackwardsAllow();
-			if (!newParent.allowBackwards) {
-				player.backwards = false;
+		newParent.calculateBackwardsAllow();
+		if (!newParent.allowBackwards) {
+			player.backwards = false;
+		} else {
+			//tunnels have a buffer at the start / end, if the player enters from this buffer just go the opposite direction. 
+			var frontDistance = getDistance(player, newParent);
+			var backDistance = getDistance(player, {x: newParent.endPos[0], y: newParent.endPos[1], z: newParent.endPos[2]});
+			
+			if (Math.min(frontDistance, backDistance) < (newParent.r * 2) + tunnel_voidWidth) {
+				player.backwards = (frontDistance > backDistance);
+			} else {
+				//If entering somewhere in the middle though, go the direction that's most similar to the player's current direction.
+				var vec3Tun = polToCart(newParent.theta, newParent.phi, 1);
+				//x needs to be flipped because long ago I messed up the tunnel's coordinate system and at this point it wouldn't be worth it to fix
+				vec3Tun[0] *= -1;
+				var vec3Player = player.giveVelocity();
+
+				//use dot product as a measure of if these are the same direction
+				player.backwards = ((vec3Tun[0] * vec3Player[0]) + (vec3Tun[1] * vec3Player[1]) + (vec3Tun[2] * vec3Player[2])) < 0;
 			}
 		}
-
-		//when entering a new tunnel, go the direction that's most "away" from an end
-		var frontDistance = getDistance(player, newParent);
-		var backDistance = getDistance(player, {x: newParent.endPos[0], y: newParent.endPos[1], z: newParent.endPos[2]});
-		player.backwards = (frontDistance > backDistance);
-		
 		super.changePlayerParent(newParent);
 	}
 
@@ -1100,12 +1110,12 @@ class State_Game extends State_World {
 
 		if (this.substate == 1) {
 			//backwards toggle interact
-			if (player.parentPrev.allowBackwards && player.parent != undefined && cursor_x > canvas.width * 0.45 && cursor_x < canvas.width * 0.55 && cursor_y > canvas.height * 0.9 && cursor_y < canvas.height * 0.99) {
+			if (player.parent != undefined && player.parentPrev.allowBackwards && cursor_x > canvas.width * 0.45 && cursor_x < canvas.width * 0.55 && cursor_y > canvas.height * 0.9 && cursor_y < canvas.height * 0.99) {
 				player.turnAround();
 				player.parent.reset();
 				this.substate = 0;
+				this.toPause = true;
 				this.execute();
-				this.substate = 1;
 				return;
 			}
 		}
@@ -1369,7 +1379,7 @@ class State_Loading {
 			//turn time data into actual fps
 			var fps = Math.round((1000 * (this.timeBuffer.length-1)) / (this.timeBuffer[this.timeBuffer.length-1] - this.timeBuffer[0]));
 			var rounded = Math.max(render_rateBase, Math.round(fps / render_rateBase) * render_rateBase);
-			console.log(`guessing FPS is ${fps}, which rounds to ${rounded}`);
+			console.log(`guessing FPS is ${fps}, render rate will be ${rounded}`);
 			render_rate = rounded;
 		}
 		
@@ -1661,6 +1671,11 @@ class State_Map {
 		//going home checklist things
 		if (data_persistent.goingHomeProgress != undefined) {
 			if (this.handleMD_Angel() == 31) {
+				return;
+			}
+
+			//if over the angel panel, don't select anything, even if clicking doesn't do anything
+			if (this.substate > 0 && cursor_x > canvas.width * checklist_margin && cursor_x < canvas.width * (checklist_margin + checklist_width) && cursor_y > canvas.height * (1 - checklist_height)) {
 				return;
 			}
 		}
@@ -1969,13 +1984,9 @@ class State_Map {
 		});
 
 		//for all undiscovered levels, if they're close enough put them in 'half discovered' (to be drawn as partial lines
-		var distance;
 		for (var a=0; a<this.undiscoveredObjs.length; a++) {
 			for (var b=0; b<this.discoveredObjs.length; b++) {
 				if (getDistance_TunnelTunnel(this.undiscoveredObjs[a], this.discoveredObjs[b]) < render_maxColorDistance) {
-					if (this.undiscoveredObjs[a].id == "boxRoad") {
-						console.log(this.discoveredObjs[b].id);
-					}
 					this.halfDiscoveredObjs.push(this.undiscoveredObjs[a]);
 					this.undiscoveredObjs.splice(a, 1);
 					a -= 1;
