@@ -508,9 +508,10 @@ function challenge_resetBox(levelID, strip, tile, unitOffset) {
 }
 
 function challenge_setTempTile(levelID, strip, tile) {
-	if (getObjectFromID(levelID).data[strip][tile] != 109) {
-		changeTile(levelID, [strip, tile], 109);
-		loading_state.codeOnExit += `changeTile("${levelID}", [${strip}, ${tile}], 0);`;
+	var tun = getObjectFromID(levelID);
+	if (tun.data[strip][tile] != 109) {
+		changeTile(tun, [strip, tile], 109);
+		loading_state.codeOnExit += `changeTile(getObjectFromID("${levelID}"), [${strip}, ${tile}], 0);`;
 	}
 }
 
@@ -520,22 +521,101 @@ function challenge_setTempTile(levelID, strip, tile) {
 
 
 
+
+//THIS IS SUPER COOL!
+/**
+ * changeTile changes a single tile in a tunnel.
+ * @param {Tunnel} tunnel 
+ * @param {Array} tileCoords 
+ * @param {Number} newTileID 
+ * @returns nothing
+ */
 function changeTile(tunnel, tileCoords, newTileID) {
-	var reference = getObjectFromID(tunnel);
-	if (reference.data[tileCoords[0]][tileCoords[1]] != newTileID) {
-		reference.data[tileCoords[0]][tileCoords[1]] = newTileID;
-		reference.updatePosition(reference.x, reference.y, reference.z);
+	//make sure tunnel is an object
+	if (tunnel.constructor.name == "String") {
+		tunnel = getObjectFromID(tunnel);
 	}
+
+	//don't change tile if it's already the same thing
+	if (tunnel.data[tileCoords[0]][tileCoords[1]] == newTileID) {
+		return;
+	}
+
+	//get the offending object at the start
+	var objToRemove = tunnel.tiles[tileCoords[0]][tileCoords[1]];
+	var oldSimplicity = tunnel.simple;
+
+	//In the tunnel, many things must be edited and match up:
+	//THINGS TO EDIT - data, tiles, realTiles, realTilesComplex, realTilesSimple, plexiglass, crumblies, simplicity
+
+	tunnel.data[tileCoords[0]][tileCoords[1]] = newTileID;
+	tunnel.repairData();
+	tunnel.determineSimplicity();
+	var newSimplicity = tunnel.simple;
+
+	//only remove the old tile if it actually needs removal
+	if (objToRemove != undefined && objToRemove.constructor.name != "Tile_Plexiglass") {
+		if (tunnel.tiles[tileCoords[0]][tileCoords[1]] != undefined) {
+			tunnel.tiles[tileCoords[0]][tileCoords[1]] = undefined;
+		}
+		tunnel.realTiles[tileCoords[0]].splice(tunnel.realTiles[tileCoords[0]].indexOf(objToRemove), 1);
+
+		//when removing a tile, don't need to re-establish reals because it's impossible to mess up the ordering of things.
+		//when a tile is added later, the reals for this strip need to be re-established.
+		if (!oldSimplicity) {
+			//if the tunnel is complex, gotta remove it from the extra arrays
+			if (isComplex(objToRemove)) {
+				tunnel.realTilesComplex[tileCoords[0]].splice(tunnel.realTilesComplex[tileCoords[0]].indexOf(objToRemove), 1);
+			} else {
+				tunnel.realTilesSimple[tileCoords[0]].splice(tunnel.realTilesSimple[tileCoords[0]].indexOf(objToRemove), 1);
+			}
+		}
+	}
+	
+	//add a new tile if ID isn't 0 (in that case it's simply a removal)
+	if (newTileID != 0) {
+		//regular, adding case
+		//create the tile object, put it in all the various arrays it needs to be in
+		var wCoords = tunnel.worldPositionOfTile(tileCoords[0], tileCoords[1] + 1);;
+		var objToAdd = tunnel.generateTile(newTileID, wCoords[0], wCoords[1], wCoords[2], tunnel.tileSize, tunnel.strips[tileCoords[0]].normal, tunnel.color, tileCoords[0], tileCoords[1]);
+
+		tunnel.tiles[tileCoords[0]][tileCoords[1]] = objToAdd;
+
+		//if switching simplicity gotta do the whole tunnel, sorry
+		if (oldSimplicity != newSimplicity) {
+			tunnel.establishReals();
+		} else {
+			tunnel.establishReals_strip(tileCoords[0]);
+		}
+	}
+
+	//necessary things to make the tunnel function as normal again
+	if (!newSimplicity && ((objToRemove != undefined && objToRemove.constructor.name == "Tile_Crumbling") || (objToAdd != undefined && objToAdd.constructor.name == "Tile_Crumbling"))) {
+		//re-establish crumble sets if a crumbling tile was involved in removal / placement
+		tunnel.realTilesComplex.forEach(c => {
+			c.forEach(t => {
+				if (t.crumbleSet != undefined) {
+					t.crumbleSet = -1;
+				}
+			});
+		});
+		tunnel.establishCrumbleSets();
+	}
+	var plexTileDist = Math.ceil(physics_maxBridgeDistance / tunnel.tileSize);
+	//strip distance is capped, because circling more than half the tunnel is just unnecessary
+	var plexStripDist = Math.min(plexTileDist, Math.ceil(tunnel.strips.length / 2) + 1);
+	tunnel.generatePlexies_bounded(tileCoords[0] - plexStripDist, tileCoords[0] + plexStripDist, tileCoords[1] - plexTileDist, tileCoords[1] + plexTileDist);
+	tunnel.calculatePoints();
 }
 
+//changeTile, but for multiple tiles
 function changeTiles(tunnel, tileArray, newTileID) {
-	var reference = getObjectFromID(tunnel);
+	if (tunnel.constructor.name == "String") {
+		tunnel = getObjectFromID(tunnel);
+	}
 	tileArray.forEach(t => {
-		if (reference.data[t[0]][t[1]] != newTileID) {
-			reference.data[t[0]][t[1]] = newTileID;
-		}
+		changeTile(tunnel, t, newTileID);
 	});
-	reference.updatePosition(reference.x, reference.y, reference.z);
 }
 
 
@@ -1111,7 +1191,13 @@ function linterp3d(p1, p2, percentage) {
 
 function localStorage_read() {
 	//turn the things in the messages section of local storage into a string that can be read into gameFlags
-	var toRead = window.localStorage["run3_data"];
+	var toRead;
+	try {
+		toRead = window.localStorage["run3_data"];
+	} catch(error) {
+		console.log(`ERROR: could not access local storage. Something has gone very seriously wrong.`);
+	}
+
 	try {
 		toRead = JSON.parse(toRead);
 	} catch (error) {
@@ -1274,7 +1360,6 @@ function makeCutsceneRelative(relativeTunnelSTRING, cutsceneData) {
 
 function makeCutsceneTag(tag, sign, positionData, directionData) {
 	var nt = tag.split("~");
-	//console.log(nt);
 	var dp = data_precision;
 	switch (nt[0]) {
 		case "CAM":
@@ -2165,9 +2250,6 @@ function tunnelData_parseStarsReverse(toParse) {
 				strFinal += strStore;
 				for (var s=0; s<starNum; s++) {
 					strFinal += "*";
-				}
-				if (getKey(tunnel_translation, repeatTimes) == undefined) {
-					console.log(repeatTimes);
 				}
 				strFinal += getKey(tunnel_translation, repeatTimes);
 				//update toParse and leave star loop
