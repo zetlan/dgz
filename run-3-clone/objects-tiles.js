@@ -807,6 +807,10 @@ class Tile_Plexiglass extends Tile {
 	}
 
 	getAlpha() {
+		//show default strength in editor for convienence
+		if (editor_active) {
+			return this.strength;
+		}
 		return (linterp(this.strength, 0, clamp((this.playerDist / physics_maxBridgeDistance) * (1.2 / (this.parent.power + 0.2)), 0.1, 1)) * player.personalBridgeStrength);
 	}
 
