@@ -614,7 +614,6 @@ class FarPoly {
 		}
 
 		tempPoints = clipToZ0(tempPoints, render_maxColorDistance, false);
-		//tempPoints = clipToDistance(tempPoints, render_maxColorDistance);
 		
 		//turn points into screen coordinates
 		var screenPoints = [];
@@ -676,7 +675,6 @@ class OneTimeCutsceneTrigger {
 	}
 
 	doComplexLighting() {
-		
 	}
 
 	beDrawn() {
@@ -1130,7 +1128,6 @@ class Star {
 
 			//use radius to determine amount of smearing
 			var smearAmount = world_wormhole.arcAtRadius / ((circularDist / world_wormhole.drawR) ** 4);
-			//console.log(circularDist, world_wormhole.drawRX);
 			var angle = Math.atan2(world_wormhole.sPos[1] - tPos[1], world_wormhole.sPos[0] - tPos[0]) + Math.PI;
 
 			//don't smear more than a circle's worth
@@ -1860,20 +1857,12 @@ class Tunnel {
 
 	//like drawing a strip, but only draws the simple tiles
 	beDrawn_stripSimp(stripNum) {
-		if (this.reverseOrder) {
-			for (var t=this.realTilesSimple[stripNum].length-1; t>-1; t--) {
-				if (this.realTilesSimple[stripNum][t].playerDist < render_maxColorDistance + this.realTilesSimple[stripNum][t].size || 
-				(this.realTilesSimple[stripNum][t].size / this.realTilesSimple[stripNum][t].cameraDist) * world_camera.scale > render_minTileSize) {
-					this.realTilesSimple[stripNum][t].beDrawn();
-				}
+		//since it's only drawing the simple tiles, order doesn't matter
+		this.realTilesSimple[stripNum].forEach(t => {
+			if (t.playerDist < render_maxColorDistance + t.size || (t.size / t.cameraDist) * world_camera.scale > render_minTileSize) {
+				t.beDrawn();
 			}
-		} else {
-			this.realTilesSimple[stripNum].forEach(t => {
-				if (t.playerDist < render_maxColorDistance + t.size || (t.size / t.cameraDist) * world_camera.scale > render_minTileSize) {
-					t.beDrawn();
-				}
-			});
-		}
+		});
 
 		
 
@@ -1928,14 +1917,12 @@ class Tunnel {
 	}
 
 	calculatePoints() {
-		this.centerPos = [0, 0, (this.len / 2) * this.tileSize];
-		[this.centerPos[0], this.centerPos[2]] = rotate(this.centerPos[0], this.centerPos[2], this.theta);
-		this.centerPos = [this.centerPos[0] + this.x, this.centerPos[1] + this.y, this.centerPos[2] + this.z];
+		//middle + end
+		this.centerPos = polToCart(this.theta, this.phi, this.len * this.tileSize * 0.5);
+		this.centerPos = [this.x - this.centerPos[0], this.y + this.centerPos[1], this.z + this.centerPos[2]];
 
-		//generating end
-		this.endPos = [0, 0, this.len * this.tileSize];
-		[this.endPos[0], this.endPos[2]] = rotate(this.endPos[0], this.endPos[2], this.theta);
-		this.endPos = [this.endPos[0] + this.x, this.endPos[1] + this.y, this.endPos[2] + this.z];
+		this.endPos = polToCart(this.theta, this.phi, this.len * this.tileSize);
+		this.endPos = [this.x - this.endPos[0], this.y + this.endPos[1], this.z + this.endPos[2]];
 	}
 
 	calculateBackwardsAllow() {
@@ -1986,7 +1973,7 @@ class Tunnel {
 				//don't be supported by tiles that don't exist, some number fixing has to be done
 				if (this.data[safeX][y + t] != undefined && this.data[safeX][y + t] > 0) {
 					//calculate strength and return, spiral pattern means this must be the closest tile
-					return Math.pow(1 - (((Math.abs(x) + Math.abs(y)) * this.tileSize) / physics_maxBridgeDistance), 2);
+					return (Math.max(1 - (((Math.abs(x) + Math.abs(y)) * this.tileSize) / physics_maxBridgeDistance), 0) ** 2);
 				}
 			}
 
@@ -1994,6 +1981,24 @@ class Tunnel {
 			n += 2;
 		}
 		return 0;
+	}
+
+	determineSimplicity() {
+		this.crumbleSets = undefined;
+		for (var s of this.data) {
+			for (var t of s) {
+				//simpleton check
+				if (t == 3) {
+					this.simple = false;
+					this.crumbleSets = [];
+					return;
+				}
+				
+				if (this.simple && t >= 9 && t <= 13) {
+					this.simple = false;
+				}
+			}
+		}
 	}
 
 	doComplexLighting() {
@@ -2019,26 +2024,36 @@ class Tunnel {
 		this.realTilesSimple = [];
 
 		for (var s=0; s<this.tiles.length; s++) {
-			this.realTiles[s] = [];
-			this.realTilesComplex[s] = [];
-			this.realTilesSimple[s] = [];
+			this.establishReals_strip(s);
+		}
+	}
 
-			for (var t=0; t<this.tiles[s].length; t++) {
-				if (this.tiles[s][t] != undefined) {
-					//if the tile isn't a plexiglass tile (or it is a plexiglass tile and the player's a pastafarian)
-					if ((this.tiles[s][t].minStrength == undefined || player.personalBridgeStrength != undefined)) {
-						this.realTiles[s].push(this.tiles[s][t]);
+	establishReals_strip(sNum) {
+		this.realTiles[sNum] = [];
+		if (!this.simple) {
+			this.realTilesComplex[sNum] = [];
+			this.realTilesSimple[sNum] = [];
+		}
+		
 
-						//crumbling, ramp, vertical, or box check
-						if (isComplex(this.tiles[s][t])) {
+		for (var t=0; t<this.tiles[sNum].length; t++) {
+			if (this.tiles[sNum][t] != undefined) {
+				//if the tile isn't a plexiglass tile (or it is a plexiglass tile and the player's a pastafarian)
+				if ((this.tiles[sNum][t].minStrength == undefined || player.personalBridgeStrength != undefined)) {
+					//simple tunnel can just use realTiles for everything
+					this.realTiles[sNum].push(this.tiles[sNum][t]);
+
+					//complex tunnels need extra data for layering
+					if (!this.simple) {
+						if (isComplex(this.tiles[sNum][t])) {
 							//special case for boxes, they take priority so they go at the start
-							if (this.tiles[s][t].polys != undefined) {
-								this.realTilesComplex[s].splice(0, 0, this.tiles[s][t]);
+							if (this.tiles[sNum][t].polys != undefined) {
+								this.realTilesComplex[sNum].splice(0, 0, this.tiles[sNum][t]);
 							} else {
-								this.realTilesComplex[s].push(this.tiles[s][t]);
+								this.realTilesComplex[sNum].push(this.tiles[sNum][t]);
 							}
 						} else {
-							this.realTilesSimple[s].push(this.tiles[s][t]);
+							this.realTilesSimple[sNum].push(this.tiles[sNum][t]);
 						}
 					}
 				}
@@ -2047,17 +2062,12 @@ class Tunnel {
 	}
 
 	establishCrumbleSets() {
-		this.crumbleSets = undefined;
+		this.crumbleSets = [];
 		for (var s=0; s<this.realTilesComplex.length; s++) {
 			for (var t=0; t<this.realTilesComplex[s].length; t++) {
 				//is it a crumbling tile that hasn't been sorted yet?
 				if (this.realTilesComplex[s][t].crumbleSet == -1) {
 					//sort it!
-
-					//first make sure crumble sets exist
-					if (this.crumbleSets == undefined) {
-						this.crumbleSets = [];
-					}
 
 					//create a bin and add all crumblies in the set to it
 					this.crumbleSets.push([]);
@@ -2089,11 +2099,27 @@ class Tunnel {
 	//hopefully self-explanatory
 	generate() {
 		this.maxTileRenderDist = Math.min(render_maxDistance, (this.tileSize * world_camera.scale) / render_minPolySize);
+		this.determineSimplicity();
 		this.generateTiles();
-		this.generatePlexies();
 		this.generateFarPolys();
 		this.calculateBoundsPoly();
 		this.calculatePoints();
+		this.generateEndSpawns();
+	}
+
+	generateEndSpawns() {
+		//don't get end spawns from tiles if self already has end spawns
+		if (this.hasSetEndSpawns) {
+			return;
+		}
+		
+		for (var s=0; s<this.data.length; s++) {
+			for (var t=this.data[s].length-2; t<this.data[s].length; t++) {
+				if (this.data[s][t] > 0 && !this.endSpawns.includes(s)) {
+					this.endSpawns.push(s);
+				}
+			}
+		}
 	}
 
 	//this function is a mess. It should probably be rewritten from scratch.
@@ -2218,9 +2244,6 @@ class Tunnel {
 							i -= 1;
 						}
 					}
-					if (i == -1) {
-						console.log("log", fullStrip.indexOf(realStrip[realStrip.length-1]), fullStrip);
-					}
 					polyRegister.push(lastValidObj.points[2]);
 					polyRegister.push(lastValidObj.points[3]);
 					minMax[1] = i;
@@ -2278,7 +2301,6 @@ class Tunnel {
 	//I apologize in advance for any headaches this function causes.
 	generateTiles() {
 		this.simple = true;
-		this.crumbleSets = undefined;
 		this.strips = [];
 		this.tiles = [];
 		//split array into strips, with each strip being its own data structure
@@ -2292,35 +2314,20 @@ class Tunnel {
 			//run through every tile in the strip
 			for (var a=0; a<this.len; a++) {
 				//creating tile
-				var value = this.data[t][a];
-				if (value == undefined) {
+				var value = this.data[t][a] ?? 0;
+				//null checker won't catch NaNs because.. javascript
+				//if I was smarter I would be catching the NaNs before they go into my tunnel data, but I really don't feel like it right now
+				if (Number.isNaN(value)) {
+					this.data[t][a] = 0;
 					value = 0;
 				}
 
-				//simpleton check
-				if (value == 3) {
-					this.simple = false;
-					this.crumbleSets = [];
-				} else if (this.simple && value >= 9 && value <= 13) {
-					this.simple = false;
-				}
-
-				//if at the end and is a tile, add to end spawns
-				if (!this.hasSetEndSpawns && a >= this.len - 2 && value > 0) {
-					if (!this.endSpawns.includes(t)) {
-						this.endSpawns.push(t);
-					}
-				}
 				var tileCoordinates = this.worldPositionOfTile(t, a+1);
 				this.tiles[t][a] = this.generateTile(value, tileCoordinates[0], tileCoordinates[1], tileCoordinates[2], this.tileSize, this.strips[t].normal, this.color, t, a);
 			}
 		}
-		// if (this.endSpawns.length == 0) {
-		// 	console.log(`oh no! No end spawns for tunnel id~${this.id}`);
-		// }
-		// if (this.spawns.length == 0) {
-		// 	console.log(`oh no! No spawns for tunnel id~${this.id}`);
-		// }
+		this.determineSimplicity();
+		this.generatePlexies();
 		this.establishReals();
 		if (this.crumbleSets != undefined) {
 			this.establishCrumbleSets();
@@ -2329,18 +2336,33 @@ class Tunnel {
 
 	//generates the plexiglass tiles, to go along the edges of the regular tiles
 	generatePlexies() {
-		//run through every tile
-		for (var s=0; s<this.tiles.length; s++) {
-			for (var t=0; t<this.tiles[s].length; t++) {
-				//if it's undefined the plexiglass algorithm can be run
-				if (this.tiles[s][t] == undefined) {
+		this.generatePlexies_bounded(0, this.strips.length, 0, this.len);
+	}
+
+	//for generating partial plexiglass tiles
+	generatePlexies_bounded(sMin, sMax, tMin, tMax) {
+		tMin = Math.max(0, tMin);
+		tMax = Math.min(this.len-1, tMax);
+
+		//sTrue to modulate strips. (tiles are capped so invalid values don't need to be dealt with) 
+		var sTrue;
+		
+		//run through every spot in the range.
+		for (var s=sMin; s<=sMax; s++) {
+			sTrue = (s + this.tiles.length * 2) % this.tiles.length;
+			for (var t=tMin; t<=tMax; t++) {
+				//if it's not a tile, uses data array because there might already be a plexiglass tile there
+				if (this.data[sTrue][t] == 0) {
+					//remove any tile that might already be there
+					this.tiles[sTrue][t] = undefined;
+
 					//determining strength
 					var tileStrength;
-					tileStrength = this.determinePlexiStrength(s, t);
+					tileStrength = this.determinePlexiStrength(sTrue, t);
 					//only create tile if strength is great enough
-					if (tileStrength > 0.01) {
-						var tileCoords = this.worldPositionOfTile(s, t+1);
-						this.tiles[s][t] = new Tile_Plexiglass(tileCoords[0], tileCoords[1], tileCoords[2], this.tileSize, this.strips[s].normal, this, this.color, tileStrength);
+					if (tileStrength > tunnel_minPlexiStrength) {
+						var tileCoords = this.worldPositionOfTile(sTrue, t+1);
+						this.tiles[sTrue][t] = new Tile_Plexiglass(tileCoords[0], tileCoords[1], tileCoords[2], this.tileSize, this.strips[sTrue].normal, this, this.color, tileStrength);
 					}
 				}
 			}
@@ -2505,11 +2527,21 @@ class Tunnel {
 			if (this.data[z] != undefined) {
 				//trace backwards until the longest tile is found
 				for (var t=this.data[z].length-1; t>-1; t--) {
-					if (this.data[z][t] != 0) {
+					if (this.data[z][t] > 0) {
 						this.len = Math.max(this.len, t+1);
 						t = -1;
 					}
 				}
+			}
+		}
+
+		//make sure tile array is the correct length as well
+		for (var st of this.tiles) {
+			if (st.length > this.len) {
+				st.splice(this.len);
+			}
+			if (st.length < this.len) {
+				st[this.len-1] = undefined;
 			}
 		}
 
@@ -2539,6 +2571,7 @@ class Tunnel {
 	resetWithoutPlayer() {
 		//misc tunnel things
 		this.playerTilePos = 0;
+		this.calculateBackwardsAllow();
 		if (player.backwards) {
 			this.executing = this.functions.length;
 			this.power = this.powerBaseEnd;
@@ -2549,7 +2582,6 @@ class Tunnel {
 
 		this.powerPrevious = this.power;
 		this.powerTime = 0;
-		this.calculateBackwardsAllow();
 		this.establishReals();
 
 		//reset all crumbling tiles
@@ -2849,67 +2881,8 @@ class Tunnel_FromData extends Tunnel {
 		var data = tunnelData_handle(tunnelData);
 		super(data.theta, RGBtoHSV(data.color), data.tileData, data.id, data.maxLen, data.power, data.functions, data.sides, data.spawns, data.endSpawns, 
 			data.tilesPerSide, data.tileSize, data.x, data.z, data.bannedCharacters, data.music);
-		this.rawData = tunnelData;
 	}
 }
-
-//the tunnel strips don't need to be organized by 
-class Tunnel_Strip {
-	constructor(x, y, z, normal, parent, tileSize, tunnelTheta) {
-		this.x = x;
-		this.y = y;
-		this.z = z;
-		this.cameraDist = 1000;
-		this.playerDist = 1000;
-		this.parent = parent;
-		this.normal = normal;
-		this.tunnelTheta = tunnelTheta;
-		this.tileSize = tileSize;
-	}
-
-	//returns true if the player should be drawn on top of the strip
-	playerIsOnTop(selfIndex) {
-		//first figure out the reference plane being used
-		var playerRelPos = spaceToRelativeRotless([player.x, player.y, player.z], [this.x, this.y, this.z], this.normal);
-
-		//if player is out of self's intersection possibility
-		if (Math.abs(playerRelPos[1]) > (this.tileSize * 0.5) + player.r) {
-			return true;
-		}
-
-		var cameraRelPos = spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], this.normal);
-		var tileToCheck = Math.floor(this.parent.playerTilePos - 1.5);
-		var tileID = this.parent.data[selfIndex][tileToCheck]
-
-		//if both camera and player are on the same side, as long as it's a normal tile (not box or ramp) return
-		if (playerRelPos[2] * cameraRelPos[2] > 0) {
-			// if (tileID == undefined || tileID < 9) {
-			// 	return true;
-			// }
-			// return false;
-			return true;
-		}
-
-		//if player and camera are on different sides...
-		tileToCheck = Math.floor(linterp(cameraRelPos[0] / this.parent.tileSize, this.parent.playerTilePos, getPercentage(cameraRelPos[2], playerRelPos[2], 0)) - 0.5);
-		tileID = this.parent.data[selfIndex][tileToCheck];
-
-		//if no tile there (or box, or plexiglass), ignore the player
-		if (tileID == undefined || tileID == 9 || tileID == 10 || 
-		(tileID == 0 && player.personalBridgeStrength == undefined)) {
-			return true;
-		}
-		//if the tile's a 'regular' tile, skip this step (player + camera are on opposite sides, normal tiles must block view here)
-		if (tileID < 9 && tileID != 3) {
-			return false;
-		}
-
-		//if there is a special tile there, use the tile's coordinates
-		return this.tiles[tileToCheck].playerIsOnTop();
-	}
-}
-
-
 
 class Wormhole {
 	constructor(x, y, z) {
