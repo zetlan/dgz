@@ -403,11 +403,9 @@ var world_version = 1.2;
 /*
 haltRotation - a variable to force tunnels to not rotate more than once per frame
 deathCount - a counter used in challenge mode to see how many times player has died (used in resetting boxes)
-gloablView - stores a copy of a binary tree generated in playerParent drawing
 */
 var haltRotation = false;
 var deathCount = 0;
-var gloablView;
 
 
 
