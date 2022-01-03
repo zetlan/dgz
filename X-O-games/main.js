@@ -313,6 +313,7 @@ function text_setStandard() {
 		`You may request a full [list] of commands.`,
 		`Computer opposition is not yet fully complete. Please be prepared`,
 		`for imperfect performance if playing with <2 players.`,
+		`Currently both 5-in-a-row and order-and-chaos are broken.`,
 		``,
 		`Please type a game selection:`,
 	];
@@ -331,87 +332,87 @@ function text_setStandard() {
 
 
 //returns the standard utility for an n x n board (X is negative, O is positive, tic-tac-toe rules but on an n by n board)
-function utilityForNxMStandard(boardState, requiredInARow, n, m) {
+function utilityForNxMStandard(boardState, requiredInARow, width, height) {
 	var valuesFromBoard = [];
-
 	var inARow = 0;
 	var rowVal;
-	//valuos
+
 	for (var c=0; c<boardState.length; c++) {
 		valuesFromBoard[c] = +(boardState[c] == "O") - +(boardState[c] == "X")
 	}
 
-	//DR diagonals
-	for (s=0; s<n-requiredInARow+1; s++) {
-		//s is the horizontal offset, a is the diagonal offset
-		for (var a=0; a<Math.min(n-s, m); a++) {
-			if (valuesFromBoard[s + a + (a * n)] != 0 && valuesFromBoard[s + a + (a * n)] == rowVal) {
+
+	/*
+	Here's the dealio. From each square, there are four possible ways to make a winning line.
+	Down, across, diagonal left, and diagonal right.
+	The other four directions aren't counted because they're duplicates, and given that we're starting from the top of the board, will just be discovered as one of the other four.
+
+	So the algorithm loops through the portion of the board that can make one of those four lines, and tries to see if there are any lines there. If there are, returns the utility for those.
+	*/
+
+	//check all the horizontal lines first, my little system doesn't work with those
+	for (var c=0; c<height; c++) {
+		for (var r=0; r<width; r++) {
+			if (valuesFromBoard[(width * c) + r] != 0 && valuesFromBoard[(width * c) + r] == rowVal) {
 				inARow += 1;
 				if (inARow >= requiredInARow) {
 					return rowVal;
 				}
 			} else {
 				inARow = 1;
-				rowVal = valuesFromBoard[s + a + (a * n)];
+				rowVal = valuesFromBoard[(width * c) + r];
 			}
 		}
 		rowVal = undefined;
 	}
 
-	for (s=1; s<m+1-requiredInARow; s++) {
-
-	}
-	
-
-	//DL diagonals
-	for (var s=requiredInARow-1; s<n; s++) {
-		for (var a=0; a<Math.min(s+1, m); a++) {
-			if (valuesFromBoard[s - a + (a * n)] != 0 && valuesFromBoard[s - a + (a * n)] == rowVal) {
-				inARow += 1;
-				if (inARow >= requiredInARow) {
+	for (r=0; r<width; r++) {
+		for (c=0; c<=height-requiredInARow; c++) {
+			//can't make a line if the start isn't a valid square
+			if (valuesFromBoard[r + (c * width)] != 0) {
+				//console.log(r, c);
+				//can self make a downwards line? (the answer is always yes, the height adjustment is taken care of in the initial for loop)
+				rowVal = valuesFromBoard[r + (c * width)];
+				for (var k=1; k<requiredInARow; k++) {
+					if (valuesFromBoard[r + ((c + k) * width)] != rowVal) {
+						k = requiredInARow + 10;
+					}
+				}
+				if (k == requiredInARow) {
 					return rowVal;
 				}
-			} else {
-				inARow = 1;
-				rowVal = valuesFromBoard[s - a + (a * n)];
-			}
-		}
 
-		rowVal = undefined;
-	}
-
-	//rows
-	for (var c=0; c<m; c++) {
-		for (var a=0; a<n; a++) {
-			if (valuesFromBoard[(n * c) + a] != 0 && valuesFromBoard[(n * c) + a] == rowVal) {
-				inARow += 1;
-				if (inARow >= requiredInARow) {
-					return rowVal;
+				//can this square make a DR line?
+				if (r <= width - requiredInARow) {
+					//console.log('could be DR');
+					//can this square make a DR line?
+					rowVal = valuesFromBoard[r + (c * width)];
+					for (var k=1; k<requiredInARow; k++) {
+						if (valuesFromBoard[r + k + ((c + k) * width)] != rowVal) {
+							k = requiredInARow + 10;
+						}
+					}
+					if (k == requiredInARow) {
+						return rowVal;
+					}
 				}
-			} else {
-				inARow = 1;
-				rowVal = valuesFromBoard[(n * c) + a];
-			}
-		}
-		rowVal = undefined;
-	}
 
-	//columns
-	for (c=0; c<m; c++) {
-		for (a=0; a<n; a++) {
-			if (valuesFromBoard[(a * n) + c] != 0 && valuesFromBoard[(a * n) + c] == rowVal) {
-				inARow += 1;
-				if (inARow >= requiredInARow) {
-					return rowVal;
+				//can this square make a DL line?
+				if (r >= requiredInARow - 1) {
+					//console.log('could be DL');
+					rowVal = valuesFromBoard[r + (c * width)];
+					for (var k=1; k<requiredInARow; k++) {
+						if (valuesFromBoard[r - k + ((c + k) * width)] != rowVal) {
+							k = requiredInARow + 10;
+						}
+					}
+					if (k == requiredInARow) {
+						return rowVal;
+					}
 				}
-			} else {
-				inARow = 1;
-				rowVal = valuesFromBoard[(a * n) + c];
 			}
 		}
-		rowVal = undefined;
 	}
-
 	//if there are no moves left to play, it's a draw
 	if (boardState.indexOf(".") == -1) {
 		return 0;
