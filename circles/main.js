@@ -453,6 +453,8 @@ function doMenuState() {
 				ctx.strokeStyle = menu_nodeStruct[y][x].completed ? color_level_completed : color_bg_menu;
 
 				drawRoundedRectangle(drawOffset[0] + (x * camera.scale) - (nSize / 2), drawOffset[1] + (y * camera.scale) - (nSize / 2), nSize, nSize, canvas.height / 100);
+				ctx.fill();
+				ctx.stroke();
 			}
 		}
 	}
@@ -462,6 +464,8 @@ function doMenuState() {
 		ctx.fillStyle = menu_nodeStruct[menu_y][menu_x].bg;
 		ctx.strokeStyle = menu_nodeStruct[menu_y][menu_x].completed ? color_level_completed : color_bg_menu;
 		drawRoundedRectangle(drawOffset[0] + (menu_x * camera.scale) - (nSize / 2), drawOffset[1] + (menu_y * camera.scale) - (nSize / 2), nSize, nSize, canvas.height / 100);
+		ctx.fill();
+		ctx.stroke();
 	}
 
 	menuAnimateMovement();
