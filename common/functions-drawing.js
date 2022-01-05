@@ -43,6 +43,4 @@ function drawRoundedRectangle(x, y, width, height, arcRadius) {
 	ctx.quadraticCurveTo(x, y + height, x, y + height - arcRadius);
 	ctx.lineTo(x, y + arcRadius);
 	ctx.quadraticCurveTo(x, y, x + arcRadius, y);
-	ctx.stroke();
-	ctx.fill();
 }
