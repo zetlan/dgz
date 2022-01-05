@@ -1,12 +1,12 @@
-/**
- * 
- * @param {Number} x x to put the first key at
- * @param {Number} y y to put the first key at
- * @param {Number} keySize the size of each key
- * @param {Array} keyArr the array of keys to draw
- * @param {Array} matrix the coordinates to offset keys by
- * @param {Boolean} drawKeycaps whether to draw letters or not
- */
-function drawKeyboard(x, y, keySize, keyArr, matrix, drawKeycaps) {
-	
+
+
+function setCanvasPreferences() {
+	var ratio = canvas.width / canvas.height;
+	var size = Math.min(window.innerWidth, window.innerHeight * ratio);
+	canvas.width = size * 0.9;
+	canvas.height = size / ratio * 0.9;
+
+	ctx.textBaseline = "middle";
+	ctx.imageSmoothingEnabled = false;
+	ctx.lineWidth = Math.ceil(canvas.height / 240);
 }

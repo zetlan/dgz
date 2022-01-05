@@ -9,49 +9,61 @@ window.addEventListener("resize", setCanvasPreferences);
 
 
 var animation;
-
+var atx;
 var ctx;
 var canvas;
 
+var color_bgDance = "#000000";
+var color_editor_bg = "#333355";
+var color_editor_audio = "#f98e4c";
+var color_keyboardOutline = "#265891";
+var color_keyboardFill = "#292345";
+var color_text = "#8652a6";
 
-var game_state = 0;
-var game_map;
+var cursor_x;
+var cursor_y;
+var cursor_down = false;
 
-var players = [];
+var dance_layout = [
+	`QWERTYUIO`,
+	`ASDFGHJK`,
+	`ZXCVBNM`
+];
+var dance_vectors = [[1, 0], [0.5, 1]];
+var dance_warmupTime = 60;
+var dance_boardHeight = 0.7;
+var dance_margin = 0.05;
+
+var dEdit_topBarHeight = 0.1;
+var dEdit_audioResolution = 240;
+
+var editor_active = false;
 
 
+var data_persistent = {
+
+};
+
+
+var game_state;
+var game_time = 0;
+
+var source;
 
 function setup() {
 	canvas = document.getElementById("kapbsras");
 	ctx = canvas.getContext("2d");
-
-	players.push(new Ship(0.5, 0.5, "#00F"));
-	game_map = map_test;
-
 	setCanvasPreferences();
+
+	game_state = new State_Dance(dataDance_test);
 	
 	//maps_load();
 	animation = window.requestAnimationFrame(main);
 }
 
-function setCanvasPreferences() {
-	ctx.textBaseline = "middle";
-	ctx.imageSmoothingEnabled = false;
-	var size = Math.min(window.innerWidth, window.innerHeight);
-	canvas.width = size * 0.9;
-	canvas.height = size * 0.9;
-}
-
 //main functions
 function main() {
-	switch (game_state) {
-		//run the game normally
-		case 0:
-			execute_game();
-			break;
-	}
-
-	//call self
+	game_state.execute();
 	animation = window.requestAnimationFrame(main);
 }
 
@@ -93,36 +105,17 @@ function execute_menu() {
 
 //event handlers
 function handleKeyPress(a) {
-	switch (a.code) {
-		//p1
-		case 'ArrowLeft':
-			players[0].aa = -1;
-			break;
-		case 'ArrowUp':
-			players[0].av = 1;
-			break;
-		case 'ArrowRight':
-			players[0].aa = 1;
-			break;
-		case 'ArrowDown':
-			players[0].av = -1;
-			break;
-		case 'Slash':
-			break;
+	//sneaky sneaky get audio consent
+	if (atx == undefined) {
+		//browser security is dumb and bad
+		atx = new (window.AudioContext || window.webkitAudioContext)();
+	} 
 
-
-		//p2
-		case 'KeyS':
-			break;
-		case 'KeyE':
-			break;
-		case 'KeyF':
-			break;
-		case 'KeyD':
-			break;
-		case 'KeyQ':
-			break;
+	//universal keys
+	if (a.code == "BracketRight") {
+		editor_active = !editor_active;
 	}
+	game_state.handleKeyPress(a);
 }
 
 function handleKeyNegate(a) {

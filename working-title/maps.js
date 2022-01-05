@@ -6,4 +6,13 @@ var map_test = {
 	objects: [
 
 	],
-}
+};
+
+
+
+
+
+var dataDance_test = {
+	audio: new Audio('audio/notZun.mp3'),
+	obstacles: []
+};
