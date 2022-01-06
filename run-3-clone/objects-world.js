@@ -1453,6 +1453,10 @@ class Tunnel {
 
 		var tunnelSize = this.sides * this.tilesPerSide;
 		var tunnelStrip = getClosestObject(this.strips);
+		var closestSide = Math.floor(tunnelStrip / this.tilesPerSide);
+		var centerStripOffset;
+		var nowDrawing;
+		var trueSideStrip;
 
 		//figure out if a strip is blocking (normal is facing away, so will be part of the 'front' of the tunnel)
 		var stripsAreBlocking = this.strips.map(s => (rotate(cameraRelPos[0], cameraRelPos[1], s.normal[1])[0] > this.rApothem));
@@ -1496,10 +1500,21 @@ class Tunnel {
 		//outside near is lumped in with outside far if the camera is inside
 
 		//walls far, or all walls. Doesn't matter with the inside camera
-		for (var n=tunnelSize; n>0; n--) {
-			ctrlStrip = ((tunnelStrip + (Math.floor(n / 2) * boolToSigned(n % 2 == 1))) + tunnelSize) % tunnelSize;
-			if (cameraIsIn || !stripsAreBlocking[ctrlStrip]) {
-				this.beDrawn_strip(ctrlStrip);
+		for (var side=this.sides; side>0; side--) {
+			//true side strip is the index of the strip at the start of the side
+			trueSideStrip = modulate((closestSide + (Math.floor(side / 2) * boolToSigned(side % 2 == 1))) * this.tilesPerSide, this.sides * this.tilesPerSide);
+			if (cameraIsIn || !stripsAreBlocking[trueSideStrip]) {
+				//center strip offset is the number of the strip that the camera is on top of
+				centerStripOffset = Math.floor((spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], this.strips[trueSideStrip].pos, this.strips[trueSideStrip].normal)[1] / this.tileSize) + 0.5);
+				centerStripOffset = clamp(centerStripOffset, 0, this.tilesPerSide);
+				//loop through strips in current size, same zigzag pattern but with strips instead of sides
+				for (var n=this.tilesPerSide*2; n>0; n--) {
+					nowDrawing = (trueSideStrip + centerStripOffset + (Math.floor(n / 2) * boolToSigned(n % 2 == 1))) % (this.sides * this.tilesPerSide);
+					//don't draw strips out of bounds
+					if (nowDrawing >= trueSideStrip && nowDrawing < trueSideStrip + this.tilesPerSide) {
+						this.beDrawn_strip(nowDrawing);
+					}
+				}
 			}
 		}
 
@@ -1510,10 +1525,21 @@ class Tunnel {
 
 		//near walls, then close out objects for outside camera
 		if (!cameraIsIn) {
-			for (var n=tunnelSize; n>0; n--) {
-				ctrlStrip = ((tunnelStrip + (Math.floor(n / 2) * boolToSigned(n % 2 == 1))) + tunnelSize) % tunnelSize;
-				if (stripsAreBlocking[ctrlStrip]) {
-					this.beDrawn_strip(ctrlStrip);
+			for (var side=Math.floor(this.sides/2)+1; side>0; side--) {
+				//true side strip is the index of the strip at the start of the side
+				trueSideStrip = modulate((closestSide + (Math.floor(side / 2) * boolToSigned(side % 2 == 1))) * this.tilesPerSide, this.sides * this.tilesPerSide);
+				if (stripsAreBlocking[trueSideStrip]) {
+					//center strip offset is the number of the strip that the camera is on top of
+					centerStripOffset = Math.floor((spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], this.strips[trueSideStrip].pos, this.strips[trueSideStrip].normal)[1] / this.tileSize) + 0.5);
+					centerStripOffset = clamp(centerStripOffset, 0, this.tilesPerSide);
+					//loop through strips in current size, same zigzag pattern but with strips instead of sides
+					for (var n=this.tilesPerSide*2; n>0; n--) {
+						nowDrawing = (trueSideStrip + centerStripOffset + (Math.floor(n / 2) * boolToSigned(n % 2 == 1))) % (this.sides * this.tilesPerSide);
+						//don't draw strips out of bounds
+						if (nowDrawing >= trueSideStrip && nowDrawing < trueSideStrip + this.tilesPerSide) {
+							this.beDrawn_strip(nowDrawing);
+						}
+					}
 				}
 			}
 
