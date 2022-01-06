@@ -434,7 +434,7 @@ function setup() {
 
 	//edit world objects
 	if (editor_objects.length == 0) {
-		editor_objects.push(new Tunnel_FromData(editor_tunnelDefaultData));
+		editor_objects.push(createTunnelFromData(editor_tunnelDefaultData));
 		editor_spawn = editor_objects[0];
 	}
 
