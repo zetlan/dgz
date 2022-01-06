@@ -412,8 +412,8 @@ class Tile_Box extends Tile {
 	}
 
 	collideWithEntity(entity) {
-		//only collide if within a certain distance of the player
-		if (getDistance(this, entity) < this.size * 3) {
+		//only collide if within a certain distance
+		if (getDistance(this, entity) < this.size * 2.5) {
 			//transforming player coordinates to self
 			var entityCoords = spaceToRelativeRotless([entity.x, entity.y, entity.z], [this.x, this.y, this.z], this.normal);
 
@@ -427,16 +427,22 @@ class Tile_Box extends Tile {
 				//z = up / down
 
 
-				//if x is the greatest (forwards / back in the tunnel) slow player down and push out
-				if (distZ > distX && distZ > distY) {
-					//top
-					this.collide_upDown(entity, entityCoords);
-				} else if (distY > distX && distY > distZ) {
-					//sides
-					this.collide_leftRight(entity, entityCoords);
-				} else {
-					//front / back
+				//forwards / backwards collision takes priority
+				if (distX > distY && distX > distZ) {
 					this.collide_forwardsBackwards(entity, entityCoords);
+				} else {
+					//which side of collision should take priority? That depends on how the player is falling.
+					//try to keep the player on the SAME SIDE as they're currently on, no auto-rotating
+					var betweenAngle = modularDifference(player.dir_down[1], this.dir_down[1], Math.PI * 2);
+					if (betweenAngle < Math.PI * 0.26 && entityCoords[2] + player.r > distY) {
+						this.collide_upDown(entity, entityCoords);
+					} else if (betweenAngle > Math.PI * 0.75 && -entityCoords[2] + player.r > distY) {
+						this.collide_upDown(entity, entityCoords);
+					} else if (distY + player.r > distZ) {
+						this.collide_leftRight(entity, entityCoords);
+					} else {
+						this.collide_upDown(entity, entityCoords);
+					}
 				}
 			}
 
