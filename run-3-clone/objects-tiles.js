@@ -1,3 +1,225 @@
+//freePolys have to go here because of inheritance rules, soiry
+class FreePoly {
+	constructor(points, color) {
+		this.x;
+		this.y;
+		this.z;
+		this.points = points;
+		this.normal;
+		this.size;
+		this.color = color;
+		this.cameraDist = render_maxColorDistance + 1;
+		this.playerDist = render_maxColorDistance + 1;
+
+		//collision tolerance
+		this.tolerance = player.r * 0.7;
+	}
+
+	calculateNormal() {
+		//first get average point, that's self's xyz
+		[this.x, this.y, this.z] = avgArray(this.points);
+		//determine size based on xyz + points
+		this.size = Math.sqrt((this.x - this.points[0][0]) ** 2 + (this.y - this.points[0][1]) ** 2 + (this.z - this.points[0][2]) ** 2);
+
+		//get cross product of first two points, that's the normal
+		//every shape has to have at least 3 points, so 
+		//comparing points 2 and 3 to point 1 for normal getting
+		var v1 = [this.points[1][0] - this.points[0][0], this.points[1][1] - this.points[0][1], this.points[1][2] - this.points[0][2]];
+		var v2 = [this.points[2][0] - this.points[0][0], this.points[2][1] - this.points[0][1], this.points[2][2] - this.points[0][2]];
+		
+		var cross = cartToPol((v1[1] * v2[2]) - (v1[2] * v2[1]), (v1[2] * v2[0]) - (v1[0] * v2[2]), (v1[0] * v2[1]) - (v1[1] * v2[0]));
+		this.normal = [cross[0], cross[1]];
+	}
+
+	collideWithEntity(entity) {
+		//transform player to self's coordinates
+		var entityCoords = spaceToRelativeRotless([entity.x, entity.y, entity.z], [this.x, this.y, this.z], this.normal);
+		
+		//sizeLong can be filled out by child classes for extra control over stretching
+		if (this.longMult != undefined) {
+			entityCoords[0] /= this.longMult;
+		}
+
+		//if the player is colliding, do collision stuffies
+		if (Math.abs(entityCoords[2]) < this.tolerance && Math.abs(entityCoords[0]) < (this.size / 2) + this.tolerance && Math.abs(entityCoords[1]) < (this.size / 2) + this.tolerance) {
+
+			//push player outside of self
+			entityCoords[2] = this.tolerance * boolToSigned(entityCoords[2] > 0);
+			//special collision effects inside the tunnel
+			if (entityCoords[2] > 0) {
+				this.doCollisionEffects(entity);
+			}
+
+			//transforming back to regular coordinates
+			if (this.longMult != undefined) {
+				entityCoords[0] *= this.longMult;
+			}
+			[entity.x, entity.y, entity.z] = relativeToSpace(entityCoords, [this.x, this.y, this.z], this.normal);
+		}
+	}
+
+	doCollisionEffects(entity) {
+		//filled out in tile class
+	}
+
+	doComplexLighting() {
+		this.playerDist = getDistance_LightSource(this);
+	}
+
+	doRotationEffects(entity) {
+		//filled out in tile class
+	}
+
+	//clips self and returns an array with two polygons, clipped at the input plane.
+	//always returns [polygon inside plane, polgyon outside plane]
+	//if self polygon does not intersect the plane, then one of the two return values will be undefined.
+	/*clipAtPlane(planePoint, planeNormal) {
+		var inPart = undefined;
+		var outPart = undefined;
+
+		//getting points aligned to the plane
+		var tempPoints = [];
+		for (var j=0;j<this.points.length;j++) {
+			tempPoints.push(spaceToRelativeRotless(this.points[j], planePoint, planeNormal));
+		}
+
+		//checking to see if clipping is necessary
+		var sign = tempPoints[0][2] > 0;
+		var clip = false;
+		for (var y=1;y<tempPoints.length;y++) {
+			//if the signs of the points match, don't clip them. However, if any polarity of a point is different from the first one, clip the polygon
+			if (!sign == tempPoints[y][2] > 0) {
+				clip = true;
+				y = tempPoints.length;
+			}
+		}
+		if (clip) {
+			//get copy of self
+			var outPoints = [];
+			for (var a=0;a<tempPoints.length;a++) {
+				outPoints[a] = tempPoints[a];
+			}
+
+			//clip
+			tempPoints = clipToZ0(tempPoints, 0, false);
+
+			//transforming points to world coordinates
+			for (var q=0;q<tempPoints.length;q++) {
+				tempPoints[q] = relativeToSpace(tempPoints[q], planePoint, planeNormal);
+			}
+
+			outPoints = clipToZ0(outPoints, 0, true);
+			for (var q=0;q<outPoints.length;q++) {
+				outPoints[q] = relativeToSpace(outPoints[q], planePoint, planeNormal);
+			}
+
+			//turning point array into objects that can be put into nodes
+			inPart = new FreePoly(tempPoints, this.color);
+			inPart.calculateNormal();
+			outPart = new FreePoly(outPoints, this.color);
+			outPart.calculateNormal();
+		} else {
+			//if clipping is not necessary, then just return self
+			if (tempPoints[0][2] > 0) {
+				return [this, undefined];
+			}
+			return [undefined, this];
+		}
+		return [inPart, outPart];
+	}*/
+
+	tick() {
+		this.getCameraDist();
+	}
+
+	getCameraDist() {
+		this.cameraDist = getDistance(this, world_camera);
+		this.playerDist = getDistance(this, player);
+	}
+
+	getColor() {
+		return `hsl(${this.color.h}, ${this.color.s}%, ${linterp(this.color.v * 67.5, 0, clamp(this.playerDist / render_maxColorDistance, 0.1, 1))}%)`;
+	}
+
+	beDrawn() {
+		drawWorldPoly(this.points, this.getColor());
+		if (editor_active && data_persistent.settings.enableOutlines) {
+			ctx.lineWidth = 1;
+			ctx.strokeStyle = color_editor_cursor;
+			ctx.stroke();
+
+			var offset = polToCart(this.normal[0], this.normal[1], render_crosshairSize);
+			drawWorldLine([this.x, this.y, this.z], [this.x + offset[0], this.y + offset[1], this.z + offset[2]]);
+		}
+	}
+}
+
+//cut tiles are expected to retain the color of their parent. They're only used for drawing, not collision.
+class FreePoly_Cut extends FreePoly {
+	constructor(points, colorString) {
+		super(points);
+		this.colorStr = colorString;
+	}
+
+	collideWithEntity(entity) {
+		console.log('why?');
+	}
+
+	doCollisionEffects(entity) {
+		console.log('do not!');
+	}
+
+	doRotationEffects(entity) {
+		console.log('stop.');
+	}
+
+	getColor() {
+		return this.colorStr;
+	}
+}
+
+class FreePoly_Vertical extends FreePoly {
+	constructor(points, color) {
+		super(points, color);
+		this.calculateNormal();
+		this.calculateCollisionPoints();
+	}
+
+	calculateCollisionPoints() {
+		this.collisionPoints = [];
+		this.points.forEach(p => {
+			var coordinate = spaceToRelativeRotless(p, [this.x, this.y, this.z], this.normal);
+			this.collisionPoints.push([coordinate[0] * 1.05, coordinate[1] * 1.05]);
+		});
+	}
+
+	collideWithEntity(entity) {
+		//vertical freePolys are expected to collide with the player and have irregular shapes. Because of this, 2d polygon checking is useful.
+		var entityCoords = spaceToRelativeRotless([entity.x, entity.y, entity.z], [this.x, this.y, this.z], this.normal);
+
+		if (Math.abs(entityCoords[2]) < this.tolerance && inPoly(entityCoords, this.collisionPoints)) {
+			if (entityCoords[2] < 0) {
+				entityCoords[2] = -1 * this.tolerance;
+			} else {
+				entityCoords[2] = this.tolerance;
+			}
+			this.doCollisionEffects(entity);
+			[entity.x, entity.y, entity.z] = relativeToSpace(entityCoords, [this.x, this.y, this.z], this.normal);
+		}
+	}
+
+	doCollisionEffects(entity) {
+		entity.dz = 0;
+		entity.onIce = false;
+	}
+}
+
+
+
+
+
+
+
 class Tile extends FreePoly {
 	constructor(x, y, z, size, normal, parent, color) {
 		super([[0, 0, 0], [0, 0, 1], [0, 1, 1]], color);
@@ -7,6 +229,7 @@ class Tile extends FreePoly {
 		this.z = z;
 		this.size = size;
 
+		this.parent = parent;
 		this.points;
 		this.normal = normal;
 		this.cameraRot = this.normal[1];
@@ -14,8 +237,6 @@ class Tile extends FreePoly {
 		this.dir_down;
 
 		this.calculatePointsAndNormal();
-
-		this.parent = parent;
 	}
 
 	calculatePointsAndNormal() {
@@ -82,11 +303,6 @@ class Tile extends FreePoly {
 class Tile_Box extends Tile {
 	constructor(x, y, z, size, normal, parent) {
 		super(x, y, z, size, normal, parent, RGBtoHSV(color_box));
-
-		//all boxes have extra tiles, for changing rotation
-		var fset = polToCart(normal[0], normal[1] + (Math.PI * 1.5), this.size / 2);
-		this.leftTile = new Tile(x + fset[0], y + fset[1], z + fset[2], size, [normal[0], (normal[1] + (Math.PI * 1.5)) % (Math.PI * 2)], parent, this.color);
-		this.rightTile = new Tile(x - fset[0], y - fset[1], z - fset[2], size, [normal[0], (normal[1] + (Math.PI * 0.5)) % (Math.PI * 2)], parent, this.color);
 	}
 
 	calculatePointsAndNormal() {
@@ -145,6 +361,11 @@ class Tile_Box extends Tile {
 		
 		this.dir_right = [this.normal[0], this.normal[1] + (Math.PI / 2)];
 		this.dir_down = this.normal;
+
+		//all boxes have extra tiles, for changing rotation
+		var fset = polToCart(this.dir_right[0], this.dir_right[1], this.size / 2);
+		this.leftTile = new Tile(this.x - fset[0], this.y - fset[1], this.z - fset[2], this.size, [this.normal[0], (this.normal[1] + (Math.PI * 1.5)) % (Math.PI * 2)], this.parent, this.color);
+		this.rightTile = new Tile(this.x + fset[0], this.y + fset[1], this.z + fset[2], this.size, [this.normal[0], (this.normal[1] + (Math.PI * 0.5)) % (Math.PI * 2)], this.parent, this.color);
 	}
 	
 
@@ -320,10 +541,6 @@ class Tile_Box extends Tile {
 
 		//if camera distance is close enough and self needs to be rendered in the precise way
 		if (this.cameraDist < render_maxColorDistance * 2 && data_persistent.settings.altRender) {
-			//establish drawPolys
-			//x = forwards, z = up, y = left
-			//var relCPos = spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], this.normal);
-
 			this.drawPolysIn.forEach(p => {
 				p.cameraDist = this.cameraDist;
 				p.playerDist = this.playerDist;
@@ -340,15 +557,20 @@ class Tile_Box extends Tile {
 class Tile_Box_Ringed extends Tile_Box {
 	constructor(x, y, z, size, normal, parent) {
 		super(x, y, z, size, normal, parent);
+	}
 
-		var fset = polToCart(normal[0], normal[1] + (Math.PI * 1.5), this.size / 2);
-		this.leftTile = new Tile_Ringed(x + fset[0], y + fset[1], z + fset[2], size, [normal[0], (normal[1] + (Math.PI * 1.5)) % (Math.PI * 2)], parent, this.color);
-		this.rightTile = new Tile_Ringed(x - fset[0], y - fset[1], z - fset[2], size, [normal[0], (normal[1] + (Math.PI * 0.5)) % (Math.PI * 2)], parent, this.color);
+	calculatePointsAndNormal() {
+		super.calculatePointsAndNormal();
+
+		var fset = polToCart(this.normal[0], this.normal[1] + (Math.PI * 1.5), this.size / 2);
+		this.leftTile = new Tile_Ringed(this.x + fset[0], this.y + fset[1], this.z + fset[2], this.size, [this.normal[0], (this.normal[1] + (Math.PI * 1.5)) % (Math.PI * 2)], this.parent, this.color);
+		this.rightTile = new Tile_Ringed(this.x - fset[0], this.y - fset[1], this.z - fset[2], this.size, [this.normal[0], (this.normal[1] + (Math.PI * 0.5)) % (Math.PI * 2)], this.parent, this.color);
 	}
 
 	doComplexLighting() {
 		super.doComplexLighting();
-		
+		this.rightTile.doComplexLighting();
+		this.leftTile.doComplexLighting();
 	}
 
 	tick() {
@@ -360,12 +582,6 @@ class Tile_Box_Spun extends Tile_Box {
 	constructor(x, y, z, size, normal, parent) {
 		super(x, y, z, size, [normal[0], normal[1] + (Math.PI * 0.25)], parent);
 		this.collisionMult = 1.414;
-
-		//mmmmmmm probably bad practice but it works
-		this.leftTile.points = this.polys["l"].points;
-		[this.leftTile.x, this.leftTile.y, this.leftTile.z] = [this.polys["l"].x, this.polys["l"].y, this.polys["l"].z];
-		this.rightTile.points = this.polys["r"].points;
-		[this.rightTile.x, this.rightTile.y, this.rightTile.z] = [this.polys["r"].x, this.polys["r"].y, this.polys["r"].z];
 	}
 
 	calculatePointsAndNormal() {
@@ -410,6 +626,14 @@ class Tile_Box_Spun extends Tile_Box {
 		this.dir_right = [this.normal[0], this.normal[1] + (Math.PI / 2)];
 		this.dir_down = this.normal;
 		this.size -= player.r * 0.6;
+
+		var fset = polToCart(this.dir_right[0], this.dir_right[1], this.size / 2);
+		this.leftTile = new Tile(this.x - fset[0], this.y - fset[1], this.z - fset[2], this.size, [this.normal[0], (this.normal[1] + (Math.PI * 1.5)) % (Math.PI * 2)], this.parent, this.color);
+		this.leftTile.points = this.polys["l"].points;
+		[this.leftTile.x, this.leftTile.y, this.leftTile.z] = [this.polys["l"].x, this.polys["l"].y, this.polys["l"].z];
+		this.rightTile = new Tile(this.x + fset[0], this.y + fset[1], this.z + fset[2], this.size, [this.normal[0], (this.normal[1] + (Math.PI * 0.5)) % (Math.PI * 2)], this.parent, this.color);
+		this.rightTile.points = this.polys["r"].points;
+		[this.rightTile.x, this.rightTile.y, this.rightTile.z] = [this.polys["r"].x, this.polys["r"].y, this.polys["r"].z];
 	}
 }
 
@@ -778,7 +1002,7 @@ class Tile_Ringed extends Tile {
 		this.ring = new Ring(this.x + ringOffset[0], this.y + ringOffset[1], this.z + ringOffset[2], this.normal[0], this.normal[1], render_ringSize);
 	}
 
-	doComplexLighting() {
+	doComplexLighting() {ƒ
 		super.doComplexLighting();
 		//rings on tiles are close enough that it probably doesn't matter, and will save time to not do the computation
 		this.ring.playerDist = this.playerDist;
