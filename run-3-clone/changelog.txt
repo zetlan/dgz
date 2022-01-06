@@ -2,6 +2,19 @@
 
 
 
+V1.22 - January-6-2022
+    bug fixes:
+        duplicator duplicates can no longer just walk through tunnel blockers
+        tunnel blockers will no longer cause player to flicker
+        ringed boxes in cutscene mode no longer have dark rings
+        boxes in challenge mode no longer fall apart when pushed
+
+    misc:
+        unvisited infinite mode levels are now more likely to appear than visited infinite mode levels
+        improved box collision
+        improved low-precision tunnel rendering
+
+
 V1.21 - December-28-2021
     bug fixes:
         fixed ocassional crash when transferring between tunnels of different sets
