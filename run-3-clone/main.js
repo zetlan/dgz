@@ -274,9 +274,6 @@ var render_rateParity = 0;
 var render_starOpacity = 0.6;
 var render_voidSpinSpeed = 0.04;
 
-var spaceToRelativeMatrices = {};
-var spaceToRelativeRotlessMatrices = {};
-
 let star_arr = [];
 var star_distance = 2300;
 var star_number = 500;
