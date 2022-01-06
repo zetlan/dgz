@@ -28,6 +28,7 @@
 	clamp(num, min, max);
 	compressCutsceneData(csObj);
 	compressCutsceneLine(line);
+	createTunnelFromData(data);
 	decompressCutsceneData(csObj);
 	decompressCutsceneLine(line);
 	fastLoad();
@@ -661,6 +662,12 @@ function compressCutsceneLine(line) {
 	return `${camData}${objData}`;
 }
 
+function createTunnelFromData(data) {
+	data = tunnelData_handle(data);
+	return new Tunnel(data.theta, RGBtoHSV(data.color), data.tileData, data.id, data.maxLen, data.power, data.functions, data.sides, data.spawns, data.endSpawns, 
+		data.tilesPerSide, data.tileSize, data.x, data.z, data.bannedCharacters, data.music);
+}
+
 function decompressCutsceneData(csObj) {
 	//if it's relative, revert that before decompressing
 	if (csObj.relativeTo != undefined) {
@@ -851,7 +858,7 @@ function file_import_1dot1(worldText) {
 	var levelToLoad = worldText.substring(0, worldText.indexOf("\n"));
 	worldText = worldText.substring(worldText.indexOf("\n")+1);
 	while (levelToLoad != "") {
-		editor_objects.push(new Tunnel_FromData(levelToLoad));
+		editor_objects.push(createTunnelFromData(levelToLoad));
 		levelToLoad = worldText.substring(0, worldText.indexOf("\n"));
 		worldText = worldText.substring(worldText.indexOf("\n")+1);
 	}
@@ -912,7 +919,7 @@ function file_import_1dot2(worldText) {
 
 	//load all levels
 	while (splitText[0] != "") {
-		editor_objects.push(new Tunnel_FromData(splitText.splice(0, 1)[0]));
+		editor_objects.push(createTunnelFromData(splitText.splice(0, 1)[0]));
 	}
 	//get rid of the empty space
 	splitText.splice(0, 1);
@@ -1467,7 +1474,7 @@ function pickNewParent(object, oldParent) {
 function placeTunnelSet(setName) {
 	var setSplit = setName.split("\n");
 	for (var g=0; g<setSplit.length-1; g++) {
-		world_objects.push(new Tunnel_FromData(setSplit[g], []));
+		world_objects.push(createTunnelFromData(setSplit[g]));
 	}
 	sortWorldArray();
 }
