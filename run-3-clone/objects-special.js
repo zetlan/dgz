@@ -332,12 +332,18 @@ class IMNode {
 
 
 		var value = Math.floor(randomBounded(this.difficulty, this.difficulty + infinite_levelRange));
+		
 
 		//different choice if levels are being forced
 		if (infinite_levelConstraints.length == 0) {
 			if (this.parent != undefined) {
-				while (value == this.parent.lastTunnelLine) {
+				var trials = 4;
+				var hasSeen = infinite_levelsVisited[infinite_data[value].split("|")[0].split("-")[1]] == "1";
+				//infinite mode should be guaranteed to not give the same level twice, and likely to give levels the user hasn't seen before
+				while (value == this.parent.lastTunnelLine || (trials > 0 && hasSeen)) {
 					value = Math.floor(randomBounded(this.difficulty, this.difficulty + infinite_levelRange));
+					hasSeen = infinite_levelsVisited[infinite_data[value].split("|")[0].split("-")[1]] == "1";
+					trials -= 1;
 				}
 			}
 		} else {
@@ -348,7 +354,7 @@ class IMNode {
 		
 		this.lastTunnelLine = value;
 		var tunnelConstructionData = `pos-x~${sX}|pos-z~${sZ}|direction~${sT}|${infinite_data[value]}`;
-		this.tunnel = new Tunnel_FromData(tunnelConstructionData);
+		this.tunnel = createTunnelFromData(tunnelConstructionData);
 		this.tunnel.placePowercells();
 	}
 
