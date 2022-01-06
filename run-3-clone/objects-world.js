@@ -2858,13 +2858,18 @@ class Tunnel_Blocker {
 			this.tiles.forEach(t => {
 				t.tick();
 			});
-	
-			//collide with player if close enough
-			if (Math.abs(this.parent.playerTilePos - this.tileZ) < (render_maxColorDistance * 0.4) / this.parent.tileSize) {
-				this.tiles.forEach(t => {
-					t.collideWithEntity(player);
-				});
-			}
+
+			//collide with player and make sure to include duplicates
+			[player, ...(player.duplicates || [])].forEach(e => {
+				var ref = e.parentPrev;
+				var tile = spaceToRelativeRotless([e.x, e.y, e.z], [ref.x, ref.y, ref.z], [-ref.theta, 0])[2] / ref.tileSize;
+				//if the entity is less than two tiles away, say it's worth worrying about
+				if (Math.abs(tile - this.tileZ) < 2) {
+					this.tiles.forEach(t => {
+						t.collideWithEntity(e);
+					});
+				}
+			});
 		}
 	}
 
@@ -2872,14 +2877,6 @@ class Tunnel_Blocker {
 		this.tiles.forEach(t => {
 			t.beDrawn();
 		});
-	}
-}
-
-class Tunnel_FromData extends Tunnel {
-	constructor(tunnelData) {
-		var data = tunnelData_handle(tunnelData);
-		super(data.theta, RGBtoHSV(data.color), data.tileData, data.id, data.maxLen, data.power, data.functions, data.sides, data.spawns, data.endSpawns, 
-			data.tilesPerSide, data.tileSize, data.x, data.z, data.bannedCharacters, data.music);
 	}
 }
 
