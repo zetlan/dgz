@@ -1002,7 +1002,7 @@ class Tile_Ringed extends Tile {
 		this.ring = new Ring(this.x + ringOffset[0], this.y + ringOffset[1], this.z + ringOffset[2], this.normal[0], this.normal[1], render_ringSize);
 	}
 
-	doComplexLighting() {ƒ
+	doComplexLighting() {
 		super.doComplexLighting();
 		//rings on tiles are close enough that it probably doesn't matter, and will save time to not do the computation
 		this.ring.playerDist = this.playerDist;
