@@ -879,7 +879,7 @@ class State_Edit_Properties extends State_Edit {
 			this.newTunnelData = [this.newTunnelData];
 		}
 
-		var lastTunnel = new Tunnel_FromData(this.newTunnelData[0]);
+		var lastTunnel = createTunnelFromData(this.newTunnelData[0]);
 		var pos;
 
 		//switch new and old objects
@@ -890,7 +890,7 @@ class State_Edit_Properties extends State_Edit {
 		while (this.newTunnelData.length > 0) {
 			pos = [lastTunnel.endPos[0] - (tunnel_transitionLength * Math.sin(lastTunnel.theta)), lastTunnel.endPos[2] + (tunnel_transitionLength * Math.cos(lastTunnel.theta))];
 			//update coordinates and direction, then create tunnel
-			lastTunnel = new Tunnel_FromData(this.newTunnelData[0].replace(`pos-x~0`, `pos-x~${pos[0]}`).replace(`pos-z~0`, `pos-z~${pos[1]}`).replace(`direction~0`, `direction~${lastTunnel.theta}`));
+			lastTunnel = createTunnelFromData(this.newTunnelData[0].replace(`pos-x~0`, `pos-x~${pos[0]}`).replace(`pos-z~0`, `pos-z~${pos[1]}`).replace(`direction~0`, `direction~${lastTunnel.theta}`));
 			editor_objects.push(lastTunnel);
 			this.readFrom = orderObjects(editor_objects, 6);
 			this.newTunnelData.splice(0, 1);
@@ -1267,7 +1267,7 @@ class State_Edit_World extends State_Edit {
 			tag += data_alphaNumerics[Math.floor(randomBounded(0, data_alphaNumerics.length-1))];
 		}
 		var pos = screenToSpace([canvas.width / 2, canvas.height / 2], world_camera.targetY);
-		var newTun = new Tunnel_FromData(editor_tunnelDefaultData);
+		var newTun = createTunnelFromData(editor_tunnelDefaultData);
 		newTun.id = `Custom Tunnel ${tag}`;
 		newTun.color.h = Math.round(randomBounded(0, 360));
 		newTun.color.s = Math.round(randomBounded(20, 80));
@@ -1624,7 +1624,7 @@ class State_Edit_Select {
 
 	gotoDelete() {
 		editor_cutscenes = {};
-		editor_objects = [new Tunnel_FromData(editor_tunnelDefaultData)];
+		editor_objects = [createTunnelFromData(editor_tunnelDefaultData)];
 		editor_spawn = editor_objects[0];
 		editor_locked = false;
 		loading_state = new State_Menu();
