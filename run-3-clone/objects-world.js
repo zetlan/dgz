@@ -1297,10 +1297,7 @@ class Tunnel {
 		});
 
 		//sort objects
-		var sortObjs = [player, ...this.freeObjs];
-		if (player.duplicates != undefined && player.duplicates.length > 0) {
-			sortObjs = [...sortObjs, ...player.duplicates];
-		}
+		var sortObjs = [player, ...this.freeObjs, ...(player.duplicates || [])];
 
 		//sort tiles
 		if (!this.simple) {
@@ -1446,17 +1443,16 @@ class Tunnel {
 		var regionOutFar = [];
 		var regionOutNear = [];
 		var regionIn = [];
-		var ctrlStrip;
 		var cameraIsIn = this.coordinateIsInTunnel(world_camera.x, world_camera.y, world_camera.z, false);
 		var cameraRelPos = spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], this.centerPos, [-this.theta, 0]);
 		var cameraAngle = Math.atan2(cameraRelPos[1], cameraRelPos[0]);
 
-		var tunnelSize = this.sides * this.tilesPerSide;
 		var tunnelStrip = getClosestObject(this.strips);
 		var closestSide = Math.floor(tunnelStrip / this.tilesPerSide);
 		var centerStripOffset;
 		var nowDrawing;
 		var trueSideStrip;
+		var blockerStore;
 
 		//figure out if a strip is blocking (normal is facing away, so will be part of the 'front' of the tunnel)
 		var stripsAreBlocking = this.strips.map(s => (rotate(cameraRelPos[0], cameraRelPos[1], s.normal[1])[0] > this.rApothem));
@@ -1466,10 +1462,18 @@ class Tunnel {
 			f.beDrawn();
 		});
 
+		for (var k=0; k<this.freeObjs.length; k++) {
+			if (this.freeObjs[k].tiles != undefined) {
+				blockerStore = this.freeObjs[k];
+				this.freeObjs.splice(k, 1);
+			}
+		}
+
 		//sort objects
-		var sortObjs = [player, ...this.freeObjs];
-		if (player.duplicates != undefined && player.duplicates.length > 0) {
-			sortObjs = [...sortObjs, ...player.duplicates];
+		var sortObjs = [player, ...this.freeObjs, ...(player.duplicates || [])];
+
+		if (blockerStore != undefined) {
+			this.freeObjs.push(blockerStore);
 		}
 
 		sortObjs.forEach(o => {
@@ -1519,9 +1523,33 @@ class Tunnel {
 		}
 
 		//inside of tunel
-		regionIn.forEach(d => {
-			d.beDrawn();
-		});
+		if (blockerStore == undefined) {
+			regionIn.forEach(d => {
+				d.beDrawn();
+			});
+		} else {
+			var behind = [];
+			var inFront = [];
+			var blockerP = [blockerStore.x, blockerStore.y, blockerStore.z];
+			var cameraZ = spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], blockerP, blockerStore.normal)[2];
+			//special case for tunnel blockers
+			regionIn.forEach(d => {
+				if (spaceToRelativeRotless([d.x, d.y, d.z], blockerP, blockerStore.normal)[2] * cameraZ > 0) {
+					inFront.push(d);
+				} else {
+					behind.push(d);
+				}
+			});
+
+			behind.forEach(d => {
+				d.beDrawn();
+			});
+			blockerStore.beDrawn();
+			inFront.forEach(d => {
+				d.beDrawn();
+			});
+		}
+		
 
 		//near walls, then close out objects for outside camera
 		if (!cameraIsIn) {
@@ -2564,6 +2592,7 @@ class Tunnel_Blocker {
 		this.x = this.parent.x + zOff[0];
 		this.y = this.parent.y + zOff[1];
 		this.z = this.parent.z + zOff[2];
+		this.normal = [-this.parent.theta, 0];
 
 		//if there's an even number of tiles, center is offset
 		if (this.parent.tilesPerSide % 2 == 0) {
@@ -2666,6 +2695,13 @@ class Tunnel_Blocker {
 		this.tiles.forEach(t => {
 			t.beDrawn();
 		});
+
+		if (editor_active && data_persistent.settings.enableOutlines) {
+			var offset = polToCart(this.normal[0], this.normal[1], render_crosshairSize);
+			ctx.fillStyle = color_editor_normal;
+			ctx.lineWidth = 2;
+			drawWorldLine([this.x, this.y, this.z], [this.x + offset[0], this.y + offset[1], this.z + offset[2]]);
+		}
 	}
 }
 
