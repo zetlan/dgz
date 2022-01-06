@@ -318,14 +318,12 @@ class Character {
 	}
 
 	collide() {
-		//get closest tunnel strip
-
 		//get the closest strip
 		var ref = this.parentPrev;
 		var relPos = spaceToRelativeRotless([this.x, this.y, this.z], [ref.x, ref.y, ref.z], [-1 * ref.theta, 0]);
 		var trueSideStrip = Math.floor((((Math.atan2(relPos[1], relPos[0]) + (Math.PI * (2 + (1 / ref.sides)))) / (Math.PI * 2)) % 1) * ref.sides);
 		trueSideStrip = modulate(trueSideStrip * ref.tilesPerSide, ref.sides * ref.tilesPerSide);
-		//center strip offset is the number of the strip that the camera is on top of
+		//center strip offset is the number of the strip that self is on top of
 		var centerStripOffset = Math.floor((spaceToRelativeRotless([this.x, this.y, this.z], ref.strips[trueSideStrip].pos, ref.strips[trueSideStrip].normal)[1] / ref.tileSize) + 0.5);
 		centerStripOffset = clamp(centerStripOffset + trueSideStrip, trueSideStrip, trueSideStrip + ref.tilesPerSide - 1);
 		//add in side by side strips and collide with them
@@ -333,14 +331,10 @@ class Character {
 		var selfTile = Math.floor(relPos[2] / ref.tileSize);
 
 		for (var n=-1; n<2; n++) {
-			if (ref.tiles[centerStripOffset][selfTile+n] != undefined) {
-				ref.tiles[centerStripOffset][selfTile+n].collideWithEntity(this);
-			}
-			if (ref.tiles[(centerStripOffset - 1 + ref.tiles.length) % ref.tiles.length][selfTile+n] != undefined) {
-				ref.tiles[(centerStripOffset - 1 + ref.tiles.length) % ref.tiles.length][selfTile+n].collideWithEntity(this);
-			}
-			if (ref.tiles[(centerStripOffset + 1) % ref.tiles.length][selfTile+n] != undefined) {
-				ref.tiles[(centerStripOffset + 1) % ref.tiles.length][selfTile+n].collideWithEntity(this);
+			for (var f=-1; f<2; f++) {
+				if (ref.tiles[(centerStripOffset + ref.tiles.length + f) % ref.tiles.length][selfTile+n] != undefined) {
+					ref.tiles[(centerStripOffset + ref.tiles.length + f) % ref.tiles.length][selfTile+n].collideWithEntity(this);
+				}
 			}
 		}
 		haltRotation = false;
