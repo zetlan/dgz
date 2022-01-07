@@ -1108,29 +1108,24 @@ class Gentleman extends Character {
 		if (this.onGround < 1 && this.parent != undefined && this.attracting == undefined) {
 			//use two tunnels: self's parent, and the tunnel that's closest (but not the parent)
 			//closeArr is a list of the freeObjects in the closest tunnels
-			var closeArr;
+			var closeArr = this.parent.freeObjs;
+
 			if (loading_state.nearObjs.length > 1) {
-				closeArr = loading_state.nearObjs[loading_state.nearObjs.length - 1];
-				if (closeArr == this.parent) {
-					closeArr = loading_state.nearObjs[loading_state.nearObjs.length - 2];
-				}
-				closeArr = [...this.parent.freeObjs, ...closeArr.freeObjs];
-			} else {
-				closeArr = this.parent.freeObjs;
+				//chose either the first or second close tunnel to tack on, depending on which one is the parent
+				closeArr = [...closeArr, ...loading_state.nearObjs[loading_state.nearObjs.length - (1 + (loading_state.nearObjs[loading_state.nearObjs.length - 1] == this.parent))].freeObjs];
 			}
 			
-			//get closest free object that's also in front of self
+			//get closest free object that's also in front of self AND IS A POWERCELL
 			var closestObj = undefined;
 			var closestObjDist = this.abilityDistance;
 			for (var h=0; h<closeArr.length; h++) {
-				if (spaceToRelativeRotless([closeArr[h].x, closeArr[h].y, closeArr[h].z], [this.x, this.y, this.z], [this.dir_down[0], -this.dir_down[1]])[0] > -20) {
+				if (closeArr[h].succ != undefined && spaceToRelativeRotless([closeArr[h].x, closeArr[h].y, closeArr[h].z], [this.x, this.y, this.z], [this.dir_down[0], -this.dir_down[1]])[0] > -20) {
 					var tempDist = getDistance(this, closeArr[h]);
 					if (tempDist < closestObjDist) {
 						closestObj = closeArr[h];
 						closestObjDist = getDistance(this, closeArr[h]);
 					}
 				}
-				
 			}
 			this.attracting = closestObj;
 		}
