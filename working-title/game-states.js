@@ -134,3 +134,21 @@ class State_Dance {
 		}
 	}
 }
+
+
+
+
+class State_Map {
+	constructor(mapData, playerPosition) {
+
+	}
+}
+
+
+class State_Map_Climbing extends State_Map {
+
+}
+
+class State_Map_Walking extends State_Map {
+
+}
