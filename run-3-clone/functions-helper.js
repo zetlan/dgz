@@ -551,6 +551,7 @@ function changeTile(tunnel, tileCoords, newTileID) {
 
 	tunnel.data[tileCoords[0]][tileCoords[1]] = newTileID;
 	tunnel.repairData();
+	var oldCrumblies = tunnel.crumbleSets;
 	tunnel.determineSimplicity();
 	var newSimplicity = tunnel.simple;
 
@@ -591,15 +592,27 @@ function changeTile(tunnel, tileCoords, newTileID) {
 	}
 
 	//necessary things to make the tunnel function as normal again
-	if (!newSimplicity && ((objToRemove != undefined && objToRemove.constructor.name == "Tile_Crumbling") || (objToAdd != undefined && objToAdd.constructor.name == "Tile_Crumbling"))) {
+	if (!newSimplicity && (oldCrumblies != undefined || (objToRemove != undefined && objToRemove.constructor.name == "Tile_Crumbling") || (objToAdd != undefined && objToAdd.constructor.name == "Tile_Crumbling"))) {
 		//re-establish crumble sets if a crumbling tile was involved in removal / placement
-		tunnel.realTilesComplex.forEach(c => {
-			c.forEach(t => {
-				if (t.crumbleSet != undefined) {
-					t.crumbleSet = -1;
-				}
+		if (oldCrumblies != undefined) {
+			//if having old crumblies, can just use that
+			oldCrumblies.forEach(g => {
+				g.forEach(t => {
+					if (t.crumbleSet != undefined) {
+						t.crumbleSet = -1;
+					}
+				});
 			});
-		});
+		} else {
+			//if no old crumblies, search through the whole tunnel
+			tunnel.realTilesComplex.forEach(c => {
+				c.forEach(t => {
+					if (t.crumbleSet != undefined) {
+						t.crumbleSet = -1;
+					}
+				});
+			});
+		}
 		tunnel.establishCrumbleSets();
 	}
 	var plexTileDist = Math.ceil(physics_maxBridgeDistance / tunnel.tileSize);
