@@ -581,6 +581,10 @@ class Tile_Box_Ringed extends Tile_Box {
 
 	tick() {
 		super.tick();
+		[this.rightTile, this.leftTile, this.rightTile, this.leftTile.ring, this.rightTile.ring].forEach(f => {
+			f.cameraDist = this.cameraDist;
+			f.playerDist = this.playerDist;
+		});
 	}
 }
 
