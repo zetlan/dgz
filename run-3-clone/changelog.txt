@@ -8,6 +8,7 @@ V1.22 - January-6-2022
         tunnel blockers will no longer cause player to flicker
         ringed boxes in cutscene mode no longer have dark rings
         boxes in challenge mode no longer fall apart when pushed
+        fixed crashing in Bridge Building when touching crumbling tiles
 
     misc:
         unvisited infinite mode levels are now more likely to appear than visited infinite mode levels
