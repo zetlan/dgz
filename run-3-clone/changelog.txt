@@ -10,11 +10,13 @@ V1.22 - January-6-2022
         boxes in challenge mode no longer fall apart when pushed
         fixed crashing in Bridge Building when touching crumbling tiles
         fixed rare crash with gentleman in explore mode
+        fixed crash when creating a tunnel with 3 sides
 
     misc:
         unvisited infinite mode levels are now more likely to appear than visited infinite mode levels
         improved box collision
         improved low-precision tunnel rendering
+        Hovering over the song name in Property Edit mode now plays the song
 
 
 V1.21 - December-28-2021
