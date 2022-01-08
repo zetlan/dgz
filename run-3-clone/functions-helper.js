@@ -1075,9 +1075,8 @@ function handleAudio() {
 
 
 	//channel 1
-	//first choose what audio should be
-	//don't update audio target at all during cutscenes
-	if (loading_state.constructor.name == "State_Cutscene") {
+	//first choose what audio should be. Don't update audio target at all during cutscenes, and property editing has its own audio controlling
+	if (loading_state.constructor.name == "State_Cutscene" || loading_state.constructor.name == "State_Edit_Properties") {
 		return;
 	}
 

@@ -1069,7 +1069,11 @@ class State_Edit_Properties extends State_Edit {
 			ctx.fillStyle = color_text_bright;
 			ctx.font = `${canvas.height / 45}px Comfortaa`;
 			ctx.textAlign = "center";
-			ctx.fillText(this.tunnel.music, canvas.width * (editor_lPropertyW / 2), canvas.height * (0.1475 + (10 * editor_sliderHeight)));
+			ctx.fillText(this.tunnel.music, canvas.width * (editor_lPropertyW / 2), canvas.height * (0.14 + (10 * editor_sliderHeight)));
+
+			//play the song if hovering over it
+			var isHovering = (cursor_x < canvas.width * editor_lPropertyW && Math.abs(cursor_y - (canvas.height * (0.14 + (10 * editor_sliderHeight)))) < canvas.height * 0.03);
+			audio_channel1.target = isHovering ? data_audio[this.tunnel.music] : undefined;
 		}
 
 		//drawing banned character toggle
