@@ -232,7 +232,7 @@ class State_Edit_Tiles extends State_Edit {
 		this.triggerSelected = undefined;
 		this.triggerLastChange = 0;
 
-		this.targetTile = [3, 15];
+		this.targetTile = [0, 0];
 		var tileCoords = this.tunnel.worldPositionOfTile(this.targetTile[0], this.targetTile[1] + 1);
 		this.selectedTileExtra = new Tile_Plexiglass(tileCoords[0], tileCoords[1], tileCoords[2], this.tunnel.tileSize, this.tunnel.strips[this.targetTile[0]].normal, this.tunnel, this.targetTile, this.tunnel.color, 0.5);
 		this.selectedTileExtra.playerDist = 50;
