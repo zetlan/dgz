@@ -1827,10 +1827,10 @@ class PropertyTextBox {
 							loading_state.tunnel.updatePosition(loading_state.tunnel.x, loading_state.tunnel.y, loading_state.tunnel.z);
 							player = new Pastafarian(player.x, player.y, player.z);
 						}
-						//repeat pop-up prevention
-						cursor_down = false;
 					}
 				}
+				//repeat pop-up prevention
+				cursor_down = false;
 			}
 		}
 	}
