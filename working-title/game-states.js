@@ -140,7 +140,23 @@ class State_Dance {
 
 class State_Map {
 	constructor(mapData, playerPosition) {
+		this.connections = [];
+		this.layers = {
+			"bFar": [],
+			"bDeco": [],
+			"mid": [],
+			"fDeco": [],
+			"fFar": [],
+		};
+		this.palette = 0;
+	}
 
+	spaceToScreen(x, y) {
+
+	}
+
+	screenToSpace(x, y) {
+		
 	}
 }
 
