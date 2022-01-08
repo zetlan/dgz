@@ -1828,8 +1828,7 @@ class PropertyTextBox {
 							player = new Pastafarian(player.x, player.y, player.z);
 						}
 						//repeat pop-up prevention
-						cursor_x = -1000;
-						cursor_y = -1000;
+						cursor_down = false;
 					}
 				}
 			}
