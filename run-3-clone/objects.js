@@ -1052,16 +1052,12 @@ class Gentleman extends Character {
 		this.attracting = undefined;
 		this.attractionForce = undefined;
 		this.airFriction = 0.46;
-		this.attractionAnimationTime = 0;
-		this.attractionAnimationBuffer = 10;
 		this.abilityDistance = 500;
 	}
 
 	modifyDerivitives(activeGravity, activeFriction, naturalFriction, activeAX, activeAZ) {
-		this.attractionAnimationTime -= 1;
 		//do ability stuff
 		if (this.attracting != undefined) {
-			this.attractionAnimationTime = this.attractionAnimationBuffer;
 			//go towards object
 			var dist = getDistance(this, this.attracting);
 
@@ -1154,17 +1150,19 @@ class Gentleman extends Character {
 		this.texture_walkL.reset();
 		
 		//flying texture
-		if (this.attractionAnimationTime > 0) {
-			if (this.dx < 1) {
-				this.texture_current = this.texture_flyL;
-			} else if (this.dx > 1) {
-				this.texture_current = this.texture_flyR;
-			} else {
+		if (this.attracting != undefined) {
+			//determine which frame of the flying animation to show
+			var offset = spaceToRelativeRotless([this.attracting.x, this.attracting.y, this.attracting.z], [this.x, this.y, this.z], this.dir_down);
+			[offset[0], offset[1], offset[2]] = [offset[1], offset[2], offset[0]];
+
+			if (Math.abs(offset[0]) < this.r * 2) {
 				this.texture_current = this.texture_flyF;
+			} else {
+				this.texture_current = (offset[0] > 0) ? this.texture_flyR : this.texture_flyL;
 			}
 
-			//use dz / dy to determine what frame to be on
-			var rot = (Math.atan2(-this.dy, -(this.dz * 0.8)) + (Math.PI / 2)) / (Math.PI * 2);
+			//use z / y offset to determine what frame to be on
+			var rot = (Math.atan2(-offset[1], -(offset[2] * 0.8)) + (Math.PI / 2)) / (Math.PI * 2);
 			rot = (rot + 2) % 1;
 			rot = 1 - rot;
 
