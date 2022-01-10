@@ -1270,14 +1270,13 @@ class State_Edit_World extends State_Edit {
 		for (var n=0; n<4; n++) {
 			tag += data_alphaNumerics[Math.floor(randomBounded(0, data_alphaNumerics.length-1))];
 		}
-		var pos = screenToSpace([canvas.width / 2, canvas.height / 2], world_camera.targetY);
 		var newTun = createTunnelFromData(editor_tunnelDefaultData);
 		newTun.id = `Custom Tunnel ${tag}`;
 		newTun.color.h = Math.round(randomBounded(0, 360));
 		newTun.color.s = Math.round(randomBounded(20, 80));
 		newTun.color.v = randomBounded(0.2, 0.8);
 		editor_objects.push(newTun);
-		newTun.updatePosition(pos[0], newTun.y, pos[1]);
+		newTun.updatePosition(world_camera.x, newTun.y, world_camera.z);
 		this.readFrom = orderObjects(editor_objects);
 	}
 
