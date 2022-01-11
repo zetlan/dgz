@@ -798,7 +798,6 @@ function file_export() {
 	editor_objects.forEach(e => {
 		textDat += e.giveStringData() + "\n";
 	});
-	textDat += "\n";
 
 	//cutscenes
 	//loop through all cutscenes
@@ -935,7 +934,9 @@ function file_import_1dot2(worldText) {
 		editor_objects.push(createTunnelFromData(splitText.splice(0, 1)[0]));
 	}
 	//get rid of the empty space
-	splitText.splice(0, 1);
+	while (splitText[0] == "") {
+		splitText.splice(0, 1);
+	}
 	loading_state.readFrom = orderObjects(editor_objects, 6);
 
 	//load start level
@@ -956,7 +957,8 @@ function file_import_1dot2(worldText) {
 		splitText.splice(0, 4);
 
 		//frames
-		editor_cutscenes[cName].frames = splitText.splice(0, splitText.indexOf("end") + 1);
+		editor_cutscenes[cName].frames = splitText.splice(0, splitText.indexOf("end"));
+		splitText.splice(0, 1);
 	}
 
 	//if the world is locked, go to the lock screen
