@@ -19,6 +19,7 @@ var data_angelChecklist = [
 var data_audio = {
 	//music files
 	"CrumblingWalls": new Audio('audio/CrumblingWalls.ogg'),
+	"EmptySpace": new Audio('audio/EmptySpace.ogg'),
 	"LeaveTheSolarSystem": new Audio('audio/LeaveTheSolarSystem.ogg'),
 	"MapOfTheStars": new Audio('audio/MapOfTheStars.ogg'),
 	"TheVoid": new Audio('audio/TheVoid.ogg'),
@@ -183,7 +184,7 @@ var data_characters = {
 var data_levelSets = [`main`, `boxRoad`, `boxStorage`, `planA`, `planC`, `wayBack`, `wayBackNot`, `winterGames`, `lowPower`, `new`,
 						`A`, `B`, `C`, `D`, `F`, `G`, `H`, `I`, `L`, `M`, `N`, `T`, `U`, `W`];
 //data_levelSets = [`main`, `F`, `U`, `wayBack`, `wayBackNot`, `planA`, `planC`];
-var data_musics = ['CrumblingWalls', 'LeaveTheSolarSystem', 'MapOfTheStars', 'TheVoid', 'TravelTheGalaxy', 'WormholeToSomewhere', 'WormholeToSomewhereFar', 'None'];
+var data_musics = ['CrumblingWalls', 'EmptySpace', 'LeaveTheSolarSystem', 'MapOfTheStars', 'TheVoid', 'TravelTheGalaxy', 'WormholeToSomewhere', 'WormholeToSomewhereFar', 'None'];
 
 var data_persistent = {
 	//game progress
