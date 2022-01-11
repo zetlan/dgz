@@ -2257,6 +2257,22 @@ class Tunnel {
 		return output;
 	}
 
+	makeSpawn() {
+		//try to get the longest strip, starting at 4 tiles but accepting at least one tile
+		var sliced = [];
+		for (var len=4; len>0; len--) {
+			for (var s=0; s<this.data.length; s++) {
+				sliced = this.data[s].slice(0, len);
+				//if the tiles are all good, it's a valid spawn
+				if (sliced.length > 0 && !sliced.includes(0)) {
+					this.spawns.push(s);
+					return;
+				}
+			}
+		}
+		console.error(`${this.id} has no tiles!`);
+	}
+
 	placePlayer() {
 		var spawnObj;
 		var spawnChoice;
@@ -2266,6 +2282,9 @@ class Tunnel {
 			//place player
 			spawnObj = this.realTiles[spawnChoice][this.realTiles[spawnChoice].length - 1];
 		} else {
+			if (this.spawns.length < 1) {
+				this.makeSpawn();
+			}
 			spawnChoice = this.spawns[Math.floor(randomBounded(0, this.spawns.length-1))];
 			spawnObj = this.realTiles[spawnChoice][0];
 		}
