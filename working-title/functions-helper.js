@@ -95,37 +95,6 @@ function exportWorld() {
 	return maps + "\n\n" + connections;
 }
 
-function exportZone(zoneObj) {
-	var toReturn = ``;
-	//standard properties
-	toReturn += `id~${zoneObj.name}`;
-	toReturn += `|music~${zoneObj.musicID}`;
-	toReturn += `|coords~${zoneObj.x}~${zoneObj.y}`;
-	toReturn += `|dims~${zoneObj.data[0].length}~${zoneObj.data.length}`;
-	toReturn += `|palette~${zoneObj.palettePath}`;
-
-	//collision data (ground)
-	toReturn += `|${exportData(zoneObj.data)}`;
-
-	//image data
-	toReturn += `|display~`;
-	var imgData = "";
-	for (var y=0; y<zoneObj.display.length; y++) {
-		for (var x=0; x<zoneObj.display[0].length; x++) {
-			imgData += zoneObj.display[y][x];
-		}
-	}
-	toReturn += starrify(imgData);
-
-	//entity data
-	var entDat = loading_map.stringifyEntities();
-	if (entDat.length > 0) {
-		toReturn += `|${entDat}`;
-	}
-
-	return toReturn;
-}
-
 
 
 //because it's using async, gotta put into a variable instead of just returning
@@ -210,6 +179,41 @@ function importEntities(entityData) {
 	return entityArray;
 }
 
+function importMap(mapData) {
+	//break up the data by the separator
+	var preObj = {
+		x: 0,
+		y: 0,
+		tileDat: [],
+		tlWidth: 0,
+		tlHeight: 0,
+	};
+
+
+	mapData.split("|").forEach(s => {
+		var splitTag = s.split("~");
+		switch (splitTag[0]) {
+			case "x":
+				preObj.x = +splitTag[1];
+				break;
+			case "y":
+				preObj.y = +splitTag[1];
+				break;
+			case "dims":
+				preObj.tlWidth = +splitTag[1];
+				preObj.tlHeight = +splitTag[2];
+				break;
+			case "tiles":
+				//unstarrify the tile data first
+				var unstarred = unStarrify(splitTag[1]);
+				//break by line, then insert into tile data
+				preObj.tileDat = unstarred.chop(preObj.tlWidth);
+				break;
+		}
+	});
+	return new Map_Climbing(preObj.x, preObj.y, preObj.tileDat);
+}
+
 function importZone(zoneLineString) {
 	var zoneProps = {
 		connect: [],
@@ -246,7 +250,7 @@ function importZone(zoneLineString) {
 					}
 				}
 				break;
-			case "display":
+			case "mid":
 				//update display array
 				superSplit[1] = unStarrify(superSplit[1]);
 				var char = 0;
@@ -255,28 +259,8 @@ function importZone(zoneLineString) {
 					char += 1;
 				}
 				break;
-			case "entities":
-				zoneProps.entities = importEntities(superSplit);
-				break;
-			case "ground":
-				importData(zoneProps.data, superSplit[1], superSplit[2]);
-				break;
-			case "id":
-				zoneProps.name = superSplit[1];
-				break;
-			case "music":
-				zoneProps.music = superSplit[1];
-				break;
-			case "palette":
-				zoneProps.path = superSplit[1];
-				break;
-			
 		}
 	});
-
-
-	//add zone to world
-	addZone(new Zone(zoneProps.x, zoneProps.y, zoneProps.name, zoneProps.connect, zoneProps.data, zoneProps.disp, zoneProps.entities, zoneProps.path, zoneProps.music));
 }
 
 
@@ -313,7 +297,7 @@ function starrify(data) {
 	var newData = "";
 	for (var a=0; a<data.length; a++) {
 		//if the current character is different or the buffer is too long, turn into new string
-		if (data[a] != charBuffer[0] || charBuffer[1] >= tileImage_key.length-1) {
+		if (data[a] != charBuffer[0] || charBuffer[1] >= b64_encode.length-1) {
 			//if it's not long enough to become a star
 			if (charBuffer[1] < 4) {
 				for (var b=0; b<charBuffer[1]; b++) {
@@ -321,7 +305,7 @@ function starrify(data) {
 				}
 			} else {
 				//if it's long enough to be starred
-				newData += `${charBuffer[0]}*${tileImage_key[charBuffer[1]]}`;
+				newData += `${charBuffer[0]}*${b64_encode[charBuffer[1]]}`;
 			}
 
 			//reset buffer
@@ -339,7 +323,7 @@ function starrify(data) {
 			newData += charBuffer[0];
 		}
 	} else {
-		newData += `${charBuffer[0]}*${tileImage_key[charBuffer[1]]}`;
+		newData += `${charBuffer[0]}*${b64_encode[charBuffer[1]]}`;
 	}
 
 	return newData;
@@ -350,7 +334,7 @@ function unStarrify(data) {
 	for (var c=0; c<data.length; c++) {
 		//if the next character is a star
 		if (data[c+1] == "*") {
-			for (var h=0; h<tileImage_map[data[c+2]]; h++) {
+			for (var h=0; h<b64_decode[data[c+2]]; h++) {
 				newData += data[c];
 			}
 			c += 2;
