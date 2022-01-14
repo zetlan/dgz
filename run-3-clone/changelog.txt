@@ -1,6 +1,18 @@
 
 
 
+V1.23 - January-14-2022
+    bug fixes:
+        Fixed text alignment issues in edit mode
+        Fixed cutscene exporting bugs in edit mode
+
+    misc:
+        tunnels can now safely be loaded without a set spawn point
+        you can now use the Space song from Run 1 in custom levels
+        in World Edit mode, tunnels will now be created directly in the center of the screen
+
+
+
 
 V1.22 - January-6-2022
     bug fixes:
