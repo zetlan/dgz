@@ -640,12 +640,13 @@ function clamp(num, min, max) {
 }
 
 function compressCutsceneData(csObj) {
+	//only compress if it's not compressed
+	if (csObj.frames[0].constructor.name == "String") {
+		return;
+	}
 	//loop through all frames
 	for (var f=0; f<csObj.frames.length; f++) {
-		//only compress if it's not compressed
-		if (csObj.frames[f].constructor.name == "Array") {
-			csObj.frames[f] = compressCutsceneLine(csObj.frames[f]);
-		}
+		csObj.frames[f] = compressCutsceneLine(csObj.frames[f]);
 	}
 
 	//is the cutscene relative to something? Then make sure that's reflected in the data
@@ -682,14 +683,17 @@ function createTunnelFromData(data) {
 }
 
 function decompressCutsceneData(csObj) {
+	//only decompress if necessary
+	if (csObj.frames[0].constructor.name != "String") {
+		return;
+	}
+
 	//if it's relative, revert that before decompressing
 	if (csObj.relativeTo != undefined) {
 		makeCutsceneAbsolute(csObj);
 	}
 
-
 	for (var f=0; f<csObj.frames.length; f++) {
-		//only decompress if it's compressed
 		if (csObj.frames[f].constructor.name == "String") {
 			csObj.frames[f] = decompressCutsceneLine(csObj.frames[f]);
 		}
