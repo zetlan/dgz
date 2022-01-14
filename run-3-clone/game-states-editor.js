@@ -1012,7 +1012,7 @@ class State_Edit_Properties extends State_Edit {
 		ctx.textAlign = "center";
 		drawSelectionBox(centerX, canvas.height * 0.03, ctx.measureText(this.banStorage[this.banSelected][0]).width + 10, canvas.height * 0.04);
 		ctx.fillStyle = color_text_bright;
-		ctx.fillText(this.banStorage[this.banSelected][0],centerX, canvas.height * 0.04);
+		ctx.fillText(this.banStorage[this.banSelected][0],centerX, canvas.height * 0.031);
 
 		//X
 		this.banButtons[1].tick();
@@ -1364,16 +1364,12 @@ class State_Edit_World extends State_Edit {
 		super.drawTopBar();
 
 		//selected tunnel text
-		ctx.font = `${canvas.height / 40}px Comfortaa`;
+		ctx.font = `${canvas.height / 45}px Comfortaa`;
 		ctx.fillStyle = color_editor_cursor;
 		ctx.textAlign = "center";
-		if (this.tunnel == undefined) {
-			ctx.fillText(`no tunnel selected`, canvas.width * 0.8175, canvas.height * 0.97);
-		} else {
-			if (this.tunnel == editor_spawn) {
-				ctx.fillText(`This tunnel is the world spawn.`, canvas.width * 0.8175, canvas.height * 0.93);
-			}
-			ctx.fillText(this.tunnel.id, canvas.width * 0.8175, canvas.height * 0.975);
+		ctx.fillText((this.tunnel ?? {id: `no tunnel selected`}).id, canvas.width * 0.8175, canvas.height * 0.96);
+		if (this.tunnel == editor_spawn) {
+			ctx.fillText(`This tunnel is the world spawn.`, canvas.width * 0.8175, canvas.height * 0.985);
 		}
 
 		//move camera along camera force
