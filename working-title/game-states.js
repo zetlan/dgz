@@ -34,12 +34,12 @@ class State_Dance {
 
 	computeEAMagnitudes() {
 		this.eAPrecompute = [];
-		var chunkSizePx = canvas.width / dEdit_audioResolution;
+		var chunkSizePx = canvas.width / editD_audioResolution;
 		var chunkSizeSamps = Math.floor((this.eTimeView[1] - this.eTimeView[0]) * (chunkSizePx / canvas.width) * this.eAudioSRate);
 		var max;
 		var sampStart = (this.eTimeView[0] * this.eAudioSRate);
 
-		for (var p=0; p<dEdit_audioResolution; p++) {
+		for (var p=0; p<editD_audioResolution; p++) {
 			max = 0;
 			sampStart = (this.eTimeView[0] * this.eAudioSRate) + (p * chunkSizeSamps);
 			max = Math.max(...this.eAudioSBuffer.slice(sampStart, sampStart + (p * chunkSizeSamps)));
@@ -54,7 +54,7 @@ class State_Dance {
 	drawEditorOverlay() {
 		//top bar
 		ctx.fillStyle = color_editor_bg;
-		ctx.fillRect(0, 0, canvas.width, canvas.height * dEdit_topBarHeight);
+		ctx.fillRect(0, 0, canvas.width, canvas.height * editD_topBarHeight);
 
 		//draw audio volume at specified points
 		if (this.eAudioSBuffer == undefined) {
@@ -68,10 +68,10 @@ class State_Dance {
 				this.computeEAMagnitudes();
 			}
 			ctx.fillStyle = color_editor_audio;
-			var barW = canvas.width / dEdit_audioResolution;
-			for (var p=0; p<dEdit_audioResolution; p++) {
+			var barW = canvas.width / editD_audioResolution;
+			for (var p=0; p<editD_audioResolution; p++) {
 				//draw line at correct height based on max volume
-				ctx.fillRect(p * barW, canvas.height * dEdit_topBarHeight * (0.5 - 0.45 * this.eAPrecompute[p]), barW, canvas.height * dEdit_topBarHeight * this.eAPrecompute[p] * 0.9);
+				ctx.fillRect(p * barW, canvas.height * editD_topBarHeight * (0.5 - 0.45 * this.eAPrecompute[p]), barW, canvas.height * editD_topBarHeight * this.eAPrecompute[p] * 0.9);
 			} 
 		}
 	}
@@ -138,33 +138,155 @@ class State_Dance {
 
 
 
-class State_Map {
-	constructor(mapData, playerPosition) {
-		this.connections = [];
-		this.layers = {
-			"bFar": [],
-			"bDeco": [],
-			"mid": [],
-			"fDeco": [],
-			"fFar": [],
-		};
-		this.palette = 0;
+class State_Main {
+	constructor(mapData) {
+		this.map = mapData;
+
+		this.eCursorPos = [cursor_x, cursor_y];
+
+
+
+		game_map = mapData;
+		player = new ((this.map.constructor.name == "Map_Climbing") ? Player_Climbing : Player_Walking)(player.x, player.y);
 	}
 
-	spaceToScreen(x, y) {
+	drawEditorOverlay() {
+		//border around the edges
+		ctx.beginPath();
+		ctx.strokeStyle = color_editor_outline;
+		ctx.lineWidth = canvas.width / 30;
+		ctx.rect(0, 0, canvas.width, canvas.height);
+		ctx.stroke();
+
+		//sidebar
+		ctx.fillStyle = color_editor_bg;
+		ctx.fillRect(0, 0, canvas.width * editM_sBarW, canvas.height);
+
+		ctx.fillStyle = color_text;
+	}
+
+	editMapFrom(x, y) {
+		var square = game_map.screenToSpace(x, y, 1);
+		square[0] = Math.floor(square[0]);
+		square[1] = Math.floor(square[1]);
+		if (square[0] < 0 || square[1] < 0) {
+			game_map.changeDimensions(Math.min(square[0], 0), Math.min(square[1], 0));
+			square[0] = Math.max(square[0], 0);
+			square[1] = Math.max(square[1], 0);
+		}
+
+		if (square[1] >= game_map.lMid.length) {
+			//don't bother if trying to place an empty square
+			if (editor_placing == "0") {
+				return;
+			}
+			game_map.changeDimensions(0, square[1] - (game_map.lMid.length - 1));
+		}
+
+		game_map.lMid[square[1]] = game_map.lMid[square[1]].padEnd(square[0], "0");
+		game_map.lMid[square[1]] = game_map.lMid[square[1]].replaceAt(square[0], editor_placing);
+	}
+
+	execute() {
+		ctx.fillStyle = "#FFF";
+		ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+		//tick everything
+		this.map.tick();
+
+		//player is ticked 4 times so that their speed can be reasonable but they don't clip through blocks.
+		//basically, phys-step is precise but outcome is normal
+		if (!editor_active) {
+			for (var a=0; a<player_physRepeats; a++) {
+				player.tick();
+			}
+		}
+
+		if (editor_active) {
+			camera.x += player.ax / 3;
+			camera.y += player.ay / 3;
+
+
+			if (cursor_down) {
+				//figure out the distance between last cursor pos and current cursor pos
+				var flingDist = Math.sqrt((this.eCursorPos[0] - cursor_x) ** 2 + (this.eCursorPos[1] - cursor_y) ** 2);
+				//interpolate between the two for smooth editing
+				for (var a=0; a<Math.ceil(flingDist); a++) {
+					this.editMapFrom(linterp(cursor_x, this.eCursorPos[0], a / Math.ceil(flingDist)), linterp(cursor_y, this.eCursorPos[1], a / Math.ceil(flingDist)));
+				}
+			}
+
+			this.eCursorPos = [cursor_x, cursor_y];
+		} else {
+			camera.xGoal = player.x + game_map.x;
+			camera.yGoal = player.y + game_map.y;
+			camera.tick();
+		}
+
+		//drawing everything
+
+		//editor overlays
+		if (editor_active) {
+			this.drawEditorOverlay();
+		}
+
+		this.map.beDrawn();
+
+		ctx.fillStyle = "#0F0";
+		drawCircle(...this.map.spaceToScreen(...this.map.screenToSpace(cursor_x, cursor_y, 1), 1), 4);
+		ctx.fill();
+	}
+
+	handleKeyPress(a) {
+		if (editor_active) {
+			if (a.code.indexOf("Digit") == 0) {
+				editor_placing = a.code.slice(5);
+			}
+		}
+
+		switch (a.code) {
+			case "ArrowLeft":
+				player.ax = -1;
+				break;
+			case "ArrowUp":
+				player.ay = 1;
+				player.handleSpace();
+				break;
+			case "ArrowRight":
+				player.ax = 1;
+				break;
+			case "ArrowDown":
+				player.ay = -1;
+				break;
+		}
+	}
+
+	handleKeyNegate(a) {
+		switch (a.code) {
+			case "ArrowLeft":
+				player.ax = Math.max(0, player.ax);
+				break;
+			case "ArrowUp":
+				player.ay = Math.min(0, player.ay);
+				break;
+			case "ArrowRight":
+				player.ax = Math.min(0, player.ax);
+				break;
+			case "ArrowDown":
+				player.ay = Math.max(0, player.ay);
+				break;
+		}
+	}
+
+	handleMouseDown(a) {
 
 	}
 
-	screenToSpace(x, y) {
-		
+	handleMouseMove(a) {
+
 	}
-}
 
+	handleMouseUp(a) {
 
-class State_Map_Climbing extends State_Map {
-
-}
-
-class State_Map_Walking extends State_Map {
-
+	}
 }
