@@ -287,6 +287,7 @@ var cardData = [{
 	name: `84 IQ`,
 	tags: ["number start","point card"],
 }, {
+	authors: `Vincent T.`,
 	id: `35`,
 	name: `420 IS DIVISIBLE BY 7`,
 	tags: ["number start","multi-colored","point card"],
@@ -319,7 +320,7 @@ var cardData = [{
 	name: `A PRICKLY SITUATION`,
 	tags: ["A","multi-colored","point card"],
 }, {
-	authors: "Cynthia Clementine",
+	authors: "Cynthia C.",
 	id: `43`,
 	name: `a strange face tendriu`,
 	tags: ["A","multi-colored","point card"],
@@ -509,7 +510,7 @@ var cardData = [{
 	name: `Art #8`,
 	tags: ["A","point card"],
 }, {
-	authors: "Joseph Rother",
+	authors: "Joseph R.",
 	id: `90`,
 	imgType: `jpg`,
 	name: `Artificial Intelligence`,
@@ -611,6 +612,7 @@ var cardData = [{
 	name: `Basic Math`,
 	tags: ["B","point card"],
 }, {
+	authors: `Derek C.`,
 	id: `114`,
 	name: `Battle Potion`,
 	tags: ["B","multi-colored","point card"],
@@ -633,6 +635,7 @@ var cardData = [{
 	name: `Better worded dis-card`,
 	tags: ["B","point card"],
 }, {
+	hide: true,
 	id: `119`,
 	name: `Between 2 and 2 or more`,
 	tags: ["B"],
@@ -689,6 +692,7 @@ var cardData = [{
 	name: `Blue Shell`,
 	tags: ["B","multi-colored","point card"],
 }, {
+	authors: `Derek C.`,
 	id: `133`,
 	name: `Blue Slime`,
 	tags: ["B","multi-colored","point card"],
@@ -969,6 +973,7 @@ var cardData = [{
 	name: `Cloud in a Bottle`,
 	tags: ["C"],
 }, {
+	authors: `Liam B.`,
 	id: `202`,
 	name: `CMD ACCESS Granted`,
 	tags: ["C","multi-colored","point card"],
@@ -1017,7 +1022,7 @@ var cardData = [{
 	name: `Computer Vision`,
 	tags: ["C","point card"],
 }, {
-	authors: "Cynthia Clementine",
+	authors: "Cynthia C.",
 	id: `214`,
 	name: `Concern`,
 	tags: ["C","multi-colored","point card"],
@@ -1054,7 +1059,7 @@ var cardData = [{
 	name: `Cool math James`,
 	tags: ["C","point card"],
 }, {
-	authors: "Cynthia Clementine",
+	authors: "Cynthia C.",
 	id: `223`,
 	name: `Coping mechanisms`,
 	tags: ["C","multi-colored"],
@@ -1111,7 +1116,7 @@ var cardData = [{
 	name: `Crazy Hand`,
 	tags: ["C","point card"],
 }, {
-	authors: "Cynthia Clementine",
+	authors: "Cynthia C.",
 	id: `237`,
 	name: `crd o edm`,
 	tags: ["C","multi-colored","point card"],
@@ -1200,7 +1205,7 @@ var cardData = [{
 	name: `Dash Crystal`,
 	tags: ["D","multi-colored","point card"],
 }, {
-	authors: "Cynthia Clementine",
+	authors: "Cynthia C.",
 	id: `259`,
 	name: `Dated Reference`,
 	tags: ["D","point card"],
@@ -1653,7 +1658,7 @@ var cardData = [{
 	name: `Flip Badge`,
 	tags: ["F"],
 }, {
-	authors: "Cynthia Clementine",
+	authors: "Cynthia C.",
 	id: `371`,
 	name: `floating point precision error`,
 	tags: ["F","multi-colored","point card"],
@@ -1851,6 +1856,7 @@ var cardData = [{
 	name: `Greed`,
 	tags: ["G","multi-colored","point card"],
 }, {
+	authors: `Liam B.`,
 	id: `420`,
 	name: `Green Light`,
 	tags: ["G","multi-colored","point card"],
@@ -2362,6 +2368,7 @@ var cardData = [{
 	name: `Li'l Macho Legs Cat`,
 	tags: ["L","point card"],
 }, {
+	authors: `Liam B.`,
 	id: `547`,
 	name: `Liam`,
 	tags: ["L","point card"],
@@ -2426,7 +2433,7 @@ var cardData = [{
 	name: `Lucky Charms`,
 	tags: ["L","multi-colored","point card"],
 }, {
-	authors: "Joseph Rother",
+	authors: "Joseph R.",
 	id: `563`,
 	name: `Luigi in da Femur Breaker`,
 	tags: ["L","point card"],
@@ -3187,6 +3194,7 @@ var cardData = [{
 	name: `Proactive Voting`,
 	tags: ["P"],
 }, {
+	authors: `Vincent T.`,
 	id: `752`,
 	name: `PROBABILITY`,
 	tags: ["P","point card"],
@@ -3675,7 +3683,7 @@ var cardData = [{
 	name: `Sparknotes`,
 	tags: ["S","point card"],
 }, {
-	authors: "Cynthia Clementine",
+	authors: "Cynthia C.",
 	id: `873`,
 	name: `Speedrun`,
 	tags: ["S","multi-colored"],
@@ -3867,6 +3875,7 @@ var cardData = [{
 	name: `Supreme Court`,
 	tags: ["S","point card"],
 }, {
+	authors: `Liam B.`,
 	id: `920`,
 	name: `Swapper : Pythonic swap.py`,
 	tags: ["S","multi-colored","point card"],
@@ -4023,7 +4032,7 @@ var cardData = [{
 	name: `The Future is NOW`,
 	tags: ["T"],
 }, {
-	authors: "Joseph Rother",
+	authors: "Joseph R.",
 	id: `959`,
 	name: `The Gamble`,
 	tags: ["T","point card"],
@@ -4120,17 +4129,17 @@ var cardData = [{
 	name: `Theodore Roosevelt`,
 	tags: ["T","point card"],
 }, {
-	authors: "Cynthia Clementine",
+	authors: "Cynthia C.",
 	id: `984`,
 	name: `They're assimilated`,
 	tags: ["T","multi-colored"],
 }, {
-	authors: "Cynthia Clementine",
+	authors: "Cynthia C.",
 	id: `985`,
 	name: `They're here`,
 	tags: ["T","multi-colored"],
 }, {
-	authors: "Cynthia Clementine",
+	authors: "Cynthia C.",
 	id: `986`,
 	name: `They're malicious`,
 	tags: ["T","multi-colored"],
@@ -4721,7 +4730,7 @@ var cardData = [{
 	name: `Pi Day`,
 	tags: ["P","multi-colored","point card"],
 }, {
-	authors: "Joseph Rother",
+	authors: "Joseph R.",
 	id: `1132`,
 	name: `Pitt Greensburg`,
 	tags: ["P"],
@@ -4738,7 +4747,7 @@ var cardData = [{
 	name: `gay`,
 	tags: ["G", "wide","point card", "multi-colored"],
 }, {
-	authors: `Cynthia Clementine`,
+	authors: `Cynthia C.`,
 	id: `1136`,
 	name: `Dated Reference`,
 	tags: ["D","point card"],
@@ -4748,14 +4757,14 @@ var cardData = [{
 	name: `Power Play I`,
 	tags: ["P","point card"],
 }, {
-	authors: `Cynthia Clementine`,
+	authors: `Cynthia C.`,
 	hide: true,
 	id: `1138`,
 	name: `Ferris the catgirl`,
 	tags: ["F","point card"],
 	notes: `Banned due to percieved malicious intent.`
 }, {
-	authors: `Cynthia Clementine`,
+	authors: `Cynthia C.`,
 	id: `1139`,
 	name: `Ferris the catgirl`,
 	tags: ["F","point card"],
@@ -4814,12 +4823,87 @@ var cardData = [{
 	id: `1152`,
 	name: `REDACT Light`,
 	tags: ["R", "rule card", "wide", "multi-colored"],
+}, {
+	authors: `Cynthia C.`,
+	id: `1153`,
+	name: `Pipis`,
+	tags: ["P", "point card", "multi-colored"],
+}, {
+	authors: `Cynthia C.`,
+	id: `1154`,
+	name: `Grandpa`,
+	tags: ["G", "point card", "multi-colored"],
+}, {
+	authors: `Derek C.`,
+	id: `1155`,
+	name: `Breadth-First Search`,
+	tags: ["B", "rule card"],
+}, {
+	id: `1156`,
+	name: `Vaccine`,
+	tags: ["V", "point card"],
+}, {
+	id: `1157`,
+	name: `DEEP STATE`,
+	tags: ["D", "rule card", "multi-colored"],
+}, {
+	id: `1158`,
+	name: `Encroaching Stun`,
+	tags: ["E", "point card"],
+}, {
+	id: `1159`,
+	name: `Fortnite (Celeste)`,
+	tags: ["F", "point card"],
+}, {
+	id: `1160`,
+	name: `Mistletoe Mine`,
+	tags: ["M", "point card", "multi-colored"],
+}, {
+	authors: `Kaiden W.`,
+	id: `1161`,
+	name: `10 Blank White Card`,
+	tags: ["number start", "rule card"],
+}, {
+	authors: `Derek C.`,
+	id: `1162`,
+	name: `Hidden Power`,
+	tags: ["H", "point card"],
+}, {
+	id: `1163`,
+	name: `drip shoes`,
+	tags: ["D", "point card"],
+}, {
+	authors: `Sophia`,
+	id: `1164`,
+	name: `Existensial CRISIS`,
+	tags: ["E", "point card", "multi-colored"],
+}, {
+	authors: `Pi R.`,
+	id: `1165`,
+	name: `Swarm Missiles`,
+	tags: ["S", "point card", "rule card"],
+}, {
+	authors: `Liam B.`,
+	id: `1166`,
+	name: `Private Defense Contractor`,
+	tags: ["P", "point card", "wide"],
+}, {
+	authors: `Cynthia C.`,
+	id: `1167`,
+	name: `Between 2 and 2 or more`,
+	tags: ["B", "rule card"],
+}, {
+	authors: `Pi R.`,
+	id: `1168`,
+	name: `The Test (form 1)`,
+	tags: ["T", "rule card"],
 }];
 
 
 
 /*
 , {
+	authors: ``
 	id: ``,
 	name: ``,
 	tags: [starts with? point/rules type? wide? color?],
