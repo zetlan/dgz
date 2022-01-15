@@ -9,11 +9,6 @@
 		<meta charset="UTF-8">
 		<style>
 			/*buttons*/
-			.labelImage {
-				display: none;
-				max-height: 150;
-			}
-
 			button {
 				border: none;
 				background-color: white;
@@ -30,7 +25,9 @@
 
 			/*main DOM*/
 			body {
-				background-color: slateblue;
+				background-color: rgb(137, 123, 232);
+				margin: 0;
+				padding: 0;
 			}
 
 			label {
@@ -40,10 +37,59 @@
 			#topBar {
 				text-align: center;
 				margin: auto;
-				
 			}
 
 			#centerModule {
+				line-height: 0;
+				-webkit-column-count: 5;
+				-moz-column-count:    5;
+				column-count:         5;
+				-webkit-column-gap:   0px;
+				-moz-column-gap:      0px;
+				column-gap:           0px;
+			}
+
+			#centerModule img {
+				margin: auto;
+				margin-left: 10%;
+				margin-right: 10%;
+				width: 80%;
+				height: auto;
+			}
+
+			@media (max-width: 1600px) {
+				#centerModule {
+					-moz-column-count:    4;
+					-webkit-column-count: 4;
+					column-count:         4;
+				}
+			}
+
+			@media (max-width: 1200px) {
+				#centerModule {
+					-moz-column-count:    3;
+					-webkit-column-count: 3;
+					column-count:         3;
+				}
+			}
+
+			@media (max-width: 1000px) {
+				#centerModule {
+					-moz-column-count:    2;
+					-webkit-column-count: 2;
+					column-count:         2;
+				}
+			}
+			
+			@media (max-width: 400px) {
+				#centerModule {
+					-moz-column-count:    1;
+					-webkit-column-count: 1;
+					column-count:         1;
+				}
+			}
+
+			/* #centerModule {
 				text-align: center;
 				margin: auto;
 				margin-left: 10%;
@@ -52,7 +98,7 @@
 				grid-template-columns: repeat(3, 1fr);
 				gap: 10px;
 				grid-auto-rows: auto;
-			}
+			} */
 
 			.SMButton {
 				border: none;
@@ -83,29 +129,13 @@
 			#download {
 				display: none;
 			}
-
-			/*slider*/
-			#imgSizeSlider {
-				-webkit-appearance: none;
-				width: 20%;
-				height: 10px;
-				background: black;
-				outline: none;
-			}
-
-			#imgSizeSlider::-webkit-slider-thumb {
-				appearance: none;
-				width: 25px;
-				height: 25px;
-				background: white;
-				cursor: pointer;
-			}
 		</style>
 		<script src="data.js"></script>
 		<script type="text/javascript">
 			window.onload = setup;
 
 			var imageHeightLimit = 150;
+			var imageAspectRatio = 0.6;
 			var allImagesShown = false;
 			var selectorSettings = {
 				posStrings: [`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`, `V`, `W`, `X`, `Y`, `Z`, `non-letter start`, `number start`],
@@ -142,7 +172,8 @@
 
 					//create link element and then put it in the main center column
 					linkElem = document.createElement("a");
-					linkElem.innerHTML = cardData[c].name;
+					linkElem.target = "_blank";
+					//linkElem.innerHTML = cardData[c].name;
 					linkElem.href = `card.html#${cardData[c].id}`;
 					linkElem.maxWidth = `100px`;
 					linkElem.id = cardData[c].id + "_link";
@@ -226,7 +257,6 @@
 				//decide which way self is going
 				allImagesShown = !allImagesShown;
 				var newDisplay = allImagesShown ? "inline" : "none";
-				document.getElementById("imgSizeSlider").style.display = newDisplay;
 
 				//loop through all links in the center module
 				var collectRef = document.getElementById("centerModule").children;
@@ -336,11 +366,6 @@
 					document.getElementById("cardNumDisplayExtra").innerHTML = ` (${cardData.length} total)`;
 				}
 			}
-
-			function updateImageSize() {
-				var size = document.getElementById("imgSizeSlider").value;
-				[...document.styleSheets[0].cssRules].find(x=> x.selectorText==`.labelImage`).style.maxHeight = size;
-			}
 		</script>
 		
 		
@@ -362,7 +387,6 @@
 			</div>
 			<br>
 			<button onclick="toggleImages()">Toggle All Image Previews</button>
-			<input type="range" id="imgSizeSlider" onchange="updateImageSize();" min=50 max=500 style="display: none;"></input>
 		</div>
 		<br>
 		<br>
