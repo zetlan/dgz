@@ -292,57 +292,130 @@ function maps_load() {
 
 
 
+// function starrify(data) {
+// 	var charBuffer = ["", 0];
+// 	var newData = "";
+// 	for (var a=0; a<data.length; a++) {
+// 		//if the current character is different or the buffer is too long, turn into new string
+// 		if (data[a] != charBuffer[0] || charBuffer[1] >= b64_encode.length-1) {
+// 			//if it's not long enough to become a star
+// 			if (charBuffer[1] < 4) {
+// 				for (var b=0; b<charBuffer[1]; b++) {
+// 					newData += charBuffer[0];
+// 				}
+// 			} else {
+// 				//if it's long enough to be starred
+// 				newData += `${charBuffer[0]}*${b64_encode[charBuffer[1]]}`;
+// 			}
+
+// 			//reset buffer
+// 			charBuffer[0] = data[a];
+// 			charBuffer[1] = 1;
+// 		} else {
+// 			//add to the star length
+// 			charBuffer[1] += 1;
+// 		}
+// 	}
+
+// 	//final character
+// 	if (charBuffer[1] < 4) {
+// 		for (var b=0; b<charBuffer[1]; b++) {
+// 			newData += charBuffer[0];
+// 		}
+// 	} else {
+// 		newData += `${charBuffer[0]}*${b64_encode[charBuffer[1]]}`;
+// 	}
+
+// 	return newData;
+// }
+
 function starrify(data) {
-	var charBuffer = ["", 0];
-	var newData = "";
-	for (var a=0; a<data.length; a++) {
-		//if the current character is different or the buffer is too long, turn into new string
-		if (data[a] != charBuffer[0] || charBuffer[1] >= b64_encode.length-1) {
-			//if it's not long enough to become a star
-			if (charBuffer[1] < 4) {
-				for (var b=0; b<charBuffer[1]; b++) {
-					newData += charBuffer[0];
-				}
-			} else {
-				//if it's long enough to be starred
-				newData += `${charBuffer[0]}*${b64_encode[charBuffer[1]]}`;
+	var strStore = "";
+	var strFinal = "";
+	var repeatTimes = 0;
+	var repeatLimit = 0;
+	//go through all the characters
+	while (data.length > 0) {
+		//repeat for all the stars
+		for (var starNum=1; starNum<=mapData_starsMax; starNum++) {
+			//get initial check value
+			strStore = data.slice(0, starNum);
+
+			//jump through and detect how many times that value repeats
+			//cap repeatTimes so that there aren't any undefinable repeat times
+			while (strStore == data.slice(repeatTimes * starNum, (repeatTimes + 1) * starNum) && repeatTimes < b64_encode.length-1) {
+				repeatTimes += 1;
 			}
 
-			//reset buffer
-			charBuffer[0] = data[a];
-			charBuffer[1] = 1;
-		} else {
-			//add to the star length
-			charBuffer[1] += 1;
+			//if there's only 1 star, it must repeat 4+ times. 2 stars requires 3 repeats, and 3+ stars requires only 2 repeats
+			repeatLimit = (starNum == 1) ? 3 : 2;
+
+			//if repeated enough, use the stars and leave the loop. if not, move to the next star number
+			if (repeatTimes > repeatLimit) {
+				//append to final string
+				strFinal += strStore;
+				for (var s=0; s<starNum; s++) {
+					strFinal += "*";
+				}
+				strFinal += getKey(tunnel_translation, repeatTimes);
+				//leave star loop
+				data = data.slice(starNum * repeatTimes);
+				starNum = mapData_starsMax + 1;
+			} else if (starNum == mapData_starsMax) {
+				//if out of star numbers, remove and add the single character
+				strFinal += data[0];
+				data = data.slice(1);
+			}
+
+			//reset to default
+			repeatTimes = 0;
 		}
 	}
-
-	//final character
-	if (charBuffer[1] < 4) {
-		for (var b=0; b<charBuffer[1]; b++) {
-			newData += charBuffer[0];
-		}
-	} else {
-		newData += `${charBuffer[0]}*${b64_encode[charBuffer[1]]}`;
-	}
-
-	return newData;
+	return strFinal;
 }
 
+// function unStarrify(data) {
+// 	var newData = "";
+// 	for (var c=0; c<data.length; c++) {
+// 		//if the next character is a star
+// 		if (data[c+1] == "*") {
+// 			for (var h=0; h<b64_decode[data[c+2]]; h++) {
+// 				newData += data[c];
+// 			}
+// 			c += 2;
+// 		} else {
+// 			//regular case
+// 			newData += data[c];
+// 		}
+// 	}
+
+// 	return newData;
+// }
+
 function unStarrify(data) {
-	var newData = "";
-	for (var c=0; c<data.length; c++) {
-		//if the next character is a star
-		if (data[c+1] == "*") {
-			for (var h=0; h<b64_decode[data[c+2]]; h++) {
-				newData += data[c];
+	//loop through all characters of the data
+	for (var u=0;u<data.length;u++) {
+		//if the character is a star, look forwards for other stars
+		if (data[u] == "*") {
+			var detectorChar = u+1;
+			var starNum = 1;
+
+			//determining number of stars/number of repeats
+			while (data[detectorChar] == "*") {
+				detectorChar += 1;
+				starNum += 1;
 			}
-			c += 2;
-		} else {
-			//regular case
-			newData += data[c];
+			var repeatTimes = b64_decode[data[detectorChar]];
+
+			//removing the stars and indicator number from the original data
+			data = spliceOut(data, u, detectorChar+1);
+
+			//extending the data through the duplication process
+			var charsToRepeat = data.slice(u-starNum, starNum);
+			for (var g=0; g<repeatTimes-1; g++) {
+				data = spliceIn(data, u, charsToRepeat);
+			}
 		}
 	}
-
-	return newData;
+	return data;
 }

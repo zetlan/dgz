@@ -30,6 +30,7 @@ var canvas;
 var camera;
 
 var color_bgDance = "#000000";
+var color_bgMenu = "#be873a";
 var color_editor_bg = "#333355";
 var color_editor_audio = "#f98e4c";
 var color_editor_outline = "#de4aff";
@@ -69,9 +70,11 @@ var game_map;
 var game_state;
 var game_time = 0;
 
+var mapData_starsMax = 4;
 var map_sqSize = 16;
 var map_parallaxF = 0.6;
 var map_parallaxC = 1.4;
+var maps;
 
 var player = new Player(0, 8);
 var player_physRepeats = 2;
@@ -83,7 +86,7 @@ function setup() {
 	setCanvasPreferences();
 	loadMaps();
 
-	game_state = new State_Main(map_test);
+	game_state = new State_Loading();//new State_Main(map_test);
 	camera = new Camera(0, 0);
 	
 	//maps_load();

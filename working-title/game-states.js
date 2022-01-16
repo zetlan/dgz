@@ -136,6 +136,46 @@ class State_Dance {
 }
 
 
+class State_Loading {
+	constructor() {
+		this.time = 0;
+	}
+
+	execute() {
+		ctx.fillStyle = color_bgMenu;
+		ctx.fillRect(0, 0, canvas.width, canvas.height);
+		ctx.fillStyle = color_text;
+		ctx.font = `${canvas.height / 20}px Ubuntu`;
+		ctx.textAlign = "center";
+		ctx.fillText(`loading...`, canvas.width / 2, canvas.height / 2);
+		//if the maps are loaded, transition into main
+
+		if (Object.keys(maps).length > 0) {
+			game_state = new State_Main(maps["startEasy"]);
+		}
+	}
+
+	handleKeyPress(a) {
+
+	}
+
+	handleKeyNegate(a) {
+
+	}
+
+	handleMouseDown(a) {
+
+	}
+
+	handleMouseMove(a) {
+
+	}
+
+	handleMouseUp(a) {
+
+	}
+}
+
 
 
 class State_Main {
