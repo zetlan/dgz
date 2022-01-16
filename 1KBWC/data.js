@@ -3810,6 +3810,7 @@ var cardData = [{
 	name: `Stylish Scarf`,
 	tags: ["S","point card"],
 }, {
+	authors: `Derek C.`,
 	id: `904`,
 	name: `Subito`,
 	tags: ["S"],
