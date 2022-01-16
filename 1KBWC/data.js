@@ -4898,6 +4898,16 @@ var cardData = [{
 	id: `1168`,
 	name: `The Test (form 1)`,
 	tags: ["T", "rule card"],
+}, {
+	authors: `Pi R.`,
+	id: `1169`,
+	name: `Augment`,
+	tags: ["A", "rule card"],
+}, {
+	authors: `Pi R.`,
+	id: `1170`,
+	name: `Contact Tracing`,
+	tags: ["C", "point card"],
 }];
 
 
