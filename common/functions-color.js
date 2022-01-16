@@ -31,7 +31,7 @@ function cLinterp(hex1, hex2, percentage) {
 	var finG = linterp(parseInt(hex1[3] + hex1[4], 16), parseInt(hex2[3] + hex2[4], 16), percentage);
 	var finB = linterp(parseInt(hex1[5] + hex1[6], 16), parseInt(hex2[5] + hex2[6], 16), percentage);
 	//converting back to hex
-	return ("#" + ("0" + Math.floor(finR).toString(16)).substr(-2) + ("0" + Math.floor(finG).toString(16)).substr(-2) + ("0" + Math.floor(finB).toString(16)).substr(-2));
+	return ("#" + Math.floor(finR).toString(16).padStart(2, "0") + Math.floor(finG).toString(16).padStart(2, "0") + Math.floor(finB).toString(16).padStart(2, "0"));
 }
 
 function cInvert(hex) {
@@ -43,5 +43,5 @@ function cInvert(hex) {
 	var finG = 255 - parseInt(hex.slice(3, 5), 16);
 	var finB = 255 - parseInt(hex.slice(5, 7), 16);
 	//converting back to hex
-	return ("#" + ("0" + Math.floor(finR).toString(16)).substr(-2) + ("0" + Math.floor(finG).toString(16)).substr(-2) + ("0" + Math.floor(finB).toString(16)).substr(-2));
+	return ("#" + Math.floor(finR).toString(16).padStart(2, "0") + Math.floor(finG).toString(16).padStart(2, "0") + Math.floor(finB).toString(16).padStart(2, "0"));
 }
