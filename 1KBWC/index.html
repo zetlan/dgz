@@ -5,8 +5,9 @@
 		October-16-2021
 		cards were largely not made by me, I am simply documenting them.
 		-->
-		<title>1K blank white cards - web access</title>
+		<title>1000 blank white cards - web access</title>
 		<meta charset="UTF-8">
+		<link rel='icon' href='all-card-images/bwcCover.png' type='image/png'/>
 		<style>
 			/*buttons*/
 			button {
@@ -41,16 +42,13 @@
 
 			#centerModule {
 				line-height: 0;
-				-webkit-column-count: 5;
-				-moz-column-count:    5;
 				column-count:         5;
-				-webkit-column-gap:   0px;
-				-moz-column-gap:      0px;
 				column-gap:           0px;
 			}
 
 			#centerModule img {
 				margin: auto;
+				margin-top: 2%;
 				margin-left: 10%;
 				margin-right: 10%;
 				width: 80%;
@@ -59,46 +57,27 @@
 
 			@media (max-width: 1600px) {
 				#centerModule {
-					-moz-column-count:    4;
-					-webkit-column-count: 4;
 					column-count:         4;
 				}
 			}
 
 			@media (max-width: 1200px) {
 				#centerModule {
-					-moz-column-count:    3;
-					-webkit-column-count: 3;
 					column-count:         3;
 				}
 			}
 
 			@media (max-width: 1000px) {
 				#centerModule {
-					-moz-column-count:    2;
-					-webkit-column-count: 2;
 					column-count:         2;
 				}
 			}
 			
 			@media (max-width: 400px) {
 				#centerModule {
-					-moz-column-count:    1;
-					-webkit-column-count: 1;
 					column-count:         1;
 				}
 			}
-
-			/* #centerModule {
-				text-align: center;
-				margin: auto;
-				margin-left: 10%;
-				margin-right: 10%;
-				display: grid;
-				grid-template-columns: repeat(3, 1fr);
-				gap: 10px;
-				grid-auto-rows: auto;
-			} */
 
 			.SMButton {
 				border: none;
@@ -134,6 +113,8 @@
 		<script type="text/javascript">
 			window.onload = setup;
 
+			var cardDataPulling = [];
+
 			var imageHeightLimit = 150;
 			var imageAspectRatio = 0.6;
 			var allImagesShown = false;
@@ -142,6 +123,7 @@
 				negStrings: []
 			};
 			var applyingTags = [];
+			var searchStr = "";
 
 			const color_withTags = `rgb(0, 255, 0)`;
 			const color_withoutTags = `rgb(255, 0, 255)`;
@@ -153,7 +135,7 @@
 				createImageGrid();
 
 				//update title number
-				document.getElementById("cardNumDisplay").innerHTML = cardData.length;
+				document.getElementById("cardNumDisplay").innerHTML = `are ${cardData.length} cards.`;
 			}
 
 			function createImageGrid() {
@@ -165,10 +147,11 @@
 					//image to go inside the link with title
 					imagElem = document.createElement("img");
 					imagElem.src = `all-card-images/card~${cardData[c].id}.${cardData[c].imgType || "png"}`;
-					imagElem.style = `display: none;`;
+					imagElem.style = `display: inline;`;
 					imagElem.classList.add("labelImage");
 					//get just the number as the ID
 					imagElem.id = cardData[c].id + "_img";
+					imagElem.alt = cardData[c].name;
 
 					//create link element and then put it in the main center column
 					linkElem = document.createElement("a");
@@ -359,12 +342,25 @@
 					}
 				});
 
+				//search text
+				searchStr = document.getElementById("searchBox").value;
+				cardData.forEach(card => {
+					//make sure cards going to be displayed include what's being searched
+					if (document.getElementById(card.id + "_link").style.display == "inline") {
+						if (!document.getElementById(card.id + "_img").alt.toLowerCase().includes(searchStr.toLowerCase())) {
+							document.getElementById(card.id + "_link").style.display = "none";
+							cardsVisible -= 1;
+						}
+					}
+				});
+
 				//update title text
-				document.getElementById("cardNumDisplay").innerHTML = cardsVisible;
-				document.getElementById("cardNumDisplayExtra").innerHTML = "";
-				if (cardsVisible != cardData.length) {
-					document.getElementById("cardNumDisplayExtra").innerHTML = ` (${cardData.length} total)`;
+				if (cardsVisible == 1) {
+					document.getElementById("cardNumDisplay").innerHTML = `is 1 card.`;
+				} else {
+					document.getElementById("cardNumDisplay").innerHTML = `are ${cardsVisible} cards.`;
 				}
+				document.getElementById("cardNumDisplayExtra").innerHTML = (cardsVisible != cardData.length) ? ` (${cardData.length} total)` : ``;
 			}
 		</script>
 		
@@ -372,7 +368,7 @@
 	</head>
 	<body>
 		<div id="topBar">
-			<h1>There are <span id="cardNumDisplay">[[NUMBER UNAVAILABLE]]</span> cards<span id="cardNumDisplayExtra"></span></h1>
+			<h1>There <span id="cardNumDisplay">are [[NUMBER UNAVAILABLE]] cards.</span><span id="cardNumDisplayExtra"></span></h1>
 			<h7><a href="about.html">About</a> ~~~ <a href="contact.html">Contact</a></h7>
 			<br>
 			<div class="selection" id="selectionModule_p">
@@ -386,7 +382,8 @@
 				</div>
 			</div>
 			<br>
-			<button onclick="toggleImages()">Toggle All Image Previews</button>
+			<!-- <button onclick="toggleImages()">Toggle All Image Previews</button><br> -->
+			<input id="searchBox" placeholder="Search for a card" oninput="updateCardsVisibility();">
 		</div>
 		<br>
 		<br>
