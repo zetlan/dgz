@@ -43,6 +43,16 @@ class Body {
 		this.ring = undefined;
 	}
 
+
+	//takes in an entity and makes it non-physical if it's colliding
+	//the magnitude is to save requiring a square root, as this function will be called from gravitate
+	collide(entity, magnitude) {
+		var magniAtRadius = this.m / (gravityDampener * (this.r * this.r) * dt);
+		if (magnitude >= magniAtRadius) {
+			entity.physical = false;
+		}
+	}
+
 	beDrawn() {
 		//I'm just leaving this up to the child classes
 	}
@@ -71,28 +81,26 @@ class Body {
 	}
 
 	//changes the thing's dx / dy based off of mass 
-	gravitate(thing) {
+	gravitate(entity) {
 		//getting distance to object for strength of pull
-		var xDist = thing.x - this.x;
-		var yDist = thing.y - this.y;
+		var xDist = entity.x - this.x;
+		var yDist = entity.y - this.y;
 		//atan2 does y, x instead of x, y for some reason, so I adjust by subtracting Pi.
 		var direction = (Math.atan2(xDist, yDist) - (Math.PI));
 
 		//normally gravity would be (m1 * m2 * g) / d^2, but that m2 is because of inertia, which doesn't exist here.
 		//that simplifies it to (m1 * g) / d^2
 		//since distance is sqrt(x^2 + y^2), I can just avoid using the square root
-		var magnitude = ((this.m / gravityDampener) / ((xDist * xDist) + (yDist * yDist))) / dt;
+		//in this case, g is a divisor, and dt is also factored in, so that gives
+		//((m1 / g) / dist) / dt
+		//which is also m1 / (g * dist * dt)
+		var magnitude = this.m / (gravityDampener * ((xDist * xDist) + (yDist * yDist)) * dt);
 	
-		thing.dx += magnitude * Math.sin(direction);
-		thing.dy += magnitude * Math.cos(direction);
+		entity.dx += magnitude * Math.sin(direction);
+		entity.dy += magnitude * Math.cos(direction);
 	
-		/*if the thing is experiencing a gravitational force strong enough that it could only be inside self's radius, destroy it 
-		I don't use pythagorean distance here because that requires a square root.*/
-		var magniAtRadius = (this.m / gravityDampener) / (this.r * this.r);
-		magniAtRadius = magniAtRadius / dt;
-		if (magnitude >= magniAtRadius) {
-			thing.physical = false;
-		}
+		//make sure object isn't inside self
+		this.collide(entity, magnitude);
 	}
 
 	//gravitate all child bodies as well as give all debris forces in their forces array
@@ -102,25 +110,22 @@ class Body {
 		});
 	}
 
-	gravitateToArray(thing) {
+	gravitateToArray(entity) {
 		//same as gravitate but with a different output
-		var xDist = thing.x - this.x;
-		var yDist = thing.y - this.y;
+		var xDist = entity.x - this.x;
+		var yDist = entity.y - this.y;
 		var direction = (Math.atan2(xDist, yDist) - (Math.PI));
 		var magnitude = ((this.m / gravityDampener) / ((xDist * xDist) + (yDist * yDist))) / dt;
 
-		thing.gravityForces.push([this, magnitude, magnitude * Math.sin(direction), magnitude * Math.cos(direction)]);
+		entity.gravityForces.push([this, magnitude, magnitude * Math.sin(direction), magnitude * Math.cos(direction)]);
 
-		var magniAtRadius = ((this.m / gravityDampener) / (this.r * this.r)) / dt;
-		if (magnitude >= magniAtRadius) {
-			thing.physical = false;
-		}
+		this.collide(entity, magnitude);
 	}
 
 	//modifies coordinates without directly changing x, y, dx, dy. This is useful in systems, where changing the x / y of the system does not change the x / y of the child bodies.
 	modifyCoordinates(xModifier, yModifier, dxModifier, dyModifier, subtractingBOOLEAN) {
 		//changing subtractingBOOLEAN from a boolean into a -1, 1 multiplier
-		var mult = (subtractingBOOLEAN * -2) + 1;
+		var mult = boolToSigned(!subtractingBOOLEAN);
 
 		//changing own parameters
 		this.x += xModifier * mult;
@@ -497,10 +502,11 @@ class Player extends Debris {
 		if (this.acc && this.fuel > 0 && this.power > 0) {
 			//subtract fuel
 			this.fuel -= (player_thrusterStrength * player_fuelEfficiency) / dt;
+			this.fuel = Math.max(0, this.fuel);
 
 			//calculate change in dx / dy
-			this.dx -= (player_thrusterStrength / dt) * Math.cos(this.a);
-			this.dy -= (player_thrusterStrength / dt) * Math.sin(this.a);
+			this.dx -= player_thrusterStrength * Math.cos(this.a) / dt;
+			this.dy -= player_thrusterStrength * Math.sin(this.a) / dt;
 
 			//change orbit ring
 			this.prediction_create();
@@ -719,9 +725,15 @@ class Star extends Body {
 //binary stars are sets of two stars that orbit each other. It's one object so I don't have to deal with the hell of having multiple objects in the center of each System.
 class Star_Binary extends Body {
 	constructor(body1, body2) {
-		super((body1.x + body2.x) / 2, (body1.y + body2.y) / 2, (body1.dx + body2.dx) / 2, (body1.dy + body2.dy) / 2, 0, body1.m + body2.m, body1.color);
+		var weight1 = body1.m / (body1.m + body2.m);
+		var weight2 = (body2.m) / (body1.m + body2.m);
+
+		super((body1.x * weight1 + body2.x * weight2) / 2, (body1.y * weight1 + body2.y * weight2) / 2, (body1.dx * weight1 + body2.dx * weight2) / 2, (body1.dy * weight1 + body2.dy * weight2) / 2, 
+		0, body1.m + body2.m, cLinterp(body1.color, body2.color, weight2));
 		this.body1 = body1;
 		this.body2 = body2;
+
+		this.prevD = [this.dx, this.dy];
 	}
 
 	beDrawn() {
@@ -729,19 +741,21 @@ class Star_Binary extends Body {
 		this.body2.beDrawn();
 
 		//indicator dot
-		
-		ctx.fillStyle = "#F0F";
-		ctx.beginPath();
-		var tempXY = spaceToScreen(this.x, this.y);
-		ctx.ellipse(tempXY[0], tempXY[1], 5, 5, 0, 0, Math.PI * 2, false);
-		ctx.fill();
-		
+		// ctx.fillStyle = "#F0F";
+		// ctx.beginPath();
+		// var tempXY = spaceToScreen(this.x, this.y);
+		// ctx.ellipse(tempXY[0], tempXY[1], 5, 5, 0, 0, Math.PI * 2, false);
+		// ctx.fill();
 	}
 
-	
+	collide(thing) {
+		var inABody = (getDistance([thing.x, thing.y], [this.body1.x, this.body1.y]) < this.body1.r) || (getDistance([thing.x, thing.y], [this.body2.x, this.body2.y]) < this.body2.r);
+		if (inABody) {
+			thing.physical = false;
+		}
+	}
 
 	modifyCoordinates(xModifier, yModifier, dxModifier, dyModifier, subtractingBOOLEAN) {
-
 		super.modifyCoordinates(xModifier, yModifier, dxModifier, dyModifier, subtractingBOOLEAN);
 
 		//also modify child coordinates
@@ -750,49 +764,29 @@ class Star_Binary extends Body {
 	}
 
 	tick() {
+		//make sure center bodies are keeping up with actual center of mass
+		if (this.prevD[0] != this.dx) {
+			this.body1.dx += this.dx - this.prevD[0];
+			this.body2.dx += this.dx - this.prevD[0];
+		}
+
+		if (this.prevD[1] != this.dy) {
+			this.body1.dy += this.dy - this.prevD[1];
+			this.body2.dy += this.dy - this.prevD[1];
+		}
+		this.prevD = [this.dx, this.dy];
+
 		//interaction with self
-		this.body1.gravitate(body2);
-		this.body2.gravitate(body1);
+		this.gravitate(this.body1);
+		this.gravitate(this.body2);
 
 		//tick child objects
 		this.body1.tick();
 		this.body2.tick();
 
+		//updating position
 		super.tick();
 	}
-
-	gravitate() {
-		var xDist = (thing.x - this.x);
-		var yDist = thing.y - this.y;
-		var direction = (Math.atan2(xDist, yDist) - (Math.PI));
-		var magnitude = ((this.m / gravityDampener) / ((xDist * xDist) + (yDist * yDist))) / dt;
-	
-		thing.dx += magnitude * Math.sin(direction);
-		thing.dy += magnitude * Math.cos(direction);
-	
-
-		//checking with body radii
-		var inABody = (getDistance([thing.x, thing.y], [this.body1.x, this.body1.y]) < this.body1.r) || (getDistance([thing.x, thing.y], [this.body2.x, this.body2.y]) < this.body2.r);
-		if (inABody) {
-			thing.physical = false;
-		}
-	}
-
-	gravitateToArray(thing) {
-		var xDist = thing.x - this.x;
-		var yDist = thing.y - this.y;
-		var direction = (Math.atan2(xDist, yDist) - (Math.PI));
-		var magnitude = ((this.m / gravityDampener) / ((xDist * xDist) + (yDist * yDist))) / dt;
-		thing.gravityForces.push([this, magnitude, magnitude * Math.sin(direction), magnitude * Math.cos(direction)]);
-
-		//same body radii check
-		var inABody = (getDistance([thing.x, thing.y], [this.body1.x, this.body1.y]) < this.body1.r) || (getDistance([thing.x, thing.y], [this.body2.x, this.body2.y]) < this.body2.r);
-		if (inABody) {
-			thing.physical = false;
-		}
-	}
-
-	
 
 	setOrbit(bodyToOrbit, apoH, periH, apoA, startA, ccwBOOL) {
 		this.body1.x -= this.x;
