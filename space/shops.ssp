@@ -27,6 +27,50 @@ Welcome back to my shop! How can I help you this time?
 	talk†talkList
 	leave‹console.log("leaving");›
 
+§start3
+Anything else?
+	Buy items†itemList
+	talk†talkList
+	leave‹console.log("leaving");›
+
+§itemList
+What are you looking for? You have ~~character.gold~~ coins.
+	fuel
+	hyperdrive
+	item4
+	nevermind†start3
+
+§talkList
+Any topics in mind?
+	no
+	piloting a ship
+	about you
+	the world
+
+§talkNo
+	I don't blame you, there's so much going on nowadays. Times are changing! I'll tell you, I'm looking forward to cheap space travel. You've seen the news, right? It's just around the corner.
+	Did you see the recent sports ball? You like sports?
+
+§talkPilot
+
+§talkAbout
+
+§talkWorld
+
+
+
+
+
+
+¶ArtCollector
+§start
+They said I was crazy. They said an outpost next to a black hole would never work. Well guess who's laughing now?
+Art doesn't have to be permanent. We enter being, we are, we exit being, and y'know, that's ok. 
+
+I just,
+I want to live a million lives. I want to go out and experience the world. I want to create art. I want to impact people. I want to be the vessel through which that beautiful, universal, current of human emotion flows. 
+And I want to feel like myself, and if you bought something from my shop that would really make me feel.
+
 
 
 [`"Hi! Welcome to my shop, what can I do for you?" |buy items|talk|leave`, [new Shop_setLine(3), new Shop_setLine(9), new Shop_escape()]],
