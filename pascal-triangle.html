@@ -3,6 +3,9 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Ubuntu&display=swap" rel="stylesheet">
         <title>Pasca Pasca</title>
         <style>
 
@@ -73,7 +76,7 @@
                 },
                 "sevens": {
                     "c": function (num) {
-                        return (num % 7) ? colors[4] : colors[1];
+                        return (num % 7) ? colors[4] : colors[3];
                     },
                     "n": function (a, b) {
                         return mainNScheme(a, b) % 7;
@@ -109,6 +112,11 @@
                 updateResolution();
             }
 
+            //a function to add two large integers, represented as strings, into a third larger integer, represented as a string. This is to get around floating point annoyances.
+            function addLargeInts(strIntA, strIntB) {
+
+            }
+
             function apply() {
                 compute();
                 draw();
@@ -140,13 +148,14 @@
                 var axCol = [-circleSize * Math.cos(Math.PI / 3), circleSize * Math.sin(Math.PI / 3)];
                 var axRow = [circleSize, 0];
 
-                ctx.font = `Ubuntu ${Math.ceil(circleSize / 2)}px`;
+                ctx.font = `${Math.ceil(circleSize / 2)}px Ubuntu`;
                 for (var a=0; a<computed.length; a++) {
                     for (var b=0; b<computed[a].length; b++) {
                         drawCircle(initX + a * axCol[0] + b * axRow[0], initY + a * axCol[1] + b * axRow[1], circleSize * 0.49, loadCScheme(computed[a][b]), color_circleOutlines);
                         //draw numbers if necessary
                         if (loadCScheme == schemes["static"]["c"]) {
                             ctx.fillStyle = color_circleOutlines;
+                            ctx.font = `${Math.ceil(circleSize / 2 / ("" + computed[a][b]).length ** 0.6)}px Ubuntu`;
                             ctx.fillText(computed[a][b], initX + a * axCol[0] + b * axRow[0], initY + a * axCol[1] + b * axRow[1]);
                         }
                     }
@@ -188,6 +197,7 @@
                 //also change size of slider
                 document.getElementById("rowSlider").style.width = `${allowable}px`;
 
+                setCanvasPreferences();
                 apply();
             }
         </script>
