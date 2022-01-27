@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width">
+        <title>Pasca Pasca</title>
+        <style>
+
+        body {
+            background-color: slateblue;
+        }
+        #canvas {
+            border-style: double;
+            border-color: slateblue;
+        }
+        #mid {
+            text-align: center;
+        }
+        </style>
+    </head>
+    <body>
+        <script type="text/javascript">
+            window.onload = setup;
+            window.onresize = updateResolution;
+            
+            var timer;
+
+            const color_bg = "#110406";
+            const colors = [
+                "#ECA72C",
+                "#EE5622",
+                "#DCD6F7",
+                "#A6B1E1",
+                "#808782",
+                "#A6D3A0",
+            ];
+            const color_circleOutlines = "#180D30";
+
+            var triMargin = 0.05;
+            var triNumbers = false;
+            var numRows = 3;
+
+            var computed = [];
+            var loadCScheme = undefined;
+            var loadNScheme = undefined;
+
+            var mainNScheme = function (a, b) {
+                return (a ?? 0) + (b ?? 0);
+            }
+
+            var schemes = {
+                "static": {
+                    "c": function (num) {
+                        return colors[colors.length-1];
+                    },
+                    "n": mainNScheme
+                },
+                "mod2": {
+                    "c": function (num) {
+                        return colors[num % 2];
+                    },
+                    "n": function (a, b) {
+                        return mainNScheme(a, b) % 1e10;
+                    }
+                },
+                "mod3": {
+                    "c": function (num) {
+                        return colors[num % 3];
+                    },
+                    "n": function (a, b) {
+                        return mainNScheme(a, b) % 3;
+                    }
+                },
+                "sevens": {
+                    "c": function (num) {
+                        return (num % 7) ? colors[4] : colors[1];
+                    },
+                    "n": function (a, b) {
+                        return mainNScheme(a, b) % 7;
+                    }
+                },
+                "special3": {
+                    "c": function (num) {
+                        return colors[3 + num % 3];
+                    },
+                    "n": function (a, b) {
+                        a = a ?? 3;
+                        b = b ?? 3;
+                        //special rules for what A and B map on to
+                        //first rule: a color added to itself must always equal a different color
+                        if (a == b) {
+                            return (a + 1) % 3;
+                        }
+
+                        //second rule: numbers multiply
+                        return (a * b) % 3;
+                        //return ((a ?? 0) + (b ?? 0)) % 3;
+                    }
+                }
+            }
+
+            function setup() {
+                canvas = document.getElementById("canvas");
+                ctx = canvas.getContext("2d");
+                document.getElementById("rowSlider").value = numRows;
+
+
+                updateScheme();
+                updateResolution();
+            }
+
+            function apply() {
+                compute();
+                draw();
+            }
+
+            function compute() {
+                //set the seed, then go from there
+                computed = [[1]];
+                for (var a=1; a<numRows; a++) {
+                    computed[a] = [];
+                    for (var b=0; b<=a; b++) {
+                        computed[a][b] = loadNScheme(computed[a-1][b-1], computed[a-1][b]);
+                    }
+                }
+            }
+
+            function draw() {
+                //bege
+                ctx.fillStyle = color_bg;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                //figure out circle size
+                var circleSize = (canvas.height * (1 - triMargin * 2)) / numRows;
+
+                //figure out axes
+                var initX = canvas.width / 2;
+                var initY = (canvas.height * triMargin) + circleSize / 2;
+
+                var axCol = [-circleSize * Math.cos(Math.PI / 3), circleSize * Math.sin(Math.PI / 3)];
+                var axRow = [circleSize, 0];
+
+                ctx.font = `Ubuntu ${Math.ceil(circleSize / 2)}px`;
+                for (var a=0; a<computed.length; a++) {
+                    for (var b=0; b<computed[a].length; b++) {
+                        drawCircle(initX + a * axCol[0] + b * axRow[0], initY + a * axCol[1] + b * axRow[1], circleSize * 0.49, loadCScheme(computed[a][b]), color_circleOutlines);
+                        //draw numbers if necessary
+                        if (loadCScheme == schemes["static"]["c"]) {
+                            ctx.fillStyle = color_circleOutlines;
+                            ctx.fillText(computed[a][b], initX + a * axCol[0] + b * axRow[0], initY + a * axCol[1] + b * axRow[1]);
+                        }
+                    }
+                }
+            }
+
+            function drawCircle(x, y, r, fillColor, outlineColor) {
+                ctx.beginPath();
+                ctx.fillStyle = fillColor;
+                ctx.strokeStyle = outlineColor;
+                ctx.ellipse(x, y, r, r, 0, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.fill();
+            }
+
+            function setCanvasPreferences() {
+                ctx.textBaseline = "middle";
+                ctx.textAlign = "center";
+            }
+
+            function updateSize() {
+                numRows = +document.getElementById("rowSlider").value;
+                apply();
+            }
+
+            function updateScheme() {
+                var newID = document.getElementById("schemes").value;
+                loadCScheme = schemes[newID]["c"];
+                loadNScheme = schemes[newID]["n"];
+                apply();
+            }
+
+            function updateResolution() {
+                //stretch canvas to emtire screen
+                var allowable = Math.min(window.innerWidth * 0.95, window.innerHeight * 0.88);
+                canvas.width = allowable;
+                canvas.height = allowable;
+
+                //also change size of slider
+                document.getElementById("rowSlider").style.width = `${allowable}px`;
+
+                apply();
+            }
+        </script>
+        <div id="mid">
+            <canvas id="canvas" width="640" height="480"></canvas><br>
+            <input type="range" min="2" max="300" id="rowSlider" oninput="updateSize();"><br>
+            <select name="Triangle types" id="schemes" onchange="updateScheme();">
+                <option value="static">Numbers</option>
+                <option value="mod2">Even-odd</option>
+                <option value="mod3">Modulus 3</option>
+                <option value="sevens">Sevens</option>
+                <option value="special3">Chaotic 3</option>
+            </select>
+        </div>
+    </body>
+</html>
