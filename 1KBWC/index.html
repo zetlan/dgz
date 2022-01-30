@@ -16,7 +16,7 @@
 				text-align: center;
 				transition-duration: 0.4s;
 				color: black;
-				border: solid #000;
+				border: none;
 				height: 25px;
 			}
 
@@ -79,31 +79,28 @@
 				}
 			}
 
-			.SMButton {
-				border: none;
-			}
-
 			.selection {
 				position: relative;
 				display: inline-block;
 			}
 
-
 			.selectionContent {
 				display: none;
 				position: absolute;
-				background-color: #eeeeee;
+				background-color: rgb(186, 177, 247);
 				min-width: 160px;
 				z-index: 1;
+			}
+
+			.selection:hover .selectionContent {
+				display: block;
 			}
 
 			.selectionContent input {
 				color: black;
 				padding: 12px 16px;
-				display: block;
+				display: inline-block;
 			}
-
-			.selection:hover .selectionContent {display: block;}
 
 			#download {
 				display: none;
@@ -147,7 +144,7 @@
 					//image to go inside the link with title
 					imagElem = document.createElement("img");
 					imagElem.src = `all-card-images/card~${cardData[c].id}.${cardData[c].imgType || "png"}`;
-					imagElem.style = `display: inline;`;
+					imagElem.style = `display: inline-block;`;
 					imagElem.classList.add("labelImage");
 					//get just the number as the ID
 					imagElem.id = cardData[c].id + "_img";
@@ -239,7 +236,7 @@
 			function toggleImages() {
 				//decide which way self is going
 				allImagesShown = !allImagesShown;
-				var newDisplay = allImagesShown ? "inline" : "none";
+				var newDisplay = allImagesShown ? "inline-block" : "none";
 
 				//loop through all links in the center module
 				var collectRef = document.getElementById("centerModule").children;
@@ -250,7 +247,7 @@
 
 			function toggleImage(imgNum) {
 				var ref = document.getElementById(imgNum + "_img");
-				ref.style.display = (ref.style.display == "none") ? "inline" : "none";
+				ref.style.display = (ref.style.display == "none") ? "inline-block" : "none";
 			}
 
 			function toggleSelector(str, arr) {
@@ -324,7 +321,7 @@
 				cardData.forEach(card => {
 					//inclusive means that if the card contains any of the added tags, it will be displayed
 					if (card.tags.some(item => selectorSettings.posStrings.includes(item))) {
-						document.getElementById(card.id + "_link").style.display = "inline";
+						document.getElementById(card.id + "_link").style.display = "inline-block";
 						cardsVisible += 1;
 					} else {
 						document.getElementById(card.id + "_link").style.display = "none";
@@ -335,7 +332,7 @@
 				cardData.forEach(card => {
 					//exclusive means that if the card contains any of the added tags, it will be forcibly undisplayed. Do not display it if it doesn't match tags though.
 					if (card.tags.some(item => selectorSettings.negStrings.includes(item))) {
-						if (document.getElementById(card.id + "_link").style.display == "inline") {
+						if (document.getElementById(card.id + "_link").style.display == "inline-block") {
 							document.getElementById(card.id + "_link").style.display = "none";
 							cardsVisible -= 1;
 						}
@@ -346,7 +343,7 @@
 				searchStr = document.getElementById("searchBox").value;
 				cardData.forEach(card => {
 					//make sure cards going to be displayed include what's being searched
-					if (document.getElementById(card.id + "_link").style.display == "inline") {
+					if (document.getElementById(card.id + "_link").style.display == "inline-block") {
 						if (!document.getElementById(card.id + "_img").alt.toLowerCase().includes(searchStr.toLowerCase())) {
 							document.getElementById(card.id + "_link").style.display = "none";
 							cardsVisible -= 1;
