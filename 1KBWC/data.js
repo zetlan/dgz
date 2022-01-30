@@ -4908,6 +4908,53 @@ var cardData = [{
 	id: `1170`,
 	name: `Contact Tracing`,
 	tags: ["C", "point card"],
+}, {
+	id: `1171`,
+	name: `On any music player, listen to allof Mortal Kombat theme by Misterious-theme`,
+	tags: ["O", "point card"],
+}, {
+	id: `1172`,
+	name: `Mono`,
+	tags: ["M", "point card"],
+}, {
+	id: `1173`,
+	name: `What the heck?`,
+	tags: ["W", "point card", "wide"],
+}, {
+	authors: `Aadarsh N.`,
+	id: `1174`,
+	name: `Regret`,
+	tags: ["R", "point card"],
+}, {
+	id: `1175`,
+	name: `Spongeboy me bob!`,
+	tags: ["S", "point card"],
+}, {
+	id: `1176`,
+	name: `HAND TURKEY PART 3`,
+	tags: ["H", "point card"],
+	notes: `I really wish people would stop making these types of set cards. They never apply in the actual game. A distinction is made between cards in a set and cards that give points when the set is united, because cards in a set can be cool when you discover one at a time, but cards that only give points / have an effect triggered when they're united will simply never have their effects triggered.`
+}, {
+	id: `1177`,
+	name: `Self-Distruct`,
+	tags: ["S", "point card"],
+}, {
+	id: `1178`,
+	name: `LONG SANTA`,
+	tags: ["L"],
+}, {
+	id: `1179`,
+	name: `ABOLISH THE ELECTORAL COLLEGE`,
+	tags: ["A", "point card"],
+}, {
+	authors: `Aadarsh N.`,
+	id: `1180`,
+	name: `Caltrops`,
+	tags: ["C", "multi-colored"],
+}, {
+	id: `1181`,
+	name: `DEEP DARK SEA`,
+	tags: ["D", "point card"],
 }];
 
 
