@@ -124,6 +124,7 @@ class State_Map extends State_World {
 			menuPos = 1;
 		}
 		loading_camera = camera_map;
+		
 	}
 
 	drawBG() {
