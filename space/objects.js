@@ -289,6 +289,13 @@ class Planet_Orbiting extends Planet {
 		if (loading_camera == camera_map) {
 			this.ring.tick();
 			this.ring.beDrawn();
+
+			// var coords1 = spaceToScreen(this.x, this.y);
+			// var coords2 = polToXY(...coords1, Math.atan2(this.dy, this.dx), 20 * getDistance([0, 0], [this.dx, this.dy]));
+			// ctx.beginPath();
+			// ctx.moveTo(...coords1);
+			// ctx.lineTo(...coords2);
+			// ctx.stroke();
 		}
 
 		super.beDrawn();
@@ -432,18 +439,9 @@ class Player extends Debris {
 	}
 	
 	debrisHit(dx, dy) {
-		var asteroidVelX = dx;
-		var asteroidVelY = dy;
-		//take a weighted average of the velocities
-		var dxAverage = ((6 * this.dx) + asteroidVelX) / 7;
-		var dyAverage = ((6 * this.dy) + asteroidVelY) / 7;
-
-		//make the weighted average the player's new velocity
-		this.dx = dxAverage;
-		this.dy = dyAverage;
-	
-		//give the player power, because asteroids do that I guess
-		this.power += powerIncrement * 16;
+		//take a weighted average of the velocities (asteroid + player), and make it the player's new velocity
+		this.dx = ((player_asteroidResist * this.dx) + dx) / (player_asteroidResist + 1);
+		this.dy = ((player_asteroidResist * this.dy) + dy) / (player_asteroidResist + 1);
 	}
 
 	destroy() {
@@ -460,7 +458,6 @@ class Player extends Debris {
 		var stepsPerLine = 35;
 
 		var lastPredict = this.predictCoords[this.predictCoords.length - 1];
-		
 
 		//creating new predict coordinate
 		this.predictCoords.push([game_time + stepsPerLine, lastPredict[1], lastPredict[2], lastPredict[3], lastPredict[4]]);
@@ -468,13 +465,12 @@ class Player extends Debris {
 		//setting easy reference
 		lastPredict = this.predictCoords[this.predictCoords.length - 1];
 
+		//each line extrapollates out for a set number of timesteps
 		for (var t=0; t<stepsPerLine; t++) {
-			//each line takes over 10 timesteps, iterate until done
-
 			//this is just the gravitate function, but compressed and modifies the predictCoords, not an object
 			var dist = [lastPredict[1] - this.parent.x, lastPredict[2] - this.parent.y];
 			var direction = (Math.atan2(dist[0], dist[1]) - (Math.PI));
-			var magnitude = (this.parent.m / gravityDampener) / ((dist[0] * dist[0]) + (dist[1] * dist[1]));
+			var magnitude = this.parent.m / (gravityDampener * (dist[0] ** 2 + dist[1] ** 2));
 		
 			lastPredict[3] += magnitude * Math.sin(direction);
 			lastPredict[4] += magnitude * Math.cos(direction);
@@ -485,18 +481,6 @@ class Player extends Debris {
 	}
 
 	fireThrusters() {
-		//changing direction
-		this.da += this.aa;
-		this.da *= 0.85;
-		if (Math.abs(this.da) > player_turnSpeedMax) {
-			if (this.da < 0) {
-				this.da = -1 * player_turnSpeedMax;
-			} else {
-				this.da = player_turnSpeedMax;
-			}
-		}
-		this.a += this.da;
-
 
 		//using fuel to change dx / dy
 		if (this.acc && this.fuel > 0 && this.power > 0) {
@@ -530,26 +514,23 @@ class Player extends Debris {
 
 	tick() {
 		//recieving input
+
+		//direction
+		this.da = clamp((this.da + this.aa) * 0.85, -player_turnSpeedMax, player_turnSpeedMax);
+		this.a += this.da;
+
+		//thrusters
 		this.fireThrusters();
 		super.tick();
 
 		//updating vitals
-		if (this.warm < 0) {
-			this.warm = 0;
-			this.physical = false;
-		}
-		if (this.warm > 100) {
-			this.warm = 100;
+		if (this.warm < 0 || this.warm > 100) {
+			this.warm = clamp(this.warm, 0, 100);
 			this.physical = false;
 		}
 
-		if (this.power < 0) {
-			this.power = 0;
-		}
+		this.power = clamp(this.power, 0, 100);
 
-		if (this.power > 100) {
-			this.power = 100;
-		}
 		if (this.fuel > this.fuel_max) {
 			this.fuel = this.fuel_max;
 		}
