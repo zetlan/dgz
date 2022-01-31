@@ -6,7 +6,7 @@ print(sys.version)
 
 time_limit = 2   # Time limit per turn in seconds.  Set to None for no time limit.
 # p1, p2 = sys.argv[1], sys.argv[2]   # Uncomment to use command line arguments.
-p1 = "oth_random_import.py"
+p1 = "theBestStrategy.py"
 p2 = "oth_greedy_predictable_import.py"
 players = [p1, p2]
 
