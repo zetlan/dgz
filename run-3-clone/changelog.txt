@@ -1,6 +1,15 @@
 
 
 
+V1.24 - January-31-2022
+    bug fixes:
+        fixed crash when loading cutscenes with no frames
+        fixed error where IM-259 would never appear
+        improved tunnel rotation
+
+
+
+
 V1.23 - January-14-2022
     bug fixes:
         Fixed text alignment issues in edit mode
