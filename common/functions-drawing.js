@@ -14,7 +14,6 @@ drawRoundedRectangle(x, y, width, height, arcRadius);
 function drawCircle(x, y, r) {
 	ctx.beginPath();
 	ctx.ellipse(x, y, r, r, 0, 0, Math.PI * 2);
-	
 }
 
 function drawPoints(xyPointsArr) {
