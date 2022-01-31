@@ -293,10 +293,6 @@ class Tile extends FreePoly {
 	getColor() {
 		return `hsl(${this.color.h}, ${this.color.s}%, ${linterp((this.color.v * 45) * (this.parent.power + 0.5), 0, clamp((this.playerDist / render_maxColorDistance) * (1 / (this.parent.power + 0.001)), 0.1, 1))}%)`;
 	}
-
-	playerIsOnTop() {
-		return (((spaceToRelativeRotless([player.x, player.y, player.z], [this.x, this.y, this.z], this.normal)[2]) * spaceToRelativeRotless([world_camera.x, world_camera.y, world_camera.z], [this.x, this.y, this.z], this.normal)[2]) > 0);
-	}
 }
 
 //I just gave up on the tile system with this one and made it its own object
@@ -1104,10 +1100,6 @@ class Tile_Ramp extends Tile {
 			entity.dy = entity.dz * this.rampPushForce * boolToSigned(!player.backwards);
 		}
 		entity.onground = physics_graceTimeRamp;
-	}
-
-	playerIsOnTop() {
-		return (super.playerIsOnTop() || spaceToRelativeRotless([player.x, player.y, player.z], [this.x, this.y, this.z], [this.parent.theta, 0]));
 	}
 }
 
