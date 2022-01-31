@@ -11,13 +11,17 @@ import sys
 #utilCorner - pretty large because if you've got corners, it's very easy to get lots of pieces
 #utilMove - having more mobility is good
 #utilCapture - eh
-utilWin = 1e101
-utilCorner = 1e6
+utilWin = 1e10
+utilCorner = 1e5
 utilMove = 1e2
 utilCapture = 1e-1
 
 pieceWarning = "`"
-pieceUtilGoals = [-utilWin, utilWin]
+pieceUtilGoals = {
+    'x': utilWin,
+    'o': -utilWin
+}
+pieces = "xo"
 dirs = [-11, -10, -9, -1, 1, 9, 10, 11]
 
 def boolToSigned(boolVal):
@@ -28,70 +32,91 @@ def boolToSigned(boolVal):
 def find_next_move(board8, player, maxDepth):
     #return index10to8(choice(possible_moves(convert8to10(board8), player)))
     #generate the move tree
-    gameTree = generateMoveTree(convert8to10(board8), player, maxDepth)
+    gameTree = generateMoveTree(convert8to10(board8), player, maxDepth, -1e1001, 1e1001)
 
     #determine which move to play based on utility
     bestUtil = None
     bestMove = -1
     for child in gameTree["children"]:
-        if (bestUtil == None or -child['utility'] > bestUtil):
-            bestUtil = -child['utility']
+        if (bestUtil == None or abs(child['utility'] - pieceUtilGoals[player]) < abs(bestUtil - pieceUtilGoals[player])):
+            bestUtil = child['utility']
             bestMove = child["moveMade"]
 
+    print([make_move(gameTree['board'], player, move) for move in possible_moves(gameTree['board'], player)])
+    print([x['utility'] for x in gameTree['children']])
+    print("expected utility is {} ({} is goal)".format(bestUtil, pieceUtilGoals[player]))
     return index10to8(bestMove)
 
-def generateMoveTree(board10, player, maxDepth):
+def generateMoveTree(board10, player, maxDepth, alpha, beta):
     #start with the top node
     topNode = {
         'board': board10,
         'children': [],
-        'utility': None
+        'utility': None,
     }
 
     #is it an end node? Because if so, calculate utility and return
     if (maxDepth <= 0):
-        #
-        topNode['utility'] = utility(board10, player)
+        topNode['utility'] = utilityFor(board10)
         return topNode
 
     #recurse if incomplete
     possibles = possible_moves(board10, player)
     children = [make_move(board10, player, move) for move in possibles]
+    nextToMove = invertPiece(player)
 
 
     #if there are no children, why?
     if (len(children) == 0):
-        topNode['utility'] = utility(board10, player)
+        topNode['utility'] = utilityFor(board10)
         return topNode
 
     #loop through all children
-    nextToMove = invertPiece(player)
-    for c in range(len(children)):
-        newNode = generateMoveTree(children[c], nextToMove, maxDepth - 1)
-        newNode['moveMade'] = possibles[c]
-        topNode['children'].append(newNode)
-        #because children will have utility for the other player, propogate reverse utility
-        if (topNode['utility'] == None or -newNode['utility'] > topNode['utility']):
-            topNode['utility'] = -newNode['utility']
+    if (pieceUtilGoals[player] < 0):
+        #for minimizers
+        for c in range(len(children)):
+            newNode = generateMoveTree(children[c], nextToMove, maxDepth - 1, alpha, beta)
+            newNode['moveMade'] = possibles[c]
+            topNode['children'].append(newNode)
+            if (topNode['utility'] == None or newNode['utility'] < topNode['utility']):
+                topNode['utility'] = newNode['utility']
+
+            #ALPHA-BETA PRUNING
+            beta = min(beta, topNode['utility'])
+            if (beta > alpha):
+                break
+    else:
+        #for maximizers
+        for c in range(len(children)):
+            newNode = generateMoveTree(children[c], nextToMove, maxDepth - 1, alpha, beta)
+            newNode['moveMade'] = possibles[c]
+            topNode['children'].append(newNode)
+            if (topNode['utility'] == None or newNode['utility'] > topNode['utility']):
+                topNode['utility'] = newNode['utility']
+
+            #ALPHA-BETA PRUNING - the alpha and beta make it esoteric, but basically alpha is the maximum possible value, and beta is the minimum
+            #if they overlap, it's time to leave, because the next bits of the tree will never be picked
+            alpha = max(alpha, topNode['utility'])
+            if (alpha > beta):
+                break
 
     return topNode
 
-def utility(board10, player):
-    opposer = invertPiece(player)
+def utilityFor(board10):
     #if it's a win state, calculation is easy
     if (board10.count('.') == 0):
-        return utilWin * boolToSigned(board10.count(player) > board10.count(opposer))
+        return utilWin * boolToSigned(board10.count(pieces[0]) > board10.count(pieces[1]))
 
     #corners
     utility = 0
-    utility += utilCorner * int(board10[11] == player) + utilCorner * int(board10[18] == player) + utilCorner * int(board10[81] == player) + utilCorner * int(board10[88] == player)
-    utility -= utilCorner * int(board10[11] == opposer) + utilCorner * int(board10[18] == opposer) + utilCorner * int(board10[81] == opposer) + utilCorner * int(board10[88] == opposer)
+    utility += utilCorner * (int(board10[11] == pieces[0]) + int(board10[18] == pieces[0]) + int(board10[81] == pieces[0]) + int(board10[88] == pieces[0]))
+    utility -= utilCorner * (int(board10[11] == pieces[1]) + int(board10[18] == pieces[1]) + int(board10[81] == pieces[1]) + int(board10[88] == pieces[1]))
     
     #value mobility
-    utility += (utilMove * len(possible_moves(board10, player))) - (utilMove * len(possible_moves(board10, opposer)))
+    utility += (utilMove * len(possible_moves(board10, pieces[0]))) - (utilMove * len(possible_moves(board10, pieces[1])))
 
     #points
-    utility += utilCapture * (board10.count(player) - board10.count(opposer))
+    utility += utilCapture * (board10.count(pieces[0]) - board10.count(pieces[1]))
 
     return utility
 
@@ -125,7 +150,6 @@ def index10to8(ind):
 
 #gives the possible moves a token can make on a 10x10 board, given a board state
 def possible_moves(board10, token):
-
     opposite = invertPiece(token)
     moveList = []
 
@@ -197,8 +221,8 @@ class Strategy():
             best_move.value = find_next_move(board, player, h+1)
 
 
-board = sys.argv[1]
-player = sys.argv[2]
-for h in range(board.count(".")):  # No need to look more spaces into the future than exist at all
-    print(find_next_move(board, player, h+1))
+# board = sys.argv[1]
+# player = sys.argv[2]
+# for h in range(board.count(".")):  # No need to look more spaces into the future than exist at all
+#     print(find_next_move(board, player, h+1))
 
