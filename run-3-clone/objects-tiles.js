@@ -42,7 +42,6 @@ class FreePoly {
 
 		//if the player is colliding, do collision stuffies
 		if (Math.abs(entityCoords[2]) < this.tolerance && Math.abs(entityCoords[0]) < (this.size / 2) + this.tolerance && Math.abs(entityCoords[1]) < (this.size / 2) + this.tolerance) {
-
 			//push player outside of self
 			entityCoords[2] = this.tolerance * boolToSigned(entityCoords[2] > 0);
 			//special collision effects inside the tunnel
@@ -269,6 +268,9 @@ class Tile extends FreePoly {
 		entity.dir_side = [this.dir_right[0], this.dir_right[1] + (Math.PI * player.backwards)];
 		entity.dir_down = this.dir_down;
 		haltRotation = true;
+
+		//increase dx a little, so they get less stuck
+		entity.dx += 0.1 * Math.sign(entity.dx);
 
 		//rotation is flipped a bit if player is going backwards
 		cameraRotAttempt = ((Math.PI * (1.5 + player.backwards)) + (boolToSigned(!player.backwards) * this.dir_down[1])) % (Math.PI * 2);
