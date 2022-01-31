@@ -640,6 +640,11 @@ function clamp(num, min, max) {
 }
 
 function compressCutsceneData(csObj) {
+	//don't compress non-existent frames
+	if (csObj.frames.length < 1) {
+		return;
+	}
+
 	//only compress if it's not compressed
 	if (csObj.frames[0].constructor.name == "String") {
 		return;
@@ -683,6 +688,11 @@ function createTunnelFromData(data) {
 }
 
 function decompressCutsceneData(csObj) {
+	//don't handle non-existent frames
+	if (csObj.frames.length < 1) {
+		return;
+	}
+	
 	//only decompress if necessary
 	if (csObj.frames[0].constructor.name != "String") {
 		return;
