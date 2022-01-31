@@ -369,8 +369,8 @@ class IMNode {
 			return;
 		}
 		var newDifficulty = this.difficulty + infinite_difficultyBoost;
-		if (newDifficulty + infinite_levelRange > infinite_data.length - 1) {
-			newDifficulty = infinite_data.length - 1 - infinite_levelRange;
+		if (newDifficulty + infinite_levelRange > infinite_data.length) {
+			newDifficulty = infinite_data.length - infinite_levelRange;
 		}
 
 		//chance of a branch
