@@ -31,7 +31,9 @@ const color_power = "#FD0";
 const color_purple = "#808";
 const color_ring = "#FFF";
 const color_rocky = "#868";
-const color_space = "#226";
+const color_space = "#222266";
+const color_space_blueshift = "#0b0b6a";
+const color_space_redshit = "#551155";
 const color_star_neutron = "#0DF";
 const color_star_sun = "#FB0";
 const color_star_warm = "#F30";
@@ -44,6 +46,13 @@ const color_textBox = "#66F";
 const color_water = "#88F";
 const color_white = "#EFF";
 
+var data_persistent = {
+	highRes: false,
+	plot: {
+		overall: 0,
+	},
+};
+
 var display_orbitOpacity = 0.2;
 var display_menuOpacity = 0.2;
 var display_scaleMultiplier = 1;
@@ -53,7 +62,7 @@ var debris_maxNum = 0;
 var debris_minSize = 0.3;
 
 //DT stuff. the greater dt is, the slower the game is.
-var dt = 1;
+var dt = 32;
 var dt_base = 3;
 var dt_values = [8, 4, 2, 1, 1/2, 1/4, 1/8, 1/20, 1/50, 1/100];
 var dt_selector = dt_base;
@@ -100,6 +109,7 @@ var player_thrusterStrength = 1 / 256;
 var player_fuelEfficiency = 8;
 var player_turnStrength = 0.025;
 var player_turnSpeedMax = 0.2;
+var player_asteroidResist = 6;
 
 
 var menuColor = "#333366";
@@ -270,162 +280,6 @@ function keyNegate(h) {
 
 //this function is the main function that repeats every time the timer goes off. It is very important.
 function main() {
-	loading_state.tick();
+	loading_state.execute();
 	game_animation = window.requestAnimationFrame(main);
-}
-
-//this function has the function calls that occurr for the simulation to run, without all the extra stuff that normally happens in main
-function trueMain() {
-	//most of these are recursive functions that call for every body when called on loading_system. 
-	//The exceptions are the ones with loading_debris, which have forEach loops,
-	loading_system.spliceIncorrect();
-	loading_system.gravitateAll();
-	loading_system.pullChildren();
-	
-	loading_debris.forEach(a => {
-		loading_system.gravitateToArray(a);
-	});
-	
-	loading_system.tick();
-	loading_debris.forEach(a => {a.tick();});
-
-	game_time += 1 / dt;
-}
-
-
-//utility functions
-//takes in an x, y screen coordinate as well as a tolerance, and returns whether that is inside the screen or not. 
-//Tolerance is the amount the object can be off the screen by and still be counted.
-function isOnScreen(x, y, r) {
-	//x offscreen
-	if (x + r < 0) {
-		return false;
-	}
-	if (x - r > canvas.width) {
-		return false;
-	}
-
-	//y offscreen
-	if (y + r < 0) {
-		return false;
-	}
-	if (y - r > canvas.height) {
-		return false;
-	}
-	return true;
-}
-
-function rotate(x, y, angleRADIANS) {
-	//rotates an x y point by an angle
-	return [(x * Math.cos(angleRADIANS)) - (y * Math.sin(angleRADIANS)), (y * Math.cos(angleRADIANS)) + (x * Math.sin(angleRADIANS))];
-}
-
-function updateResolution() {
-	var multiplier = 0.5;
-	if (document.getElementById("haveHighResolution").checked) {
-		multiplier = 2;
-	}
-
-	//all things necessary for switching between resolutions
-	canvas.width *= multiplier;
-	canvas.height *= multiplier;
-	display_scaleMultiplier *= multiplier;
-
-	camera_world.scale *= multiplier;
-	camera_world.scale_min *= multiplier;
-	camera_world.scale_max *= multiplier;
-	camera_world.scale_speed *= multiplier;
-
-	camera_map.scale *= multiplier;
-	camera_map.scale_min *= multiplier;
-	camera_map.scale_max *= multiplier;
-	camera_map.scale_speed *= multiplier;
-}
-
-function spaceToScreen(x, y) {
-	x = x - loading_camera.x;
-	y = y - loading_camera.y;
-
-	x *= loading_camera.scale;
-	y *= loading_camera.scale;
-
-	x += canvas.width * 0.5;
-	y += canvas.height * 0.5;
-
-	return [x, y];
-}
-
-//takes in a body to orbit, the orbiting body's mass, the periapsis, and the apoapsis, and returns the velocity at apoapsis for that orbit
-function calculateOrbitalVelocity(centerMass, periapsis, apoapsis) {
-	if (apoapsis == periapsis) {
-		//special case for completely circular orbits
-		return Math.sqrt((centerMass / gravityDampener) / apoapsis);
-	} else {
-		//in an elliptical orbit, the formula is more generalized to v = sqrt(GM(2/r - 1/a)) where
-		//G is gravitational constant, M is mass of center obj, r is current distance, and a is the semi-major axis
-		//periapsis and apoapsis are always opposite, so I can just add them to get semi-major axis
-		return Math.sqrt((centerMass / gravityDampener) * ((2 / apoapsis) - (1 / (periapsis + apoapsis))));
-	}
-}
-
-//takes in parameters and turns them into x / y, dx / dy
-function calculateOrbitalParameters(body, apo, peri, apoA, startA, counterClockwiseBOOLEAN) {
-	//formula for instantaneous velocity is v = sqrt(GM(2/r - 1/a)) (vis-viva equation) where r is current distance and a is semi-major axis
-	//position on ellipse is (length * cos(theta), length * sin(theta))
-	//length = ab / (sqrt((b * cos(theta))^2 + (a * sin(theta))^2))
-	//semi-minor axis is sqrt(periapsis * apoapsis)
-	//semi-major axis is apoapsis + periapsis
-
-	//if periapsis is greater than apoapsis, assume a mistake and swap them
-	if (apo > peri) {
-		[apo, peri] = [peri, apo];
-		apoA += Math.PI;
-		startA += Math.PI;
-	}
-
-
-	//major / minor axes for convienence
-	var major = (apo + peri) / 2;
-	var minor = Math.sqrt(apo * peri);
-
-	//first calculate position
-
-	//position of planet from center of ellipse
-	var lengthToEdge = (major * minor) / (Math.sqrt(Math.pow(minor * Math.cos(startA), 2) + Math.pow(major * Math.sin(startA), 2)));
-	var [x, y] = [lengthToEdge * Math.cos(startA + apoA), lengthToEdge * Math.sin(startA + apoA)];
-
-	//position of center of ellipse from parent
-	var lengthToCenter = major - peri;
-	var [offX, offY] = [lengthToCenter * Math.cos(apoA), lengthToCenter * Math.sin(apoA)];
-	x += offX;
-	y += offY;
-
-
-	//calculate velocity
-	var currentHeight = Math.sqrt((x * x) + (y * y));
-	var velocity = Math.sqrt((body.m / gravityDampener) * ((2 / currentHeight) - (1 / major)));
-
-
-	//direct velocity based on the start angle
-	var orbitAngle = startA + (Math.PI / 2);
-	if (counterClockwiseBOOLEAN) {
-		orbitAngle += Math.PI;
-	}
-
-	var [dx, dy] = [velocity * Math.cos(orbitAngle + apoA), velocity * Math.sin(orbitAngle + apoA)];
-	return [x + body.x, y + body.y, dx + body.dx, dy + body.dy];
-}
-
-//calculates orbits for 2 bodies in a binary orbit, where they're centered on 0, 0
-function calculateBinaryOrbitalParameters(body1, body2) {
-
-}
-
-//takes in two points and gets the distance between them
-function getDistance(xyP1, xyP2) {
-	//setting the second point relative to the first point
-	xyP2[0] -= xyP1[0];
-	xyP2[1] -= xyP1[1];
-
-	return Math.sqrt((xyP2[0] * xyP2[0]) + (xyP2[1] * xyP2[1]));
 }
