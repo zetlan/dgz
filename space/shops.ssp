@@ -1,3 +1,4 @@
+/*
 CUSTOM SHOP SYNTAX
 ¶ - defines the start of a conversation
 § - defines the start of sections
@@ -12,7 +13,7 @@ line1
 	option3
 
 if there are no options, moving forwards will simply go to the next line.
-
+*/
 
 ¶Test
 §start
@@ -50,14 +51,17 @@ Any topics in mind?
 §talkNo
 	I don't blame you, there's so much going on nowadays. Times are changing! I'll tell you, I'm looking forward to cheap space travel. You've seen the news, right? It's just around the corner.
 	Did you see the recent sports ball? You like sports?
+	Yeah, I didn't think so. You don't seem like the sportsy type.
+	Oh! This is a strange story. So the other day I'm just standing here, y'know, running the shop, as I'm supposed to, and this pal, this frendo, they walk into my shop.
+	This person's really sharply dressed, a whole suit, they've got their hair greased up which is strange, because usually people spend multiple days in space, but you would think this
+	person hadn't arrived more than a day after leaving. Anyways, this person asks me if I sold hyperdrives, and I do in fact sell hyperdrives, but I had to tell 'em that I was out, they asked 
+	when I would get more, but in a very insistent way. They were just a really annoying customer as a whole. Didn't even buy anything else.
 
 §talkPilot
 
 §talkAbout
 
 §talkWorld
-
-
 
 
 
@@ -73,6 +77,7 @@ And I want to feel like myself, and if you bought something from my shop that wo
 
 
 
+/*
 [`"Hi! Welcome to my shop, what can I do for you?" |buy items|talk|leave`, [new Shop_setLine(3), new Shop_setLine(9), new Shop_escape()]],
 		[`"Welcome back to my shop! How can I help you this time?" |buy items|talk|leave`, [new Shop_setLine(3), new Shop_setLine(9), new Shop_escape()]],
 		[`"Anything else?"|buy items|talk|leave`, [new Shop_setLine(3), new Shop_setLine(9), new Shop_escape()]],
@@ -90,26 +95,6 @@ And I want to feel like myself, and if you bought something from my shop that wo
 		[`"Any topics in mind?"|no|piloting a ship|→`, [new Shop_setLine(11), new Shop_setLine(16), new Shop_addLine(1)]],
 		[`"Any topics in mind?"|←|about you|the world`, [new Shop_addLine(-1), 0, 0]],
 
-		//no topic
-		[`"I guess that's understandable, there's so much going on 
-		these days that it's hard to have a specific topic in mind.
-		Did you see the recent sports ball? You like sports?"|yeah|a little|not really`, [new Shop_addLine(1), new Shop_addLine(1), new Shop_addLine(1)]],
-		[`"Lots of folks come in here and they talk about the sports 
-		ball, it's always this team won or that team lost. 
-		Personally, I'm not that interested in it. But it makes 
-		sense that a lot of people like it."|I want to change the subject|→`, [new Shop_setLine(9), new Shop_addLine(1)]],
-		[`"I'm not boring you, am I? I wouldn't want to talk for too long"|you're fine|I am actually really quite bored`, [new Shop_addLine(1), new Shop_escape()]],
-		[`"Oh! This is a strange story. So the other day I'm just 
-		standing here, y'know, running the shop, as I'm supposed to, 
-		and this pal, this frendo, they walk into my shop, y'know?"|→`, [new Shop_addLine(1)]],
-		[`"This person's really sharply dressed, a whole suit, they've
-		got their hair greased up which is strange, because usually 
-		people spend multiple days in space, but you would think this
-		person had just arrived right at my shop. Anyways, this 
-		person asks me if I sold hyperdrives, and I do in fact sell 
-		hyperdrives, but I had to tell 'em that I was out, they asked 
-		when I would get more, they were just a really annoying 
-		customer as a whole. Didn't even buy anything else."|huh`, [new Shop_setLine(2)]],
 
 		//talk about piloting
 		[`"I've heard the controls aren't that difficult, but 
@@ -127,3 +112,4 @@ And I want to feel like myself, and if you bought something from my shop that wo
 
 		//talk about the world
 		[]
+*/

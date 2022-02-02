@@ -92,7 +92,7 @@ function drawMeter(x, y, width, height, value, min, max, color) {
 }
 
 function drawSplash() {
-	ctx.fillStyle = menuColor;
+	ctx.fillStyle = color_splash;
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 
 	ctx.fillStyle = color_text;

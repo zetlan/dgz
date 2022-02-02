@@ -41,6 +41,7 @@ const color_ship = "#F8F";
 const color_shop = "#DAF";
 const color_shop_dark = "#C7C";
 const color_shop_glow = "#FB0";
+const color_splash = "#333366";
 const color_text = "#8FC";
 const color_textBox = "#66F";
 const color_water = "#88F";
@@ -110,9 +111,6 @@ var player_fuelEfficiency = 8;
 var player_turnStrength = 0.025;
 var player_turnSpeedMax = 0.2;
 var player_asteroidResist = 6;
-
-
-var menuColor = "#333366";
 
 //objects here
 
