@@ -183,8 +183,8 @@ function drawMenuItem(x, y, r, id) {
 
 function drawCursor() {
 	//cursor
-	drawCircle(game_humanTurn ? color_cursor3 : color_cursor2, cursor_x, cursor_y, 4);
-	drawCircle(color_cursor, cursor_x, cursor_y, 2);
+	drawCircle(game_humanTurn ? color_cursor3 : color_cursor2, cursor_x, cursor_y, canvas.height / 120);
+	drawCircle(color_cursor, cursor_x, cursor_y, canvas.height / 240);
 }
 
 function drawPiece(color, x, y, radius) {
