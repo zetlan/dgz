@@ -28,7 +28,7 @@ function drawBoard() {
 	var spacing = board_screenSize / board_rowNum;
 	for (var a=0;a<board_rowNum;a++) {
 		for (var b=0;b<board_rowNum;b++) {
-			drawPiece(color_board, baseX + (spacing * a), baseY + (spacing * b), (board_screenSize / (board_rowNum * 2)) * 0.8);
+			drawPiece(color_board, baseX + (spacing * a), baseY + (spacing * b), (board_screenSize / (board_rowNum * 2)) * board_pieceRatio);
 		}
 	}
 
@@ -47,11 +47,30 @@ function drawCircle(color, x, y, radius) {
 	ctx.fill();
 }
 
+function drawMenu() {
+	//draw darkening bg
+	ctx.globalAlpha = menu_darkenAmount;
+	ctx.fillStyle = "#000";
+	ctx.fillRect(0, 0, canvas.width, canvas.height);
+	ctx.globalAlpha = 1;
+
+	//draw menu's outline
+	ctx.fillStyle = color_menuBg;
+	drawRoundedRectangle(canvas.width * (0.5 - menu_height * menu_items.length * 0.5), canvas.width * 0.5, canvas.width * menu_height * menu_items.length, canvas.height * menu_height, canvas.height * menu_height * 0.05);
+	ctx.fill();
+
+	for (var i=0; o<menu_items.length; i++) {
+		drawMenuItem(canvas.width * (0.5 + menu_height * (i - menu_items.length * 0.5)), canvas.height * 0.5, canvas.height * menu_iconHeight, menu_items[i]);
+	}
+}
+
 function drawMenuItem(x, y, r, id) {
+	var canX = canvas.width * x;
+	var canY = canvas.height * y;
 	switch(id) {
-		case "clock":
+		case "speed":
 			//base
-			drawCircle(color_board, canvas.width * x, canvas.height * y, r);
+			drawCircle(color_board, canX, canY, r);
 
 			//arm
 			var angle = (light_speed - 1) / 2;
@@ -61,20 +80,84 @@ function drawMenuItem(x, y, r, id) {
 			ctx.strokeStyle = color_clockArm;
 			ctx.lineWidth = 4;
 			ctx.beginPath();
-			ctx.moveTo(canvas.width * x, canvas.height * y);
-			ctx.lineTo((canvas.width * x) + xOff, (canvas.height * y) - yOff);
+			ctx.moveTo(canX, canY);
+			ctx.lineTo(canX + xOff, canY - yOff);
 			ctx.stroke();
+			break;
+		case "rounds":
+			//number of rounds / game
+			//outer circle
+			ctx.strokeStyle = color_board;
+			ctx.lineWidth = 1.5;
+			ctx.beginPath();
+			ctx.ellipse(canX, canY, r, r, 0, 0, Math.PI * 2);
+			ctx.stroke();
+
+			//select circle
+			drawCircle(color_selectRobot, canX + (r * 0.707), canY - (r * 0.707), r * 0.2);
+			//text
+			ctx.fillStyle = color_board;
+			ctx.fillText(rounds_display[rounds_index], canX, canvas.height * (y + 0.015));
+			break;
+		case "sound":
+			//outer circle, of course
+			ctx.strokeStyle = color_board;
+			ctx.lineWidth = 1.5;
+			ctx.beginPath();
+			ctx.ellipse(canX, canY, r, r, 0, 0, Math.PI * 2);
+			ctx.stroke();
+
+			//head
+			ctx.beginPath();
+			ctx.fillStyle = color_board;
+			ctx.moveTo(canX - (r * 0.6), canY);
+			ctx.lineTo(canX - (r * 0.1), canY - (r * 0.6));
+			ctx.lineTo(canX - (r * 0.1), canY + (r * 0.6));
+			ctx.fill();
+
+			//waves if on
+			if (sound_on) {
+				ctx.beginPath();
+				ctx.strokeStyle = color_board;
+				ctx.arc(canX - (r * 0.2), canY, r * 0.5, Math.PI / -3, Math.PI / 3);
+				ctx.stroke();
+				if (audio_happy.volume > 0.5) {
+					ctx.beginPath();
+					ctx.arc(canX - (r * 0.2), canY, r * 0.8, Math.PI / -4, Math.PI / 4);
+					ctx.stroke();
+				}
+			}
+			break;
+		case "timer":
+			//knobbles
+			drawCircle(color_board, canX - (r * 0.5), canY - r, r * 0.2);
+			drawCircle(color_board, canX + (r * 0.5), canY - r, r * 0.2);
+
+			//outer circle uwu
+			drawCircle(color_board, canX, canY, r);
+			drawCircle(color_bg, canX, canY, (r - 1.5));
+
+			//arm
+			var angle = boolToSigned(timer_active) / 2;
+			var xOff = (r * 0.7) * Math.sin(angle);
+			var yOff = (r * 0.7) * Math.cos(angle);
+
+			ctx.strokeStyle = timer_active ? color_timerArmActive : color_clockArm;
+			
+			ctx.lineWidth = 4;
+			ctx.beginPath();
+			ctx.moveTo(canX, canY);
+			ctx.lineTo(canX + xOff, canY - yOff);
+			ctx.stroke();
+			break;
+		case "settingGear":
 			break;
 	}
 }
 
 function drawCursor() {
 	//cursor
-	if (game_humanTurn) {
-		drawCircle(color_cursor3, cursor_x, cursor_y, 4);
-	} else {
-		drawCircle(color_cursor2, cursor_x, cursor_y, 4);
-	}
+	drawCircle(game_humanTurn ? color_cursor3 : color_cursor2, cursor_x, cursor_y, 4);
 	drawCircle(color_cursor, cursor_x, cursor_y, 2);
 }
 
@@ -109,78 +192,6 @@ function drawRoundedRectangle(x, y, width, height, arcRadius) {
 	ctx.quadraticCurveTo(x, y + height, x, y + height - arcRadius);
 	ctx.lineTo(x, y + arcRadius);
 	ctx.quadraticCurveTo(x, y, x + arcRadius, y);
-}
-
-function drawRounds() {
-	//outer circle
-	ctx.strokeStyle = color_board;
-	ctx.lineWidth = 1.5;
-	ctx.beginPath();
-	ctx.ellipse(canvas.width * menubar_xPos, canvas.height * rounds_pos, menubar_radius, menubar_radius, 0, 0, Math.PI * 2);
-	ctx.stroke();
-
-	//select circle
-	drawCircle(color_selectRobot, (canvas.width * menubar_xPos) + (menubar_radius * 0.707), (canvas.height * rounds_pos) - (menubar_radius * 0.707), menubar_radius * 0.2);
-	//round text
-	ctx.fillStyle = color_board;
-	ctx.fillText(rounds_display[rounds_index], canvas.width * menubar_xPos, canvas.height * (rounds_pos + 0.015));
-}
-
-function drawSound() {
-	//outer circle, of course
-	ctx.strokeStyle = color_board;
-	ctx.lineWidth = 1.5;
-	ctx.beginPath();
-	ctx.ellipse(canvas.width * menubar_xPos, canvas.height * sound_pos, menubar_radius, menubar_radius, 0, 0, Math.PI * 2);
-	ctx.stroke();
-
-	//head
-	ctx.beginPath();
-	ctx.fillStyle = color_board;
-	ctx.moveTo((canvas.width * menubar_xPos) - (menubar_radius * 0.6), (canvas.height * sound_pos));
-	ctx.lineTo((canvas.width * menubar_xPos) - (menubar_radius * 0.1), (canvas.height * sound_pos) - (menubar_radius * 0.6));
-	ctx.lineTo((canvas.width * menubar_xPos) - (menubar_radius * 0.1), (canvas.height * sound_pos) + (menubar_radius * 0.6));
-	ctx.fill();
-
-	//waves if on
-	if (sound_on) {
-		ctx.beginPath();
-		ctx.strokeStyle = color_board;
-		ctx.arc((canvas.width * menubar_xPos) - (menubar_radius * 0.2), canvas.height * sound_pos, menubar_radius * 0.5, Math.PI / -3, Math.PI / 3);
-		ctx.stroke();
-		if (audio_happy.volume > 0.5) {
-			ctx.beginPath();
-			ctx.arc((canvas.width * menubar_xPos) - (menubar_radius * 0.2), canvas.height * sound_pos, menubar_radius * 0.8, Math.PI / -4, Math.PI / 4);
-			ctx.stroke();
-		}
-	}
-}
-
-function drawTimer() {
-	//knobbles
-	drawCircle(color_board, (canvas.width * menubar_xPos) - (menubar_radius * 0.5), (canvas.height * timer_pos) - (menubar_radius), menubar_radius * 0.2);
-	drawCircle(color_board, (canvas.width * menubar_xPos) + (menubar_radius * 0.5), (canvas.height * timer_pos) - (menubar_radius), menubar_radius * 0.2);
-
-	//outer circle uwu
-	drawCircle(color_board, canvas.width * menubar_xPos, canvas.height * timer_pos, menubar_radius);
-	drawCircle(color_bg, canvas.width * menubar_xPos, canvas.height * timer_pos, (menubar_radius - 1.5));
-
-	//arm
-	var angle = ((timer_active * 2) - 1) / 2;
-	var xOff = (menubar_radius * 0.7) * Math.sin(angle);
-	var yOff = (menubar_radius * 0.7) * Math.cos(angle);
-
-	if (!timer_active) {
-		ctx.strokeStyle = color_clockArm;
-	} else {
-		ctx.strokeStyle = color_timerArmActive;
-	}
-	
-	ctx.lineWidth = 4;
-	ctx.beginPath();
-	ctx.moveTo(canvas.width * menubar_xPos, canvas.height * timer_pos);
-	ctx.lineTo((canvas.width * menubar_xPos) + xOff, (canvas.height * timer_pos) - yOff);
-	ctx.stroke();
 }
 
 function getDistance(p1, p2) {
