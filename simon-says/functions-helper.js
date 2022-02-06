@@ -1,35 +1,37 @@
 
 //drawing
 function drawArrows() {
-	ctx.lineWidth = 4;
+	ctx.lineWidth = canvas.height / 120;
 	ctx.strokeStyle = color_arrows;
 	ctx.beginPath();
 
 	//left
-	if (board_rowNum > board_limits[0]) {
+	if (data_persistent.prefs.startOn > board_limits[0]) {
 		ctx.moveTo(canvas.width * 0.1, canvas.height * (board_height - 0.05));
 		ctx.lineTo(canvas.width * 0.05, canvas.height * board_height);
 		ctx.lineTo(canvas.width * 0.1, canvas.height * (board_height + 0.05));
 	}
 
 	//right
-	if (board_rowNum < board_limits[1]) {
+	if (data_persistent.prefs.startOn < board_limits[1]) {
 		ctx.moveTo(canvas.width * 0.9, canvas.height * (board_height - 0.05));
 		ctx.lineTo(canvas.width * 0.95, canvas.height * board_height);
 		ctx.lineTo(canvas.width * 0.9, canvas.height * (board_height + 0.05));
 	}
 	ctx.stroke();
+	ctx.lineWidth = 4;
 }
 
 function drawBoard() {
 	//board
+	var numRows = data_persistent.prefs.startOn;
 	var trueSize = board_screenSize * canvas.height;
-	var baseX = (canvas.width / 2) - (trueSize / 2) + (trueSize / (board_rowNum * 2));
-	var baseY = (canvas.height * board_height) - (trueSize / 2) + (trueSize / (board_rowNum * 2));
-	var spacing = trueSize / board_rowNum;
-	for (var a=0;a<board_rowNum;a++) {
-		for (var b=0;b<board_rowNum;b++) {
-			drawPiece(color_board, baseX + (spacing * a), baseY + (spacing * b), (trueSize / (board_rowNum * 2)) * board_pieceRatio);
+	var baseX = (canvas.width / 2) - (trueSize / 2) + (trueSize / (numRows * 2));
+	var baseY = (canvas.height * board_height) - (trueSize / 2) + (trueSize / (numRows * 2));
+	var spacing = trueSize / numRows;
+	for (var a=0;a<numRows;a++) {
+		for (var b=0;b<numRows;b++) {
+			drawPiece(color_board, baseX + (spacing * a), baseY + (spacing * b), (trueSize / (numRows * 2)) * board_pieceRatio);
 		}
 	}
 
@@ -37,7 +39,7 @@ function drawBoard() {
 	if (light_time > light_timeMax / 4) {
 		var percentage = (light_time - (light_timeMax / 4)) / (light_timeMax * 0.75);
 		ctx.globalAlpha = 1 - (1 - percentage) ** 15;
-		drawPiece(light_color, baseX + (spacing * light_tile[0]), baseY + (spacing * light_tile[1]), (trueSize / (board_rowNum * 2)) * 0.8);
+		drawPiece(light_color, baseX + (spacing * light_tile[0]), baseY + (spacing * light_tile[1]), (trueSize / (numRows * 2)) * 0.8);
 		ctx.globalAlpha = 1;
 	}
 }
@@ -80,7 +82,7 @@ function drawMenuItem(x, y, r, id) {
 			drawCircle(color_board, x, y, r);
 
 			//arm
-			var angle = (light_speed - 1) / 2;
+			var angle = (data_persistent.prefs.speed - 1) / 2;
 			var xOff = (r * 1.3) * Math.sin(angle);
 			var yOff = (r * 1.3) * Math.cos(angle);
 
@@ -102,7 +104,7 @@ function drawMenuItem(x, y, r, id) {
 			drawCircle(color_selectRobot, x + (r * 0.707), y - (r * 0.707), r * 0.2);
 			//text
 			ctx.fillStyle = color_board;
-			ctx.fillText(rounds_display[rounds_index], x, y + r * 0.35);
+			ctx.fillText(rounds_display[data_persistent.prefs.roundsInd], x, y);
 			break;
 		case "sound":
 			//outer circle, of course
@@ -120,7 +122,7 @@ function drawMenuItem(x, y, r, id) {
 			ctx.fill();
 
 			//waves if on
-			if (sound_on) {
+			if (data_persistent.prefs.vol > 0) {
 				ctx.beginPath();
 				ctx.strokeStyle = color_board;
 				ctx.arc(x - (r * 0.2), y, r * 0.5, Math.PI / -3, Math.PI / 3);
@@ -142,11 +144,11 @@ function drawMenuItem(x, y, r, id) {
 			drawCircle(color_bg, x, y, (r - ctx.lineWidth));
 
 			//arm
-			var angle = boolToSigned(timer_active) / 2;
+			var angle = boolToSigned(data_persistent.prefs.time) / 2;
 			var xOff = (r * 0.8) * Math.sin(angle);
 			var yOff = (r * 0.8) * Math.cos(angle);
 
-			ctx.strokeStyle = timer_active ? color_timerArmActive : color_clockArm;
+			ctx.strokeStyle = data_persistent.prefs.time ? color_timerArmActive : color_clockArm;
 			ctx.beginPath();
 			ctx.moveTo(x, y);
 			ctx.lineTo(x + xOff, y - yOff);
@@ -233,35 +235,78 @@ function interactMenuItem(id) {
 	}
 	switch(id) {
 		case "speed":
-			light_speed = (light_speed + 1) % game_speeds.length;
-			light_timeMax = game_speeds[light_speed];
+			data_persistent.prefs.speed = (data_persistent.prefs.speed + 1) % game_speeds.length;
+			light_timeMax = game_speeds[data_persistent.prefs.speed];
 			break;
 		case "rounds":
-			rounds_index = (rounds_index + 1) % game_rounds.length;
-			rounds_max = game_rounds[rounds_index];
+			data_persistent.prefs.roundsInd = (data_persistent.prefs.roundsInd + 1) % game_rounds.length;
+			rounds_max = game_rounds[data_persistent.prefs.roundsInd];
 			break;
 		case "sound":
 			//alternate between 0, 0.5, and 1
-			sound_on = (sound_on + 0.5) % 1.5
+			data_persistent.prefs.vol = (data_persistent.prefs.vol + 0.5) % 1.5
 
-			audio_happy.volume = sound_on;
-			audio_neutral.volume = sound_on;
-			audio_negative.volume = sound_on;
+			audio_happy.volume = data_persistent.prefs.vol;
+			audio_neutral.volume = data_persistent.prefs.vol;
+			audio_negative.volume = data_persistent.prefs.vol;
 			break;
 		case "timer":
-			timer_active = !timer_active;
+			data_persistent.prefs.time = !data_persistent.prefs.time;
 			break;
 		case "dispSize":
-			var index = display_sizes.indexOf(canvas.height);
-			index = (index + 1) % display_sizes.length;
-
-			canvas.width = display_sizes[index] * 4 / 3;
-			canvas.height = display_sizes[index];
-
+			//update display size from the list
+			data_persistent.prefs.disp = (data_persistent.prefs.disp + 1) % display_sizes.length;
+			canvas.width = display_sizes[data_persistent.prefs.disp] * 4 / 3;
+			canvas.height = display_sizes[data_persistent.prefs.disp];
 			setCanvasPreferences();
 			break;
 	}
 	return true;
+}
+
+function localStorage_read() {
+	//lots of safety measures
+	var toRead;
+	try {
+		toRead = window.localStorage["simon_data"];
+	} catch(error) {
+		console.error(`ERROR: could not access local storage. Something has gone very seriously wrong.`);
+	}
+
+	try {
+		toRead = JSON.parse(toRead);
+	} catch (error) {
+		console.error(`ERROR: could not parse ${toRead}, using default`);
+		return;
+	}
+
+	//make sure it's somewhat safe before reading it in
+	if (typeof(toRead) == "object") {
+		data_persistent = toRead;
+	} else {
+		console.error("ERROR: invalid type specified in save data, using default");
+		return;
+	}
+
+	//modify external states based on settings
+	var ref = data_persistent.prefs;
+
+	board_rowNum = ref.startOn;
+	light_timeMax = game_speeds[data_persistent.prefs.speed];
+	rounds_max = game_rounds[ref.roundsInd];
+	audio_happy.volume = data_persistent.prefs.vol;
+	audio_neutral.volume = data_persistent.prefs.vol;
+	audio_negative.volume = data_persistent.prefs.vol;
+	canvas.width = display_sizes[data_persistent.prefs.disp] * 4 / 3;
+	canvas.height = display_sizes[data_persistent.prefs.disp];
+
+	setCanvasPreferences();
+	setTextForBoard(board_rowNum);
+}
+
+function localStorage_write() {
+	//pretty simple
+	window.localStorage["simon_data"] = JSON.stringify(data_persistent);
 }
 
 
@@ -269,5 +314,29 @@ function setCanvasPreferences() {
 	ctx.lineWidth = 4;
 	ctx.lineJoin = "round";
 	ctx.font = `${Math.floor(canvas.height / 20)}px Ubuntu`;
+	ctx.textBaseline = "middle"
 	ctx.textAlign = "center";
+}
+
+function setTextForBoard(n) {
+	text_low = `No game active, press space to start a ${n}x${n} game.`;
+
+	var value = data_persistent.bests[board_rowNum-2][data_persistent.prefs.roundsInd];
+
+	//if it's not a number, don't display it
+	if (value * 0 != 0 || value == null) {
+		text_high = `No high score has been set for these settings yet.`;
+		return;
+	}
+
+	switch(data_persistent.prefs.roundsInd) {
+		case 0:
+		case 1:
+			text_high = `Your best time on these settings was ${value} seconds.`
+			break;
+		case 2:
+			text_high = `Your longest round for this board was ${value} moves.`;
+			break;
+	}
+	
 }
