@@ -14,12 +14,10 @@ var board_screenSize = 0.85;
 var board_rowNum = 2;
 var board_tileTol = 0.55;
 var board_limits = [2, 6];
-var board_height = 0.45;
+var board_height = 0.5;
 
 var canvas;
 var ctx;
-
-var clock_pos = 0.93;
 
 var color_arrows = "#88F";
 var color_bg = "#CCF";
@@ -39,6 +37,24 @@ var color_timerArmActive = "#7F0";
 var cursor_x;
 var cursor_y;
 
+var data_persistent = {
+	prefs: {
+		startOn: 2,
+		speed: 0,
+		roundsInd: 0,
+		vol: 1,
+		time: false,
+		disp: 2,
+	},
+	bests: [
+		[NaN, NaN, NaN],
+		[NaN, NaN, NaN],
+		[NaN, NaN, NaN],
+		[NaN, NaN, NaN],
+		[NaN, NaN, NaN],
+	]
+}
+
 var display_sizes = [240, 480, 720, 1080];
 
 var game_active = false;
@@ -49,12 +65,10 @@ var game_move = 0;
 var game_path = [];
 var game_speeds = [40, 31, 23, 16];
 var game_rounds = [5, 10, 1e1001];
-var game_text = "No game active, press space to start a 2x2 game";
 
 var light_color = color_selectRobot;
-var light_speed = 0;
 var light_time = 0;
-var light_timeMax = game_speeds[light_speed];
+var light_timeMax = game_speeds[data_persistent.prefs.speed];
 var light_tile = [];
 
 var menu_active = false;
@@ -65,21 +79,18 @@ var menu_items = ["speed", "rounds", "sound", "timer", "dispSize"];
 var menu_itemsAvailable = [true, false, true, false, true];
 var menubar_xPos = 0.95;
 
-var rounds_index = 1;
-var rounds_pos = 0.83;
-var rounds_max = game_rounds[rounds_index];
+var rounds_max = game_rounds[data_persistent.prefs.roundsInd];
 var rounds_display = ["5", "10", "∞"];
 
-var sound_on = 1;
-var sound_pos = 0.73;
+var text_low = "";
+var text_high = "";
 
-var timer_active = false;
-var timer_pos = 0.63;
 var timer_count = 0;
 
 function setup() {
 	canvas = document.getElementById("canvas");
 	ctx = canvas.getContext("2d");
+	localStorage_read();
 	setCanvasPreferences();
 
 	cursor_x = canvas.width / 2;
@@ -101,16 +112,23 @@ function update() {
 	//board + text
 	drawArrows();
 	drawBoard();
+	var textOffset = (0.5 - board_screenSize * 0.5) * 0.75;
 	ctx.fillStyle = color_text;
-	ctx.fillText(game_text, canvas.width * 0.5, canvas.height * 0.95);
+	ctx.fillText(text_high, canvas.width * 0.5, canvas.height * textOffset);
+	ctx.fillText(text_low, canvas.width * 0.5, canvas.height * (1 - textOffset));
 
 	//menu
-	drawMenuItem(canvas.width * 0.925, canvas.height * menu_iconHeight * 0.7, canvas.height * menu_iconHeight / 3, "settingGear");
+	drawMenuItem(canvas.width * 0.925, canvas.height * menu_iconHeight * 1.25, canvas.height * menu_iconHeight / 3, "settingGear");
 	if (menu_active) {
 		drawMenu();
 	}
 
 	drawCursor();
+
+	//write to localStorage every once in a while
+	if (animation % 201 == 0) {
+		localStorage_write();
+	}
 
 	//call self
 	animation = window.requestAnimationFrame(update);
@@ -157,7 +175,7 @@ function runGame() {
 function startGame() {
 	timer_count = 0;
 	game_forceLose = false;
-	game_text = `...Game in progress...`;
+	text_low = `...Game in progress...`;
 	game_active = true;
 	game_path = [];
 	startRobotTurn();
@@ -166,12 +184,12 @@ function startGame() {
 function stopGame() {
 	if (game_move >= rounds_max && !game_forceLose) {
 		//case for timer
-		game_text = `You win!`;
-		if (timer_active) {
-			game_text += ` Your total time is ${(timer_count / 60).toFixed(2)} seconds.`;
+		text_low = `You win!`;
+		if (data_persistent.prefs.time) {
+			text_low += ` Your total time is ${(timer_count / 60).toFixed(2)} seconds.`;
 		}
 	} else {
-		game_text = `Game over, your score was ${game_path.length}`;
+		text_low = `Game over, your score was ${game_path.length}`;
 	}
 	game_active = false;
 	light_time = 0;
@@ -203,7 +221,9 @@ function handleKeyPress(a) {
 			menu_active = false;
 			break;
 		case "Space":
-			if (!game_active && !menu_active) {
+			if (menu_active) {
+				menu_active = false;
+			} else if (!game_active) {
 				startGame();
 			}
 			a.preventDefault();
@@ -211,7 +231,7 @@ function handleKeyPress(a) {
 		case "KeyZ":
 		case "KeyX":
 			//z / x are equivelant to mouse presses
-			handleMouseDown("argument");
+			handleMouseDown();
 			break;
 	}
 }
@@ -228,7 +248,6 @@ function handleMouseMove(a) {
 
 function handleMouseDown(a) {
 	//updateMenubar returns true if an item is changed, if not do other things
-
 	var handled = updateMenubar(cursor_x, cursor_y);
 
 	//registering input in game if it's the person's turn
@@ -268,7 +287,7 @@ function updateMenubar() {
 	//clicking the settings gear
 	if (!menu_active) {
 		//clicking the settings gear
-		if (getDistance([cursor_x, cursor_y], [canvas.width * 0.925, canvas.height * menu_iconHeight * 0.7]) < canvas.height * menu_iconHeight / 2) {
+		if (getDistance([cursor_x, cursor_y], [canvas.width * 0.925, canvas.height * menu_iconHeight * 1.25]) < canvas.height * menu_iconHeight / 2) {
 			menu_active = true;
 			return true;
 		}
@@ -278,9 +297,10 @@ function updateMenubar() {
 			//increasing vs decreasing
 	
 			board_rowNum = clamp(board_rowNum + boolToSigned(cursor_x > canvas.width * 0.5), board_limits[0], board_limits[1]);
-	
+			data_persistent.prefs.startOn = board_rowNum;
+
 			stopGame();
-			game_text = `No game active, press space to start a ${board_rowNum}x${board_rowNum} game`;
+			setTextForBoard(board_rowNum);
 		}
 		return false;
 	}
