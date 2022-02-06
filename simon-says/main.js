@@ -45,6 +45,7 @@ var data_persistent = {
 		vol: 1,
 		time: false,
 		disp: 2,
+		softCursor: true,
 	},
 	bests: [
 		[null, null, null],
