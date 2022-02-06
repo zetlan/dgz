@@ -10,7 +10,7 @@ var audio_neutral = document.getElementById("audioNeutral");
 var audio_negative = document.getElementById("audioNegative");
 
 var board_pieceRatio = 0.8;
-var board_screenSize = 0.85;
+var board_screenSize = 0.88;
 var board_rowNum = 2;
 var board_tileTol = 0.55;
 var board_limits = [2, 6];
@@ -47,11 +47,11 @@ var data_persistent = {
 		disp: 2,
 	},
 	bests: [
-		[NaN, NaN, NaN],
-		[NaN, NaN, NaN],
-		[NaN, NaN, NaN],
-		[NaN, NaN, NaN],
-		[NaN, NaN, NaN],
+		[null, null, null],
+		[null, null, null],
+		[null, null, null],
+		[null, null, null],
+		[null, null, null],
 	]
 }
 
@@ -75,8 +75,8 @@ var menu_active = false;
 var menu_darkenAmount = 0.2;
 var menu_height = 0.15;
 var menu_iconHeight = 0.1;
-var menu_items = ["speed", "rounds", "sound", "timer", "dispSize"];
-var menu_itemsAvailable = [true, false, true, false, true];
+var menu_items = ["speed", "rounds", "sound", "timer", "dispSize", "cursor"];
+var menu_itemsAvailable = [true, false, true, false, true, true];
 var menubar_xPos = 0.95;
 
 var rounds_max = game_rounds[data_persistent.prefs.roundsInd];
@@ -123,7 +123,9 @@ function update() {
 		drawMenu();
 	}
 
-	drawCursor();
+	if (data_persistent.prefs.softCursor) {
+		drawCursor();
+	}
 
 	//write to localStorage every once in a while
 	if (animation % 201 == 0) {
@@ -170,47 +172,6 @@ function runGame() {
 			}
 		}
 	}
-}
-
-function startGame() {
-	timer_count = 0;
-	game_forceLose = false;
-	text_low = `...Game in progress...`;
-	game_active = true;
-	game_path = [];
-	startRobotTurn();
-}
-
-function stopGame() {
-	if (game_move >= rounds_max && !game_forceLose) {
-		//case for timer
-		text_low = `You win!`;
-		if (data_persistent.prefs.time) {
-			text_low += ` Your total time is ${(timer_count / 60).toFixed(2)} seconds.`;
-		}
-	} else {
-		text_low = `Game over, your score was ${game_path.length}`;
-	}
-	game_active = false;
-	light_time = 0;
-}
-
-function startHumanTurn() {
-	game_displayTurn = 0;
-	game_humanTurn = true;
-}
-
-function startRobotTurn() {
-	game_move = 0;
-	game_humanTurn = false;
-
-	//make a random piece
-	game_path.push([Math.floor(randomBounded(0, board_rowNum)), Math.floor(randomBounded(0, board_rowNum))]);
-	light_color = color_selectRobot;
-	light_tile = game_path[0];
-	light_time = light_timeMax;
-
-	audio_neutral.play();
 }
 
 //input handling
@@ -262,6 +223,8 @@ function handleMouseDown(a) {
 			light_tile = [Math.round((cursor_x - ((canvas.width / 2) - (trueSize / 2) + (trueSize / (board_rowNum * 2)))) / (trueSize / board_rowNum)), 
 						Math.round((cursor_y - ((canvas.width * (board_height - 0.1)) - (trueSize / 2) + (trueSize / (board_rowNum * 2)))) / (trueSize / board_rowNum))];
 
+			//never have out-of-bounds presses
+			light_tile[1] = Math.max(light_tile[1], 0);
 			//validating press is correct
 			if (light_tile[0] == game_path[game_move][0] && light_tile[1] == game_path[game_move][1]) {
 				light_color = color_select;
@@ -299,7 +262,9 @@ function updateMenubar() {
 			board_rowNum = clamp(board_rowNum + boolToSigned(cursor_x > canvas.width * 0.5), board_limits[0], board_limits[1]);
 			data_persistent.prefs.startOn = board_rowNum;
 
-			stopGame();
+			if (game_active) {
+				stopGame();
+			}
 			setTextForBoard(board_rowNum);
 		}
 		return false;

@@ -177,6 +177,20 @@ function drawMenuItem(x, y, r, id) {
 			}
 			ctx.stroke();
 			break;
+		case "cursor":
+			if (data_persistent.prefs.softCursor) {
+				drawCircle(game_humanTurn ? color_cursor3 : color_cursor2, x, y, canvas.height / (r / 2));
+				drawCircle(color_cursor, x, y, canvas.height / r);
+			} else {
+				ctx.beginPath();
+				ctx.strokeStyle = color_board;
+				ctx.moveTo(x - r, y);
+				ctx.lineTo(x + r, y);
+				ctx.moveTo(x, y - r);
+				ctx.lineTo(x, y + r);
+				ctx.stroke();
+			}
+			break;
 	}
 	if (bad) {
 		ctx.globalAlpha = 1;
@@ -260,6 +274,10 @@ function interactMenuItem(id) {
 			canvas.height = display_sizes[data_persistent.prefs.disp];
 			setCanvasPreferences();
 			break;
+		case "cursor":
+			data_persistent.prefs.softCursor = !data_persistent.prefs.softCursor;
+			document.getElementById("canvas").style.cursor = data_persistent.prefs.softCursor ? `none` : `crosshair`;
+			
 	}
 	return true;
 }
@@ -299,6 +317,7 @@ function localStorage_read() {
 	audio_negative.volume = data_persistent.prefs.vol;
 	canvas.width = display_sizes[data_persistent.prefs.disp] * 4 / 3;
 	canvas.height = display_sizes[data_persistent.prefs.disp];
+	document.getElementById("canvas").style.cursor = data_persistent.prefs.softCursor ? `none` : `crosshair`;
 
 	setCanvasPreferences();
 	setTextForBoard(board_rowNum);
@@ -335,8 +354,56 @@ function setTextForBoard(n) {
 			text_high = `Your best time on these settings was ${value} seconds.`
 			break;
 		case 2:
-			text_high = `Your longest round for this board was ${value} moves.`;
+			text_high = `Your longest round for this board was ${value} move${(value == 1) ? "" : "s"}.`;
 			break;
 	}
-	
+}
+
+function startGame() {
+	timer_count = 0;
+	game_forceLose = false;
+	text_low = `...Game in progress...`;
+	game_active = true;
+	game_path = [];
+	startRobotTurn();
+}
+
+function stopGame() {
+	var textOut = "";
+	if (game_move >= rounds_max && !game_forceLose) {
+		//case for timer
+		textOut = `You win!`;
+		if (data_persistent.prefs.time) {
+			textOut += ` Your total time is ${(timer_count / 60).toFixed(2)} seconds.`;
+			data_persistent.bests[board_rowNum-2][data_persistent.prefs.roundsInd] = Math.min(data_persistent.bests[board_rowNum-2][data_persistent.prefs.roundsInd] ?? 1e1001, +((timer_count / 60).toFixed(2)));
+		}
+	} else {
+		textOut = `Game over, your score was ${game_path.length}`;
+		//if it's the user's best score, apply it
+		data_persistent.bests[board_rowNum-2][2] = Math.max(data_persistent.bests[board_rowNum-2][2] ?? 0, game_path.length);
+	}
+	//update text for new highscore / ending
+	setTextForBoard(board_rowNum);
+	text_low = textOut;
+	game_path = [];
+	game_active = false;
+	light_time = 0;
+}
+
+function startHumanTurn() {
+	game_displayTurn = 0;
+	game_humanTurn = true;
+}
+
+function startRobotTurn() {
+	game_move = 0;
+	game_humanTurn = false;
+
+	//make a random piece
+	game_path.push([Math.floor(randomBounded(0, board_rowNum)), Math.floor(randomBounded(0, board_rowNum))]);
+	light_color = color_selectRobot;
+	light_tile = game_path[0];
+	light_time = light_timeMax;
+
+	audio_neutral.play();
 }
