@@ -221,8 +221,8 @@ function handleMouseDown(a) {
 		
 		if (inBoundsX && inBoundsY) {
 			light_time = light_timeMax;
-			light_tile = [Math.round((cursor_x - ((canvas.width / 2) - (trueSize / 2) + (trueSize / (board_rowNum * 2)))) / (trueSize / board_rowNum)), 
-						Math.round((cursor_y - ((canvas.width * (board_height - 0.1)) - (trueSize / 2) + (trueSize / (board_rowNum * 2)))) / (trueSize / board_rowNum))];
+			light_tile = [Math.floor((cursor_x - ((canvas.width / 2) - (trueSize / 2))) / (trueSize / board_rowNum)), 
+						Math.floor((cursor_y - ((canvas.height * board_height) - (trueSize / 2))) / (trueSize / board_rowNum))];
 
 			//never have out-of-bounds presses
 			light_tile[1] = Math.max(light_tile[1], 0);
