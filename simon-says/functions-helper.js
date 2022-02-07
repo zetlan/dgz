@@ -255,6 +255,7 @@ function interactMenuItem(id) {
 		case "rounds":
 			data_persistent.prefs.roundsInd = (data_persistent.prefs.roundsInd + 1) % game_rounds.length;
 			rounds_max = game_rounds[data_persistent.prefs.roundsInd];
+			setTextForBoard(board_rowNum);
 			break;
 		case "sound":
 			//alternate between 0, 0.5, and 1
