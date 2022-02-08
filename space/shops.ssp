@@ -77,6 +77,10 @@ And I want to feel like myself, and if you bought something from my shop that wo
 
 
 
+
+
+Love this, and relate completely.  I was having a go on some vamped Latin changes a million pre-emoji years ago and it was just not happening (bunch of sixth chords.) Cat running the group looks at me and says "too much blue- give me more red." He didn't need to say anything more- next chorus was red as a Spanish sunrise and happy as can be. It worked like a charm.
+
 /*
 [`"Hi! Welcome to my shop, what can I do for you?" |buy items|talk|leave`, [new Shop_setLine(3), new Shop_setLine(9), new Shop_escape()]],
 		[`"Welcome back to my shop! How can I help you this time?" |buy items|talk|leave`, [new Shop_setLine(3), new Shop_setLine(9), new Shop_escape()]],
