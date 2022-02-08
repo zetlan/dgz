@@ -179,15 +179,17 @@ function drawMenuItem(x, y, r, id) {
 			break;
 		case "cursor":
 			if (data_persistent.prefs.softCursor) {
-				drawCircle(game_humanTurn ? color_cursor3 : color_cursor2, x, y, canvas.height / (r / 2));
-				drawCircle(color_cursor, x, y, canvas.height / r);
+				ctx.beginPath();
+				ctx.arc(x, y, r / 2, 0, Math.PI * 2);
+				ctx.stroke();
 			} else {
 				ctx.beginPath();
 				ctx.strokeStyle = color_board;
-				ctx.moveTo(x - r, y);
-				ctx.lineTo(x + r, y);
-				ctx.moveTo(x, y - r);
-				ctx.lineTo(x, y + r);
+				var size = r / 2;
+				ctx.moveTo(x - size, y);
+				ctx.lineTo(x + size, y);
+				ctx.moveTo(x, y - size);
+				ctx.lineTo(x, y + size);
 				ctx.stroke();
 			}
 			break;
