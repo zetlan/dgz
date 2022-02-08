@@ -1,4 +1,5 @@
 import sys; args = sys.argv[1:]
+import random;
 #myLines = open(args[0], 'r').read().splitlines()
 tags = args
 import re
@@ -11,7 +12,7 @@ charBlocking = "#"
 charEmpty = "-"
 
 def makeCrossword():
-    global tags
+    global tags, crossword
     size = tags[0].split("x")
     size[0] = int(size[0])
     size[1] = int(size[1])
@@ -20,10 +21,7 @@ def makeCrossword():
     numBlocks = int(tags[1])
     tags = tags[2:]
     #make the initial structure
-    for f in range(size[0]):
-        crossword.append([])
-        for g in range(size[1]):
-            crossword[f].append(charEmpty)
+    crossword = initPuzzle(size[1], size[0])
 
     #if it's all blocks, return all blocks
     if (size[0] * size[1] == numBlocks):
@@ -37,6 +35,61 @@ def makeCrossword():
         crossword[centerY][centerX] = charBlocking
 
     #read all other tags in as words to be placed
+    initTags(crossword, tags)
+
+    #mirror already-existing blocks
+    for y in range(len(crossword)):
+        for x in range(len(crossword[y])):
+            if (crossword[y][x] == charBlocking):
+                crossword[int(centerY + (centerY - y))][int(centerX + (centerY - x))] = charBlocking
+
+    numBlocksCurrent = sum([cross.count(charBlocking) for cross in crossword])
+
+    #add more blocks if necessary
+    while (numBlocksCurrent < numBlocks and addBlockTo(crossword)):
+        numBlocksCurrent += 2
+    return
+
+
+
+def addBlockTo(crossword):
+    emptyCount = sum([cross.count(charEmpty) for cross in crossword])
+    spotsTried = []
+    thisSpot = [0, 0]
+    #choose a random spot
+    while (crossword[thisSpot[0]][thisSpot[1]] != charEmpty):
+        spotsTried.append(thisSpot)
+
+        #if self has gone through all the empty spots and still no valid character, give up
+        if (len(spotsTried) >= emptyCount):
+            return False
+
+        #get a new spot to try
+        thisSpot = [random.randint(0, len(crossword)-1), random.randint(0, len(crossword[0])-1)]
+        while (thisSpot in spotsTried):
+            thisSpot = [random.randint(0, len(crossword)-1), random.randint(0, len(crossword[0])-1)]
+
+    #place blocker at the spot as well as it's opposite
+    centerX = (len(crossword[0]) - 1) / 2
+    centerY = (len(crossword) - 1) / 2
+    crossword[thisSpot[0]][thisSpot[1]] = charBlocking
+    crossword[int(centerY + (centerY - thisSpot[0]))][int(centerX + (centerY - thisSpot[1]))] = charBlocking
+    return True
+
+def giveFlippedPos(crossword, yxPieceArr):
+    centerX = (len(crossword[0]) - 1) / 2
+    centerY = (len(crossword) - 1) / 2
+    return [int(centerY + (centerY - yxPieceArr[0])), int(centerX + (centerY - yxPieceArr[1]))]
+
+def initPuzzle(width, height):
+    puzzle = []
+    for f in range(height):
+        puzzle.append([])
+        for g in range(width):
+            puzzle[f].append(charEmpty)
+    return puzzle
+
+def initTags(crossword, tags):
     for q in range(len(tags)):
         #parse the tag first
         #first character tells whether it's horizontal or vertical
@@ -51,21 +104,19 @@ def makeCrossword():
         letterBits = re.split('[0-9]+', tags[q])[2]
 
         #placing
-        for v in range(len(letterBits)):
-            if isHorizontal:
+        if isHorizontal:
+            #if the bounds of the word exclude any words from being placed, fill in with blocks
+            if (letterBits[0] == charBlocking and startCoords[1] < 3):
+                for v in range(startCoords[1]):
+                    crossword[startCoords[0]][v] = charBlocking
+            # if (letterBits[len(letterBits)-1] == charBlocking and startCoords[1] + len(letterBits) > len(crossword[0]) - 3):
+            #     for v in range(startCoords[1] + len(letterBits), len(crossword[0])):
+            #         crossword[startCoords[0]][v] = charBlocking
+            for v in range(len(letterBits)):
                 crossword[startCoords[0]][startCoords[1] + v] = letterBits[v]
-            else:
+        else:
+            for v in range(len(letterBits)):
                 crossword[startCoords[0] + v][startCoords[1]] = letterBits[v]
-
-    #mirror already-existing blocks
-    for y in range(len(crossword)):
-        for x in range(len(crossword[y])):
-            if (crossword[y][x] == charBlocking):
-                crossword[int(centerY + (centerY - y))][int(centerX + (centerY - x))] = charBlocking
-
-    numBlocksCurrent = sum([cross.count(charBlocking) for cross in crossword])
-
-    #add more blocks if necessary
     return
 
 
