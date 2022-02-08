@@ -39,7 +39,7 @@ function setup() {
 	canvas = document.getElementById("cabin");
 	ctx = canvas.getContext("2d");
 
-	loading_state = new State_Menu();
+	loading_state = new State_Infinite();
 
 	//retina scaling
 	// if(window.devicePixelRatio != 1) {
@@ -62,7 +62,7 @@ function main() {
 	ctx.fillStyle = color_bg;
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-	loading_state.beRun();
+	loading_state.execute();
 
 	game_time += 1;
 	page_animation = window.requestAnimationFrame(main);

@@ -131,7 +131,7 @@ class State_Infinite {
 
 	}
 
-	run() {
+	execute() {
 		switch (game_state) {
 			case 0:
 				doMainState();
