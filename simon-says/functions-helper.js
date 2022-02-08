@@ -382,9 +382,10 @@ function stopGame() {
 		}
 	} else {
 		textOut = `Game over, your score was ${game_path.length}`;
-		//if it's the user's best score, apply it
-		data_persistent.bests[board_rowNum-2][2] = Math.max(data_persistent.bests[board_rowNum-2][2] ?? 0, game_path.length);
 	}
+	//if it's the user's best length score, apply it, even if not in infinite mode
+	data_persistent.bests[board_rowNum-2][2] = Math.max(data_persistent.bests[board_rowNum-2][2] ?? 0, game_path.length);
+	
 	//update text for new highscore / ending
 	setTextForBoard(board_rowNum);
 	text_low = textOut;
