@@ -140,14 +140,21 @@ def floodFills(crossword):
     return (expectedVal == len(takenSquares))
 
 
-def floodFills_tiny(crossword, takenSquares):
-    return
+def floodFills_tiny(crossword, takenSquares, currentSquare):
+    for dir in [[0, -1], [0, 1], [-1, 0], [1, 0]]:
+        newSquare = [currentSquare[0] + dir[0] + currentSquare[1] + dir[1]]
+        if (newSquare[0] >= 0 and newSquare[0] < len(crossword[0]) and newSquare[1] >= 0 and newSquare[1] < len(crossword)):
+            takenSquares.append(newSquare)
+            floodFills_tiny(crossword, takenSquares, newSquare)
 
 
 def printCrossword(crossword):
     for line in crossword:
         #coalesce all the tiles on a row into one line, then print one at a time
         print(" ".join([str(a) for a in line]))
+
+def processBlock(crossword, x, y, banDirection):
+    return
 
 
 makeCrossword()
