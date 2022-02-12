@@ -4874,7 +4874,7 @@ var cardData = [{
 	name: `drip shoes`,
 	tags: ["D", "point card"],
 }, {
-	authors: `Sophia`,
+	authors: `Sophia F.`,
 	id: `1164`,
 	name: `Existensial CRISIS`,
 	tags: ["E", "point card", "multi-colored"],
@@ -4955,13 +4955,83 @@ var cardData = [{
 	id: `1181`,
 	name: `DEEP DARK SEA`,
 	tags: ["D", "point card"],
+}, {
+	id: `1182`,
+	name: `My 1st Semester grades`,
+	tags: ["M", "point card"],
+}, {
+	id: `1183`,
+	name: `Suspicious Imitator`,
+	tags: ["S", "point card", "multi-colored"],
+}, {
+	authors: `James H.`,
+	id: `1184`,
+	name: `It's my card`,
+	tags: ["I", "point card"],
+}, {
+	id: `1185`,
+	name: `Five Night Funking`,
+	tags: ["F", "point card", "multi-colored"],
+}, {
+	id: `1186`,
+	name: `Friday Nights at Freddy's`,
+	tags: ["F", "point card", "multi-colored"],
+}, {
+	id: `1187`,
+	name: `Imposter (from Among us)`,
+	tags: ["I", "point card"],
+}, {
+	authors: `Cynthia C.`,
+	id: `1188`,
+	name: `capture card`,
+	tags: ["C", "point card"],
+}, {
+	id: `1189`,
+	name: `Wrong side of the card card.`,
+	tags: ["W", "multi-colored"],
+}, {
+	authors: `Derek C.`,
+	id: `1190`,
+	name: `Three Angles`,
+	tags: ["T", "point card"],
+}, {
+	id: `1191`,
+	name: `GRADE BOMB`,
+	tags: ["G", "point card", "multi-colored"],
+}, {
+	id: `1192`,
+	name: `4' 33"`,
+	tags: ["number start", "point card"],
+}, {
+	id: `1193`,
+	name: `Bongo Cat`,
+	tags: ["B", "point card", "multi-colored"],
+}, {
+	id: `1194`,
+	name: `eval();`,
+	tags: ["E", "point/rules type?"],
+}, {
+	authors: `Manny V.`,
+	id: `1195`,
+	name: `Consult the Grave`,
+	tags: ["C"],
+}, {
+	authors: `Pi R.`,
+	id: `1196`,
+	name: `Duplication Glitch`,
+	tags: ["D", "point card"],
+}, {
+	authors: `Pi R.`,
+	id: `1197`,
+	name: `Triforce`,
+	tags: ["T", "point card"],
 }];
 
 
 
 /*
 , {
-	authors: ``
+	authors: ``,
 	id: ``,
 	name: ``,
 	tags: [starts with? point/rules type? wide? color?],
