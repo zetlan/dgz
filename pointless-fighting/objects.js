@@ -70,10 +70,6 @@ class Player {
 		this.speedClutch = 1 / 12;
 		this.speed = 0;
 
-		this.lastPos = [x, y];
-		this.nextPos = [x, y];
-		this.progress = 0;
-
 		this.keysDown = [false, false, false, false];
 		this.keyPressTimes = [-100, -100, -100, -100];
 
@@ -207,108 +203,20 @@ class Player {
 	teleport(relativeX, relativeY) {
 		this.x += relativeX;
 		this.y += relativeY;
-		this.lastPos = [this.lastPos[0] + relativeX, this.lastPos[1] + relativeY];
-		this.nextPos = [this.nextPos[0] + relativeX, this.nextPos[1] + relativeY];
-		console.log('teleported!', this.lastPos, this.nextPos);
-	}
-
-	updateMovementDirection() {
-		var xForce = -this.keysDown[0] + this.keysDown[2];
-		var yForce = -this.keysDown[1] + this.keysDown[3];
-
-
-		//if not attempting a direction
-		if (this.dir == -1) {
-			//don't care if the player doesn't want to move
-			if (xForce == 0 && yForce == 0) {
-				return;
-			}
-
-			//both key case
-			if (xForce != 0 && yForce != 0) {
-				//if x was pressed after y
-				if (Math.max(this.keyPressTimes[0], this.keyPressTimes[2]) > Math.max(this.keyPressTimes[1], this.keyPressTimes[3])) {
-					yForce = 0;
-				} else {
-					//y was pressed after x
-					xForce = 0;
-				}
-			}
-			
-			//if the loading map doesn't allow it, don't move
-			if (!loading_map.validateMovementTo(this.lastPos[0] + xForce, this.lastPos[1] + yForce, this)) {
-				return;
-			}
-
-			this.nextPos = [this.lastPos[0] + xForce, this.lastPos[1] + yForce];
-			// x/y force switch
-			if (xForce != 0) {
-				this.dir = xForce + 1;
-			} else {
-				this.dir = yForce + 2;
-			}
-			this.speed = Math.max(this.speed, this.speedNormal);
-			return;
-		}
-
-		//if already attempting, make sure that direction is good
-		var isBadDir = false;
-
-		if (this.dir % 2 == 0) {
-			//x cases
-			isBadDir = !(this.dir == xForce + 1);
-		} else {
-			//y cases
-			isBadDir = !(this.dir == yForce + 2);
-		}
-		if (isBadDir) {
-			this.dir = -1;
-			this.lastPos = [Math.round(this.x), Math.round(this.y)];
-			this.nextPos = [this.lastPos[0] + Math.sign(this.x - this.lastPos[0]), this.lastPos[1] + Math.sign(this.y - this.lastPos[1])];
-			if (this.progress >= 0.5) {
-				this.progress = 1 - this.progress;
-			}
-		}
-	}
-
-	updateMovementProgress() {
-		//I have to assign nextPos and lastPos like this so they don't become linked
-		if (this.dir == -1) {
-			//reduce progress in neutral mode
-			this.progress -= this.speedClutch;
-			if (this.progress < 0) {
-				this.progress = 0;
-				this.speed = 0;
-				this.nextPos = [this.lastPos[0], this.lastPos[1]];
-			}
-		} else {
-			this.progress += this.speed;
-			if (this.progress >= 1) {
-				this.progress = 0;
-				this.dir = -1;
-				this.lastPos = [this.nextPos[0], this.nextPos[1]];
-			}
-		}
 	}
 
 	updatePosition() {
-		//changing direction
-		this.updateMovementDirection();
-
 		//changing speed
-		this.updateSpeed();
-		
-		//progress updates
-		this.updateMovementProgress();
+		this.updateVelocity();
 
 		//position updates
-		this.x = linterp(this.lastPos[0], this.nextPos[0], this.progress);
-		this.y = linterp(this.lastPos[1], this.nextPos[1], this.progress);
+		this.x += this.dx;
+		this.y += this.dy;
 	}
 
-	updateSpeed() {
-		//if not moving or has controls locked, reduce speed to clutch speed
-		if (this.dir == -1 || this.locked) {
+	updateVelocity() {
+		//if not moving or has controls locked, reduce speed
+		if (this.locked) {
 			this.speed *= this.friction;
 			if (this.speed < this.speedClutch) {
 				this.speed = this.speedClutch;
