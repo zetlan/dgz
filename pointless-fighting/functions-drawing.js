@@ -76,8 +76,19 @@ function drawTextBox(x, y, text, color) {
 
 
 function drawBackground() {
-	ctx.fillStyle = color_background;
-	ctx.fillRect(0, 0, canvas.width, canvas.height);
+	//draw static
+	var staticSize = 25;
+	var staticSpread = 0.075;
+	var staticBase = 0.6;
+	var val;
+
+	for (var a=0; a<canvas.height/staticSize; a++) {
+		for (var b=0; b<canvas.width/staticSize; b++) {
+			val = Math.floor((staticBase + (Math.random() - 0.5) * staticSpread) * 255);
+			ctx.fillStyle = `rgb(${val}, ${val}, ${val})`;
+			ctx.fillRect(b * staticSize, a * staticSize, staticSize, staticSize);
+		}
+	}
 }
 
 function drawKeys() {
