@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width">
+        <title>Infinitely detailed snowflakes</title>
+        <style>
+
+        body {
+            background-color: slateblue;
+        }
+        #canvas {
+            border-style: double;
+            border-color: slateblue;
+        }
+        #mid {
+            text-align: center;
+        }
+        </style>
+    </head>
+    <body>
+        <script type="text/javascript">
+            window.onload = setup;
+            window.onresize = updateResolution;
+            
+            var timer;
+
+            const color_bg = "#110406";
+
+            var numSides = 5;
+            var rInitial = 0.33;
+
+            function setup() {
+                canvas = document.getElementById("canvas");
+                ctx = canvas.getContext("2d");
+                document.getElementById("sideSlider").value = numSides;
+
+                updateResolution();
+                draw();
+            }
+
+            function calcApothem(n, r) {
+                return r * Math.cos(Math.PI / n);
+            }
+
+            function draw() {
+                //bege
+                ctx.fillStyle = color_bg;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                //center the shape on the screen
+                var apothemLen = calcApothem(numSides, rInitial);
+                var initHeight = 0.5;
+                if (numSides % 2 == 1) {
+                    initHeight = initHeight - apothemLen + (rInitial + apothemLen) * ((numSides == 3) ? 0.4 : 0.5);
+                }
+
+                //drawing
+                draw_recursive(canvas.width / 2, canvas.height * initHeight, canvas.height * rInitial, 0, 5);
+
+                ctx.fillStyle = "#F0F";
+                ctx.fillRect(0, canvas.height / 2, canvas.width, 1);
+                ctx.fillRect(canvas.width / 2, 0, 1, canvas.height);
+
+            }
+
+            function draw_recursive(x, y, r, a, depthLimit) {
+                if (depthLimit < 0) {
+                    return;
+                }
+
+                //draw the initial shape
+                ctx.strokeStyle = '#FFF';
+                drawPolygon(x, y, r, numSides, a);
+
+                for (var )
+
+                draw_recursive(x, y, r, a, depthLimit - 1);
+            }
+
+            function drawPolygon(x, y, r, n, offsetA) {
+                ctx.beginPath();
+                for (var a=0; a<=n; a++) {
+                    ctx.lineTo(x + r * Math.sin(offsetA + 2 * Math.PI * (a / n)), y - r * Math.cos(offsetA + 2 * Math.PI * (a / n)));
+                }
+                ctx.stroke();
+            }
+
+            function updateSides() {
+                numSides = +document.getElementById("sideSlider").value;
+                draw();
+            }
+
+            function updateResolution() {
+                //stretch canvas to emtire screen
+                var allowable = Math.min(window.innerWidth * 0.95, window.innerHeight * 0.88);
+                canvas.width = allowable;
+                canvas.height = allowable;
+
+                //also change size of slider
+                document.getElementById("sideSlider").style.width = `${allowable}px`;
+                draw();
+            }
+        </script>
+        <div id="mid">
+            <canvas id="canvas" width="640" height="480"></canvas><br>
+            <input type="range" min="2" max="300" id="sideSlider" oninput="updateSides();"><br>
+        </div>
+    </body>
+</html>
