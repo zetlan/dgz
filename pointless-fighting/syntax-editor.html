@@ -1,0 +1,76 @@
+<!doctype html>
+<!-- Copyright Cynthia Clementine
+July-17-2021 -->
+<html>
+
+    <head>
+        <title>Dialogue editor</title>
+        <meta charset="utf-8">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Ubuntu&display=swap" rel="stylesheet"> 
+        <style>
+            body {
+                background-color: #22166A;
+            }
+            #cover {
+                position: absolute;
+                top: -9px;
+                left: 11px;
+                z-index: -1;
+
+                user-select: none;
+                font-family: 'Ubuntu', Courier, monospace;
+                font-size: 20px;
+
+                color:aliceblue;
+            }
+            #input {
+                background: transparent;
+
+                font-family: 'Ubuntu', Courier, monospace;
+                font-size: 20px;
+
+                color:aliceblue;
+            }
+
+            .section {
+                color: rgb(113, 113, 188);
+            }
+        </style>
+        <script type="text/javascript">
+            window.onload = setup;
+            window.addEventListener('keydown', acceptKey);
+            window.onresize = updateResolution;
+
+            var inputBox;
+            var coverBox;
+
+            function setup() {
+                inputBox = document.getElementById("input");
+                coverBox = document.getElementById("cover");
+                updateResolution();
+            }
+
+            function formatCover() {
+                //first copy all the input to the cover
+                coverBox.innerHTML = inputBox.value;
+            }
+
+            function acceptKey(a) {
+                window.setTimeout(() => {
+                    formatCover();
+                }, 1);
+            }
+
+            function updateResolution() {
+                inputBox.style.width = Math.floor(window.innerWidth * 0.98) + "px";
+                inputBox.style.height = Math.floor(window.innerHeight * 0.9) + "px";
+            }
+       </script>
+    </head>
+    <body>
+        <textarea id="input" rows="20" cols="100">#START</textarea>
+        <pre id="cover">#START</pre>
+    </body>
+</html>
