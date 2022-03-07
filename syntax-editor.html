@@ -1,0 +1,122 @@
+<!doctype html>
+<!-- Copyright Cynthia Clementine
+July-17-2021 -->
+<html>
+
+    <head>
+        <title>Dialogue editor</title>
+        <meta charset="utf-8">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Ubuntu&display=swap" rel="stylesheet"> 
+        <style>
+            body {
+                background-color: #030027;
+            }
+
+            .text2 {
+                color: #426D8A;
+            }
+
+            #cover {
+                position: absolute;
+                top: -9px;
+                left: 11px;
+                z-index: -1;
+
+                user-select: none;
+                font-family: 'Ubuntu', Courier, monospace;
+                font-size: 20px;
+            }
+
+            #input {
+                background: transparent;
+
+                font-family: 'Ubuntu', Courier, monospace;
+                font-size: 20px;
+
+                color:rgba(0, 0, 0, 0);
+                caret-color: #75A0BD;
+            }
+        </style>
+        <script type="text/javascript">
+            window.onload = setup;
+            window.addEventListener('keydown', acceptKey);
+            window.onresize = updateResolution;
+
+            var inputBox;
+            var coverBox;
+
+            var syntaxRules = [
+                "#426D8A",
+                ['convo', '¶', '\n', '#F6AE2D'],
+                ['section', '§', '\n', '#02C39A'],
+                ['eval', '‹', '›', '#CD62A4'],
+            ]
+
+            function setup() {
+                inputBox = document.getElementById("input");
+                coverBox = document.getElementById("cover");
+                updateResolution();
+            }
+
+            function formatCover() {
+                //first copy all the input
+                var textVal = inputBox.value;
+
+                var outputText = `<span style='color:${syntaxRules[0]}'>`;
+                var ruleActive;
+                var endIndex;
+
+                //go through all characters
+                for (var c=0; c<textVal.length; c++) {
+                    for (var r=1; r<syntaxRules.length; r++) {
+                        //if it's a character that corresponds to a rule
+                        if (textVal.slice(c, c+syntaxRules[r][1].length) == syntaxRules[r][1]) {
+                            //activate the rule 
+                            ruleActive = syntaxRules[r];
+                            outputText += `<span style='color:${ruleActive[3]}'>`;
+                        }
+                    }
+                    outputText += textVal[c];
+
+                    //if there's a rule active, go to the end of the section
+                    if (ruleActive != undefined) {
+                        endIndex = textVal.indexOf(ruleActive[2], c);
+                        //console.log(`searching for ${ruleActive[2]} to start ${ruleActive[1]} from char ${c} (${textVal[c]})`)
+                        if (endIndex < 0) {
+                            endIndex = textVal.length;
+                        }
+                        outputText += textVal.slice(c + ruleActive[2].length, endIndex+1);
+                        outputText += `</span>`;
+                        ruleActive = undefined;
+                        c = endIndex;
+                    }
+                }
+
+                //put into the cover
+                coverBox.innerHTML = outputText + "</span>";
+            }
+
+            function acceptKey(a) {
+                console.log('a key has happened')
+                if (a.code == "Tab") {
+                    inputBox.value = inputBox.value.slice(0, inputBox.selectionStart) + "\t" + inputBox.value.slice(inputBox.selectionStart);
+                    a.preventDefault();
+                }
+                window.setTimeout(() => {
+                    formatCover();
+                }, 2);
+            }
+
+            function updateResolution() {
+                inputBox.style.width = Math.floor(window.innerWidth * 0.98) + "px";
+                inputBox.style.height = Math.floor(window.innerHeight * 0.9) + "px";
+            }
+       </script>
+    </head>
+    <body>
+        <textarea id="input" rows="20" cols="100" spellcheck="false">type here</textarea>
+        <pre id="cover" class="text2">type here</pre>
+    </body>
+</html>
