@@ -10,11 +10,11 @@ INDEX:
 
 
 var rawData_maps = 
-`id~Buried Treasure - south|music~buriedTreasure|coords~-25~5|dims~35~27|palette~Terrain.Treasure|ground~0~0*6eTTγγVvvγγαPqLγvγDHγ*4bγ*4αvγ*4YγZγγγVγγRγγNγZγγXDvγ*4fγγvvαvXZαnYγγγvγFγ*5PγKγTγDγ*5fγZZγαvγγDγYγ*5VLγγγXPγ*5DγγDγγfγαγγγvTXγγYγγTTγU|ground~1~0* 0*Q1M|ground~2~0*εg0*5w0*41|ground~3~01w|ground~4~0*ng0*5w0*41|ground~5~0* 0*b20*540*580*5g0*5w|display~<*a0<<1 *m01<<<1<<0<*51<*i  <0<*51<*m0<<  <<0<<0<0<1<*a0<*d <*41<1<*r <1<*w <*jop^q<*a  <*a0<*8^^^C<*a  <*f0<1^*5<*a  1<*g^^C^^^<*60<<<  <*h^*7<*9 <*h1<<^*5<*9 <*91<*6B<*4^^^0<0<*7 <*j0B^^C<*80<  <*kMNO<*a  <*91<<<0<*81<*a  <*x  <*e1<*51<*c  <*y <*y <<0<*p0<*5 <*y <*g00<*g <*f0<*i <*70<*60<*i  <*e0<*50<*c  <<< *v|entities~SPK_15_4_0~SPK_4_4_7~SPK_24_6_7~SPK_27_6_5~SPK_20_9_6~SPK_5_10_5~SPK_9_11_1~SPK_12_12_9~SPK_7_14_2~SPK_20_15_3~SPK_27_21_3~SPK_5_21_5~SPK_2_22_0~SPK_10_22_2~SPK_34_23_3~SPK_23_23_0~SPK_19_24_8
+`id~Buried Treasure - south|music~buriedTreasure|coords~0~0|dims~35~27|palette~Terrain.Treasure|ground~0~0*6eTTγγVvvγγαPqLγvγDHγ*4bγ*4αvγ*4YγZγγγVγγRγγNγZγγXDvγ*4fγγvvαvXZαnYγγγvγFγ*5PγKγTγDγ*5fγZZγαvγγDγYγ*5VLγγγXPγ*5DγγDγγfγαγγγvTXγγYγγTTγU|ground~1~0* 0*Q1M|ground~2~0*εg0*5w0*41|ground~3~01w|ground~4~0*ng0*5w0*41|ground~5~0* 0*b20*540*580*5g0*5w|display~<*a0<<1 *m01<<<1<<0<*51<*i  <0<*51<*m0<<  <<0<<0<0<1<*a0<*d <*41<1<*r <1<*w <*jop^q<*a  <*a0<*8^^^C<*a  <*f0<1^*5<*a  1<*g^^C^^^<*60<<<  <*h^*7<*9 <*h1<<^*5<*9 <*91<*6B<*4^^^0<0<*7 <*j0B^^C<*80<  <*kMNO<*a  <*91<<<0<*81<*a  <*x  <*e1<*51<*c  <*y <*y <<0<*p0<*5 <*y <*g00<*g <*f0<*i <*70<*60<*i  <*e0<*50<*c  <<< *v|entities~SPK_15_4_0~SPK_4_4_7~SPK_24_6_7~SPK_27_6_5~SPK_20_9_6~SPK_5_10_5~SPK_9_11_1~SPK_12_12_9~SPK_7_14_2~SPK_20_15_3~SPK_27_21_3~SPK_5_21_5~SPK_2_22_0~SPK_10_22_2~SPK_34_23_3~SPK_23_23_0~SPK_19_24_8
 id~demo1|music~winter|coords~-11~22|dims~20~13|palette~Terrain.North|ground~0~0f00fU07α01γM0γY0fγw7γY7γγPγ*dLγγM|ground~1~0*Eg|display~ *8<*4 *e<*7 *c<*8 *c<*9 *a<*a *a<*b *8<*d *5<*h  <*  
 id~demo2|music~winter|coords~-22~34|dims~11~16|palette~Terrain.North|ground~0~01Y3α3γDγ7α3Y1U0*d2|ground~1~0*9w102|ground~2~s|display~ <<< *7<*5 *6<*7 *41<*9 d<*ad1<*9dd11<*7d*411<*41d*61212d*ψ
 id~some assembly required|music~undefined|coords~-12~25|dims~15~16|palette~Terrain.Empty|ground~0~v0280r01jαagnuWU7vNVYvfhVXnfTγγf70UU|display~ *τ<<<> *5δ<<   <Δ< *6<F<   <<<^^   ^<<<   <<<^   ^^<<<   <<ε ^   ^<<<   φ<< ^^ ^ Ξ<<   <<<^^ ^^^<<<   <<<^^^  ^<<<   <3<> *5<<<   <<<> *5<<α *i
-id~start|music~winter|coords~-11~35|dims~22~14|palette~Terrain.North|ground~0~LγγY7γγM0vγu1xZγα07γγw3γγγMγγNYvγnαdYvα7NγUvαγP|ground~1~g|ground~2~0*bw0020008|display~<*m1*5<*hp*51*677<*ep*6771*4<*g77p*41*5<*hp*51*4<*m1*4<*eABC<*5111<*bc<e<*8111<<1<*5013<*ad11d<*5opq<*aoddq<*jdd<*kpp *6
+id~start|music~winter|coords~0~0|dims~22~14|palette~Terrain.North|ground~0~LγγY7γγM0vγu1xZγα07γγw3γγγMγγNYvγnαdYvα7NγUvαγP|ground~1~g|ground~2~0*bw0020008|display~<*m1*5<*hp*51*677<*ep*6771*4<*g77p*41*5<*hp*51*4<*m1*4<*eABC<*5111<*bc<e<*8111<<1<*5013<*ad11d<*5opq<*aoddq<*jdd<*kpp *6|entities~POR_1_5_Buried Treasure - south
 
 
 Buried Treasure - south|demo2|[0, 27]
@@ -80,8 +80,11 @@ function importEntities(entityData) {
 		//split by underscore
 		var trueTag = e.split("_");
 		switch (trueTag[0]) {
+			case "POR":
+				entityArray.push(new Portal(+trueTag[1], +trueTag[2], trueTag[3]));
+				break;
 			case "SPK":
-				entityArray.push(new Spike(trueTag[1] * 1, trueTag[2] * 1, trueTag[3] * 1))
+				entityArray.push(new Spike(+trueTag[1], +trueTag[2], +trueTag[3]));
 				break;
 		}
 	});
