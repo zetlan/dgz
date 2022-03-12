@@ -38,6 +38,7 @@ const color_meter_health = "#F44";
 const color_meter_stamina = "#FF4";
 const color_player = "#F6F";
 const color_player_eyes = "#000";
+const color_portal = "#A0F";
 const color_sword = "#368";
 const color_text = "#828";
 const color_text_light = "#C5C";
@@ -96,6 +97,10 @@ var settings_resolutions = [
 	[960, 720],
 	[1280, 960]
 ];
+
+var static_size = 25;
+var static_lumSpread = 0.075;
+var static_lumBase = 0.6;
 
 var tileImage_key = `0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZαγεηικμνυπρσςτφχψωβΓδΔΛξζΣΞΘθΠλΦΨΩ<^> `;
 var tileImage_map = generateTileImageMap();
