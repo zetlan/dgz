@@ -13,14 +13,14 @@ nGramValues = {}
 #simulation parameters
 generations = 500
 mutationRate = 0.8
-mutationRateAgain = 0.3
+mutationRateAgain = 0.15
 numSurvivors = 2
-nUsing = 3
+nUsing = 4
 populationTarget = 1000
 #this is the rate at which proportions of the reproduction chance drop off. 
-#for example: with a rate of 0.85, 1st place would get 150 shares, 2nd place would get ceil(150 * 0.85) -> 128 shares, 3rd place would get 109 shares, etc
+#for example: with a rate of 0.85, and a best of 150, 1st place would get 150 shares, 2nd place would get ceil(150 * 0.85) -> 128 shares, 3rd place would get 109 shares, etc
 sharesBest = 140
-shareDropOffRate = 0.8
+shareDropOffRate = 0.85
 
 
 #random.seed(2.82)
