@@ -47,6 +47,11 @@ July-17-2021 -->
             var inputBox;
             var coverBox;
 
+            var data_persistent = {
+                text: "",
+                contents: "",
+            };
+
             var syntaxRules = [
                 "#426D8A",
                 ['convo', '¶', '\n', '#F6AE2D'],
@@ -106,7 +111,7 @@ July-17-2021 -->
                 }
                 window.setTimeout(() => {
                     formatCover();
-                }, 2);
+                }, 1);
             }
 
             function updateResolution() {
