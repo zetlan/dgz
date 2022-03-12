@@ -57,24 +57,22 @@ class Player {
 		this.attackLength = 15;
 		this.attackPushMultiplier = 0.4;
 
-
-
-		this.friction = 0.95;
+		this.friction = 0.85;
 		this.locked = false;
 		this.dir = 0;
 		this.animDir = 0;
 
 		this.speedDash = 1 / 2;
+		this.speedMax = 1 / 8;
 		this.speedHit = 1 / 16;
-		this.speedNormal = 1 / 8;
-		this.speedClutch = 1 / 12;
-		this.speed = 0;
+		this.speedWalk = 1 / 32;
+		
 
 		this.keysDown = [false, false, false, false];
 		this.keyPressTimes = [-100, -100, -100, -100];
 
-
-
+		this.dx = 0;
+		this.dy = 0;
 		
 		
 		this.color = color;
@@ -89,9 +87,7 @@ class Player {
 		this.dashTimeLimit = 40;
 		this.dashStamina = this.maxStamina * 0.1;
 		
-		this.timeSinceAttackPress = 15;
-
-		
+		this.timeSinceAttack = 15;
 
 		this.texture = data_images.Characters.Player;
 	}
@@ -101,7 +97,6 @@ class Player {
 	attack() {
 		this.attackFrame += 1;
 
-		
 		if (this.attackFrame == Math.floor(this.attackLength / 4)) {
 			var xDist;
 			var yDist;
@@ -140,7 +135,7 @@ class Player {
 		if (this.attackFrame == 0) {
 			this.attackFrame = 1;
 		} else {
-			this.timeSinceAttackPress = 0;
+			this.timeSinceAttack = 0;
 		}
 	}
 
@@ -155,7 +150,7 @@ class Player {
 	}
 
 	hitEntity(entity) {
-		var strength = 0.8 * sigmoid((this.timeSinceAttackPress * 0.6) - (this.attackLength * 0.5), 0, 1);
+		var strength = 0.8 * sigmoid((this.timeSinceAttack * 0.6) - (this.attackLength * 0.5), 0, 1);
 		entity.speed = entity.speedHit;
 		entity.moveQueue.splice(0, 0, ((this.a / (Math.PI / 2)) + 2) % 4);
 		entity.health -= strength;
@@ -169,33 +164,34 @@ class Player {
 		}
 
 		//attacking
-		this.timeSinceAttackPress += 1;
+		this.timeSinceAttack += 1;
 		if (this.attackFrame > 0) {
 			this.attack();
 		}
+
 		//movement
-		if (this.attackFrame <= 0 || this.speed != this.speedNormal) {
-			this.updatePosition();
-		}
+		this.updateMomentum();
+		this.updatePosition();
 	}
 
 	handleInput(negatingBOOLEAN, index) {
 		if (negatingBOOLEAN) {
 			this.keysDown[index] = false;
-		} else {
-			//if pressing the key
-			if (!this.keysDown[index]) {
-				this.animDir = index;
-				//if it isn't already pressed, press it and refresh the time
-				this.keysDown[index] = true;
+			return;
+		}
 
-				//if it's been pressed fast enough, do the boost
-				if (world_time - this.keyPressTimes[index] < this.dashTimeLimit) {
-					this.speed = this.speedDash;
-					this.keyPressTimes[index] = -1;
-				} else {
-					this.keyPressTimes[index] = world_time;
-				}
+		//if pressing the key
+		if (!this.keysDown[index]) {
+			this.animDir = index;
+			//if it isn't already pressed, press it and refresh the time
+			this.keysDown[index] = true;
+
+			//if it's been pressed fast enough, do the boost
+			if (world_time - this.keyPressTimes[index] < this.dashTimeLimit) {
+				//dashing goes here
+				this.keyPressTimes[index] = -1;
+			} else {
+				this.keyPressTimes[index] = world_time;
 			}
 		}
 	}
@@ -205,34 +201,193 @@ class Player {
 		this.y += relativeY;
 	}
 
-	updatePosition() {
-		//changing speed
-		this.updateVelocity();
-
-		//position updates
-		this.x += this.dx;
-		this.y += this.dy;
-	}
-
-	updateVelocity() {
-		//if not moving or has controls locked, reduce speed
-		if (this.locked) {
-			this.speed *= this.friction;
-			if (this.speed < this.speedClutch) {
-				this.speed = this.speedClutch;
-				this.locked = false;
-			}
-			return;
+	updateMomentum() {
+		var xAcc = this.keysDown[2] - this.keysDown[0];
+		var yAcc = this.keysDown[3] - this.keysDown[1];
+		//update velocity based on acceleration
+		if (xAcc == 0) {
+			//apply friction if not accelerating
+			this.dx *= this.friction;
+		} else {
+			this.dx += this.speedWalk * xAcc;
 		}
 
-		//moving freely case
-		this.speed = Math.max(this.speedNormal, this.speed * this.friction);
+		if (yAcc == 0) {
+			this.dy *= this.friction;
+		} else {
+			this.dy += this.speedWalk * yAcc;
+		}
+
+		//capping
+		var mag = Math.sqrt(this.dx ** 2 + this.dy ** 2);
+		if (mag > this.speedMax) {
+			this.dx = this.dx / mag * this.speedMax;
+			this.dy = this.dy / mag * this.speedMax;
+		}
+	}
+
+	updatePosition() {
+		//position updates, if map allows
+		if (loading_map.validateMovementTo(Math.round(this.x + this.dx), Math.round(this.y), this)) {
+			this.x += this.dx;
+		} else {
+			this.dx *= this.friction ** 2;
+		}
+
+		if (loading_map.validateMovementTo(Math.round(this.x), Math.round(this.y + this.dy), this)) {
+			this.y += this.dy;
+		} else {
+			this.dy *= this.friction ** 2;
+		}
 	}
 }
 
 
 
+class Portal {
+	constructor(x, y, leadsToZoneID) {
+		this.x = x;
+		this.y = y;
+		this.zone = leadsToZoneID;
 
+		this.r = 0.7;
+		this.rBoost = 1.05;
+		this.rBase = this.r;
+		this.rVariance = 0.04;
+		this.rTime = 40;
+
+		this.aBase = 0;
+		this.aVariance = 0.2;
+		this.aTime = 120;
+
+		this.sides = 12;
+		this.sideStorage = [];
+
+		this.absorbing = false;
+		this.absorbTime = 0;
+	}
+
+	beDrawn() {
+		//if there's no information to draw, don't draw anything
+		if (this.sideStorage.length < this.sides) {
+			return;
+		}
+		var angularOffset = this.aBase + this.aVariance * Math.sin(world_time / this.aTime);
+		var angle;
+		var cornerCoords;
+		//go around in a circle, drawing all the edges
+		ctx.beginPath();
+		
+		for (var a=0; a<this.sides; a++) {
+			angle = (Math.PI * 2 * a) / this.sides;
+			cornerCoords = polToXY(this.x + loading_map.x, this.y + loading_map.y, angle + angularOffset, this.sideStorage[a] + this.rVariance * Math.cos((world_time / this.rTime) + 5 * angle));
+			ctx.lineTo(...spaceToScreen(...cornerCoords));
+		}
+
+		if (this.zone.constructor.name == "String") {
+			this.zone = getZone(this.zone);
+		}
+
+		// ctx.strokeStyle = color_portal;
+		// ctx.lineWidth = canvas.height / 120;
+		// ctx.stroke();
+
+		//make sure other side is defined
+		if (this.zone == undefined) {
+			//draw solid wall
+			ctx.fillStyle = color_portal;
+			ctx.fill();
+		} else {
+			//draw other side
+			ctx.save();
+			ctx.clip();
+			drawBackground();
+			this.zone.beDrawn();
+			player.beDrawn();
+			ctx.restore();
+		}
+	}
+
+	evalStrengthAt(x, y) {
+		//take into account self's x/y, as well as player's x/y
+		var val;
+		val = 1 / (Math.sqrt((x - player.x) ** 2 + (y - player.y) ** 2) / player.r) ** 4;
+		val += 1 / (Math.sqrt((x - this.x) ** 2 + (y - this.y) ** 2) / this.r);
+		return  val;
+	}
+
+	tick() {
+		var angularOffset = this.aBase + this.aVariance * Math.sin(world_time / this.aTime);
+
+		//calculate portal sizes
+		var acceptableError = 0.01;
+		var dist;
+		var distStep;
+		var str;
+		var i = 0;
+		for (var a=0; a<this.sides; a++) {
+			var pointing = polToXY(0, 0, ((Math.PI * 2 * a) / this.sides) + angularOffset, 1);
+
+			//start with an initial guess, then approximate the distance to strength=1 and move there repeatedly until close enough
+			dist = this.r;
+			distStep = this.r / 10;
+			i = 100;
+			while (i > 0) {
+				str = this.evalStrengthAt(this.x + pointing[0] * dist, this.y + pointing[1] * dist);
+
+				//if the error is ok, break out of the loop
+				if (Math.abs(1 - str) <= acceptableError) {
+					break;
+				}
+				dist += distStep * boolToSigned(str > 1);
+				distStep *= 0.99;
+				i -= 1;
+			}
+
+			//use the new position
+			this.sideStorage[a] = dist;
+		}
+
+
+
+		//absorb
+		if (!this.absorbing && Math.sqrt((player.x - this.x) ** 2 + (player.y - this.y) ** 2) < this.r) {
+			this.absorbing = true;
+		}
+
+		if (this.absorbing) {
+			//expand radius
+			this.r *= 1 + (this.absorbTime / 100);
+
+			//suck player inwards
+			var playerDir = [player.x - this.x, player.y - this.y];
+			player.dx *= player.friction;
+			player.dy *= player.friction;
+
+			playerDir[0] *= 0.95;
+			playerDir[1] *= 0.95;
+
+			player.x = this.x + playerDir[0];
+			player.y = this.y + playerDir[1];
+
+			this.absorbTime += 1;
+
+			//if radius is great enough, cancel absorption and switch maps
+			if (this.r > Math.sqrt(canvas.width ** 2 + canvas.height ** 2) / camera.scale) {
+				this.absorbTime = 0;
+				this.r = this.rBase;
+				loading_map.entities.splice(loading_map.entities.indexOf(player), 1);
+				this.zone.entities.push(player);
+				player.x = player.x - loading_map.x + this.zone.x;
+				camera.x = camera.x - loading_map.x + this.zone.x;
+				player.y = player.y - loading_map.y + this.zone.y;
+				camera.y = camera.y - loading_map.y + this.zone.y;
+				loading_map = this.zone;
+				
+			}
+		}
+	}
+}
 
 
 
@@ -261,10 +416,16 @@ class Zone {
 		this.dArr = this.display;
 		this.beDrawn_images();
 
-		//if there's another map the player's about to go to, draw that as well
-		if (loading_map == this) {
-			this.drawOtherMap();
-		}
+		//if there are portals, make sure to put them on top of the map
+		this.entities.forEach(h => {
+			if (h.constructor.name == "Portal") {
+				//only draw if it's close enough
+				var hCoords = spaceToScreen(h.x + this.x, h.y + this.y);
+				if (Math.abs(hCoords[0] - (canvas.width / 2)) < canvas.width * 0.6 || Math.abs(hCoords[1] - (canvas.height / 2)) < canvas.height * 0.6) {
+					h.beDrawn();
+				}
+			}
+		});
 	}
 
 	beDrawn_collision() {
@@ -300,6 +461,8 @@ class Zone {
 		startXY[0] = Math.max(Math.floor(startXY[0]) - this.x, 0);
 		startXY[1] = Math.max(Math.floor(startXY[1]) - this.y, 0);
 		var pixelStartXY = spaceToScreen(this.x, this.y);
+		pixelStartXY[0] = Math.floor(pixelStartXY[0]);
+		pixelStartXY[1] = Math.floor(pixelStartXY[1]);
 
 		var xLen = Math.min(Math.ceil(canvas.width / camera.scale) + 3, this.data[0].length - startXY[0]);
 		var yLen = Math.min(Math.ceil(canvas.height / (camera.scale * render_vSquish)) + 3, this.data.length - startXY[1]);
@@ -315,7 +478,10 @@ class Zone {
 			}
 			//draw the entities for that row, assuming all the entities are in order
 			while (entityArrPos < this.entities.length && this.entities[entityArrPos].y <= y) {
-				this.entities[entityArrPos].beDrawn();
+				//don't draw portals
+				if (this.entities[entityArrPos].constructor.name != "Portal") {
+					this.entities[entityArrPos].beDrawn();
+				}
 				entityArrPos += 1;
 			}
 		}
@@ -353,31 +519,6 @@ class Zone {
 			}
 		}
 		ctx.globalAlpha = store;
-	}
-
-	drawOtherMap() {
-		var mapNum;
-		//if the player's coordinates round to a map square, show the map but with more fade
-		try {
-			if (this.data[Math.round(player.y)][Math.round(player.x)] > 0) {
-				var xDist = player.x - Math.round(player.x);
-				var yDist = player.y - Math.round(player.y);
-				
-				world_outsideMapFade = world_outsideMapFadeConstant * (1 - 2 * Math.max(Math.abs(xDist), Math.abs(yDist)));
-				mapNum = this.data[Math.round(player.y)][Math.round(player.x)] - 1;
-			}
-		} catch (er) {
-			//player is off the map, nothing needs to be done because in this case they're leaving / entering
-		}
-
-		//actual drawing
-		if (this.connections[mapNum] != undefined) {
-			var ref = this.connections[mapNum];
-			ref[0].x = this.x + ref[1][0];
-			ref[0].y = this.y + ref[1][1];
-			var fadeFromCoords = convertMapCoords(Math.round(player.x), Math.round(player.y), this, ref[0]);
-			ref[0].beDrawn_fading(fadeFromCoords[0], fadeFromCoords[1]);
-		}
 	}
 
 	//TODO: this feels horribly inefficient
