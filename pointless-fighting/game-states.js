@@ -121,11 +121,6 @@ class State_Game {
 	
 		loading_map.beDrawn();
 
-		//UI overlays
-		ctx.globalAlpha = 0.4;
-		ctx.fillStyle = color_player;
-		ctx.fillRect(0, 0, camera.scale, canvas.height);
-		ctx.globalAlpha = 1;
 
 		// drawMeter(color_meter_health, (camera.scale / 9) * 1, canvas.height * 0.05, camera.scale / 3, canvas.height * 0.9, player.health / player.maxHealth);
 		// drawMeter(color_meter_stamina, (camera.scale / 9) * 5, canvas.height * 0.05, camera.scale / 3, canvas.height * 0.9, player.stamina / player.maxStamina);
