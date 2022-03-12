@@ -28,7 +28,7 @@
             const color_bg = "#110406";
 
             var numSides = 5;
-            var rInitial = 0.33;
+            var rInitial = 0.25;
 
             function setup() {
                 canvas = document.getElementById("canvas");
@@ -51,21 +51,16 @@
                 //center the shape on the screen
                 var apothemLen = calcApothem(numSides, rInitial);
                 var initHeight = 0.5;
-                if (numSides % 2 == 1) {
-                    initHeight = initHeight - apothemLen + (rInitial + apothemLen) * ((numSides == 3) ? 0.4 : 0.5);
-                }
+                // if (numSides % 2 == 1) {
+                //     initHeight = initHeight - apothemLen + (rInitial + apothemLen) * ((numSides == 3) ? 0.4 : 0.5);
+                // }
 
                 //drawing
                 draw_recursive(canvas.width / 2, canvas.height * initHeight, canvas.height * rInitial, 0, 5);
-
-                ctx.fillStyle = "#F0F";
-                ctx.fillRect(0, canvas.height / 2, canvas.width, 1);
-                ctx.fillRect(canvas.width / 2, 0, 1, canvas.height);
-
             }
 
-            function draw_recursive(x, y, r, a, depthLimit) {
-                if (depthLimit < 0) {
+            function draw_recursive(x, y, r, a, depthLimit, banDirection) {
+                if (depthLimit < 0 || r < 0.5) {
                     return;
                 }
 
@@ -73,9 +68,32 @@
                 ctx.strokeStyle = '#FFF';
                 drawPolygon(x, y, r, numSides, a);
 
-                for (var )
+                var sliceSize = Math.PI * 2 / numSides;
+                var smallerSize = r / numSides;
+                var apothem = calcApothem(numSides, r);
 
-                draw_recursive(x, y, r, a, depthLimit - 1);
+                var newA;
+                var hOffset = (r * Math.sin(Math.PI / numSides)) / 1.5;
+                var banDir = Math.floor(numSides / 2);
+
+                var dirOut;
+                var dirSide;
+
+                for (var s=0; s<numSides; s++) {
+                    if (s != banDirection) {
+                        newA = a + sliceSize * (s + 0.5);
+
+                        dirOut = [Math.sin(newA), -Math.cos(newA)];
+                        dirSide = [Math.sin(newA + Math.PI * 0.5), -Math.cos(newA + Math.PI * 0.5)];
+
+                        //main out-blob
+                        draw_recursive(x + (apothem + apothem / numSides) * dirOut[0], y + (apothem + apothem / numSides) * dirOut[1], smallerSize, newA - sliceSize * 0.5 * (numSides % 2 == 0), depthLimit - 1, banDir);
+                    
+                        //side out-blobs
+                        draw_recursive(x + (apothem + apothem / numSides ** 2) * dirOut[0] + hOffset * dirSide[0], y + (apothem + apothem / numSides ** 2) * dirOut[1] + hOffset * dirSide[1], smallerSize / numSides, newA - sliceSize * 0.5 * (numSides % 2 == 0), depthLimit - 1, banDir);
+                        draw_recursive(x + (apothem + apothem / numSides ** 2) * dirOut[0] - hOffset * dirSide[0], y + (apothem + apothem / numSides ** 2) * dirOut[1] - hOffset * dirSide[1], smallerSize / numSides, newA - sliceSize * 0.5 * (numSides % 2 == 0), depthLimit - 1, banDir);
+                    }
+                }
             }
 
             function drawPolygon(x, y, r, n, offsetA) {
@@ -97,6 +115,8 @@
                 canvas.width = allowable;
                 canvas.height = allowable;
 
+                ctx.lineWidth = Math.ceil(canvas.height / 480);
+
                 //also change size of slider
                 document.getElementById("sideSlider").style.width = `${allowable}px`;
                 draw();
@@ -104,7 +124,7 @@
         </script>
         <div id="mid">
             <canvas id="canvas" width="640" height="480"></canvas><br>
-            <input type="range" min="2" max="300" id="sideSlider" oninput="updateSides();"><br>
+            <input type="range" min="3" max="20" id="sideSlider" oninput="updateSides();"><br>
         </div>
     </body>
 </html>
