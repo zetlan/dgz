@@ -11,15 +11,16 @@ nGramValues = {}
 
 
 #simulation parameters
-generations = 1200
-mutationRate = 0.7
+generations = 500
+mutationRate = 0.8
+mutationRateAgain = 0.3
 numSurvivors = 2
 nUsing = 3
 populationTarget = 1000
 #this is the rate at which proportions of the reproduction chance drop off. 
 #for example: with a rate of 0.85, 1st place would get 150 shares, 2nd place would get ceil(150 * 0.85) -> 128 shares, 3rd place would get 109 shares, etc
 sharesBest = 140
-shareDropOffRate = 0.85
+shareDropOffRate = 0.8
 
 
 #random.seed(2.82)
@@ -101,6 +102,18 @@ def produceRandomPopulation():
 
 
 
+def hillClimbOnce(stringToDecode, cipher):
+    f0 = fitnessDecode(nUsing, stringToDecode, cipher)
+    #swap each two letters to try and get a better result
+    for c1 in range(0, len(alphabet)):
+        for c2 in range(c1+1, len(alphabet)):
+            newCipher = list(cipher)
+            [newCipher[c1], newCipher[c2]] = [newCipher[c2], newCipher[c1]]
+            newCipher = "".join(newCipher)
+            if (fitnessDecode(nUsing, stringToDecode, newCipher) > f0):
+                return newCipher
+    return "unable to hill climb"
+
 
 def solve_hillClimb(stringToDecode):
     initialGuess = produceRandomCipher()
@@ -128,6 +141,8 @@ def solve_genetic(stringToDecode):
     lastBestFitness = -1e5
     #score all ciphers
     for g in range(generations):
+        if (g % 100 == 0):
+            print("generation is now {}".format(g))
         cipherFitnesses = [(cipher, fitnessDecode(nUsing, stringToDecode, cipher)) for cipher in cipherPopulation]
 
         #sort them and put into gene pool based on their scoring
@@ -151,6 +166,10 @@ def solve_genetic(stringToDecode):
         #first have survivors
         for k in range(numSurvivors):
             nextGeneration.add(cipherFitnesses[k][0])
+
+        #have 1 hill-climber
+        #print('hill climbing')
+        #nextGeneration.append(hillClimbOnce(stringToDecode, cipherFitnesses[0][0]))
 
         #new children
         while (len(nextGeneration) < populationTarget):
@@ -177,7 +196,13 @@ def solve_genetic(stringToDecode):
                     child += letter
 
             #mutation?
-            while (random.random() < mutationRate):
+            if (random.random() < mutationRate):
+                swapping = random.sample([x for x in range(len(child))], 2)
+                child = list(child)
+                [child[swapping[0]], child[swapping[1]]] = [child[swapping[1]], child[swapping[0]]]
+                child = "".join(child)
+
+            while (random.random() < mutationRateAgain):
                 swapping = random.sample([x for x in range(len(child))], 2)
                 child = list(child)
                 [child[swapping[0]], child[swapping[1]]] = [child[swapping[1]], child[swapping[0]]]
@@ -203,6 +228,3 @@ createNGramStruct()
 #start with an initial guess
 stringToDecode = sys.argv[1]
 solve_genetic(stringToDecode)
-
-# print(fitness(nUsing, "FOR A UNIQUE AND SURPRISINTLY HARD CHALLENTE, CONSIDER MAKINT A LONT AND FULLY READABLE SERIES OF WORDS NEVER USINT A SINTLE EXAMPLE OF OUR WELL-LOVED ENTLISH TLYPH WHICH OCCURS SECOND PLACE IN OVERALL FREQUENCY. IF I AM TENUINE, I WILL SAY MANY, MANY SECONDS HAVE PASSED WHILE I HAVE BEEN HERE PONDERINT MAKINT SUCH A WORK. DISCOVERINT YOU CRACKED MY BRAINCHILD, HERE, IN A SMALLER NUMBER OF SECONDS WOULD TIVE ME NO SURPRISE."))
-# print(fitness(nUsing, "FOR A UNIQUE AND SURPRISINTLY HARD CHALLENGE, CONSIDER MAKING A LONG AND FULLY READABLE SERIES OF WORDS NEVER USING A SINGLE EXAMPLE OF OUR WELL-LOVED ENGLISH GLYPH WHICH OCCURS SECOND PLACE IN OVERALL FREQUENCY. IF I AM GENUINE, I WILL SAY MANY, MANY SECONDS HAVE PASSED WHILE I HAVE BEEN HERE PONDERING MAKING SUCH A WORK. DISCOVERING YOU CRACKED MY BRAINCHILD, HERE, IN A SMALLER NUMBER OF SECONDS WOULD TIVE ME NO SURPRISE."))
