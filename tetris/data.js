@@ -125,13 +125,19 @@ var data_persistent = {
 	name2: `Person 2`,
 	music1: `type-A`,
 	music2: `type-C`,
+	type: `modern`
 }
 
 var menu_buttons = [
-	[`Endless (modern)`, `game_state = 1; boards = [new System_New()]; audio_channel1.target = audio_table[data_persistent.music1];`],
-	[`Endless (classic)`, `game_state = 1; boards = [new System_Old()]; audio_channel1.target = audio_table[data_persistent.music2];`],
+	[`Endless`, `game_state = 1; boards = [new System_New()]; audio_channel1.target = audio_table[data_persistent.music1];`],
 	[`Sprint`, `game_state = 2; boards[0] = new System_New();`],
-	[`2 Player Competition`, `game_state = 3; boards = [new System_New(), new System_New()];`],
+	//[`2 Player Competition`, `game_state = 3; boards = [new System_New(), new System_New()];`],
+	[`High Scores`, `game_substate = 2;`],
+	[`Settings`, `game_substate = 1; menu_selectSet = menu_settings; menu_selected = 0;`],
+]
+
+var menu_buttons_old = [
+	[`Endless`, `game_state = 1; boards = [new System_Old()]; audio_channel1.target = audio_table[data_persistent.music2];`],
 	[`High Scores`, `game_substate = 2;`],
 	[`Settings`, `game_substate = 1; menu_selectSet = menu_settings; menu_selected = 0;`],
 ]
@@ -142,9 +148,21 @@ var menu_settings = [
 	["Player 1 name:", `data_persistent.name1`, `setSafeString("data_persistent.name1", prompt("Enter new name for player 1", data_persistent.name1))`],
 	["Player 2 name:", `data_persistent.name2`, `setSafeString("data_persistent.name2", prompt("Enter new name for player 2", data_persistent.name2))`],
 	[``, ``, ``],
-	["music (modern):", `data_persistent.music1`, `enumerate("data_persistent.music1", Object.keys(audio_table), 1)`],
-	["music (classic):", `data_persistent.music2`, `enumerate("data_persistent.music2", Object.keys(audio_table), 1)`],
+	["music:", `data_persistent.music1`, `enumerate("data_persistent.music1", Object.keys(audio_table), 1)`],
+	["game type:", `data_persistent.type`, `swapGameType();`]
 ]
+
+function swapGameType() {
+	if (data_persistent.type == "modern") {
+		//move to classic
+		menu_settings[4][1] = `data_persistent.music2`;
+		menu_settings[4][2] = `enumerate("data_persistent.music2", Object.keys(audio_table), 1)`;
+	} else {
+		//move to modern
+		menu_settings[4][1] = `data_persistent.music1`;
+		menu_settings[4][2] = `enumerate("data_persistent.music1", Object.keys(audio_table), 1)`;
+	}
+}
 
 
 //T, L, R, Z, S, O, I
