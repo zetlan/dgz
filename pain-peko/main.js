@@ -14,9 +14,9 @@ let canvas;
 
 var button_shiftPressed = false;
 
-const color_background = "#babadb";
+const color_background = "#f1f1f1";
 const color_flowers = [
-	"#ef3434",
+	"#9ef121",
 	"#265df4",
 	"#a53fdc",
 	"#ff3891",
@@ -31,6 +31,12 @@ var cursor_y = 0;
 var flowers = [];
 var flower_typeSelected = 0;
 var flower_size = 7;
+
+var network_society = [];
+var network_populationTarget = 600;
+var network_survivors = 2;
+var network_mutateRate = 0.05;
+
 
 var world_time = 0;
 
@@ -71,9 +77,21 @@ function main() {
 	});
 }
 
+function makeNetworkPopulation() {
+	//create the population: two inputs (x and y), 4 outputs (one for each of the flower colors), and a few hidden layers for funsies
+	var params = [2, 3, 3, 4];
+	network_society = [];
+	network_society
+	
+}
+
 function setCanvasPreferences() {
 
 }
+
+function trainOnce() {
+}
+
 
 function handleKeyPress(a) {
 	switch (a.code) {
