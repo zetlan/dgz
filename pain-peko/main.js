@@ -33,6 +33,7 @@ var flower_typeSelected = 0;
 var flower_size = 7;
 
 var grid_size = 30;
+var grid_sizes = [30, 4];
 
 var network_best;
 var network_bestFitness;
@@ -87,7 +88,7 @@ function drawGrid() {
 	var testCoords;
 	for (var sy=0; sy<canvas.height/grid_size; sy++) {
 		for (var sx=0; sx<canvas.width/grid_size; sx++) {
-			testCoords = [sx * grid_size / canvas.width, sy * grid_size / canvas.height];
+			testCoords = [(sx + 0.5) * grid_size / canvas.width, (sy + 0.5) * grid_size / canvas.height];
 			var output = network_best.evaluate(testCoords);
 
 			ctx.fillStyle = color_flowers[output.indexOf(Math.max(...output))];
@@ -218,6 +219,10 @@ function handleKeyPress(a) {
 			break;
 		case "Digit2":
 			flower_typeSelected = 2;
+			break;
+		case "Space":
+			//toggle between large and small grid
+			grid_size = (grid_size == grid_sizes[0]) ? grid_sizes[1] : grid_sizes[0];
 			break;
 		// case "Digit3":
 		// 	flower_typeSelected = 3;
