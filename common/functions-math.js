@@ -4,7 +4,11 @@ boolToSigned(boolValue);
 clamp(num, min, max);
 getPercentage(val1, val2, checkVal);
 linterp(a, b, percentage);
+modulate(n, modulus);
 randomBounded(min, max);
+sigmoid(input, outputLowerBound, outputUpperBound);
+easerp(a, b, percentage);
+
 
 
 
