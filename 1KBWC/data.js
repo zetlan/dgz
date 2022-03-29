@@ -618,7 +618,7 @@ var cardData = [{
 	tags: ["B","multi-colored","point card"],
 }, {
 	id: `115`,
-	name: `Beginners Pitfall`,
+	name: `Beginner's Pitfall`,
 	tags: ["B","point card"],
 }, {
 	authors: "Alex Boezer",
@@ -2021,6 +2021,7 @@ var cardData = [{
 	name: `Imagine playing the game`,
 	tags: ["I","point card"],
 }, {
+	authors: `Liam B.`,
 	id: `461`,
 	name: `Immediate Distribution`,
 	tags: ["I","multi-colored"],
@@ -2212,7 +2213,8 @@ var cardData = [{
 	tags: ["J","point card"],
 }, {
 	id: `508`,
-	name: `Joseph Stalin`,
+	imgType: `jpeg`,
+	name: `Joseph Stallin'`,
 	tags: ["J"],
 }, {
 	id: `509`,
@@ -2637,6 +2639,7 @@ var cardData = [{
 	id: `613`,
 	name: `Ms. Kucko`,
 	tags: ["M","point card"],
+	notes: `The name is pronounced kʊsko`
 }, {
 	id: `614`,
 	name: `MTT Cooking Show`,
@@ -3228,7 +3231,7 @@ var cardData = [{
 	tags: ["Q"],
 }, {
 	id: `760`,
-	name: `Quarantine`,
+	name: `Qurantine`,
 	tags: ["Q"],
 }, {
 	id: `761`,
@@ -3276,7 +3279,7 @@ var cardData = [{
 	tags: ["R","multi-colored"],
 }, {
 	id: `772`,
-	name: `Recycling Bin`,
+	name: `Recycling Bin v2`,
 	tags: ["R","multi-colored","point card"],
 }, {
 	id: `773`,
@@ -3335,6 +3338,7 @@ var cardData = [{
 	name: `Reservation`,
 	tags: ["R","multi-colored","point card"],
 }, {
+	authors: `James H.`,
 	id: `787`,
 	name: `Reset the game`,
 	tags: ["R","point card"],
@@ -3490,6 +3494,8 @@ var cardData = [{
 	name: `Sehr Lecker`,
 	tags: ["S","point card"],
 }, {
+	//just duplicated this one, whoops!
+	hide: true,
 	id: `825`,
 	name: `Self-Distruct`,
 	tags: ["S","point card"],
@@ -4938,6 +4944,7 @@ var cardData = [{
 	id: `1177`,
 	name: `Self-Distruct`,
 	tags: ["S", "point card"],
+
 }, {
 	id: `1178`,
 	name: `LONG SANTA`,
@@ -5025,6 +5032,41 @@ var cardData = [{
 	id: `1197`,
 	name: `Triforce`,
 	tags: ["T", "point card"],
+}, {
+	authors: `Pi R.`,
+	id: `1198`,
+	imgType: `jpg`,
+	name: `Draw a card`,
+	tags: ["D", "point card"],
+}, {
+	authors: `Anish G.`,
+	id: `1199`,
+	imgType: `jpg`,
+	name: `Rats`,
+	tags: ["R", "point card", "multi-colored"],
+}, {
+	authors: `Cynthia C.`,
+	id: `1200`,
+	imgType: `jpg`,
+	name: `Technically, it's "4 or fewer"`,
+	tags: ["T", "rule card", "multi-colored"],
+}, {
+	authors: `Derek C.`,
+	id: `1201`,
+	imgType: `jpg`,
+	name: `Frozen Fractals`,
+	tags: ["F", "point card", "multi-colored"],
+}, {
+	id: `1202`,
+	imgType: `jpg`,
+	name: `LIL NAS X CONCERT EXPERIENCE`,
+	tags: ["L", "rule card", "multi-colored"],
+}, {
+	authors: `Pi R.`,
+	id: `1203`,
+	imgType: `jpg`,
+	name: `Power Play XI`,
+	tags: ["P", "point card"],
 }];
 
 
@@ -5033,6 +5075,7 @@ var cardData = [{
 , {
 	authors: ``,
 	id: ``,
+	imgType: `jpg`,
 	name: ``,
 	tags: [starts with? point/rules type? wide? color?],
 }
