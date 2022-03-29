@@ -73,7 +73,9 @@ function main() {
 	drawFlowers();
 
 	//train the network if it isn't good enough
-	if (network_bestFitness < flowers.length) {
+	var i=4;
+	if (network_bestFitness < flowers.length && i > 0) {
+		i -= 1;
 		trainOnce();
 	}
 }
@@ -130,6 +132,83 @@ function getFitnessFor(network) {
 
 	return (flowers.length - loss);
 }
+
+/*function getFitnessFor(network) {
+	var loss = 0;
+	var flowerResults = [];
+	
+	//run through all possible flowers to check
+	for (var f=0; f<flowers.length; f++) {
+		loss += getFitnessFor_Flower(network, flowers, f, flowerResults);
+	}
+	return (flowers.length - loss);
+}
+
+function getFitnessFor_Flower(network, flowers, f, flowerResults) {
+	var loss = 0;
+	var output;
+	//if the flower's already been calculated don't bother with the calculation
+	if (flowerResults[f] != undefined) {
+		return +(!flowerResults[f]);
+	}
+
+	output = network.evaluate([flowers[f][0], flowers[f][1]]);
+	var guessedFlower = output.indexOf(Math.max(...output));
+	flowerResults[f] = ((guessedFlower == flowers[f][2]));
+
+	//if the flower's correct, cool, move on to the next flower
+	if (flowerResults[f]) {
+		return 0;
+	}
+
+	loss += 1;
+
+	if (flowers.length == 1) {
+		return loss;
+	}
+
+	//figure out how far off the network is by searching around
+	var closestFlower;
+	var bestDist = 1e1001;
+	for (var ff=0; ff<flowers.length; ff++) {
+		//don't have self closest to self
+		if (flowers[ff] != flowers[f]) {
+			var fDist = ((flowers[ff][0] - flowers[f][0]) ** 2 + (flowers[ff][1] - flowers[f][1]) ** 2) ** 0.5;
+			if (fDist < bestDist) {
+				closestFlower = ff;
+				bestDist = fDist;
+			}
+		}
+	}
+	//after getting the closest flower, search the line between them to see if the incorrectness is somewhere there
+	//if the closest flower is also incorrect the answer is no
+	if (!flowerResults[closestFlower]) {
+		return loss;
+	}
+
+	//but if the flower's correct! Then the error happens somewhere between that flower and this flower
+
+	//binary search, then subtract based on distance
+	var multiplier = 0.25;
+	var min = 0.03125;
+	var x = flowers[f][0];
+	var y = flowers[f][1];
+	var distX = flowers[closestFlower][0] - x;
+	var distY = flowers[closestFlower][1] - y;
+	var perc = 0.5;
+
+	while (multiplier > min) {
+		output = network.evaluate([flowers[f][0] + distX * perc, flowers[f][1] + distY * perc]);
+		guessedFlower = output.indexOf(Math.max(...output));
+		var dir = boolToSigned(guessedFlower != flowers[f][2]);
+
+		perc += dir * multiplier;
+		multiplier /= 2;
+	}
+	console.log(`error happens at ${perc}`);
+	loss -= (1 - perc);
+	return loss;
+}*/
 
 function makeNetworkPopulation() {
 	//create the population: two inputs (x and y), 4 outputs (one for each of the flower colors), and a few hidden layers for funsies
