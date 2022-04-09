@@ -61,7 +61,7 @@
 				if (authors == "undefined") {
 					authors = "unknown";
 				} else {
-					authorExtraChar = (thisCard.authors.length > 1) ? "s" : "";
+					authorExtraChar = (thisCard.authors.length > 1 && thisCard.authors.constructor.name == "Array") ? "s" : "";
 				}
 				
 				//tags

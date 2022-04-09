@@ -197,11 +197,11 @@ var cardData = [{
 	tags: ["non-letter start","point card"],
 }, {
 	id: `12`,
-	imgType: `jpg`,
 	name: `+500 points`,
 	tags: ["non-letter start","number start","point card"],
 }, {
 	id: `13`,
+	imgType: `jpg`,
 	name: `+1500 points`,
 	tags: ["non-letter start","number start","point card"],
 }, {
@@ -1658,7 +1658,7 @@ var cardData = [{
 	tags: ["F","point card"],
 }, {
 	id: `369`,
-	name: `Flash STopper`,
+	name: `Flash Stopper`,
 	tags: ["F"],
 }, {
 	id: `370`,
