@@ -16,7 +16,9 @@ question mark before tag name means it's optional
 }
 
 
-SEASON 2 CARDS are any card with an ID greater than 1131. They're the cards made after october 2021
+SEASON 1 CARDS are IDs 0-1131	, made before October 2021
+SEASON 2 CARDS are IDs 1132-1517, made in/after October 2021 but before April 2022
+SEASON 3 cards are IDs 1518-	, made in/after April 2022
 */
 
 
