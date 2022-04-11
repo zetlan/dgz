@@ -3396,6 +3396,7 @@ var cardData = [{
 	tags: ["R"],
 }, {
 	id: `797`,
+	imgType: `jpeg`,
 	name: `Rod of Discord`,
 	tags: ["R","multi-colored","point card"],
 }, {
@@ -3536,13 +3537,14 @@ var cardData = [{
 	name: `Senior Lab`,
 	tags: ["S","point card"],
 }, {
+	hide: true,
 	authors: "Charles Morse",
 	id: `831`,
 	name: `Senioritis`,
 	tags: ["S","point card"],
 }, {
 	id: `832`,
-	name: `seperate but equal`,
+	name: `separate but equal`,
 	tags: ["S","multi-colored","point card"],
 }, {
 	id: `833`,
@@ -5714,6 +5716,7 @@ var cardData = [{
 	name: `Missile Ammo (B)`,
 	tags: ["M", "point card"],
 }, {
+	authors: `Charles M.`,
 	id: `1321`,
 	imgType: `jpg`,
 	name: `Senioritis`,
@@ -6470,7 +6473,7 @@ var cardData = [{
 	authors: `Pi R.`,
 	id: `1460`,
 	imgType: `jpg`,
-	name: ``,
+	name: `Power Play V`,
 	tags: ["P"],
 }, {
 	authors: `Liam B.`,
@@ -6536,13 +6539,13 @@ var cardData = [{
 	authors: `Liam B.`,
 	id: `1472`,
 	imgType: `jpg`,
-	name: `"Kritauk"`,
+	name: `Kritauk`,
 	tags: ["K", "point card"],
 }, {
 	authors: `Liam B.`,
 	id: `1473`,
 	imgType: `jpg`,
-	name: `"Quat2"`,
+	name: `Quat2`,
 	tags: ["Q"],
 }, {
 	id: `1474`,
