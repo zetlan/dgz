@@ -4,6 +4,8 @@
 		Copyright Cynthia Clementine
 		October-16-2021
 		cards were largely not made by me, I am simply documenting them.
+
+		TODO: why is the right row being cut off?
 		-->
 		<title>1000 blank white cards - web access</title>
 		<meta charset="UTF-8">
@@ -42,41 +44,47 @@
 
 			#centerModule {
 				line-height: 0;
-				column-count:         5;
-				column-gap:           0px;
 				text-align: center;
 			}
 
 			#centerModule img {
 				margin: auto;
 				margin-top: 2%;
-				margin-left: 10%;
-				margin-right: 10%;
-				width: 80%;
+				margin-left: 2.5%;
+				margin-right: 2.5%;
+				width: 15%;
 				height: auto;
 			}
 
 			@media (max-width: 1600px) {
-				#centerModule {
-					column-count:         4;
+				#centerModule img {
+					margin-left: 2.5%;
+					margin-right: 2.5%;
+					width: 15%;
 				}
 			}
 
 			@media (max-width: 1200px) {
-				#centerModule {
-					column-count:         3;
+				#centerModule img {
+					margin-left: 2.5%;
+					margin-right: 2.5%;
+					width: 23%;
 				}
 			}
 
 			@media (max-width: 1000px) {
-				#centerModule {
-					column-count:         2;
+				#centerModule img {
+					margin-left: 2.5%;
+					margin-right: 2.5%;
+					width: 40%;
 				}
 			}
 			
 			@media (max-width: 400px) {
-				#centerModule {
-					column-count:         1;
+				#centerModule img {
+					margin-left: 10%;
+					margin-right: 10%;
+					width: 80%;
 				}
 			}
 
@@ -94,7 +102,7 @@
 			}
 
 			.selection:hover .selectionContent {
-				display: block;
+				display: inline-block;
 			}
 
 			.selectionContent input {
@@ -117,6 +125,7 @@
 			window.onload = setup;
 
 			var cardDataPulling = [];
+			var cardCreating = 0;
 
 			var imageHeightLimit = 150;
 			var imageAspectRatio = 0.6;
@@ -149,7 +158,7 @@
 				for (var c=0; c<cardData.length; c++) {
 					//image to go inside the link with title
 					imagElem = document.createElement("img");
-					imagElem.loading = "lazy";
+					//imagElem.loading = "lazy";
 					imagElem.src = `all-card-images/card~${cardData[c].id}.${cardData[c].imgType || "png"}`;
 					imagElem.style = `display: inline-block;`;
 					imagElem.classList.add("labelImage");
@@ -164,7 +173,7 @@
 					linkElem.href = `card.html#${cardData[c].id}`;
 					linkElem.maxWidth = `100px`;
 					linkElem.id = cardData[c].id + "_link";
-					linkElem.appendChild(document.createElement("br"));
+					//linkElem.appendChild(document.createElement("br"));
 					linkElem.appendChild(imagElem);
 
 					bufferLocation.appendChild(linkElem);
@@ -248,7 +257,7 @@
 				//loop through all links in the center module
 				var collectRef = document.getElementById("centerModule").children;
 				for (var n=0; n<collectRef.length; n++) {
-					collectRef[n].children[1].style.display = newDisplay;
+					collectRef[n].children[1].children[0].style.display = newDisplay;
 				}
 			}
 
@@ -328,10 +337,10 @@
 				cardData.forEach(card => {
 					//inclusive means that if the card contains any of the added tags, it will be displayed
 					if (card.tags.some(item => selectorSettings.posStrings.includes(item))) {
-						document.getElementById(card.id + "_link").style.display = "inline-block";
+						document.getElementById(card.id + "_img").style.display = "inline-block";
 						cardsVisible += 1;
 					} else {
-						document.getElementById(card.id + "_link").style.display = "none";
+						document.getElementById(card.id + "_img").style.display = "none";
 					}
 				});
 
@@ -339,8 +348,8 @@
 				cardData.forEach(card => {
 					//exclusive means that if the card contains any of the added tags, it will be forcibly undisplayed. Do not display it if it doesn't match tags though.
 					if (card.tags.some(item => selectorSettings.negStrings.includes(item))) {
-						if (document.getElementById(card.id + "_link").style.display == "inline-block") {
-							document.getElementById(card.id + "_link").style.display = "none";
+						if (document.getElementById(card.id + "_img").style.display == "inline-block") {
+							document.getElementById(card.id + "_img").style.display = "none";
 							cardsVisible -= 1;
 						}
 					}
@@ -350,9 +359,9 @@
 				searchStr = document.getElementById("searchBox").value;
 				cardData.forEach(card => {
 					//make sure cards going to be displayed include what's being searched
-					if (document.getElementById(card.id + "_link").style.display == "inline-block") {
+					if (document.getElementById(card.id + "_img").style.display == "inline-block") {
 						if (!document.getElementById(card.id + "_img").alt.toLowerCase().includes(searchStr.toLowerCase())) {
-							document.getElementById(card.id + "_link").style.display = "none";
+							document.getElementById(card.id + "_img").style.display = "none";
 							cardsVisible -= 1;
 						}
 					}
