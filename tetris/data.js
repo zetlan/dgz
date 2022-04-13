@@ -11,7 +11,6 @@ var audio_table = {
 	"type-B": {
 		file: new Audio("audio/type-B.mp3"),
 		bpm: 145,
-		//loop start and loop end are in beats, multiplied by 8 because the first number is the measure number.
 		loopStart: 2 * 8,
 		loopEnd: 24 * 8,
 		title: `Unknown (please contact me if you know)`
@@ -19,6 +18,7 @@ var audio_table = {
 	"type-C": {
 		file: new Audio("audio/type-C.mp3"),
 		bpm: 140,
+		//six beats per measure instead of 8
 		loopStart: 0 * 6,
 		loopEnd: 36 * 6,
 		title: `Bach Menuet from French Suite #3`
@@ -130,10 +130,17 @@ var data_persistent = {
 
 var menu_buttons = [
 	[`Endless`, `game_state = 1; boards = [new System_New()]; audio_channel1.target = audio_table[data_persistent.music1];`],
-	[`Sprint`, `game_state = 2; boards[0] = new System_New();`],
+	[`Sprint`, `game_state = 2; boards = [new System_New()];`],
+	[`AI`, `game_state = 4; menu_selected = 0;`],
 	//[`2 Player Competition`, `game_state = 3; boards = [new System_New(), new System_New()];`],
 	[`High Scores`, `game_substate = 2;`],
 	[`Settings`, `game_substate = 1; menu_selectSet = menu_settings; menu_selected = 0;`],
+]
+
+var menu_buttons_ai = [
+	[`Train (1 generation)`, ``],
+	[`Log best structure`, ``],
+	[`Run the AI`, `game_state = 5; boards = [new System_New()];`]
 ]
 
 var menu_buttons_old = [
@@ -146,10 +153,10 @@ var menu_settings = [
 	//in [label, value, onchange] format
 	["Edit Controls", ``, `game_substate = 3;`],
 	["Player 1 name:", `data_persistent.name1`, `setSafeString("data_persistent.name1", prompt("Enter new name for player 1", data_persistent.name1))`],
-	["Player 2 name:", `data_persistent.name2`, `setSafeString("data_persistent.name2", prompt("Enter new name for player 2", data_persistent.name2))`],
+	//["Player 2 name:", `data_persistent.name2`, `setSafeString("data_persistent.name2", prompt("Enter new name for player 2", data_persistent.name2))`],
 	[``, ``, ``],
 	["music:", `data_persistent.music1`, `enumerate("data_persistent.music1", Object.keys(audio_table), 1)`],
-	["game type:", `data_persistent.type`, `swapGameType();`]
+	//["game type:", `data_persistent.type`, `swapGameType();`]
 ]
 
 function swapGameType() {
@@ -213,6 +220,17 @@ var piece_pos = {
 		["0C60", [1, 2]],
 		["4C80", [1, 2]]
 	],
+};
+
+//for AI modelling, says which orientations are redundant
+var piece_posLimits = {
+	"I": 1,
+	"J": 3,
+	"L": 3,
+	"O": 0,
+	"S": 1,
+	"T": 3,
+	"Z": 1,
 };
 
 //kicks say which alternative positions a piece can move to when being rotated. This helps with awkwardness at the side walls, 
