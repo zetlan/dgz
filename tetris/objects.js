@@ -150,7 +150,21 @@ class System_Old {
 		//if amount of clearing lines has increased, update score based on how many the player got at a time
 		clearedLines = this.clearables.reduce((a, b) => {return a + (b == true)}) - clearedLines;
 		if (clearedLines > 0) {
-			this.score += (100 + ((clearedLines - 1) * 200) + ((clearedLines == 4) * 100)) * this.level;
+			//this.score += (100 + ((clearedLines - 1) * 200) + ((clearedLines == 4) * 100)) * this.level;
+			switch (clearedLines) {
+				case 1:
+					this.score += 40;
+					break;
+				case 2:
+					this.score += 100;
+					break;
+				case 3:
+					this.score += 300;
+					break;
+				case 4:
+					this.score += 1200;
+					break;
+			}
 		}
 	}
 
