@@ -5,6 +5,11 @@ function addHighScore(scoreData) {
 	
 }
 
+//for making copies of objects that avoid reference issues
+function copyObj(object) {
+	return JSON.parse(JSON.stringify(object));
+}
+
 
 
 
@@ -16,9 +21,6 @@ function drawGameOverScreen() {
 
 	var minX = pxMargin;
 	var minY = pxMargin;
-
-	
-	
 	
 	//different background styles depending on system
 	if (boards[0].constructor.name == "System_Old") {
@@ -117,7 +119,7 @@ function setCanvasPreferences() {
 }
 
 function setSafeString(fieldToSet, string) {
-	if (typeof(string) == "string" && string != "") {
+	if (typeof(string) == "string" && string != "" && string != ai_name) {
 		eval(`${fieldToSet} = "${string}";`);
 	}
 }

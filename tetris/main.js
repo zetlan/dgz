@@ -5,6 +5,12 @@ var animation;
 var canvas;
 var ctx;
 
+var ai_name = "block-1";
+var ai_population = [];
+var ai_best;
+var ai_bestFitness;
+
+
 var audio_channel1;
 var audio_channel2;
 var audio_fadeTime = 30;
@@ -64,12 +70,16 @@ let state_functions_main = [
 	endless_execute,
 	sprint_execute,
 	competition_execute,
+	aiTrain_execute,
+	aiPlay_execute,
 ]
 let state_functions_keyPress = [
 	menu_handleKeyPress,
 	game_handleKeyPress,
 	game_handleKeyPress,
-	competition_handleKeyPress
+	competition_handleKeyPress,
+	aiTrain_handleKeyPress,
+	aiPlay_handleKeyPress,
 ]
 
 function handleInput(a) {
@@ -90,6 +100,61 @@ function setup() {
 function main() {
 	state_functions_main[game_state]();
 	animation = window.requestAnimationFrame(main);
+}
+
+function aiTrain_execute() {
+	//audio + background
+	audio_channel1.target = undefined;
+	audio_channel1.tick();
+
+	ctx.fillStyle = color_palettes[0].bg;
+	ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+	//top text
+	ctx.font = `${canvas.height / 20}px Ubuntu`;
+	ctx.fillStyle = color_text;
+	ctx.textAlign = "center";
+	ctx.fillText(`AI Interface`, canvas.width / 2, canvas.height * 0.05);
+
+	//buttons
+	var minHeight = canvas.height * menu_settingMarginH;
+	var heightPerSetting = canvas.height * ((1 - (menu_settingMarginH * 2)) / menu_buttons_ai.length);
+
+	var minWidth = canvas.width * menu_settingMarginW;
+
+	ctx.font = `${canvas.height / 20}px Ubuntu`;
+	ctx.fillStyle = color_text;
+	ctx.textAlign = "left";
+
+	for (var e=0; e<menu_buttons_ai.length; e++) {
+		ctx.fillText(menu_buttons_ai[e][0], minWidth, minHeight + (heightPerSetting * e));
+	}
+
+	//button box
+	ctx.strokeStyle = color_text;
+	drawRoundedRectangle(minWidth - (canvas.width * 0.02), minHeight + (heightPerSetting * menu_selected) - (canvas.height / 30) - (canvas.height * 0.01), canvas.width * (0.5 - menu_settingMarginW * 2), canvas.height * 0.08666, canvas.height / 40);
+	ctx.stroke();
+
+	//AI listing, on the right
+}
+
+function aiTrain_handleKeyPress(a) {
+	switch (a.key) {
+		case controls_s.esc:
+		case controls_s.rr:
+			game_state = 0;
+			game_substate = 0;
+			menu_selected = 0;
+			break;
+	}
+}
+
+function aiPlay_execute() {
+	
+}
+
+function aiPlay_handleKeyPress(a) {
+	
 }
 
 
@@ -236,6 +301,7 @@ function menu_handleKeyPress(a) {
 				eval(menu_selectSet[menu_selected][1 + (game_substate > 0)]);
 			}
 			break;
+		//X for cancel
 		case controls_s.rr:
 			if (game_substate > 0) {
 				game_substate = 0;
