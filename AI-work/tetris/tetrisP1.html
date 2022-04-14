@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<!-- 
+Name: [REDACTED]
+Date: April-14-2022
+-->
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width">
+	<title>Tetris Part 1</title>
+	<style>
+	body,
+	H1, p {
+		background-color: slateblue;
+		text-align: center;
+	}
+	
+	#code {
+		text-align: center;
+		font-family:'Courier New', Courier, monospace
+	}
+
+	#download {
+		display: none
+	}
+	</style>
+</head>
+<body>
+	<h1>How to use</h1>
+	<p>
+		Open the javascript console -> Type in <span id="code">aiMdl_givePossibleStates(<i>[your string starting board here]</i>);</span>.<br>
+		Afterwords, tetrisout.txt should begin downloading. 
+	</p>
+	<a download="tetrisout.txt" id="download">[you're not supposed to see this]</a>
+	<script>
+
+
+
+
+
+var board_width = 10;
+var board_height = 20;
+
+var color_palettes = [{
+	clearColor: "#FFFFFF",
+	bg: "#01295F",
+	endBg: "#06013E",
+	mg: "#395E91",
+	lines: "#FFFFFF",
+	text: "#D49CFF",
+	pColors: {
+		"I": "#00FFFF",
+		"J": "#0000FF",
+		"L": "#FF8800",
+		"O": "#FFFF00",
+		"S": "#00FF00",
+		"T": "#FF00FF",
+		"Z": "#FF0000",
+	},
+	draw: (color, x, y, size) => {
+		ctx.beginPath();
+		ctx.fillStyle = color;
+		ctx.globalAlpha = 0.7;
+		ctx.fillRect(x+1, y+1, size-2, size-2);
+		ctx.fill();
+		ctx.globalAlpha = 1;
+		ctx.fillRect(x + (size * 0.1), y + (size * 0.1), size * 0.8, size * 0.8);
+		ctx.fill();
+	}
+}];
+
+//T, L, R, Z, S, O, I
+//each piece is stored in the format [data, centerCoords]
+//data stores the positions of the blocks, and centerCoords says where the reference point of those blocks are.
+//Data is 4 hex characters, because the array is 4x4 and each hex character can be 4 bits (0000 - 1111)
+var piece_pos = {
+	//the I piece is weird
+	"I": [
+		["0F00", [0, 1]],
+		["2222", [0, 1]],
+		["00F0", [0, 1]],
+		["4444", [0, 1]]
+	],
+	"J": [
+		["8E00", [1, 2]],
+		["6440", [1, 2]],
+		["0E20", [1, 2]],
+		["44C0", [1, 2]]
+	],
+	"L": [
+		["2E00", [1, 2]],
+		["4460", [1, 2]],
+		["0E80", [1, 2]],
+		["C440", [1, 2]],
+	],
+	"O": [
+		["CC00", [0, 2]],
+		["CC00", [0, 2]],
+		["CC00", [0, 2]],
+		["CC00", [0, 2]]
+	],
+	"S": [
+		["6C00", [1, 2]],
+		["4620", [1, 2]],
+		["06C0", [1, 2]],
+		["8C40", [1, 2]]
+	],
+	"T": [
+		["4E00", [0, 2]],
+		["4640", [0, 2]],
+		["0E40", [0, 2]],
+		["4C40", [0, 2]]
+	],
+	"Z": [
+		["C600", [1, 2]],
+		["2640", [1, 2]],
+		["0C60", [1, 2]],
+		["4C80", [1, 2]]
+	],
+};
+
+//for AI modelling, says which orientations are redundant
+var piece_posLimits = {
+	"I": 1,
+	"J": 3,
+	"L": 3,
+	"O": 0,
+	"S": 1,
+	"T": 3,
+	"Z": 1,
+};
+
+
+
+/* Given an input board string in row major order, outputs an array of all the possible boards via all possible pieces placed.
+Extra arguments specify what limitations to place on what the function outputs. 
+PieceId will limit the output to just the possible states when given a single piece to place, and pieceRot will limit the output 
+to just the possible states with the piece and with a specified rotation. */
+function aiMdl_givePossibleStates(inputStateStr, pieceIdOPTIONAL, pieceRotOPTIONAL) {
+	var outStrs = [];
+
+	//if there's a piece ID, then the possibilities only need to be calculated for one piece
+	if (pieceIdOPTIONAL != undefined) {
+		if (pieceRotOPTIONAL != undefined) {
+			var arrInput = aiMdl_convertToArr(inputStateStr);
+			//get landing heights of all rows in the input
+			var inputRowHeights = [];
+			for (var x=0; x<board_width; x++) {
+				for (var y=0; y<board_height; y++) {
+					if (arrInput[y][x] != undefined) {
+						//the block has been detected
+						inputRowHeights[x] = y;
+						y = board_height + 5;
+					}
+				}
+
+				if (y < board_height + 5) {
+					inputRowHeights[x] = board_height;
+				}
+			}
+
+			//get array representation of the piece
+			var arrRep = representPieceWithArr(pieceIdOPTIONAL, pieceRotOPTIONAL);
+			arrRep = trimPieceArr(arrRep);
+
+			//the width of the array now acts as a barrier
+			var upperXBound = board_width - arrRep[0].length;
+
+			//get the heights at which the stored piece sits in its array
+			var heights = [];
+			for (var x=0; x<arrRep[0].length; x++) {
+				for (var y=arrRep.length-1; y>-1; y--) {
+					if (arrRep[y][x] != "0") {
+						heights[x] = y;
+						y = -1;
+					}
+				}
+			}
+
+			//now use the heights against the blocks to figure out the height the piece will drop to
+
+			var arrCopy;
+			var landSection;
+			for (var x=0; x<=upperXBound; x++) {
+				//first get a copy of the array
+				arrCopy = copyObj(arrInput);
+
+				//figure out the distance to the nearest blocks below
+				landSection = inputRowHeights.slice(x, x + arrRep[0].length);
+				for (var bx=0; bx<arrRep[0].length; bx++) {
+					landSection[bx] -= heights[bx] + 1;
+				}
+
+				//make the piece land in the array
+				var height = Math.min(...landSection);
+				if (height < 0) {
+					//it's a game over
+					outStrs.push("GAME OVER");
+				} else {
+					for (var by=0; by<arrRep.length; by++) {
+						for (bx=0; bx<arrRep[0].length; bx++) {
+							if (arrRep[by][bx] == "1") {
+								if (arrCopy[by + height][bx + x] != undefined) {
+									console.log(`issue placing piece from reference (${x}, ${height}), at location (${bx + x}, ${by + height})`);
+								} else {
+									arrCopy[by + height][bx + x] = color_palettes[0].pColors["I"];
+								}
+							}
+						}
+					}
+
+					//clear lines
+					arrCopy = clearLines(arrCopy);
+					//push to the array
+					outStrs.push(aiMdl_convertToStr(arrCopy));
+				}
+				
+			}
+			return outStrs;
+		}
+
+		//just do all the rotations lol
+		for (var r=0; r<=piece_posLimits[pieceIdOPTIONAL]; r++) {
+			var thisIteration = aiMdl_givePossibleStates(inputStateStr, pieceIdOPTIONAL, r);
+
+			outStrs = outStrs.concat(thisIteration);
+		}
+
+		return outStrs;
+	}
+
+	//just do all the pieces lol
+	Object.keys(piece_pos).forEach(p => {
+		outStrs = outStrs.concat(aiMdl_givePossibleStates(inputStateStr, p));
+	});
+
+	//file shennanigans now!
+	var fileObj = new Blob([outStrs.reduce((a, b) => a + "\n" + b)], {type: 'text/plain'});
+	var outputFile = window.URL.createObjectURL(fileObj);
+	var link = document.getElementById('download');
+	link.href = outputFile;
+	link.click();
+
+}
+
+function aiMdl_convertToArr(inputStr) {
+	//the string is in left-to-right, top-to-bottom order, so it's not particularly difficult
+	var outArr = [];
+	for (var a=0; a<inputStr.length; a++) {
+		if (a % board_width == 0) {
+			outArr.push([]);
+		}
+		outArr[outArr.length-1].push((inputStr[a] == "#") ? color_palettes[0].pColors["I"] : undefined);
+	}
+	return outArr;
+}
+
+//takes in a 2d array of height x width and returns a string representation of the board that is h * w long
+function aiMdl_convertToStr(inputArr) {
+	//if there's no data to convert, just return a blank string
+	if (inputArr == undefined) {
+		return " ".repeat(board_width * board_height);
+	}
+
+	var outStr = "";
+	//loop over the array and convert every character into either a block or a space
+	//y starts at the end of the array - the necessary height because game boards have 2 extra rows as a buffer that need to be ignored for the AI.
+	for (var y=inputArr.length-board_height; y<board_height; y++) {
+		for (var x=0; x<board_width; x++) {
+			outStr += (inputArr[y][x] == undefined) ? " " : "#";
+		}
+	}
+	return outStr;
+}
+
+
+function clearLines(arrData) {
+	var len = arrData.length;
+	//if any line is filled all the way through, clear it
+	arrData = arrData.filter(line => line.indexOf(null) != -1 || line.indexOf(undefined) != -1);
+	//fill any lines back up to the required length
+	while (arrData.length < len) {
+		arrData.splice(0, 0, new Array(board_width));
+	}
+	return arrData;
+}
+
+//for making copies of objects that avoid reference issues
+function copyObj(object) {
+	return JSON.parse(JSON.stringify(object));
+}
+
+//returns a non-mutable 4x4 array to represent a piece
+function representPieceWithArr(pieceID, rotation) {
+	var ref = piece_pos[pieceID][rotation][0];
+	var placeArr = [];
+	for (var char of ref) {
+		placeArr.push(parseInt(char, 16).toString(2).padStart(4, "0"));
+	}
+	return placeArr;
+}
+
+function trimPieceArr(arr) {
+	//cut off top and bottom
+	while (+arr[0] == 0) {
+		arr = arr.slice(1);
+	}
+
+	while (+arr[arr.length-1] == 0) {
+		arr.pop();
+	}
+
+	//left side
+	var goLoop = true;
+	while (goLoop) {
+		for (var a=0; a<arr.length; a++) {
+			//if there's a block there stop the slicing
+			if (arr[a][0] != "0") {
+				goLoop = false;
+			}
+		}
+
+		if (goLoop) {
+			for (var a=0; a<arr.length; a++) {
+				arr[a] = arr[a].slice(1);
+			}
+		}
+	}
+
+	//right side
+	goLoop = true;
+	while (goLoop) {
+		for (var a=0; a<arr.length; a++) {
+			//if there's a block there stop the slicing
+			if (arr[a][arr[a].length-1] != "0") {
+				goLoop = false;
+			}
+		}
+
+		if (goLoop) {
+			for (var a=0; a<arr.length; a++) {
+				arr[a] = arr[a].slice(0, -1);
+			}
+		}
+	}
+	return arr;
+}
+
+
+
+
+
+
+
+	</script>
+</body>
+
+</html>
