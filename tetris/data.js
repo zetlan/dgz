@@ -34,7 +34,7 @@ var color_palettes = [
 	{
 		clearColor: "#FFFFFF",
 		bg: "#01295F",
-		endBg: "#C4F0FF",
+		endBg: "#06013E",
 		mg: "#395E91",
 		lines: "#FFFFFF",
 		text: "#D49CFF",
@@ -125,7 +125,11 @@ var data_persistent = {
 	name2: `Person 2`,
 	music1: `type-A`,
 	music2: `type-C`,
-	type: `modern`
+	type: `modern`,
+	scores: {
+		"modern": [], 
+		"classic": []
+	},
 }
 
 var menu_buttons = [
@@ -138,9 +142,10 @@ var menu_buttons = [
 ]
 
 var menu_buttons_ai = [
-	[`Train (1 generation)`, ``],
-	[`Log best structure`, ``],
-	[`Run the AI`, `game_state = 5; boards = [new System_New()];`]
+	[`Train 1 generation`, `trainOnce();`],
+	[`Import generation`, `document.getElementById("uploadBox").click();`],
+	[`Export generation`, `file_export();`],
+	[`Watch the AI play`, `game_state = 5; boards = [new System_New()];`]
 ]
 
 var menu_buttons_old = [
@@ -151,7 +156,7 @@ var menu_buttons_old = [
 
 var menu_settings = [
 	//in [label, value, onchange] format
-	["Edit Controls", ``, `game_substate = 3;`],
+	//["Edit Controls", ``, `game_substate = 3;`],
 	["Player 1 name:", `data_persistent.name1`, `setSafeString("data_persistent.name1", prompt("Enter new name for player 1", data_persistent.name1))`],
 	//["Player 2 name:", `data_persistent.name2`, `setSafeString("data_persistent.name2", prompt("Enter new name for player 2", data_persistent.name2))`],
 	[``, ``, ``],
