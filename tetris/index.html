@@ -25,6 +25,10 @@
                 margin: auto;
                 text-align: center;
             }
+
+            #downloadBox, #uploadBox {
+                display: none;
+            }
         </style>
         <script src="../common/functions-color.js"></script>
         <script src="../common/functions-math.js"></script>
@@ -38,6 +42,8 @@
     <body>
         <div id="centerModule">
             <canvas id="cromer" width="640" height="480"></canvas><br>
+            <a download="tetrisAiPopulation.txt" id="downloadBox">[no peeking]</a>
+            <input type="file" id="uploadBox" onChange="file_import();">
         </div>
     </body>
 </html>
