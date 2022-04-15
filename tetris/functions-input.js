@@ -7,6 +7,20 @@ function handleKeyPress_aiTrain(a) {
 			menu_selected = 0;
 			break;
 
+		case controls_s.u:
+			menu_selected = clamp(menu_selected - 1, 0, menu_buttons_ai.length-1);
+			break;
+		case controls_s.d:
+			menu_selected = clamp(menu_selected + 1, 0, menu_buttons_ai.length-1);
+			break;
+		
+		//Z for select
+		case controls_s.rl:
+			if (menu_buttons_ai[menu_selected][1] != "") {
+				eval(menu_buttons_ai[menu_selected][1]);
+			}
+			break;
+
 	}
 }
 
