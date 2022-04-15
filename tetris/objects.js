@@ -70,7 +70,7 @@ class System_Old {
 		this.font = `VT323`;
 		//create board
 		this.board = [];
-		for (var f=0; f<board_height+2; f++) {
+		for (var f=0; f<board_height+board_heightBuffer; f++) {
 			//I don't typically like using array constructors but this makes the code more compact
 			this.board.push(new Array(board_width));
 		}
@@ -97,14 +97,14 @@ class System_Old {
 
 	beDrawn(centerX, centerY) {
 		//figure out square size
-		var sqSize = board_screenPercentage * (canvas.height / (this.board.length - 2));
-		var sqCenterY = ((this.board.length - 2) / 2) - board_verticalAdjust;
+		var sqSize = board_screenPercentage * (canvas.height / (this.board.length - board_heightBuffer));
+		var sqCenterY = ((this.board.length - board_heightBuffer) / 2) - board_verticalAdjust;
 		var sqCenterX = (this.board[0].length / 2);
 
 		//do not draw the top two lines, those are just for computation.
-		for (var y=2; y<this.board.length; y++) {
+		for (var y=board_heightBuffer; y<this.board.length; y++) {
 			for (var x=0; x<this.board[y].length; x++) {
-				this.palette.draw(this.board[y][x] || this.palette.mg, centerX + ((x - sqCenterX) * sqSize), centerY + ((y - sqCenterY - 2) * sqSize), sqSize);
+				this.palette.draw(this.board[y][x] || this.palette.mg, centerX + ((x - sqCenterX) * sqSize), centerY + ((y - sqCenterY - board_heightBuffer) * sqSize), sqSize);
 			}
 		}
 
@@ -150,21 +150,7 @@ class System_Old {
 		//if amount of clearing lines has increased, update score based on how many the player got at a time
 		clearedLines = this.clearables.reduce((a, b) => {return a + (b == true)}) - clearedLines;
 		if (clearedLines > 0) {
-			//this.score += (100 + ((clearedLines - 1) * 200) + ((clearedLines == 4) * 100)) * this.level;
-			switch (clearedLines) {
-				case 1:
-					this.score += 40;
-					break;
-				case 2:
-					this.score += 100;
-					break;
-				case 3:
-					this.score += 300;
-					break;
-				case 4:
-					this.score += 1200;
-					break;
-			}
+			this.score += (100 + ((clearedLines - 1) * 200) + ((clearedLines == 4) * 100)) * this.level;
 		}
 	}
 
@@ -189,19 +175,9 @@ class System_Old {
 		}
 	}
 
-	createBag() {
-		//figure out which pieces go into the bag
-		var allPieces = Object.keys(piece_pos);
-		//shuffle into the bag
-		this.dropBag = [];
-		while (allPieces.length > 0) {
-			this.dropBag.push(allPieces.splice(Math.floor(Math.random() * allPieces.length), 1)[0]);
-		}
-	}
-
 	createPiece() {
 		if (this.dropBag.length < 1) {
-			this.createBag();
+			this.dropBag = createBag();
 		}
 		//x, y corresponds to center
 		this.dropData = [Math.floor(this.board[0].length / 2), 0, this.dropBag.pop(), 0];
@@ -366,9 +342,9 @@ class System_New extends System_Old {
 	beDrawn(centerX, centerY) {
 		super.beDrawn(centerX, centerY);
 
-		var sqSize = board_screenPercentage * (canvas.height / (this.board.length - 2));
+		var sqSize = board_screenPercentage * (canvas.height / (this.board.length - board_heightBuffer));
 		var boardMinX = centerX - (sqSize * ((this.board[0].length / 2)));
-		var boardMinY = centerY - (sqSize * ((((this.board.length - 2) / 2)) - board_verticalAdjust));
+		var boardMinY = centerY - (sqSize * ((((this.board.length - board_heightBuffer) / 2)) - board_verticalAdjust));
 
 		//draw hold piece
 		if (this.hold != undefined) {
