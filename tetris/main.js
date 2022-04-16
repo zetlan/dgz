@@ -8,6 +8,7 @@ var ctx;
 var ai_best;
 var ai_bestFitness;
 var ai_endStr = `GAME OVER`;
+var ai_gameLengthMax = 100000;
 var ai_generation = 0;
 var ai_name = "block-1";
 var ai_mutationRate = 0.2;
@@ -19,7 +20,7 @@ var ai_populationGoal = 600;
 var ai_scoring = [0, 40, 100, 300, 1200];
 var ai_sharesMax = 150;
 var ai_sharesRate = 0.85;
-var ai_trainGames = 3;
+var ai_trainGames = 5;
 
 
 var audio_channel1;
@@ -124,7 +125,10 @@ function execute_aiTrain() {
 }
 
 function execute_aiPlay() {
-	
+	//run a normal tetris game
+	execute_endless();
+
+	//make sure you can tell it's an AI playing
 }
 
 
