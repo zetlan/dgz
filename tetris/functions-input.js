@@ -25,7 +25,19 @@ function handleKeyPress_aiTrain(a) {
 }
 
 function handleKeyPress_aiPlay(a) {
-	
+	if (!boards[0].stopped) {
+		return;
+	}
+	switch (a.key) {
+		case controls_s.esc:
+		case controls_s.rl:
+		case controls_s.rr:
+			if (boards[0].quitTimer <= 0) {
+				game_state = 4;
+				game_substate = 0;
+			}
+			break;
+	}
 }
 
 function handleKeyPress_competition(a) {
