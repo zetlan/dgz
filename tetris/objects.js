@@ -137,7 +137,7 @@ class System_Old {
 			if (lnGood) {
 				this.clearables[a] = (this.clearables[a] + 1) || 1;
 				//if the frame is high enough, clear the line
-				if (this.clearables[a] > Math.min(this.framesPerTile, board_clearTime)) {
+				if (this.clearables[a] > Math.min(this.framesPerTile, this.clearTime)) {
 					this.clearLine(a);
 				} else {
 					//get all of the values closer to white
@@ -328,6 +328,8 @@ class System_New extends System_Old {
 		this.font = `Ubuntu`;
 		this.palette = color_palettes[0];
 
+		this.clearTime = board_clearTime;
+
 		this.ghostLocales = [];
 
 		//holding panel
@@ -380,7 +382,7 @@ class System_New extends System_Old {
 
 	colorLine(line) {
 		for (var y=0; y<this.board[line].length; y++) {
-			this.board[line][y] = cLinterp(this.board[line][y], this.palette.clearColor, 5 / board_clearTime);
+			this.board[line][y] = cLinterp(this.board[line][y], this.palette.clearColor, 5 / this.clearTime);
 		}
 	}
 
@@ -512,5 +514,122 @@ class System_New extends System_Old {
 			this.placePieceInArr(this.dropData);
 			return false;
 		}
+	}
+}
+
+class System_AI extends System_New {
+	constructor() {
+		super();
+		this.palette = color_palettes[2];
+		this.clearTime = Math.ceil(this.clearTime / 10);
+		this.quitTimer = 100;
+
+		//awareness is where the AI thinks the piece is
+		this.aiAwareness = [-1, -1];
+		//goals are where the AI wants the piece to be
+		this.aiGoals = [-1, -1];
+	}
+
+	createPiece() {
+		super.createPiece();
+		this.createGoals();
+	}
+
+	createGoals() {
+		//make sure to remove the piece from the board first
+		this.removePieceFromArr(this.dropData);
+
+		//create new goals
+		this.aiAwareness[0] = -1;
+		this.aiAwareness[1] = this.dropData[3];
+
+		var modelBoard = this.board.slice(board_heightBuffer);
+		var possibilities = aiMdl_givePossibleStatePaths(modelBoard, this.dropData[2]);
+
+		//loop through all possibilities and choose the best one
+		var bestFitness = -1e5;
+		var bestState;
+		this.aiGoals = undefined;
+		var fitness;
+		for (var state of possibilities) {
+			if (state == ai_endStr) {
+				if (this.aiGoals == undefined) {
+					
+				}
+			}
+			//use the judgement of the best AI
+			fitness = calculateFitness(state[0], 0, ai_populationPaired[0][0]);
+			if (fitness > bestFitness || this.aiGoals == undefined) {
+				bestFitness = fitness;
+				this.aiGoals = state.slice(1);
+				bestState = state[0];
+			}
+		}
+		//and put the piece back
+		this.placePieceInArr(this.dropData);
+	}
+
+	tick() {
+		super.tick();
+		if (this.stopped) {
+			this.quitTimer -= 1;
+			return;
+		}
+
+		//the AI is usually limited to 1 operation per tick, but if the level is too high that will change
+		var operationsAllowed = 0.5 + (0.5 * (this.level > 1)) + (1 * (this.level > 5));//Math.floor(this.level / 4);
+		var operations = 0;
+
+		if (operationsAllowed < 1) {
+			if (animation % (1 / operationsAllowed) != 0) {
+				return;
+			}
+		}
+
+		//align piece with correct rotation
+		while (this.aiAwareness[1] != this.aiGoals[1]) {
+			operations += 1;
+			var directionality = Math.sign(this.aiGoals[1] - this.aiAwareness[1]);
+			this.twistPiece(directionality);
+			this.aiAwareness[1] += directionality;
+
+			if (operations >= operationsAllowed) {
+				return;
+			}
+		}
+
+		//x position can only be calculated after twisting the piece, because twisting might cause the piece to change widths, which would throw off the visible coordinates otherwise
+		if (this.aiAwareness[0] == -1) {
+			//if the AI doesn't know where the piece is (-1) calculate it
+			operations += 1;
+
+			var xCoordinate = 0;
+			while (this.movePiece(-1, 0)) {
+				xCoordinate += 1;
+			}
+			//move piece back
+			this.movePiece(xCoordinate, 0);
+			this.aiAwareness[0] = xCoordinate;
+
+			if (operations >= operationsAllowed) {
+				return;
+			}
+		}
+
+		//actually moving the piece
+		while (this.aiAwareness[0] != this.aiGoals[0]) {
+			operations += 1;
+
+			var directionality = Math.sign(this.aiGoals[0] - this.aiAwareness[0]);
+			this.movePiece(directionality, 0);
+			this.aiAwareness[0] += directionality;
+
+			if (operations >= operationsAllowed) {
+				return;
+			}
+		}
+
+		//dropping the piece
+		this.hardDrop();
 	}
 }
