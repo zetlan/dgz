@@ -84,7 +84,26 @@ function drawAIButtons() {
 }
 
 function drawAIListing() {
+	ctx.font = `${canvas.height / 20}px Ubuntu`;
+	ctx.fillStyle = color_text;
+	ctx.textAlign = "center";
 
+	ctx.fillText(`Data`, canvas.width * 0.6, canvas.height * 0.15);
+	ctx.fillText(`Score`, canvas.width * 0.9, canvas.height * 0.15);
+
+	if (ai_populationPaired.length < 20) {
+		ctx.fillText(`No data!`, canvas.width * 0.75, canvas.height * 0.4);
+		return;
+	}
+	var ref;
+	for (var u=0; u<20; u++) {
+		ref = ai_populationPaired[u][0];
+		ctx.font = `${canvas.height / 40}px Ubuntu`;
+		ctx.fillText(`{${ref.a.toFixed(2)}, ${ref.b.toFixed(2)}, ${ref.c.toFixed(2)}, ${ref.d.toFixed(2)}}`, canvas.width * 0.6, canvas.height * (0.2 + (0.04 * u)));
+
+		ctx.font = `${canvas.height / 25}px Ubuntu`;
+		ctx.fillText(Math.round(ai_populationPaired[u][1]), canvas.width * 0.9, canvas.height * (0.2 + (0.04 * u)));
+	}
 }
 
 
@@ -262,5 +281,14 @@ function setCanvasPreferences() {
 function setSafeString(fieldToSet, string) {
 	if (typeof(string) == "string" && string != "" && string != ai_name) {
 		eval(`${fieldToSet} = "${string}";`);
+	}
+}
+
+function startAIGame() {
+	if (ai_populationPaired.length > 1) {
+		game_state = 5; 
+		boards = [new System_AI()];
+	} else {
+		alert(`There is no AI to run!`);
 	}
 }
