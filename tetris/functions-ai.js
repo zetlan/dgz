@@ -7,7 +7,7 @@ aiMdl_givePossibleStates(inputStateArr, pieceIdOPTIONAL, pieceRotOPTIONAL);
 aiMdl_convertToArr(inputStr);
 aiMdl_convertToStr(inputArr);
 
-calculateFitness(boardArr, weights);
+calculateFitness(boardArr, linesCleared, weights);
 calculateFitnessFor(network);
 
 */
@@ -112,7 +112,75 @@ function aiMdl_givePossibleStates(inputStateArr, pieceIdOPTIONAL, pieceRotOPTION
 	});
 
 	return outBoards;
+}
 
+//like give possible states, except it also returns the coordinates and rotation of a piece
+function aiMdl_givePossibleStatePaths(inputStateArr, pieceIdOPTIONAL, pieceRotOPTIONAL) {
+	var outBoards = [];
+
+	if (pieceIdOPTIONAL != undefined) {
+		if (pieceRotOPTIONAL != undefined) {
+			var inputRowHeights = [];
+			for (var x=0; x<board_width; x++) {
+				for (var y=0; y<board_height; y++) {
+					if (inputStateArr[y][x] != undefined) {
+						inputRowHeights[x] = y;
+						y = board_height + 5;
+					}
+				}
+				if (y < board_height + 5) {
+					inputRowHeights[x] = board_height;
+				}
+			}
+			var arrRep = representPieceWithArr(pieceIdOPTIONAL, pieceRotOPTIONAL);
+			arrRep = trimPieceArr(arrRep);
+			var upperXBound = board_width - arrRep[0].length;
+			var heights = [];
+			for (var x=0; x<arrRep[0].length; x++) {
+				for (var y=arrRep.length-1; y>-1; y--) {
+					if (arrRep[y][x] != "0") {
+						heights[x] = y;
+						y = -1;
+					}
+				}
+			}
+
+			var arrCopy;
+			var landSection;
+			for (var x=0; x<=upperXBound; x++) {
+				arrCopy = copyObj(inputStateArr);
+				landSection = inputRowHeights.slice(x, x + arrRep[0].length);
+				for (var bx=0; bx<arrRep[0].length; bx++) {
+					landSection[bx] -= heights[bx] + 1;
+				}
+				var height = Math.min(...landSection);
+				if (height < 0) {
+					outBoards.push([ai_endStr, x, pieceRotOPTIONAL]);
+				} else {
+					for (var by=0; by<arrRep.length; by++) {
+						for (bx=0; bx<arrRep[0].length; bx++) {
+							if (arrRep[by][bx] == "1") {
+								arrCopy[by + height][bx + x] = "#";
+							}
+						}
+					}
+					//appends the board, the x offset from the left side, and the rotation
+					outBoards.push([arrCopy, x, pieceRotOPTIONAL]);
+				}
+			}
+			return outBoards;
+		}
+
+		for (var r=0; r<=piece_posLimits[pieceIdOPTIONAL]; r++) {
+			var thisIteration = aiMdl_givePossibleStatePaths(inputStateArr, pieceIdOPTIONAL, r);
+			outBoards = outBoards.concat(thisIteration);
+		}
+		return outBoards;
+	}
+	Object.keys(piece_pos).forEach(p => {
+		outBoards = outBoards.concat(aiMdl_givePossibleStatePaths(inputStateArr, p));
+	});
+	return outBoards;
 }
 
 function aiMdl_convertToArr(inputStr) {
@@ -145,7 +213,9 @@ function aiMdl_convertToStr(inputArr) {
 	return outStr;
 }
 
-function calculateFitness(boardArr, weights) {
+//lines are cleared before the board is evaluated, so they have to be passed in as a separate argument
+function calculateFitness(boardArr, linesCleared, weights) {
+	//console.log(`calculating`);
 	//if the board is the game over str, have it be negative
 	//sorry network but this one isn't up to you
 	if (boardArr == ai_endStr) {
@@ -154,9 +224,9 @@ function calculateFitness(boardArr, weights) {
 
 	//step 1: figure out relavant parameters of the board
 	var maxHeight;
-	var minHeight;
+	var numWells = 0;
 	var numHoles = 0;
-	var variance;
+	var variance = 0;
 	var nerf = 0;
 
 	//to calculate heights: loop through the board and find out how far down each row goes
@@ -184,15 +254,24 @@ function calculateFitness(boardArr, weights) {
 		nerf = -1e3;
 	}
 
-	minHeight = Math.min(...rowHeights);
-	rowHeights.splice(rowHeights.indexOf(minHeight), 1);
-	var avg = rowHeights.reduce((a, b) => a + b, 0) / rowHeights.length;
-	variance = rowHeights.reduce((a, b) => a + Math.abs(b - avg), 0) / rowHeights.length;
-	variance = variance * variance;
+	//determine number of wells and variance, this is a bit messy but it allows me to only loop once
+	if (rowHeights[1] - rowHeights[0] > 2) {
+		numWells += rowHeights[1] - rowHeights[0] - 2;
+	}
+
+	for (var u=1; u<rowHeights.length-1; u++) {
+		numWells += Math.max(0, Math.min(rowHeights[u-1] - rowHeights[u], rowHeights[u+1] - rowHeights[u]) - 2);
+		variance += Math.abs(rowHeights[u] - rowHeights[u-1]);
+	}
+
+	variance += Math.abs(rowHeights[rowHeights.length-1] - rowHeights[rowHeights.length-2]);
+	if (rowHeights[rowHeights.length-1] - rowHeights[rowHeights.length-1] > 2) {
+		numWells += rowHeights[rowHeights.length-1] - rowHeights[rowHeights.length-1] - 2;
+	}
 
 
 	//step 2: calculate fitness based on weights
-	return (nerf + maxHeight * weights.a + minHeight * weights.b + numHoles * weights.c + variance * weights.d);
+	return (nerf + maxHeight * weights.a + numWells * weights.b + numHoles * weights.c + variance * weights.d);
 }
 
 function calculateFitnessFor(network) {
@@ -212,6 +291,7 @@ function calculateFitnessFor(network) {
 		var bestBoard;
 		var possibleBoards;
 		var bonusScore;
+		var linesCleared;
 		while (gameBoard != ai_endStr) {
 			i += 1;
 			pieceNext = pieces.pop();
@@ -224,8 +304,14 @@ function calculateFitnessFor(network) {
 			//go through all the possible boards and add data - the number of points the AI would get from cleared lines, as well as the AI's fitness scoring of this board
 			bestBoard = undefined;
 			for (var b=0; b<possibleBoards.length; b++) {
-				bonusScore = (possibleBoards[b] != ai_endStr) ? ai_scoring[clearLines(possibleBoards[b])] : 0;
-				possibleBoards[b] = [possibleBoards[b], bonusScore, calculateFitness(possibleBoards[b], network)];
+				if (possibleBoards[b] != ai_endStr) {
+					linesCleared = clearLines(possibleBoards[b]);
+					bonusScore = ai_scoring[linesCleared];
+				} else {
+					linesCleared = 0;
+					bonusScore = 0;
+				}
+				possibleBoards[b] = [possibleBoards[b], bonusScore, calculateFitness(possibleBoards[b], linesCleared, network)];
 
 				//if it's the best board, select it
 				if (bestBoard == undefined || bestBoard[2] < possibleBoards[b][2]) {
@@ -236,6 +322,12 @@ function calculateFitnessFor(network) {
 			//change the board state to the best board and add points
 			points += bestBoard[1];
 			gameBoard = bestBoard[0];
+
+			//don't push a training game for too long, if there's enough points, just end it
+			if (points > ai_gameLengthMax * (g+1)) {
+				gameBoard = ai_endStr;
+				console.log(`too many points!`);
+			}
 		}
 	}
 	points = points / ai_trainGames;
@@ -273,13 +365,19 @@ function trainOnce() {
 		ai_population = [];
 		var parent1;
 		var parent2;
+
+		//save the best few AIs
+		ai_population.push(genePool[0]);
 		while (ai_population.length < ai_populationGoal) {
-			parent1 = Math.floor(randomBounded(0, populationPullArr.length-0.01));
-			parent2 = Math.floor(randomBounded(0, populationPullArr.length-0.01));
+			parent1 = Math.floor(randomBounded(0, genePool.length-0.01));
+			parent2 = Math.floor(randomBounded(0, genePool.length-0.01));
 			//make sure the parents aren't the same 
 			while (parent1 == parent2) {
-				parent2 =  Math.floor(randomBounded(0, populationPullArr.length-0.01));
+				parent2 =  Math.floor(randomBounded(0, genePool.length-0.01));
 			}
+
+			parent1 = genePool[parent1];
+			parent2 = genePool[parent2];
 
 			//merge the two
 			var child = {
@@ -296,12 +394,11 @@ function trainOnce() {
 	ai_populationPaired = [];
 	for (var network of ai_population) {
 		ai_populationPaired.push([network, calculateFitnessFor(network)]);
+		console.log(`evaluating network!`);
 	}
 
-
-
-
-	
+	//then sort the paired population
+	ai_populationPaired.sort((a, b) => b[1] - a[1]);
 }
 
 function trimPieceArr(arr) {
