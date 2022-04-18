@@ -393,9 +393,14 @@ function trainOnce() {
 
 	//create paired population from the new generation
 	ai_populationPaired = [];
+	var r = 0;
 	for (var network of ai_population) {
+		r += 1;
 		ai_populationPaired.push([network, calculateFitnessFor(network)]);
-		console.log(`evaluating network!`);
+		if (r % 5 == 0) {
+			console.log(`evaluating networks (${r}/${ai_populationGoal})`);
+		}
+		
 	}
 
 	//then sort the paired population
