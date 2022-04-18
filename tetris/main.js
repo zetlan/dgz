@@ -83,7 +83,7 @@ let state_functions_main = [
 	execute_sprint,
 	execute_competition,
 	execute_aiTrain,
-	execute_aiPlay,
+	execute_endless,
 ]
 let state_functions_keyPress = [
 	handleKeyPress_menu,
@@ -132,15 +132,6 @@ function execute_aiTrain() {
 	drawAIListing();
 }
 
-function execute_aiPlay() {
-	//run a normal tetris game
-	execute_endless();
-
-	//make sure you can tell it's an AI playing
-}
-
-
-
 
 //game mode functions
 
@@ -162,7 +153,7 @@ function execute_menu() {
 			menu_executePre();
 			break;
 		case 0:
-			menu_executeNormal();
+			drawMainMenu();
 			break;
 		case 1:
 			menu_executeSettings();
@@ -199,11 +190,6 @@ function menu_executePre() {
 		menu_selectSet = menu_buttons;
 		menu_selected = 0;
 	}
-}
-
-function menu_executeNormal() {
-	//title text
-	drawMainMenu();
 }
 
 function menu_executeSettings() {
