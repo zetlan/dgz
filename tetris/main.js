@@ -5,12 +5,13 @@ var animation;
 var canvas;
 var ctx;
 
+var ai_avgScore;
 var ai_best;
 var ai_bestFitness;
 var ai_endStr = `GAME OVER`;
-var ai_gameLengthMax = 100000;
+var ai_gameLengthMax = 350000;
 var ai_generation = 0;
-var ai_name = "block-1";
+var ai_name = "block-II";
 var ai_mutationRate = 0.2;
 var ai_mutationAmount = 0.05;
 var ai_population = [];
@@ -19,7 +20,7 @@ var ai_populationGoal = 600;
 //how many points the AI gets for clearing x number of lines at the same time
 var ai_scoring = [0, 40, 100, 300, 1200];
 var ai_sharesMax = 150;
-var ai_sharesRate = 0.85;
+var ai_sharesRate = 0.8;
 var ai_trainGames = 5;
 
 
@@ -103,12 +104,18 @@ function setup() {
 	audio_channel1 = new AudioChannel(0.5);
 
 	setCanvasPreferences();
+	localStorage_read();
 
 	animation = window.requestAnimationFrame(main);
 }
 
 function main() {
 	state_functions_main[game_state]();
+
+	//local storage
+	if (animation % 203 == 0) {
+		localStorage_write();
+	}
 	animation = window.requestAnimationFrame(main);
 }
 
@@ -161,6 +168,7 @@ function execute_menu() {
 			break;
 		case 2:
 			//highscores
+			drawHighScores();
 			break;
 		case 3:
 			menu_executeControls();
