@@ -78,6 +78,30 @@ var color_palettes = [
 			ctx.fillStyle = color;
 			ctx.fillRect(x, y, size+1, size+1);
 		}
+	}, {
+		//AI
+		clearColor: "#ecffed",
+		bg: "#14345e",
+		endBg: "#040031",
+		mg: "#4d6b6f",
+		lines: "#cfe9cf",
+		text: "#ca85ff",
+		pColors: {
+			"I": "#80ffff",
+			"J": "#8080ff",
+			"L": "#ffc480",
+			"O": "#ffff80",
+			"S": "#80ff80",
+			"T": "#ff80ff",
+			"Z": "#ff8080",
+		},
+		draw: (color, x, y, size) => {
+			ctx.beginPath();
+			ctx.globalAlpha = 1;
+			ctx.fillStyle = color;
+			ctx.fillRect(x + (size * 0.1), y + (size * 0.1), size * 0.8, size * 0.8);
+			ctx.fill();
+		}
 	}]
 var controls_s = {
 	l: 'ArrowLeft',
@@ -145,7 +169,7 @@ var menu_buttons_ai = [
 	[`Train 1 generation`, `trainOnce();`],
 	[`Import generation`, `document.getElementById("uploadBox").click();`],
 	[`Export generation`, `file_export();`],
-	[`Watch the AI play`, `game_state = 5; boards = [new System_New()];`]
+	[`Watch the AI play`, `startAIGame();`]
 ]
 
 var menu_buttons_old = [
