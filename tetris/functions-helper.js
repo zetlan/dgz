@@ -96,13 +96,41 @@ function drawAIListing() {
 		return;
 	}
 	var ref;
-	for (var u=0; u<20; u++) {
+	for (var u=0; u<15; u++) {
 		ref = ai_populationPaired[u][0];
 		ctx.font = `${canvas.height / 40}px Ubuntu`;
 		ctx.fillText(`{${ref.a.toFixed(2)}, ${ref.b.toFixed(2)}, ${ref.c.toFixed(2)}, ${ref.d.toFixed(2)}}`, canvas.width * 0.6, canvas.height * (0.2 + (0.04 * u)));
 
 		ctx.font = `${canvas.height / 25}px Ubuntu`;
 		ctx.fillText(Math.round(ai_populationPaired[u][1]), canvas.width * 0.9, canvas.height * (0.2 + (0.04 * u)));
+	}
+
+	if (ai_avgScore == undefined) {
+		ai_avgScore = Math.round(ai_populationPaired.reduce((a, b) => a + b[1], 0) / ai_populationPaired.length);
+	}
+
+	u += 2;
+	ctx.font = `${canvas.height / 25}px Ubuntu`;
+	ctx.fillText(`Avg generation score: ${ai_avgScore}`, canvas.width * 0.75, canvas.height * (0.2 + (0.04 * u)));
+}
+
+function drawHighScores() {
+	ctx.font = `${canvas.height / 20}px Ubuntu`;
+	ctx.fillStyle = color_text;
+	ctx.textAlign = "left";
+	ctx.fillText(`Name`, canvas.width * 0.1, canvas.height * 0.1);
+
+	ctx.textAlign = "center";
+	ctx.fillText(`Score`, canvas.width * 0.8, canvas.height * 0.1);
+
+	var scoreArr = data_persistent.scores["modern"];
+
+	for (var u=0; u<scoreArr.length; u++) {
+		ctx.textAlign = "left";
+		ctx.fillText(scoreArr[u][0], canvas.width * 0.1, canvas.height * (0.2 + (0.05 * u)));
+
+		ctx.textAlign = "center";
+		ctx.fillText(scoreArr[u][1], canvas.width * 0.8, canvas.height * (0.2 + (0.05 * u)));
 	}
 }
 
@@ -251,11 +279,27 @@ function file_import() {
 }
 
 function localStorage_read() {
+	//checks to make sure this is valid
+	var toRead = window.localStorage["tetris_data"];
+	//make sure it's an object
+	try {
+		toRead = JSON.parse(toRead);
+	} catch (error) {
+		console.log(`could not parse ${toRead}, using default.`);
+	}
+	
 
+	//make sure it's somewhat safe, and then make it into the game flags
+	if (typeof(toRead) == "object") {
+		data_persistent = toRead;
+	} else {
+		console.log(`${toRead} isn't an object! Using default.`);
+	}
 }
 
 function localStorage_write() {
-
+	//this is not that complex
+	window.localStorage["tetris_data"] = JSON.stringify(data_persistent);
 }
 
 
