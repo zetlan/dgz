@@ -384,9 +384,9 @@ class System_New extends System_Old {
 
 		//next pieces
 	}
-
-	clearLine(line) {
-		super.clearLine(line);
+	
+	checkClearLines() {
+		super.checkClearLines();
 		this.createGhosts();
 	}
 
