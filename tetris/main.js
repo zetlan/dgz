@@ -1,5 +1,6 @@
 window.onload = setup;
 window.addEventListener("keydown", handleInput, false);
+window.addEventListener("resize", setCanvasPreferences, false);
 
 var animation;
 var canvas;
