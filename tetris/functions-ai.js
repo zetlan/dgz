@@ -338,6 +338,7 @@ function calculateFitnessFor(network) {
 
 function trainOnce() {
 	ai_generation += 1;
+	ai_avgScore = undefined;
 
 	//if the paired population isn't defined, create a random population
 	if (ai_populationPaired.length == 0) {
