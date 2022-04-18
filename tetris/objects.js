@@ -150,7 +150,7 @@ class System_Old {
 		//if amount of clearing lines has increased, update score based on how many the player got at a time
 		clearedLines = this.clearables.reduce((a, b) => {return a + (b == true)}) - clearedLines;
 		if (clearedLines > 0) {
-			this.score += (100 + ((clearedLines - 1) * 200) + ((clearedLines == 4) * 100)) * this.level;
+			this.score += this.scoreForLines(clearedLines);
 		}
 	}
 
@@ -184,6 +184,7 @@ class System_Old {
 		if (!this.placePieceInArr(this.dropData)) {
 			//if there's a problem placing the piece, it's game over
 			this.stopped = true;
+			this.sendHighScore();
 			game_substate = 1;
 		}
 	}
@@ -211,6 +212,14 @@ class System_Old {
 			return false;
 		}
 		return true;
+	}
+
+	scoreForLines(clearedLines) {
+		return (100 + ((clearedLines - 1) * 200) + ((clearedLines == 4) * 100)) * this.level;
+	}
+
+	sendHighScore() {
+		addHighScore([data_persistent.name1, this.score, "modern"]);
 	}
 
 	storePiece() {
@@ -567,6 +576,22 @@ class System_AI extends System_New {
 		}
 		//and put the piece back
 		this.placePieceInArr(this.dropData);
+	}
+
+	scoreForLines(clearedLines) {
+		return ai_scoring[clearedLines];
+	}
+
+	sendHighScore() {
+		//make sure there's only ever 1 AI score on the leaderboard
+		if (data_persistent.scores["modern"].length > 0) {
+			var aiScores = data_persistent.scores["modern"].reduce(score => score[0] == ai_name);
+			if (aiScores.length > 0 && aiScores[0][1] < this.score) {
+				data_persistent.scores["modern"] = data_persistent.scores["modern"].reduce(score => score[0] != ai_name);
+			}
+		}
+		
+		addHighScore([ai_name, this.score, "modern"]);
 	}
 
 	tick() {
