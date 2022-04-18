@@ -387,6 +387,7 @@ class System_New extends System_Old {
 
 	clearLine(line) {
 		super.clearLine(line);
+		this.createGhosts();
 	}
 
 	colorLine(line) {
@@ -601,8 +602,12 @@ class System_AI extends System_New {
 			return;
 		}
 
+		if (this.aiGoals == undefined) {
+			return;
+		}
+
 		//the AI is usually limited to 1 operation per tick, but if the level is too high that will change
-		var operationsAllowed = 0.5 + (0.5 * (this.level > 1)) + (1 * (this.level > 5));//Math.floor(this.level / 4);
+		var operationsAllowed = 0.5 + (0.5 * (this.level > 1)) + (1 * (this.level > 5)) + Math.floor(this.level / 20);
 		var operations = 0;
 
 		if (operationsAllowed < 1) {
@@ -655,6 +660,7 @@ class System_AI extends System_New {
 		}
 
 		//dropping the piece
+		this.aiGoals = undefined;
 		this.hardDrop();
 	}
 }
