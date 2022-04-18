@@ -658,7 +658,6 @@ class System_AI extends System_New {
 		}
 
 		//dropping the piece
-		this.aiGoals = undefined;
 		this.hardDrop();
 	}
 }
