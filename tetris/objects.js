@@ -380,8 +380,6 @@ class System_New extends System_Old {
 			ctx.rect(boardMinX + (bl[0] * sqSize), boardMinY + (bl[1] * sqSize), sqSize, sqSize);
 			ctx.stroke();
 		}
-
-
 		//next pieces
 	}
 	
