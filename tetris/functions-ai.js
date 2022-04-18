@@ -250,7 +250,7 @@ function calculateFitness(boardArr, linesCleared, weights) {
 	maxHeight = Math.max(...rowHeights);
 
 	//similar game-ending check, I'd rather the AI not reach the very top
-	if (maxHeight > board_height - 2) {
+	if (maxHeight >= board_height - 3) {
 		nerf = -1e3;
 	}
 
@@ -361,6 +361,7 @@ function trainOnce() {
 			for (var r=0; r<shares; r++) {
 				genePool.push(ai_populationPaired[n][0]);
 			}
+			shares = Math.ceil(shares * ai_sharesRate);
 		}
 
 		ai_population = [];
