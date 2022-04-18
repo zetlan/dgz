@@ -315,7 +315,7 @@ function representPieceWithArr(pieceID, rotation) {
 }
 
 function setCanvasPreferences() {
-	canvas.width = window.innerHeight * 0.9 * (1 + (1 / 3));
+	canvas.width = window.innerHeight * 0.9 * (4 / 3);
 	canvas.height = window.innerHeight * 0.9;
 
 	ctx.textBaseline = "middle";
