@@ -2490,9 +2490,10 @@ var cardData = [{
 }, {
 	authors: `Vincent T.`,
 	id: `573`,
+	imgType: `jpg`,
 	name: `MATH BOMB`,
 	tags: ["M","multi-colored","point card"],
-	notes: `This card has been removed from the deck and returned to Vincent.`,
+	notes: `This card was initially in the deck unfinished. To view the unfinished version, click <a href="./all-card-images/card~573.png">here</a>.`,
 }, {
 	id: `574`,
 	name: `Math Team A`,
@@ -6777,6 +6778,18 @@ var cardData = [{
 	imgType: `jpg`,
 	name: `The Worst Way to Hold a Drink`,
 	tags: ["T", "point card"],
+}, {
+	//season 3 starts here
+	id: `1518`,
+	imgType: `jpeg`,
+	name: `Noah's Right Eye`,
+	tags: ["N", "point card", "multi-colored"]
+}, {
+	authors: `Aadarsh N.`,
+	id: `1519`,
+	imgType: `jpg`,
+	name: `I hardly know 'er!`,
+	tags: ["I", "point card"],
 }];
 
 
