@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<!--
+			Copyright Cynthia Clementine 
+			April-26-2022
+		-->
+		<title>4d Spinning Shapes</title>
+		<meta charset="UTF-8">
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono&display=swap" rel="stylesheet">
+		<style>
+			body {
+				background-color: slateblue;
+			}
+
+			#can {
+				display: block;
+				margin: auto;
+			}
+			#centerPara {
+				text-align: center;
+			}
+			#uploadBox {
+				display: none;
+			}
+		</style>
+	</head>
+	<script src="common/functions-coordinate.js"></script>
+	<script>
+		var button_shiftPressed = false;
+
+		var canvas;
+		var ctx;
+
+		var camera = {
+			w: -2,
+			x: 0,
+			y: 0,
+			z: -10,
+
+			zMin: -5000,
+			zMax: -1,
+
+			scale: 1100,
+		};
+
+		window.onload = setup;
+		window.addEventListener("keydown", handleKeyPress);
+		window.addEventListener("keyup", handleKeyUp);
+		window.addEventListener("mousewheel", handleScroll);
+
+		//all 4d points are in [x, y, z, w] format
+
+		var color_bg = "#000";
+		var color_lines = "#8AF";
+		var color_text = "#F8F";
+
+		var distMax = 1000;
+
+		var phi = (1 + Math.sqrt(5)) / 2;
+		var ihp = 1 / phi;
+
+		var shape_tesser = [
+			[-1, 1, -1, 1],
+			[-1, 1, 1, 1],
+			[1, 1, 1, 1],
+			[1, 1, -1, 1],
+			[-1, -1, -1, 1],
+			[-1, -1, 1, 1],
+			[1, -1, 1, 1],
+			[1, -1, -1, 1],
+			[-1, 1, -1, -1],
+			[-1, 1, 1, -1],
+			[1, 1, 1, -1],
+			[1, 1, -1, -1],
+			[-1, -1, -1, -1],
+			[-1, -1, 1, -1],
+			[1, -1, 1, -1],
+			[1, -1, -1, -1],
+		];
+		
+		var shape_pentachor = [
+			[1, -1, -1, -1],
+			[-1, 1, -1, -1],
+			[-1, -1, 1, -1],
+			[-1, -1, -1, 1],
+			[phi-1, phi-1, phi-1, phi-1]
+		];
+
+		var shape_pentachor_edges = [
+			[0,1],[0,2],[0,3],[0,4],
+			[1,2],[1,3],[1,4],
+			[2,3],[2,4],
+			[3,4]
+		];
+
+		var shape_tesser_edges = [
+			[0,1],[1,2],[2,3],[3,0],
+			[4,5],[5,6],[6,7],[7,4],
+			[0,4],[1,5],[2,6],[3,7],
+
+			[8,9],[9,10],[10,11],[11,8],
+			[12,13],[13,14],[14,15],[15,12],
+			[8,12],[9,13],[10,14],[11,15],
+
+			[0,8],[1,9],[2,10],[3,11],[4,12],[5,13],[6,14],[7,15]
+		]
+
+		var activeShape = 1;
+		var shapes = [
+			[shape_pentachor, shape_pentachor_edges],
+			[shape_tesser, shape_tesser_edges]
+		];
+
+		
+		//rotations says which way to rotate (0 means not in that dimension))
+		var rotations = [0, 0, 0, 0, 0, 0];
+		var rotationSpeed = Math.PI / 200;
+
+		function drawText() {
+			var computed = ``;
+			rotations.forEach(r => {
+				computed += " " + "-0+"[r+1];
+			});
+			ctx.font = `${canvas.height / 20}px Ubuntu Mono`;
+			ctx.textAlign = "left";
+			ctx.fillStyle = color_text;
+			ctx.fillText(`rotations: ${computed}`, canvas.width * 0.01, canvas.height * 0.05);
+		}
+
+
+		function drawShape() {
+			var pts = shapes[activeShape][0].map(a => spaceToScreen(...a));
+			var ref = shapes[activeShape][1];
+			ctx.strokeStyle = color_lines;
+
+			for (var c=0; c<ref.length; c++) {
+				drawLine(pts[ref[c][0]], pts[ref[c][1]], ((shapes[activeShape][0][ref[c][1]][2] - camera.z) + (shapes[activeShape][0][ref[c][0]][2] - camera.z)) / 2);
+			}
+			shapes[activeShape][1].forEach(c => {
+				
+			});
+		}
+
+		function drawLine(p1, p2, distance) {
+			ctx.globalAlpha = 1 / (distance / 4);
+			ctx.beginPath();
+			ctx.moveTo(p1[0], p1[1]);
+			ctx.lineTo(p2[0], p2[1]);
+			ctx.stroke();
+
+			ctx.globalAlpha = 1;
+		}
+
+		function file_import() {
+			//file reference
+			var newFile = document.getElementById('uploadBox').files[0];
+
+			//read the file in, this is asynchronous
+			var fileReader = new FileReader();
+			fileReader.onload = function(fileLoadedEvent) {
+				shape_csm = [];
+				shape_csm_edges = [];
+
+				//function for when the text actually loads
+				var textDat = fileLoadedEvent.target.result;
+				//remove annoying formatting bits
+				//why are these here in the first place?
+				textDat = textDat.replaceAll("\r", "");
+				textDat = textDat.replaceAll("\t", " ");
+				var lines = textDat.split("\n");
+
+				//first line will probably be OFF, and can be ignored. This is optional so I have to check for it
+				if (lines[0] == "4OFF") {
+					console.error(`Can't read in 4 dimensional shapes!`);
+					return;
+				}
+
+				//remove all whitespace / comment lines by only including lines with numbers
+				lines = lines.filter(a => /\d/.test(a));
+
+				//removing trailing / leading spaces, as well as comments
+				for (var a=0; a<lines.length; a++) {
+					lines[a] = lines[a].replaceAll(/#.*/g, "");
+
+					if (lines[a][0] == " ") {
+						lines[a] = lines[a].slice(1);
+					}
+					while (lines[a][lines[a].length-1] == " ") {
+						lines[a] = lines[a].slice(0, lines[a].length - 1);
+					}
+					lines[a] = lines[a].replaceAll(/  +/g, " ");
+					
+				}
+				
+				//first line is in the format [number of vertices] [number of faces] [number of edges]
+				//I don't care about the last two, but the first two tell me how many lines it'll be until the format switches, which is useful
+				var buffer1 = lines[0];
+				buffer1 = +buffer1.split(" ")[0];
+				lines.splice(0, 1);
+				
+				//gathering vertices
+				var vertices = lines.slice(0, buffer1);
+				vertices = vertices.map(a => a.split(" "));
+				vertices = vertices.map(a => [+a[0], +a[1], +a[2]]);
+
+				//center the vertices on the origin by first getting the bounds and then subtracting those bounds
+				var offsetX = (vertices.reduce((a, b) => Math.min(a, b[0]), 1e1001) + vertices.reduce((a, b) => Math.max(a, b[0]), -1e1001)) / 2;
+				var offsetY = (vertices.reduce((a, b) => Math.min(a, b[1]), 1e1001) + vertices.reduce((a, b) => Math.max(a, b[1]), -1e1001)) / 2;
+				var offsetZ = (vertices.reduce((a, b) => Math.min(a, b[2]), 1e1001) + vertices.reduce((a, b) => Math.max(a, b[2]), -1e1001)) / 2;
+
+				//var scaleFactor =(Math.abs(camera.z) - 1) * maxSize;
+
+				shape_csm = vertices = vertices.map(a => [a[0] - offsetX, a[1] - offsetY, a[2] - offsetZ]);
+
+				//gathering edge data, this should be the rest of the file after the vertices
+				lines = lines.slice(buffer1);
+				lines = lines.map(a => JSON.parse(`[${a.replaceAll(" ", ",")}]`));
+
+				var edges = [];
+				var buffer2 = [];
+
+				//go through each face and convert it to a set of lines
+				lines.forEach(q => {
+					var numEdges = q[0];
+					var tempEdges = [];
+					for (var p=2; p<=numEdges; p++) {
+						tempEdges.push(q.slice(p-1, p+1));
+					}
+					tempEdges.push([q[1], q[numEdges]]);
+
+					for (var a=0; a<tempEdges.length; a++) {
+						//make sure the edges are always ordered least->greatest
+						if (tempEdges[a][1] < tempEdges[a][0]) {
+							[tempEdges[a][0], tempEdges[a][1]] = [tempEdges[a][1], tempEdges[a][0]];
+						}
+					}
+					
+					tempEdges.forEach(l => {
+						var hash = "" + l;
+						if (buffer2.indexOf(hash) == -1) {
+							buffer2.push(hash);
+							edges.push(l);
+						}
+					});
+				});
+
+				shape_csm_edges = edges;
+			};
+
+			fileReader.readAsText(newFile, "UTF-8");
+		}
+
+		function handleKeyPress(a) {
+			if (a.code == "ShiftLeft" || a.code == "ShiftRight") {
+				button_shiftPressed = true;
+				return;
+			}
+
+			if (a.code.indexOf("Key") == 0) {
+				var letter = a.code.slice(3);
+				var translation = "ASDFGH";
+				var index = translation.indexOf(letter);
+				var sign = button_shiftPressed * 2 - 1;
+				if (index == -1) {
+					return;
+				}
+
+				rotations[index] += sign;
+				if (Math.abs(rotations[index]) > 1) {
+					rotations[index] = Math.sign(rotations[index]);
+				}
+				return;
+			}
+
+			if (a.code.indexOf("Digit") == 0) {
+				var number = +a.code.slice(5);
+
+				// if (number == 9 && activeShape != 9) {
+				// 	//request input
+				// 	document.getElementById("uploadBox").click();
+				// }
+
+				if (number < shapes.length) {
+					activeShape = number;
+				}
+			}
+		}
+
+		function handleKeyUp(a) {
+			switch (a.code) {
+				case "ShiftLeft":
+				case "ShiftRight":
+					button_shiftPressed = false;
+					break;
+			}
+		}
+
+		function handleScroll(a) {
+			camera.z = Math.min(Math.max(camera.z * (1 + a.deltaY / -100), camera.zMin), camera.zMax);
+		}
+
+		function main() {
+			//bg
+			ctx.fillStyle = color_bg;
+			ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+			drawShape();
+			drawText();
+			rotateShape();
+
+			//call self
+			window.requestAnimationFrame(main);
+		}
+
+		function rotateShape() {
+			shapes[activeShape][0].forEach(p => {
+				rotatePoint(p);
+			});
+		}
+
+		function rotatePoint(point) {
+			/*here's the dealio. In 3 dimensions, a rotation can be thought of as 3 components: 
+			a rotation around the x axis (changing y and z), a rotation around the y axis (changing x and z) and a rotation around the z axis (changing x and y).
+			In 4d, the same principal can apply. 4 rotations, each around an x, y, z, or w axis, and each rotation will change the other 3. 
+			But how can I rotate 3 dimensions around a 4th one?
+			by cheating, and not rotating in 3 dimensions - instead only rotating in 2 at once.
+			Instead of rotating x and y around z, for example,  x and y are rotated around z and w. Instead of the axis of rotation being a line, it's a plane.
+			Putting this together, we get all the rotation pairs - 
+			WX, WY, WZ, XY, XZ, and YZ 
+			
+			from this I can use the rotations list to apply them
+			*/
+
+			//the typical 3d rotations go first
+			//around WX, around WY, around WZ
+			[point[1], point[2]] = rotate(point[1], point[2], rotations[0] * rotationSpeed);
+			[point[0], point[2]] = rotate(point[0], point[2], rotations[1] * rotationSpeed);
+			[point[0], point[1]] = rotate(point[0], point[1], rotations[2] * rotationSpeed);
+
+
+			//around XY, YZ, around XZ
+			[point[2], point[3]] = rotate(point[2], point[3], rotations[3] * rotationSpeed);
+			[point[0], point[3]] = rotate(point[0], point[3], rotations[4] * rotationSpeed);
+			[point[1], point[3]] = rotate(point[1], point[3], rotations[5] * rotationSpeed);
+		}
+
+		function setup() {
+			canvas = document.getElementById("can");
+			ctx = canvas.getContext("2d");
+
+			setCanvasPreferences();
+			window.requestAnimationFrame(main);
+		}
+		
+		function setCanvasPreferences() {
+			ctx.lineWidth = 2;
+		}
+
+		function spaceToScreen(x, y, z, w) {
+			x -= camera.x;
+			y -= camera.y;
+			z -= camera.z;
+			w -= camera.w;
+
+			//divide out the 4th dimension
+			x /= w;
+			y /= w;
+
+			//then work with 3
+			x /= z;
+			y /= z;
+
+			x *= camera.scale;
+			y *= -camera.scale;
+
+			x += canvas.width / 2;
+			y += canvas.height / 2;
+
+			return [x, y];
+		}
+	</script>
+	<body>
+		<canvas id="can" width="640" height="480"></canvas>
+		<p id="centerPara">
+			To change the rotation, press A, S, D, F, G, and H. <br>
+			Holding down shift while pressing one of these will cause a rotation the other way.<br>
+			Pressing 0 or 1 will switch between a pentachoron / tesseract.
+			<!--Press the number keys to change the shape, scroll up / down to zoom in / out, and pressing number 9 will allow you to import your<br> 
+			own 3d models, as long as they are in 4d .OFF. -->
+		</p> 
+		<input type="file" id="uploadBox" onChange="file_import();">
+	</body>
+</html>
