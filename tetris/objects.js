@@ -585,7 +585,10 @@ class System_AI extends System_New {
 		//make sure there's only ever 1 AI score on the leaderboard
 		if (data_persistent.scores["modern"].length > 0) {
 			var aiScores = data_persistent.scores["modern"].filter(score => score[0] == ai_name);
-			if (aiScores.length > 0 && aiScores[0][1] < this.score) {
+			if (aiScores.length > 0) {
+				if (aiScores[0][1] > this.score) {
+					return;
+				}
 				data_persistent.scores["modern"] = data_persistent.scores["modern"].filter(score => score[0] != ai_name);
 			}
 		}
