@@ -231,10 +231,7 @@ def createStarData():
                 splitLn[0] = math.log(float(splitLn[0]))
                 splitLn[1] = math.log(float(splitLn[1]))
                 splitLn[2] = math.log(float(splitLn[2]))
-                try:
-                    splitLn[3] = math.log(float(splitLn[3]))
-                except:
-                    print(float(splitLn[3]))
+                splitLn[3] = float(splitLn[3])
                 #star type
                 splitLn[4] = int(splitLn[4])
                 splitLn[5] = starColorMap[splitLn[5]]
@@ -308,8 +305,20 @@ def kMeans(numOfMeans):
         #after the true means have all been calculated, make those the new picking means
         means = newMeans
 
+    accuracy = 0
     for q in meanBuckets:
+        #figure out accuracy
+        thinkBin = round(sum([star.typeActual for star in q]) / len(q))
+        for star in q:
+            if (star.typeActual == thinkBin):
+                accuracy += 1
+
+        #display all stars in the bin
         print([star.typeActual for star in q])
+
+    accuracy /= len(starsList)
+    print("accuracy: {}".format(accuracy))
+
 
     #assign guesses to stars
     for c in range(numOfMeans):
