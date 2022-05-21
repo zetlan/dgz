@@ -4,11 +4,12 @@
 import math
 import ast
 import sys
+import random
 
 
 
 def activationStep(x):
-    return int(x > 0)
+    return int(x >= 0)
 
 def activationSigmoid(x):
     return 1 / (1 + math.e ** -x)
@@ -62,11 +63,6 @@ def runNetwork(network, inputs):
 
 
 
-
-#XOR HAPPENS HERE
-
-#runNetwork is generalized to NxN networks, so it's slightly less obvious that exactly 3 perceptron calls are happening, but that's what's happening
-
 #create XOR network
 xorNet = createNetwork(activationStep, [2, 2, 1], 
     [[[1, 1], [0.5, 0.5]], 
@@ -86,15 +82,50 @@ diaNet = createNetwork(activationStep, [2, 4, 1],
     [-4]]
 )
 
-#user input
+
+#create circle network
+#https://www.desmos.com/calculator/vsozars2gz is what I used to adjust weights
+
+cirBias1 = 2.7
+cirBias2 = -3.6428
+cirNet = createNetwork(activationSigmoid, [2, 4, 1], 
+    [[[-1, -1], [-1, 1], [1, -1], [1, 1]], 
+    [[1, 1, 1, 1]]],
+
+    [[cirBias1, cirBias1, cirBias1, cirBias1],
+    [cirBias2]]
+)
+
 
 
 
 #different things depending on arguments
 if (len(sys.argv) == 1):
-    pass
+    pointsArr = []
+    #create points
+    for p in range(500):
+        pointsArr.append([random.random() * 2 - 1, random.random() * 2 - 1])
+
+    #check all points
+    numCorrect = 0
+
+    for p in pointsArr:
+        sndert = int((p[0] ** 2 + p[1] ** 2) ** 0.5 < 1)
+        trueSndert = round(runNetwork(cirNet, p)[0])
+        if (trueSndert != sndert):
+            print("misclassified point at [{}, {}]. (Should have been {})".format(p[0], p[1], {1: "inside", 0: "outside"}[trueSndert]))
+        else:
+            numCorrect += 1
+
+    print("accuracy: {}%".format(numCorrect * 100.0 / len(pointsArr)))
+
+
 elif (len(sys.argv) == 2):
     print(runNetwork(xorNet, ast.literal_eval(sys.argv[1]))[0])
 elif (len(sys.argv) == 3):
     #each one is a decimal value corresponding to x and y coordinates of a point to check against the diamond network
-    status = runNetwork(diaNet, float(sys.argv[1]), float(sys.argv[2]))
+    status = round(runNetwork(diaNet, [float(sys.argv[1]), float(sys.argv[2])])[0])
+    if (status == 1):
+        print("inside")
+    else:
+        print("outside")
