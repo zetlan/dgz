@@ -152,6 +152,7 @@ var cardData = [{
 	name: `______ in another world`,
 	tags: ["non-letter start","point card"],
 }, {
+	authors: `Nicholas T.`,
 	id: `1`,
 	name: `_______`,
 	tags: ["non-letter start"],
@@ -344,6 +345,7 @@ var cardData = [{
 	name: `AAHRT`,
 	tags: ["A","point card"],
 }, {
+	authors: `Nicholas T.`,
 	id: `48`,
 	name: `Abandoned Shop`,
 	tags: ["A","point card"],
@@ -353,7 +355,7 @@ var cardData = [{
 	tags: ["A","point card"],
 }, {
 	id: `50`,
-	name: `Abstract Art 2`,
+	name: `Abstract Art`,
 	tags: ["A"],
 }, {
 	id: `51`,
@@ -575,7 +577,7 @@ var cardData = [{
 	name: `Bad Card IV`,
 	tags: ["B","point card"],
 }, {
-	authors: "Aadarsh Natarajan",
+	authors: "Aadarsh N.",
 	id: `105`,
 	imgType: `jpg`,
 	name: `Bad Grade`,
@@ -609,7 +611,7 @@ var cardData = [{
 	name: `BAR TOOLS`,
 	tags: ["B"],
 }, {
-	authors: "Aadarsh Natarajan",
+	authors: "Aadarsh N.",
 	id: `113`,
 	imgType: `jpg`,
 	name: `Basic Math`,
@@ -804,6 +806,7 @@ var cardData = [{
 	name: `Burnt Resistor`,
 	tags: ["B","multi-colored","point card"],
 }, {
+	authors: `Nicholas T.`,
 	id: `159`,
 	name: `Burnt Pan`,
 	tags: ["B","point card"],
@@ -916,6 +919,7 @@ var cardData = [{
 	name: `CENSORED`,
 	tags: ["C","point card"],
 }, {
+	hide: true,
 	id: `187`,
 	name: `Centrol Balance`,
 	tags: ["C","point card"],
@@ -1601,6 +1605,7 @@ var cardData = [{
 	name: `Federalism`,
 	tags: ["F","point card"],
 }, {
+	authors: `Vincent T.`,
 	id: `355`,
 	name: `FERACTAL`,
 	tags: ["F","multi-colored","point card"],
@@ -1910,6 +1915,7 @@ var cardData = [{
 	name: `Heads or Guillotines`,
 	tags: ["H","point card"],
 }, {
+	authors: `Nicholas T.`,
 	id: `431`,
 	name: `Heart Locket`,
 	tags: ["H","point card"],
@@ -3467,6 +3473,7 @@ var cardData = [{
 	name: `Sanic`,
 	tags: ["S","point card"],
 }, {
+	authors: `Nicholas T.`,
 	id: `814`,
 	name: `Sans Deltarune`,
 	tags: ["S","point card"],
@@ -5311,6 +5318,7 @@ var cardData = [{
 	name: `Australia`,
 	tags: ["A"],
 }, {
+	authors: `Anish G.`,
 	id: `1246`,
 	imgType: `jpg`,
 	name: `Set yourself on fire`,
@@ -5815,10 +5823,12 @@ var cardData = [{
 	name: `Bidirectional Draws`,
 	tags: ["B"],
 }, {
+	authors: `Derek C.`,
 	id: `1339`,
 	imgType: `jpg`,
 	name: `Black Hole`,
 	tags: ["B", "rule card"],
+	notes: `Derek says this is the second card he ever made.`
 }, {
 	authors: `Liam B.`,
 	id: `1340`,
@@ -5870,6 +5880,7 @@ var cardData = [{
 	name: `Oops!`,
 	tags: ["O", "point card"],
 }, {
+	authors: `Nicholas T.`,
 	id: `1349`,
 	imgType: `jpg`,
 	name: `Neutral route sans`,
@@ -5886,6 +5897,7 @@ var cardData = [{
 	name: `Hull Missile`,
 	tags: ["H", "point card"],
 }, {
+	authors: `Nicholas T.`,
 	id: `1352`,
 	imgType: `jpg`,
 	name: `Dusttale Sans`,
