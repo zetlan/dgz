@@ -409,7 +409,9 @@ var games = {
 
 
 var games_desc = {
-	"tic-tac-toe": [`Played with two players on a 3 by 3 board.`, `Each player tries to make 3 in a row to win the game.`, `One player plays only Xs, and one player plays only Os.`, `X goes first.`],
 	"5-in-a-row": [`Similar to tic-tac-toe, but 5 in a row`, `is required to win, and the board is 10 by 10.`],
-	"order-and-chaos": [`Played on a 6 by 6 board.`, `One player is order, and the other is chaos.`, `Both players can place an X or O.`, `Order wants to make at least 5 in a row.`, `Chaos wants to prevent that.`, `Order plays first.`],
+	"connect-4": [`Played on a 6 by 7 board.`, `Players drop tiles from the top of the board, and they fall to the lowest available spot.`, `The first player to make 4 in a row wins`],
+	"tic-tac-toe": [`Played with two players on a 3 by 3 board.`, `Each player tries to make 3 in a row to win the game.`, `One player plays only Xs, and one player plays only Os.`, `X goes first.`],
+	"order-and-chaos": [`Played on a 6 by 6 board.`, `One player is order, and the other is chaos.`, `Both players can place an X or O.`, `Order wants to make at least 5 in a row, and chaos wants to prevent that.`, `Order plays first; to play type either X or O and then the number of the space you want to play at.`],
+	"othello": [`Played on an 8 by 8 board.`, `Players take turns placing an X or O on the board.`, `If placing a tile creates a line of tiles bordered on each end by the same type, the tiles will switch sides.`, `The game ends when the entire board is filled.`]
 }

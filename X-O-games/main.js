@@ -21,27 +21,38 @@ var textBuffer = [];
 var textCommands = [];
 
 function setStandardTextCommands() {
-	textCommands = [[`quit`, () => {text_setStandard(); stopAsyncActivity();}]];
+	textCommands = [
+		[`quit`, () => {text_setStandard(); stopAsyncActivity();}],
+		[`help`, (gameName) => {text_addHelp(gameName);}]
+
+];
+
 }
 
 function setup() {
 	setStandardTextCommands();
-	text_setStandard();
-	document.getElementById("terminal-input").addEventListener("keyup", acceptTextCommand, false);
+	text_setStandard()
+	document.getElementById("terminal-input-true").addEventListener("keyup", acceptTextCommand, false);
 }
+
 
 function acceptTextCommand(a) {
 	//only submit commands on enter
 	if (a.key != "Enter") {
 		return;
 	}
-	var commandLocation = document.getElementById("terminal-input");
+	var commandLocation = document.getElementById("terminal-input-true");
 	var command = commandLocation.value;
 
+	if (command == undefined) {
+		return;
+	}
+
 	//detect commands and clear box if accepted
+	var inputs = command.toUpperCase().split(" ");
 	for (var e=0; e<textCommands.length; e++) {
-		if (command.toUpperCase() == textCommands[e][0].toUpperCase()) {
-			textCommands[e][1]();
+		if (inputs[0] == textCommands[e][0].toUpperCase()) {
+			textCommands[e][1](...inputs.slice(1));
 			commandLocation.value = "";
 			return;
 		}
@@ -81,6 +92,18 @@ function displayTextRecursive() {
 function stopAsyncActivity() {
 	window.clearTimeout(asyncBuffer);
 	game_auto = false;
+}
+
+function text_addHelp(helpFor) {
+	var helpText = ``;
+	switch (helpFor) {
+		case `othello`:
+			
+	}
+
+	//add at the top of the text buffer
+	textBuffer.splice(0, 0, `--------`);
+	textBuffer.splice(0, 0, helpText);
 }
 
 
@@ -192,7 +215,7 @@ function text_setCMDListing() {
 		`COMMAND STRUCTURE: [command name] [arg1] [arg2] [arg3]`,
 		`Typed as: command name arg1 arg2 arg3`,
 		`[quit] - At any time, quit to the main space.`,
-		//`[rules] [game] - View the rules of a game.`,
+		`[help] [game] - Get information about a game.`,
 	];
 
 	//commands
